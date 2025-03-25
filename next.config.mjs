@@ -1,8 +1,12 @@
-let userConfig = undefined
+// next.config.mjs
+
+let userConfig;
 try {
-  userConfig = await import('./user-next.config.mjs')
+  // Importer le module et utiliser la valeur par défaut si elle existe
+  const importedUserConfig = await import('./user-next.config.mjs');
+  userConfig = importedUserConfig.default || importedUserConfig;
 } catch (e) {
-  // ignore error
+  // Ignore l'erreur si le fichier n'existe pas
 }
 
 /** @type {import('next').NextConfig} */
@@ -16,20 +20,12 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Désactivation des options expérimentales
-  // experimental: {
-  //   webpackBuildWorker: true,
-  //   parallelServerBuildTraces: true,
-  //   parallelServerCompiles: true,
-  // },
-}
+};
 
-mergeConfig(nextConfig, userConfig)
+mergeConfig(nextConfig, userConfig);
 
 function mergeConfig(nextConfig, userConfig) {
-  if (!userConfig) {
-    return
-  }
+  if (!userConfig) return;
   for (const key in userConfig) {
     if (
       typeof nextConfig[key] === 'object' &&
@@ -38,11 +34,11 @@ function mergeConfig(nextConfig, userConfig) {
       nextConfig[key] = {
         ...nextConfig[key],
         ...userConfig[key],
-      }
+      };
     } else {
-      nextConfig[key] = userConfig[key]
+      nextConfig[key] = userConfig[key];
     }
   }
 }
 
-export default nextConfig
+export default nextConfig;
