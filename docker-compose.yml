@@ -4,12 +4,12 @@ services:
       context: .
       dockerfile: Dockerfile
     image: logistix-pro:latest
-    container_name: logistix-pro
+    container_name: Logistix-pro
     restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
-      - app-data:/app/public/data
+      - /opt/logistix-pro:/app/public/data
     environment:
       - NODE_ENV=production
       - TZ=Europe/Paris
@@ -30,8 +30,4 @@ services:
           memory: 1G
         reservations:
           memory: 512M
-
-volumes:
-  app-data:
-    name: logistix-pro-data
 
