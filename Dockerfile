@@ -15,8 +15,7 @@ RUN apk add --no-cache libc6-compat python3 make g++
 COPY package.json package-lock.json* ./
 
 # Installer les dépendances avec une stratégie de cache optimisée
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev
+RUN npm ci --legacy-peer-deps
 
 # Copier le reste des fichiers de l'application
 COPY . .
