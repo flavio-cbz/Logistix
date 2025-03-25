@@ -6,13 +6,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ProduitForm } from "@/components/produits/produit-form"
-import { Edit, Trash2 } from "lucide-react"
+import { Edit, Trash2, DollarSign } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { VenteForm } from "@/components/produits/vente-form"
 import type { Produit } from "@/types"
 import { useToast } from "@/components/ui/use-toast"
 import { useStore } from "@/lib/store"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface ProduitsListProps {
   initialProduits: Produit[]
@@ -121,7 +122,32 @@ export function ProduitsList({ initialProduits = [] }: ProduitsListProps) {
                   <TableCell>
                     <Switch checked={produit.vendu || false} onCheckedChange={() => handleToggleVendu(produit)} />
                   </TableCell>
-                  <TableCell>{produit.prixVente ? `${produit.prixVente.toFixed(2)} €` : "-"}</TableCell>
+                  <TableCell>
+                    {produit.vendu ? (
+                      <div className="flex items-center">
+                        {produit.prixVente ? `${produit.prixVente.toFixed(2)} €` : "-"}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 ml-1"
+                                onClick={() => setEditProduit(produit)}
+                              >
+                                <DollarSign className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Modifier le prix de vente</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
                   <TableCell>
                     {produit.benefices ? (
                       <span className={produit.benefices > 0 ? "text-green-600" : "text-red-600"}>
