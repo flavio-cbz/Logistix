@@ -1,6 +1,6 @@
 let userConfig = undefined
 try {
-  userConfig = await import('./v0-user-next.config')
+  userConfig = await import('./user-next.config.mjs')
 } catch (e) {
   // ignore error
 }
@@ -16,11 +16,12 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    webpackBuildWorker: true,
-    parallelServerBuildTraces: true,
-    parallelServerCompiles: true,
-  },
+  // Désactivation des options expérimentales
+  // experimental: {
+  //   webpackBuildWorker: true,
+  //   parallelServerBuildTraces: true,
+  //   parallelServerCompiles: true,
+  // },
 }
 
 mergeConfig(nextConfig, userConfig)
@@ -29,7 +30,6 @@ function mergeConfig(nextConfig, userConfig) {
   if (!userConfig) {
     return
   }
-
   for (const key in userConfig) {
     if (
       typeof nextConfig[key] === 'object' &&
