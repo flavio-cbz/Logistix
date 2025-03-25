@@ -1,22 +1,22 @@
 # Étape de construction (builder)
 FROM node:20-alpine AS builder
 
-# Pour la phase de build, on utilise un environnement de développement afin d’installer toutes les dépendances (y compris les devDependencies nécessaires, comme Tailwind CSS)
+# Pour la phase de build, utiliser NODE_ENV=development pour installer toutes les dépendances
 ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 
 WORKDIR /app
 
-# Installer les dépendances nécessaires pour les builds natifs
+# Installer les outils nécessaires
 RUN apk add --no-cache libc6-compat python3 make g++
 
-# Copier les fichiers de dépendances
+# Copier package.json et package-lock.json
 COPY package.json package-lock.json* ./
 
-# Installer toutes les dépendances avec la stratégie legacy-peer-deps
+# Installer toutes les dépendances (y compris devDependencies)
 RUN npm install --legacy-peer-deps
 
-# Copier le reste des fichiers de l'application
+# Copier le reste de l'application
 COPY . .
 
 # Construire l'application Next.js
@@ -32,7 +32,7 @@ ENV PORT=3000
 
 WORKDIR /app
 
-# Créer un utilisateur non-root pour des raisons de sécurité
+# Créer un utilisateur non-root pour la sécurité
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
@@ -55,7 +55,7 @@ COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
-# Exécuter en tant qu'utilisateur non-root
+# Passer à l'utilisateur non-root
 USER nextjs
 
 # Exposer le port d'écoute
