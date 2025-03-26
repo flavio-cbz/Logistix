@@ -1,24 +1,24 @@
-# Utiliser l'image Node.js officielle
+# Use Node.js LTS version
 FROM node:18-alpine
 
-# Définir le répertoire de travail
+# Set working directory
 WORKDIR /app
 
-# Copier les fichiers de dépendances
-COPY package*.json ./
+# Copy package files
+COPY package.json ./
 
-# Installer les dépendances
-RUN npm install
+# Install dependencies
+RUN npm install --legacy-peer-deps
 
-# Copier le reste des fichiers de l'application
+# Copy all project files
 COPY . .
 
-# Construire l'application
+# Build the Next.js application
 RUN npm run build
 
-# Exposer le port
+# Expose the port the app will run on
 EXPOSE 3000
 
-# Démarrer l'application
+# Start the application
 CMD ["npm", "start"]
 

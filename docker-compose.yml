@@ -1,37 +1,20 @@
-version: '3'
-
 services:
-  app:
-    build: .
-    image: logistix-pro:latest
-    container_name: logistix-pro
+  aditrack:
+    container_name: Logistix-pro
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: always
     ports:
       - "3000:3000"
-    volumes:
-      - ./public/data:/app/public/data
     environment:
       - NODE_ENV=production
-      - TZ=Europe/Paris
+    volumes:
+      - ./data:/app/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3456/api/health"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
       start_period: 10s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
-
-volumes:
-  app-data:
-    name: logistix-pro-data
 
