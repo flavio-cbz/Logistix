@@ -100,6 +100,9 @@ interface StoreState {
   // Import/Export
   importData: (data: any) => void
   exportData: () => { parcelles: Parcelle[]; produits: Produit[]; dashboardConfig: DashboardConfig }
+
+  syncWithDatabase: () => Promise<boolean>
+  loadFromDatabase: () => Promise<boolean>
 }
 
 export const useStore = create<StoreState>()(
@@ -110,8 +113,18 @@ export const useStore = create<StoreState>()(
       dashboardConfig: defaultDashboardConfig,
       notifications: [],
 
-      initializeStore: () => {
-        // Ne rien faire, les données sont chargées depuis le localStorage
+      initializeStore: async () => {
+        try {
+          // Essayer de charger depuis la base de données d'abord
+          const success = await get().loadFromDatabase()
+
+          // Si le chargement a échoué, utiliser les données locales
+          if (!success) {
+            console.log("Utilisation des données locales")
+          }
+        } catch (error) {
+          console.error("Erreur lors de l'initialisation du store:", error)
+        }
       },
 
       // Parcelles
@@ -128,6 +141,9 @@ export const useStore = create<StoreState>()(
 
         set((state) => ({ parcelles: [...state.parcelles, newParcelle] }))
         get().addNotification("success", `La parcelle ${parcelle.numero} a été ajoutée avec succès.`)
+
+        // Synchroniser avec la base de données
+        get().syncWithDatabase()
       },
 
       updateParcelle: (id, data) => {
@@ -179,6 +195,9 @@ export const useStore = create<StoreState>()(
             })
           })
         }
+
+        // Synchroniser avec la base de données
+        get().syncWithDatabase()
       },
 
       deleteParcelle: (id) => {
@@ -186,6 +205,9 @@ export const useStore = create<StoreState>()(
           parcelles: state.parcelles.filter((p) => p.id !== id),
         }))
         get().addNotification("success", `La parcelle a été supprimée avec succès.`)
+
+        // Synchroniser avec la base de données
+        get().syncWithDatabase()
       },
 
       // Produits
@@ -210,6 +232,9 @@ export const useStore = create<StoreState>()(
 
         set((state) => ({ produits: [...state.produits, newProduit] }))
         get().addNotification("success", `Le produit ${produit.nom} a été ajouté avec succès.`)
+
+        // Synchroniser avec la base de données
+        get().syncWithDatabase()
       },
 
       updateProduit: (id, data) => {
@@ -253,6 +278,9 @@ export const useStore = create<StoreState>()(
         }))
 
         get().addNotification("success", `Le produit a été mis à jour avec succès.`)
+
+        // Synchroniser avec la base de données
+        get().syncWithDatabase()
       },
 
       updateProduitVente: (id, data) => {
@@ -277,6 +305,9 @@ export const useStore = create<StoreState>()(
         }))
 
         get().addNotification("success", `La vente du produit a été enregistrée avec succès.`)
+
+        // Synchroniser avec la base de données
+        get().syncWithDatabase()
       },
 
       deleteProduit: (id) => {
@@ -284,6 +315,9 @@ export const useStore = create<StoreState>()(
           produits: state.produits.filter((p) => p.id !== id),
         }))
         get().addNotification("success", `Le produit a été supprimé avec succès.`)
+
+        // Synchroniser avec la base de données
+        get().syncWithDatabase()
       },
 
       // Dashboard
@@ -316,29 +350,93 @@ export const useStore = create<StoreState>()(
 
       // Import/Export
       importData: (data) => {
-        if (!data.parcelles || !data.produits) {
-          throw new Error("Format de fichier invalide")
-        }
-
-        set({
-          parcelles: data.parcelles,
-          produits: data.produits,
-          dashboardConfig: data.dashboardConfig || defaultDashboardConfig,
-        })
-
-        get().addNotification(
-          "success",
-          `${data.parcelles.length} parcelles et ${data.produits.length} produits ont été importés.`,
-        )
+        // Fonctionnalité temporairement désactivée
+        console.log("Fonctionnalité d'importation temporairement désactivée")
+        get().addNotification("warning", "La fonctionnalité d'importation est temporairement désactivée.")
+        return false
       },
 
       exportData: () => {
-        const { parcelles, produits, dashboardConfig } = get()
+        // Fonctionnalité temporairement désactivée
+        console.log("Fonctionnalité d'exportation temporairement désactivée")
+        get().addNotification("warning", "La fonctionnalité d'exportation est temporairement désactivée.")
         return {
-          parcelles,
-          produits,
-          dashboardConfig,
+          parcelles: [],
+          produits: [],
+          dashboardConfig: defaultDashboardConfig,
           exportDate: new Date().toISOString(),
+        }
+      },
+
+      // Améliorer la synchronisation avec la base de données
+      syncWithDatabase: async () => {
+        try {
+          const { parcelles, produits } = get()
+
+          // Envoyer les données au serveur
+          const response = await fetch("/api/data/sync", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ parcelles, produits }),
+            // Ajouter un timeout pour éviter les blocages
+            signal: AbortSignal.timeout(10000),
+          })
+
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`)
+          }
+
+          const result = await response.json()
+
+          if (!result.success) {
+            throw new Error(result.message)
+          }
+
+          // Ajouter une notification de succès
+          get().addNotification("success", "Données synchronisées avec le serveur")
+          return true
+        } catch (error) {
+          console.error("Erreur lors de la synchronisation avec la base de données:", error)
+          // Ajouter une notification d'erreur
+          get().addNotification("error", "Échec de la synchronisation avec le serveur")
+          return false
+        }
+      },
+
+      loadFromDatabase: async () => {
+        try {
+          // Récupérer les données du serveur
+          const response = await fetch("/api/data/sync", {
+            // Ajouter un timeout pour éviter les blocages
+            signal: AbortSignal.timeout(10000),
+          })
+
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`)
+          }
+
+          const result = await response.json()
+
+          if (!result.success) {
+            throw new Error(result.message)
+          }
+
+          // Mettre à jour le store avec les données récupérées
+          set({
+            parcelles: result.data.parcelles,
+            produits: result.data.produits,
+          })
+
+          // Ajouter une notification de succès
+          get().addNotification("info", "Données chargées depuis le serveur")
+          return true
+        } catch (error) {
+          console.error("Erreur lors du chargement depuis la base de données:", error)
+          // Ajouter une notification d'erreur
+          get().addNotification("warning", "Utilisation des données locales")
+          return false
         }
       },
     }),

@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ProduitForm } from "@/components/produits/produit-form"
-import { Edit, Trash2, DollarSign } from "lucide-react"
+import { Copy, Edit, Trash2, DollarSign } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { VenteForm } from "@/components/produits/vente-form"
@@ -77,27 +77,68 @@ export function ProduitsList({ initialProduits = [] }: ProduitsListProps) {
     }
   }
 
+  // Fonction pour dupliquer un produit
+  const handleDuplicate = (produit: Produit) => {
+    // Créer une copie du produit sans l'ID
+    const { id, ...produitData } = produit
+
+    // Modifier légèrement le nom pour indiquer qu'il s'agit d'une copie
+    const newProduit = {
+      ...produitData,
+      nom: `${produitData.nom} (copie)`,
+      vendu: false, // Réinitialiser le statut de vente
+      dateVente: undefined,
+      tempsEnLigne: undefined,
+      prixVente: undefined,
+      plateforme: undefined,
+      benefices: undefined,
+      pourcentageBenefice: undefined,
+    }
+
+    // Ajouter le nouveau produit
+    try {
+      // Utiliser la fonction addProduit du store
+      const { addProduit } = useStore.getState()
+      addProduit(newProduit)
+
+      toast({
+        title: "Produit dupliqué",
+        description: "Le produit a été dupliqué avec succès.",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la duplication.",
+      })
+    }
+  }
+
   return (
     <>
-      <div className="flex items-center py-4">
+      <div className="flex flex-col sm:flex-row items-center gap-4 py-4">
         <Input
           placeholder="Rechercher des produits..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
         />
-        <ProduitForm className="ml-auto" editProduit={editProduit} onClose={() => setEditProduit(null)} />
+        <ProduitForm
+          className="w-full sm:w-auto sm:ml-auto"
+          editProduit={editProduit}
+          onClose={() => setEditProduit(null)}
+        />
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border shadow-sm overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>ID Commande</TableHead>
               <TableHead>Nom</TableHead>
-              <TableHead>Détails</TableHead>
+              <TableHead className="hidden md:table-cell">Détails</TableHead>
               <TableHead>Prix Article (€)</TableHead>
-              <TableHead>Livraison (€)</TableHead>
+              <TableHead className="hidden md:table-cell">Livraison (€)</TableHead>
               <TableHead>Vendu</TableHead>
               <TableHead>Prix de vente (€)</TableHead>
               <TableHead>Bénéfice (€)</TableHead>
@@ -116,9 +157,11 @@ export function ProduitsList({ initialProduits = [] }: ProduitsListProps) {
                 >
                   <TableCell>{produit.commandeId || "-"}</TableCell>
                   <TableCell className="font-medium">{produit.nom || "-"}</TableCell>
-                  <TableCell>{produit.details || "-"}</TableCell>
+                  <TableCell className="hidden md:table-cell max-w-[200px] truncate">
+                    {produit.details || "-"}
+                  </TableCell>
                   <TableCell>{(produit.prixArticle || 0).toFixed(2)} €</TableCell>
-                  <TableCell>{(produit.prixLivraison || 0).toFixed(2)} €</TableCell>
+                  <TableCell className="hidden md:table-cell">{(produit.prixLivraison || 0).toFixed(2)} €</TableCell>
                   <TableCell>
                     <Switch checked={produit.vendu || false} onCheckedChange={() => handleToggleVendu(produit)} />
                   </TableCell>
@@ -161,6 +204,9 @@ export function ProduitsList({ initialProduits = [] }: ProduitsListProps) {
                     <Button variant="ghost" size="icon" onClick={() => setEditProduit(produit)}>
                       <Edit className="h-4 w-4" />
                     </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDuplicate(produit)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => setDeleteId(produit.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -168,6 +214,13 @@ export function ProduitsList({ initialProduits = [] }: ProduitsListProps) {
                 </motion.tr>
               ))}
             </AnimatePresence>
+            {filteredProduits.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  Aucun produit trouvé
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

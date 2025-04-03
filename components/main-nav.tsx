@@ -4,10 +4,13 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { LayoutGrid, Package, Map, BarChart } from "lucide-react"
+import { LayoutGrid, Package, Map, BarChart, Shield } from "lucide-react"
+import { useAuth } from "@/components/auth/auth-provider"
 
 export function MainNav() {
   const pathname = usePathname()
+  const { user } = useAuth()
+  const isAdmin = user?.isAdmin
 
   return (
     <nav className="flex items-center space-x-4 lg:space-x-6">
@@ -59,6 +62,21 @@ export function MainNav() {
           Statistiques
         </Button>
       </Link>
+
+      {isAdmin && (
+        <Link
+          href="/admin"
+          className={cn(
+            "text-sm font-medium transition-colors hover:text-primary",
+            pathname === "/admin" ? "text-primary" : "text-muted-foreground",
+          )}
+        >
+          <Button variant="ghost" className="w-full justify-start">
+            <Shield className="mr-2 h-4 w-4" />
+            Admin
+          </Button>
+        </Link>
+      )}
     </nav>
   )
 }

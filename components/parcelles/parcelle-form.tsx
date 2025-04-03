@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -53,6 +53,18 @@ export function ParcelleForm({ editParcelle, onClose }: ParcelleFormProps) {
           prixTotal: 0,
         },
   })
+
+  // S'assurer que les champs sont correctement mis à jour lorsque editParcelle change
+  useEffect(() => {
+    if (editParcelle) {
+      form.reset({
+        numero: editParcelle.numero,
+        transporteur: editParcelle.transporteur,
+        poids: editParcelle.poids,
+        prixTotal: editParcelle.prixTotal,
+      })
+    }
+  }, [editParcelle, form])
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     if (editParcelle) {

@@ -1,18 +1,22 @@
 services:
-  aditrack:
-    container_name: Logistix-pro
+  logistix-pro:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: Logistix
     restart: always
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET:-votre_secret_jwt_tres_securise_a_changer_en_production}
+      - COOKIE_NAME=${COOKIE_NAME:-logistix_session}
+      - COOKIE_MAX_AGE=${COOKIE_MAX_AGE:-604800}
+      - DATABASE_PATH=${DATABASE_PATH:-/app/data/logistix.db}
     volumes:
       - ./data:/app/data
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3456/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

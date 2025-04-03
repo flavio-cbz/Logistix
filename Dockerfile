@@ -1,24 +1,54 @@
-# Use Node.js LTS version
-FROM node:18-alpine
+# Étape de construction
+FROM node:18-alpine AS builder
 
-# Set working directory
+# Installation des dépendances nécessaires pour better-sqlite3
+RUN apk add --no-cache python3 make g++ gcc
+
 WORKDIR /app
 
-# Copy package files
-COPY package.json ./
+# Copier les fichiers de dépendances et le dossier des scripts pour que le postinstall puisse s'exécuter correctement
+COPY package*.json ./
+COPY scripts ./scripts
 
-# Install dependencies
-RUN npm install --legacy-peer-deps
+# Installer les dépendances (le postinstall pourra alors trouver scripts/setup-db.js)
+RUN npm ci
 
-# Copy all project files
+# Copier le reste des fichiers
 COPY . .
 
-# Build the Next.js application
+# Créer le dossier data et définir les permissions
+RUN mkdir -p /app/data && chmod 755 /app/data
+
+# Exécuter les migrations
+RUN npm run db:migrate
+
+# Construire l'application
 RUN npm run build
 
-# Expose the port the app will run on
+# Étape de production
+FROM node:18-alpine AS runner
+
+# Installation des dépendances nécessaires pour better-sqlite3
+RUN apk add --no-cache python3 make g++ gcc
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Créer le dossier data et définir les permissions
+RUN mkdir -p /app/data && chmod 755 /app/data
+
+# Copier les fichiers nécessaires depuis l'étape de construction
+COPY --from=builder /app/next.config.mjs ./
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/data ./data
+
+# Exposer le port
 EXPOSE 3000
 
-# Start the application
+# Commande de démarrage
 CMD ["npm", "start"]
-

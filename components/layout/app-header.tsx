@@ -2,7 +2,9 @@
 
 import { useTheme } from "next-themes"
 import { Package2 } from "lucide-react"
-import { DataImportExport } from "@/components/data-import-export"
+import { KeyboardShortcuts } from "@/components/keyboard-shortcuts"
+import { NotificationCenter } from "@/components/notifications/notification-center"
+import { GlobalSearch } from "@/components/search/global-search"
 
 export function AppHeader() {
   const { theme } = useTheme()
@@ -14,13 +16,15 @@ export function AppHeader() {
           <Package2 className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">LogistiX Pro</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Logistix</h1>
           <p className="text-sm text-muted-foreground">Gestion intelligente de vos parcelles et produits</p>
         </div>
       </div>
 
-      <div>
-        <DataImportExport />
+      <div className="flex items-center gap-2">
+        <GlobalSearch />
+        <NotificationCenter />
+        <KeyboardShortcuts />
       </div>
     </div>
   )
