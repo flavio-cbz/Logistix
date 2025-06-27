@@ -1,12 +1,12 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist } from "next/font/google"
+import { Inter } from "next/font/google" // Changer Geist par Inter
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
-const geist = Geist({
+const inter = Inter({ // Changer geist par inter
   subsets: ["latin"],
 })
 
@@ -51,7 +51,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
       </head>
-      <body className={geist.className}>
+      <body className={inter.className}> {/* Changer geist.className par inter.className */}
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AuthProvider>
             {children}
@@ -62,7 +62,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-
-
-import './globals.css'

@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const profileFormSchema = z.object({
   username: z
@@ -21,9 +23,7 @@ const profileFormSchema = z.object({
     .max(30, {
       message: "Le nom d'utilisateur ne peut pas dépasser 30 caractères.",
     }),
-  email: z.string().min(1, { message: "L'email est requis." }).email("Email invalide."),
   password: z.string().optional(),
-  bio: z.string().max(160).min(4).optional(),
   language: z.string({
     required_error: "Veuillez sélectionner une langue.",
   }),
@@ -33,7 +33,7 @@ const profileFormSchema = z.object({
   avatar: z.string().optional(),
 })
 
-type ProfileFormValues = z.infer<typeof profileFormSchema>
+export type ProfileFormValues = z.infer<typeof profileFormSchema>
 
 interface ProfileFormProps {
   initialData: ProfileFormValues
@@ -42,6 +42,7 @@ interface ProfileFormProps {
 export function ProfileForm({ initialData }: ProfileFormProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(initialData.avatar || "")
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -51,14 +52,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   async function onSubmit(data: ProfileFormValues) {
     setLoading(true)
     try {
-      console.log("Envoi des données de profil:", { ...data, password: data.password ? "***" : undefined })
+      console.log("Envoi des données de profil:", { ...data, password: data.password ? "***" : undefined, avatar: avatarUrl })
 
       const response = await fetch("/api/profile/update", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, avatar: avatarUrl }),
       })
 
       if (!response.ok) {
@@ -94,129 +95,132 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     }
   }
 
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setAvatarUrl(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nom d'utilisateur</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormDescription>C'est votre nom public. Il peut être votre vrai nom ou un pseudonyme.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormDescription>Votre adresse email pour la connexion et les notifications.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Mot de passe (optionnel)</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="Laissez vide pour ne pas modifier" {...field} />
-              </FormControl>
-              <FormDescription>
-                Laissez ce champ vide si vous ne souhaitez pas changer votre mot de passe.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="bio"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Bio</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Dites quelque chose à propos de vous..."
-                  className="resize-none"
-                  {...field}
-                  value={field.value || ""}
-                />
-              </FormControl>
-              <FormDescription>Une brève description de vous-même.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="language"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Langue</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez une langue" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="fr">Français</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormDescription>La langue utilisée dans l'interface.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="theme"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Thème</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez un thème" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="light">Clair</SelectItem>
-                  <SelectItem value="dark">Sombre</SelectItem>
-                  <SelectItem value="system">Système</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormDescription>Le thème de l'interface utilisateur.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Mise à jour en cours...
-            </>
-          ) : (
-            "Mettre à jour le profil"
-          )}
-        </Button>
-      </form>
-    </Form>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Photo de profil</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-20 w-20">
+              <AvatarImage src={avatarUrl} />
+              <AvatarFallback>AD</AvatarFallback>
+            </Avatar>
+            <div>
+              <Input type="file" accept="image/*" onChange={handleAvatarChange} className="max-w-[400px]" />
+              <p className="text-sm text-muted-foreground mt-2">JPG, GIF ou PNG. Taille maximale de 2MB.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations personnelles</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nom d'utilisateur</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>C'est votre nom public. Il peut être votre vrai nom ou un pseudonyme.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mot de passe (optionnel)</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Laissez vide pour ne pas modifier" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Laissez ce champ vide si vous ne souhaitez pas changer votre mot de passe.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="language"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Langue</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionnez une langue" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="fr">Français</SelectItem>
+                        <SelectItem value="en">English</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>La langue utilisée dans l'interface.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="theme"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Thème</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionnez un thème" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="light">Clair</SelectItem>
+                        <SelectItem value="dark">Sombre</SelectItem>
+                        <SelectItem value="system">Système</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>Le thème de l'interface utilisateur.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Mise à jour en cours...
+                  </>
+                ) : (
+                  "Mettre à jour le profil"
+                )}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
-

@@ -6,7 +6,6 @@ import { z } from "zod"
 // Schéma de validation
 const userSchema = z.object({
   username: z.string().min(2, "Le nom d'utilisateur doit faire au moins 2 caractères"),
-  email: z.string().email("Email invalide"),
   password: z.string().min(6, "Le mot de passe doit faire au moins 6 caractères"),
 })
 
@@ -14,18 +13,17 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData()
     const username = formData.get("username") as string
-    const email = formData.get("email") as string
     const password = formData.get("password") as string
 
-    console.log("API signup - Données reçues:", { username, email, password: "***" })
+    console.log("API signup - Données reçues:", { username, password: "***" })
 
-    if (!username || !email || !password) {
+    if (!username || !password) {
       console.error("Données d'inscription incomplètes")
       return NextResponse.json({ success: false, message: "Tous les champs sont requis" }, { status: 400 })
     }
 
     try {
-      const validatedData = userSchema.parse({ username, email, password })
+      const validatedData = userSchema.parse({ username, password })
       console.log("Données validées avec succès")
 
       // Vérifier si le nom d'utilisateur existe déjà
@@ -42,29 +40,15 @@ export async function POST(request: Request) {
         )
       }
 
-      // Vérifier si l'email existe déjà
-      const existingEmail = db.prepare("SELECT id FROM users WHERE email = ?").get(validatedData.email)
-
-      if (existingEmail) {
-        return NextResponse.json(
-          {
-            success: false,
-            field: "email",
-            message: "Cette adresse email est déjà utilisée",
-          },
-          { status: 400 },
-        )
-      }
-
       // Créer l'utilisateur
       const id = generateId()
       const passwordHash = hashPassword(password)
       const timestamp = getCurrentTimestamp()
 
       db.prepare(`
-        INSERT INTO users (id, username, email, password_hash, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(id, username, email, passwordHash, timestamp, timestamp)
+        INSERT INTO users (id, username, password_hash, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(id, username, passwordHash, timestamp, timestamp)
 
       console.log("Utilisateur créé avec succès:", id)
 
@@ -83,7 +67,7 @@ export async function POST(request: Request) {
       const response = NextResponse.json({
         success: true,
         message: "Inscription réussie",
-        user: { id, username, email },
+        user: { id, username },
       })
 
       // Définir le cookie de session

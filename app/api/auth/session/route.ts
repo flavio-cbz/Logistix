@@ -2,16 +2,16 @@ import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth"
 import { cookies } from "next/headers"
 
-export async function GET() {
+export async function GET(request: Request) { // Ajouter request comme paramètre
   try {
     // Récupérer tous les cookies pour le débogage
     const allCookies = cookies().getAll()
     const sessionCookie = cookies().get("session_id")
 
-    console.log("GET /api/auth/session - Cookies:", allCookies.map((c) => c.name).join(", "))
+    console.log("GET /api/auth/session - Cookies:", allCookies.map((c: { name: string }) => c.name).join(", "))
     console.log("GET /api/auth/session - Cookie de session:", sessionCookie?.value)
 
-    const user = getSessionUser()
+    const user = await getSessionUser() // Utiliser await ici car getSessionUser est async
     console.log("GET /api/auth/session - Utilisateur:", user ? user.username : "non authentifié")
 
     if (!user) {
@@ -19,7 +19,7 @@ export async function GET() {
         {
           user: null,
           debug: {
-            cookies: allCookies.map((c) => c.name),
+            cookies: allCookies.map((c: { name: string }) => c.name),
             sessionCookie: sessionCookie
               ? {
                   exists: true,
@@ -38,4 +38,3 @@ export async function GET() {
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }
-

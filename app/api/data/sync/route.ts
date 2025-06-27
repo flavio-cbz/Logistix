@@ -1,30 +1,34 @@
 import { NextResponse } from "next/server"
 import { db, generateId, getCurrentTimestamp } from "@/lib/db"
 import { getSessionUser } from "@/lib/auth"
+import { Logger } from "@/lib/logger"
+
+const logger = new Logger("api/data/sync")
 
 export async function POST(request: Request) {
   try {
     // Vérifier l'authentification
-    const user = getSessionUser()
+    const user = await getSessionUser()
     if (!user) {
       return NextResponse.json({ success: false, message: "Non authentifié" }, { status: 401 })
     }
+    logger.info(`Synchronisation demandée par l'utilisateur: ${user.id}`)
 
     // Récupérer les données du corps de la requête
     const { parcelles, produits } = await request.json()
+    logger.info(`Données reçues: ${parcelles.length} parcelles, ${produits.length} produits`)
 
     // Validation des données
     if (!Array.isArray(parcelles) || !Array.isArray(produits)) {
       return NextResponse.json({ success: false, message: "Format de données invalide" }, { status: 400 })
     }
 
-    // Commencer une transaction
-    db.prepare("BEGIN TRANSACTION").run()
-
-    try {
+    const syncTransaction = db.transaction(() => {
+      logger.info("Début de la transaction de synchronisation")
       // Supprimer les anciennes données de l'utilisateur
       db.prepare("DELETE FROM parcelles WHERE user_id = ?").run(user.id)
       db.prepare("DELETE FROM produits WHERE user_id = ?").run(user.id)
+      logger.info("Anciennes données supprimées")
 
       // Insérer les nouvelles parcelles
       const insertParcelle = db.prepare(`
@@ -46,6 +50,7 @@ export async function POST(request: Request) {
           parcelle.updatedAt || timestamp,
         )
       }
+      logger.info(`${parcelles.length} parcelles insérées`)
 
       // Insérer les nouveaux produits
       const insertProduit = db.prepare(`
@@ -80,26 +85,23 @@ export async function POST(request: Request) {
           produit.updatedAt || timestamp,
         )
       }
+      logger.info(`${produits.length} produits insérés`)
+      logger.info("Transaction de synchronisation terminée")
+    })
 
-      // Valider la transaction
-      db.prepare("COMMIT").run()
+    syncTransaction()
 
-      return NextResponse.json({
-        success: true,
-        message: "Données synchronisées avec succès",
-        count: {
-          parcelles: parcelles.length,
-          produits: produits.length,
-        },
-        timestamp: new Date().toISOString(),
-      })
-    } catch (error) {
-      // Annuler la transaction en cas d'erreur
-      db.prepare("ROLLBACK").run()
-      throw error
-    }
+    return NextResponse.json({
+      success: true,
+      message: "Données synchronisées avec succès",
+      count: {
+        parcelles: parcelles.length,
+        produits: produits.length,
+      },
+      timestamp: new Date().toISOString(),
+    })
   } catch (error: any) {
-    console.error("Erreur lors de la synchronisation des données:", error)
+    logger.error("Erreur lors de la synchronisation des données:", error)
     return NextResponse.json(
       {
         success: false,
@@ -113,27 +115,31 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     // Vérifier l'authentification
-    const user = getSessionUser()
+    const user = await getSessionUser()
     if (!user) {
       return NextResponse.json({ success: false, message: "Non authentifié" }, { status: 401 })
     }
 
     // Récupérer les parcelles de l'utilisateur
     const parcelles = db
-      .prepare(`
+      .prepare(
+        `
         SELECT * FROM parcelles
         WHERE user_id = ?
         ORDER BY created_at DESC
-      `)
+      `,
+      )
       .all(user.id)
 
     // Récupérer les produits de l'utilisateur
     const produits = db
-      .prepare(`
+      .prepare(
+        `
         SELECT * FROM produits
         WHERE user_id = ?
         ORDER BY created_at DESC
-      `)
+      `,
+      )
       .all(user.id)
 
     return NextResponse.json({
@@ -145,7 +151,7 @@ export async function GET() {
       timestamp: new Date().toISOString(),
     })
   } catch (error: any) {
-    console.error("Erreur lors de la récupération des données:", error)
+    logger.error("Erreur lors de la récupération des données:", error)
     return NextResponse.json(
       {
         success: false,
@@ -155,4 +161,3 @@ export async function GET() {
     )
   }
 }
-

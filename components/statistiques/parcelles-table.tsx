@@ -31,7 +31,7 @@ export function ParcellesTable({ parcelles }: ParcellesTableProps) {
                 <TableCell className="font-medium">#{parcelle.numero}</TableCell>
                 <TableCell className="text-right">{parcelle.prixParGramme.toFixed(3)} €/g</TableCell>
                 <TableCell className="text-right">{parcelle.poids}g</TableCell>
-                <TableCell className="text-right">{parcelle.prixTotalEUR.toFixed(2)} €</TableCell>
+                <TableCell className="text-right">{parcelle.prixTotal.toFixed(2)} €</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -40,4 +40,3 @@ export function ParcellesTable({ parcelles }: ParcellesTableProps) {
     </Card>
   )
 }
-

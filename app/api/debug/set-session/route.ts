@@ -1,17 +1,24 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 
+interface SessionQueryResult {
+  session_id: string;
+  user_id: string;
+  username: string;
+  expires_at: string;
+}
+
 export async function GET(request: Request) {
   try {
     // Récupérer la première session de la base de données
     const session = db
       .prepare(`
-      SELECT s.id as session_id, s.user_id, s.expires_at, u.username, u.email
+      SELECT s.id as session_id, s.user_id, s.expires_at, u.username
       FROM sessions s
       JOIN users u ON s.user_id = u.id
       LIMIT 1
     `)
-      .get()
+      .get() as SessionQueryResult;
 
     if (!session) {
       return NextResponse.json({

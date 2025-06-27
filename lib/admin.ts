@@ -2,66 +2,26 @@ import { db, generateId, getCurrentTimestamp } from "./db"
 import { hashPassword } from "./auth"
 import fs from "fs"
 import path from "path"
+import { Logger } from "./logger"
 
-// Mot de passe par défaut pour l'administrateur
-// Ce mot de passe est stocké dans un fichier pour pouvoir être modifié facilement
-const ADMIN_PASSWORD_FILE = path.join(process.cwd(), "data", "admin-password.txt")
-const DEFAULT_ADMIN_PASSWORD = "admin123"
+const logger = new Logger("lib/admin")
 
-// Fonction pour obtenir le mot de passe admin actuel
-export function getAdminPassword(): string {
-  try {
-    if (fs.existsSync(ADMIN_PASSWORD_FILE)) {
-      return fs.readFileSync(ADMIN_PASSWORD_FILE, "utf-8").trim()
-    }
-  } catch (error) {
-    console.error("Erreur lors de la lecture du mot de passe admin:", error)
-  }
-
-  // Si le fichier n'existe pas ou ne peut pas être lu, utiliser le mot de passe par défaut
-  return DEFAULT_ADMIN_PASSWORD
-}
-
-// Fonction pour définir un nouveau mot de passe admin
-export function setAdminPassword(newPassword: string): boolean {
-  try {
-    // Créer le répertoire data s'il n'existe pas
-    const dataDir = path.join(process.cwd(), "data")
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true })
-    }
-
-    // Écrire le nouveau mot de passe dans le fichier
-    fs.writeFileSync(ADMIN_PASSWORD_FILE, newPassword)
-
-    // Mettre à jour le mot de passe dans la base de données
-    const passwordHash = hashPassword(newPassword)
-    db.prepare(`
-      UPDATE users
-      SET password_hash = ?
-      WHERE username = 'admin'
-    `).run(passwordHash)
-
-    return true
-  } catch (error) {
-    console.error("Erreur lors de la définition du mot de passe admin:", error)
-    return false
-  }
-}
 
 // Fonction pour vérifier si l'utilisateur est un administrateur
 export function isAdmin(userId: string): boolean {
   try {
     const user = db
-      .prepare(`
+      .prepare(
+        `
       SELECT username FROM users
       WHERE id = ?
-    `)
-      .get(userId)
+    `,
+      )
+      .get(userId) as { username: string } | undefined
 
-    return user && user.username === "admin"
+    return !!user && user.username === "admin"
   } catch (error) {
-    console.error("Erreur lors de la vérification du statut d'administrateur:", error)
+    logger.error("Erreur lors de la vérification du statut d'administrateur:", error)
     return false
   }
 }
@@ -71,38 +31,75 @@ export function initializeAdmin(): void {
   try {
     // Vérifier si l'utilisateur admin existe déjà
     const adminUser = db
-      .prepare(`
+      .prepare(
+        `
       SELECT id FROM users
       WHERE username = 'admin'
-    `)
+    `,
+      )
       .get()
 
     if (!adminUser) {
+      logger.info("Utilisateur administrateur non trouvé, création en cours...")
       // Créer l'utilisateur admin s'il n'existe pas
       const id = generateId()
       const timestamp = getCurrentTimestamp()
-      const password = getAdminPassword()
-      const passwordHash = hashPassword(password)
+      const passwordHash = hashPassword(getAdminPassword())
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO users (id, username, email, password_hash, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run(id, "admin", "admin@logistix.local", passwordHash, timestamp, timestamp)
+      `,
+      ).run(id, "admin", "admin@logistix.local", passwordHash, timestamp, timestamp)
 
-      console.log("Utilisateur administrateur créé avec succès")
+      logger.info("Utilisateur administrateur créé avec succès")
     }
   } catch (error) {
-    console.error("Erreur lors de l'initialisation de l'administrateur:", error)
+    logger.error("Erreur lors de l'initialisation de l'administrateur:", error)
   }
 }
+
+// Fonction pour vérifier si l'administrateur utilise le mot de passe par défaut
+export function isAdminUsingDefaultPassword(): boolean {
+  try {
+    const adminUser = db
+      .prepare(
+        `
+      SELECT password_hash FROM users
+      WHERE username = 'admin'
+    `,
+      )
+      .get() as { password_hash: string } | undefined
+
+    if (!adminUser) {
+      return false // L'utilisateur admin n'existe pas
+    }
+
+    const defaultPasswordHash = hashPassword(DEFAULT_ADMIN_PASSWORD)
+    return adminUser.password_hash === defaultPasswordHash
+  } catch (error) {
+    logger.error(
+      "Erreur lors de la vérification du mot de passe par défaut de l'administrateur:",
+      error,
+    )
+    return false
+  }
+}
+
+export function getAdminPassword(): string {
+  return process.env.ADMIN_PASSWORD || "admin"
+}
+
+const DEFAULT_ADMIN_PASSWORD = "admin"
 
 // Fonction pour obtenir des statistiques de la base de données
 export function getDatabaseStats() {
   try {
-    const userCount = db.prepare("SELECT COUNT(*) as count FROM users").get().count
-    const parcelleCount = db.prepare("SELECT COUNT(*) as count FROM parcelles").get().count
-    const produitCount = db.prepare("SELECT COUNT(*) as count FROM produits").get().count
-    const sessionCount = db.prepare("SELECT COUNT(*) as count FROM sessions").get().count
+    const userCount = (db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number }).count
+    const parcelleCount = (db.prepare("SELECT COUNT(*) as count FROM parcelles").get() as { count: number }).count
+    const produitCount = (db.prepare("SELECT COUNT(*) as count FROM produits").get() as { count: number }).count
+    const sessionCount = (db.prepare("SELECT COUNT(*) as count FROM sessions").get() as { count: number }).count
 
     return {
       users: userCount,
@@ -112,7 +109,7 @@ export function getDatabaseStats() {
       dbSize: getDatabaseSize(),
     }
   } catch (error) {
-    console.error("Erreur lors de la récupération des statistiques:", error)
+    logger.error("Erreur lors de la récupération des statistiques:", error)
     return {
       users: 0,
       parcelles: 0,
@@ -132,7 +129,7 @@ function getDatabaseSize(): string {
     const fileSizeInMegabytes = fileSizeInBytes / (1024 * 1024)
     return `${fileSizeInMegabytes.toFixed(2)} MB`
   } catch (error) {
-    console.error("Erreur lors de la récupération de la taille de la base de données:", error)
+    logger.error("Erreur lors de la récupération de la taille de la base de données:", error)
     return "0 MB"
   }
 }
@@ -141,14 +138,16 @@ function getDatabaseSize(): string {
 export function getUsers() {
   try {
     return db
-      .prepare(`
+      .prepare(
+        `
       SELECT id, username, email, created_at
       FROM users
       ORDER BY created_at DESC
-    `)
+    `,
+      )
       .all()
   } catch (error) {
-    console.error("Erreur lors de la récupération des utilisateurs:", error)
+    logger.error("Erreur lors de la récupération des utilisateurs:", error)
     return []
   }
 }
@@ -159,15 +158,17 @@ export function resetUserPassword(userId: string, newPassword: string): boolean 
     const passwordHash = hashPassword(newPassword)
     const timestamp = getCurrentTimestamp()
 
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE users
       SET password_hash = ?, updated_at = ?
       WHERE id = ?
-    `).run(passwordHash, timestamp, userId)
+    `,
+    ).run(passwordHash, timestamp, userId)
 
     return true
   } catch (error) {
-    console.error("Erreur lors de la réinitialisation du mot de passe:", error)
+    logger.error("Erreur lors de la réinitialisation du mot de passe:", error)
     return false
   }
 }
@@ -176,7 +177,7 @@ export function resetUserPassword(userId: string, newPassword: string): boolean 
 export function deleteUser(userId: string): boolean {
   try {
     // Vérifier que ce n'est pas l'administrateur
-    const user = db.prepare("SELECT username FROM users WHERE id = ?").get(userId)
+    const user = db.prepare("SELECT username FROM users WHERE id = ?").get(userId) as { username: string } | undefined
     if (user && user.username === "admin") {
       return false // Ne pas supprimer l'administrateur
     }
@@ -186,7 +187,7 @@ export function deleteUser(userId: string): boolean {
 
     return true
   } catch (error) {
-    console.error("Erreur lors de la suppression de l'utilisateur:", error)
+    logger.error("Erreur lors de la suppression de l'utilisateur:", error)
     return false
   }
 }
@@ -195,16 +196,17 @@ export function deleteUser(userId: string): boolean {
 export function cleanupExpiredSessions(): number {
   try {
     const result = db
-      .prepare(`
+      .prepare(
+        `
       DELETE FROM sessions
       WHERE expires_at < ?
-    `)
+    `,
+      )
       .run(new Date().toISOString())
 
     return result.changes
   } catch (error) {
-    console.error("Erreur lors du nettoyage des sessions expirées:", error)
+    logger.error("Erreur lors du nettoyage des sessions expirées:", error)
     return 0
   }
 }
-

@@ -2,6 +2,9 @@ import Database from "better-sqlite3"
 import path from "path"
 import fs from "fs"
 import crypto from "crypto"
+import { Logger } from "./logger"
+
+const logger = new Logger("lib/db")
 
 // Chemin vers la base de données
 const dbPath = path.join(process.cwd(), "data", "logistix.db")
@@ -9,7 +12,7 @@ const dbPath = path.join(process.cwd(), "data", "logistix.db")
 // S'assurer que le dossier data existe
 const dataDir = path.dirname(dbPath)
 if (!fs.existsSync(dataDir)) {
-  console.log("Création du dossier data...")
+  logger.info("Création du dossier data...")
   fs.mkdirSync(dataDir, { recursive: true })
 }
 
@@ -21,7 +24,7 @@ db.pragma("foreign_keys = ON")
 
 // Fonction pour initialiser la base de données
 function initializeDatabase() {
-  console.log("Initialisation de la base de données...")
+  logger.info("Initialisation de la base de données...")
 
   try {
     // Activer les clés étrangères
@@ -38,17 +41,16 @@ function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
-      email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
-      bio TEXT,
-      avatar TEXT,
+      bio TEXT DEFAULT '',
+      avatar TEXT DEFAULT '',
       language TEXT DEFAULT 'fr',
       theme TEXT DEFAULT 'system',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     `)
-    console.log("Table users créée ou existante")
+    logger.info("Table users créée ou existante")
 
     // Création de la table sessions si elle n'existe pas
     db.exec(`
@@ -60,7 +62,7 @@ function initializeDatabase() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
     `)
-    console.log("Table sessions créée ou existante")
+    logger.info("Table sessions créée ou existante")
 
     // Création de la table parcelles si elle n'existe pas
     db.exec(`
@@ -77,7 +79,7 @@ function initializeDatabase() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
     `)
-    console.log("Table parcelles créée ou existante")
+    logger.info("Table parcelles créée ou existante")
 
     // Création de la table produits si elle n'existe pas
     db.exec(`
@@ -105,7 +107,7 @@ function initializeDatabase() {
       FOREIGN KEY (parcelleId) REFERENCES parcelles(id) ON DELETE SET NULL
     );
     `)
-    console.log("Table produits créée ou existante")
+    logger.info("Table produits créée ou existante")
 
     // Création de la table dashboard_config si elle n'existe pas
     db.exec(`
@@ -118,7 +120,45 @@ function initializeDatabase() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
     `)
-    console.log("Table dashboard_config créée ou existante")
+    logger.info("Table dashboard_config créée ou existante")
+
+    // Création de la table market_analyses si elle n'existe pas
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS market_analyses (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      product_name TEXT NOT NULL,
+      current_price REAL NOT NULL,
+      min_price REAL NOT NULL,
+      max_price REAL NOT NULL,
+      avg_price REAL NOT NULL,
+      sales_volume INTEGER NOT NULL,
+      competitor_count INTEGER NOT NULL,
+      trend TEXT NOT NULL,
+      trend_percentage REAL NOT NULL,
+      last_updated TIMESTAMP NOT NULL,
+      recommended_price REAL NOT NULL,
+      market_share REAL NOT NULL,
+      demand_level TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    `)
+    logger.info("Table market_analyses créée ou existante")
+
+    // Création de la table historical_prices si elle n'existe pas
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS historical_prices (
+      id TEXT PRIMARY KEY,
+      product_name TEXT NOT NULL,
+      date TIMESTAMP NOT NULL,
+      price REAL NOT NULL,
+      sales_volume INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    `)
+    logger.info("Table historical_prices créée ou existante")
 
     // Création d'index pour améliorer les performances
     db.exec(`
@@ -127,27 +167,19 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_produits_parcelle_id ON produits(parcelleId);
     CREATE INDEX IF NOT EXISTS idx_dashboard_config_user_id ON dashboard_config(user_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_market_analyses_user_id ON market_analyses(user_id);
+    CREATE INDEX IF NOT EXISTS idx_historical_prices_product_name ON historical_prices(product_name);
+    CREATE INDEX IF NOT EXISTS idx_historical_prices_date ON historical_prices(date);
     `)
-    console.log("Index créés ou existants")
+    logger.info("Index créés ou existants")
 
-    // Vérifier si l'utilisateur admin existe déjà
-    const adminUser = db
-      .prepare(`
-      SELECT id FROM users
-      WHERE username = 'admin'
-    `)
-      .get()
-
-    // Créer l'utilisateur admin s'il n'existe pas
-    if (!adminUser) {
-      console.log("Création de l'utilisateur administrateur...")
+    // Vérifier si un utilisateur existe déjà
+    const userCount = db.prepare('SELECT COUNT(*) AS count FROM users').get() as { count: number }
+    if (userCount.count === 0) {
+      logger.info("Aucun utilisateur trouvé, création de l'administrateur...")
 
       // Mot de passe par défaut pour l'administrateur
       const adminPassword = "admin123"
-
-      // Créer le fichier de mot de passe admin
-      const adminPasswordFile = path.join(process.cwd(), "data", "admin-password.txt")
-      fs.writeFileSync(adminPasswordFile, adminPassword)
 
       // Insérer l'utilisateur admin dans la base de données
       const id = generateId()
@@ -155,20 +187,20 @@ function initializeDatabase() {
       const passwordHash = hashPassword(adminPassword)
 
       db.prepare(`
-        INSERT INTO users (id, username, email, password_hash, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(id, "admin", "admin@logistix.local", passwordHash, timestamp, timestamp)
+        INSERT INTO users (id, username, password_hash, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(id, "admin", passwordHash, timestamp, timestamp)
 
-      console.log("Utilisateur administrateur créé avec succès")
-      console.log("Nom d'utilisateur: admin")
-      console.log("Mot de passe: admin123")
+      logger.info("Utilisateur administrateur créé avec succès")
+      logger.info("Nom d'utilisateur: admin")
+      logger.info("Mot de passe: admin123")
     } else {
-      console.log("L'utilisateur administrateur existe déjà")
+      logger.info("Un utilisateur existe déjà.")
     }
 
-    console.log("Initialisation de la base de données terminée avec succès")
+    logger.info("Initialisation de la base de données terminée avec succès")
   } catch (error) {
-    console.error("Erreur lors de l'initialisation de la base de données:", error)
+    logger.error("Erreur lors de l'initialisation de la base de données:", error)
     throw error
   }
 }
@@ -191,4 +223,3 @@ function getCurrentTimestamp() {
 initializeDatabase()
 
 export { db, generateId, getCurrentTimestamp }
-

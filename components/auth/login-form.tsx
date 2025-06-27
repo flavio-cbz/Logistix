@@ -17,7 +17,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [loginSuccess, setLoginSuccess] = useState(false)
   const [errors, setErrors] = useState<{
-    identifier?: string
+    username?: string
     password?: string
     general?: string
   }>({})
@@ -43,11 +43,11 @@ export default function LoginForm() {
 
     try {
       const formElement = event.currentTarget
-      const identifier = formElement.identifier.value
+      const username = formElement.identifier.value
       const password = formElement.password.value
 
       console.log("Tentative de connexion avec:", {
-        identifier,
+        username,
         password: password ? "***" : "non défini",
       })
 
@@ -57,7 +57,7 @@ export default function LoginForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ username, password }),
       })
 
       const result = await response.json()
@@ -73,8 +73,8 @@ export default function LoginForm() {
         setLoginSuccess(true)
       } else {
         // Afficher les erreurs spécifiques aux champs
-        if (result.field === "identifier") {
-          setErrors({ identifier: result.message })
+        if (result.field === "username") {
+          setErrors({ username: result.message })
         } else if (result.field === "password") {
           setErrors({ password: result.message })
         } else {
@@ -118,18 +118,18 @@ export default function LoginForm() {
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.1, duration: 0.3 }}
             >
-              <label htmlFor="identifier" className="block text-sm font-medium">
-                Email ou nom d'utilisateur
+              <label htmlFor="username" className="block text-sm font-medium">
+                Nom d'utilisateur
               </label>
               <Input
-                id="identifier"
-                name="identifier"
+                id="username"
+                name="username"
                 type="text"
-                placeholder="Email ou nom d'utilisateur"
+                placeholder="Nom d'utilisateur"
                 required
-                className={errors.identifier ? "border-destructive" : ""}
+                className={errors.username ? "border-destructive" : ""}
               />
-              {errors.identifier && <p className="text-destructive text-sm mt-1">{errors.identifier}</p>}
+              {errors.username && <p className="text-destructive text-sm mt-1">{errors.username}</p>}
             </motion.div>
             <motion.div
               className="space-y-2"
@@ -166,12 +166,6 @@ export default function LoginForm() {
                 )}
               </Button>
             </motion.div>
-            <div className="text-center text-sm">
-              Vous n'avez pas de compte ?{" "}
-              <Link href="/signup" className="text-primary hover:underline">
-                S'inscrire
-              </Link>
-            </div>
           </CardFooter>
         </form>
       </Card>

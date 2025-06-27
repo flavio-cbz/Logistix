@@ -10,10 +10,12 @@ import {
   Shield, 
   AlertTriangle, 
   CheckCircle, 
+  TrendingDown,
   DollarSign,
   BarChart3,
   Users
 } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface MarketData {
   id: string
@@ -28,17 +30,37 @@ interface MarketData {
   trendPercentage: number
   lastUpdated: string
   recommendedPrice: number
-  profitMargin: number
   marketShare: number
   demandLevel: 'low' | 'medium' | 'high'
 }
 
 interface PriceRecommendationProps {
   product: MarketData
-  targetMargin: number
 }
 
-export function PriceRecommendation({ product, targetMargin }: PriceRecommendationProps) {
+export function PriceRecommendation({ product }: PriceRecommendationProps) {
+  const [historicalRecommendedPrice, setHistoricalRecommendedPrice] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchHistoricalRecommendedPrice = async () => {
+      try {
+        const response = await fetch(`/api/historical-prices?productName=${encodeURIComponent(product.productName)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setHistoricalRecommendedPrice(data.recommendedPrice);
+        } else {
+          console.error("Failed to fetch historical recommended price");
+          setHistoricalRecommendedPrice(null);
+        }
+      } catch (error) {
+        console.error("Error fetching historical recommended price:", error);
+        setHistoricalRecommendedPrice(null);
+      }
+    };
+
+    fetchHistoricalRecommendedPrice();
+  }, [product.productName]);
+
   // Calcul des différentes stratégies de prix
   const calculatePricingStrategies = () => {
     const basePrice = product.avgPrice
@@ -51,7 +73,7 @@ export function PriceRecommendation({ product, targetMargin }: PriceRecommendati
         cons: ["Marge réduite", "Guerre des prix possible", "Perception de qualité moindre"],
         risk: "low",
         expectedVolume: product.salesVolume * 1.3,
-        expectedMargin: targetMargin * 0.7
+        expectedMargin: product.marketShare * 0.7 
       },
       premium: {
         price: basePrice * 1.15,
@@ -60,16 +82,16 @@ export function PriceRecommendation({ product, targetMargin }: PriceRecommendati
         cons: ["Volume plus faible", "Concurrence accrue", "Sensibilité au prix"],
         risk: "medium",
         expectedVolume: product.salesVolume * 0.8,
-        expectedMargin: targetMargin * 1.4
+        expectedMargin: product.marketShare * 1.4 
       },
       optimal: {
-        price: basePrice * (1 + targetMargin / 100),
+        price: basePrice,
         description: "Prix optimal basé sur votre marge cible",
         pros: ["Équilibre volume/marge", "Positionnement stable", "Rentabilité assurée"],
         cons: ["Moins différenciant", "Suivi de marché nécessaire"],
         risk: "low",
         expectedVolume: product.salesVolume,
-        expectedMargin: targetMargin
+        expectedMargin: product.marketShare 
       },
       dynamic: {
         price: basePrice * (product.trend === 'up' ? 1.08 : 0.98),
@@ -78,7 +100,16 @@ export function PriceRecommendation({ product, targetMargin }: PriceRecommendati
         cons: ["Complexité de gestion", "Confusion client possible"],
         risk: "medium",
         expectedVolume: product.salesVolume * (product.trend === 'up' ? 0.9 : 1.1),
-        expectedMargin: targetMargin * (product.trend === 'up' ? 1.2 : 0.9)
+        expectedMargin: product.marketShare * (product.trend === 'up' ? 1.2 : 0.9) 
+      },
+      historical: {
+        price: historicalRecommendedPrice !== null ? historicalRecommendedPrice : product.avgPrice,
+        description: "Prix recommandé basé sur l'analyse des données historiques",
+        pros: ["Basé sur des données réelles", "Prend en compte les performances passées", "Moins spéculatif"],
+        cons: ["Dépend de la qualité des données historiques", "Peut ne pas refléter les changements récents du marché"],
+        risk: "low",
+        expectedVolume: product.salesVolume, // Placeholder, could be refined with historical sales data
+        expectedMargin: product.marketShare // Placeholder, could be refined with historical margin data
       }
     }
   }
@@ -97,6 +128,9 @@ export function PriceRecommendation({ product, targetMargin }: PriceRecommendati
 
   // Recommandation principale
   const getMainRecommendation = () => {
+    if (historicalRecommendedPrice !== null) {
+      return strategies.historical;
+    }
     if (product.demandLevel === 'high' && product.trend === 'up') {
       return strategies.premium
     }
@@ -225,7 +259,8 @@ export function PriceRecommendation({ product, targetMargin }: PriceRecommendati
                     <CardTitle className="text-base capitalize">
                       {key === 'competitive' ? 'Compétitif' :
                        key === 'premium' ? 'Premium' :
-                       key === 'optimal' ? 'Optimal' : 'Dynamique'}
+                       key === 'optimal' ? 'Optimal' :
+                       key === 'dynamic' ? 'Dynamique' : 'Historique'}
                     </CardTitle>
                     {getRiskBadge(strategy.risk)}
                   </div>
@@ -257,10 +292,10 @@ export function PriceRecommendation({ product, targetMargin }: PriceRecommendati
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs">
                       <span>Performance globale</span>
-                      <span>{Math.floor((strategy.expectedMargin / targetMargin) * (strategy.expectedVolume / product.salesVolume) * 50)}%</span>
+                      <span>{Math.floor((strategy.expectedMargin / product.marketShare) * (strategy.expectedVolume / product.salesVolume) * 50)}%</span>
                     </div>
                     <Progress 
-                      value={Math.floor((strategy.expectedMargin / targetMargin) * (strategy.expectedVolume / product.salesVolume) * 50)} 
+                      value={Math.floor((strategy.expectedMargin / product.marketShare) * (strategy.expectedVolume / product.salesVolume) * 50)} 
                       className="h-2"
                     />
                   </div>
@@ -345,10 +380,6 @@ export function PriceRecommendation({ product, targetMargin }: PriceRecommendati
                 <li className="flex items-start">
                   <BarChart3 className="mr-2 h-4 w-4 text-blue-500 mt-0.5" />
                   Évolution de la part de marché
-                </li>
-                <li className="flex items-start">
-                  <BarChart3 className="mr-2 h-4 w-4 text-blue-500 mt-0.5" />
-                  Marge brute par produit
                 </li>
                 <li className="flex items-start">
                   <BarChart3 className="mr-2 h-4 w-4 text-blue-500 mt-0.5" />

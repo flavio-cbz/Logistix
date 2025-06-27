@@ -3,6 +3,14 @@ import { db } from "@/lib/db"
 import fs from "fs"
 import path from "path"
 
+interface TableInfo {
+  name: string;
+}
+
+interface CountResult {
+  count: number;
+}
+
 export async function GET() {
   try {
     // Vérifier si la base de données existe
@@ -22,24 +30,24 @@ export async function GET() {
     }
 
     // Vérifier les tables
-    let tables = []
+    let tables: string[] = []
     try {
-      const tableList = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()
+      const tableList = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as TableInfo[]
 
-      tables = tableList.map((t) => t.name)
+      tables = tableList.map((t: TableInfo) => t.name)
     } catch (error: any) {
       tables = [`Erreur: ${error.message}`]
     }
 
     // Compter les enregistrements dans chaque table
-    const counts = {}
+    const counts: Record<string, number | string> = {}
     for (const table of tables) {
       if (typeof table === "string" && !table.startsWith("Erreur") && !table.startsWith("sqlite_")) {
         try {
-          const count = db.prepare(`SELECT COUNT(*) as count FROM ${table}`).get().count
-          counts[table] = count
+          const count = (db.prepare(`SELECT COUNT(*) as count FROM ${table}`).get() as CountResult).count;
+          counts[table] = count;
         } catch (error: any) {
-          counts[table] = `Erreur: ${error.message}`
+          counts[table] = `Erreur: ${error.message}`;
         }
       }
     }
@@ -47,7 +55,7 @@ export async function GET() {
     // Vérifier les utilisateurs
     let users = []
     try {
-      users = db.prepare("SELECT id, username, email FROM users LIMIT 10").all()
+      users = db.prepare("SELECT id, username FROM users LIMIT 10").all()
     } catch (error: any) {
       users = [`Erreur: ${error.message}`]
     }

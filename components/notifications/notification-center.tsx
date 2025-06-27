@@ -18,9 +18,7 @@ export function NotificationCenter() {
 
   // Filtrer les notifications inutiles
   const filteredNotifications = notifications.filter(
-    (notification) =>
-      !notification.message.includes("Données chargées depuis le serveur") &&
-      !notification.message.includes("Utilisation des données locales"),
+    (notification) => !notification.message.includes("Utilisation des données locales"),
   )
 
   const unreadCount = filteredNotifications.length

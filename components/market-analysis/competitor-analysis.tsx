@@ -19,7 +19,6 @@ interface MarketData {
   trendPercentage: number
   lastUpdated: string
   recommendedPrice: number
-  profitMargin: number
   marketShare: number
   demandLevel: 'low' | 'medium' | 'high'
 }

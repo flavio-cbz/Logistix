@@ -2,6 +2,17 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { db } from "@/lib/db"
 
+interface SessionQueryResult {
+  session_id: string;
+  user_id: string;
+  username: string;
+  expires_at: string;
+}
+
+interface CountResult {
+  count: number;
+}
+
 export async function GET() {
   try {
     // Récupérer le cookie de session
@@ -19,12 +30,12 @@ export async function GET() {
       try {
         const session = db
           .prepare(`
-            SELECT s.id as session_id, s.user_id, s.expires_at, u.username, u.email
+            SELECT s.id as session_id, s.user_id, s.expires_at, u.username
             FROM sessions s
             JOIN users u ON s.user_id = u.id
             WHERE s.id = ?
           `)
-          .get(sessionId)
+          .get(sessionId) as SessionQueryResult;
 
         sessionInfo = session
           ? {
@@ -43,8 +54,8 @@ export async function GET() {
     // Informations sur la base de données
     let dbInfo = null
     try {
-      const userCount = db.prepare("SELECT COUNT(*) as count FROM users").get().count
-      const sessionCount = db.prepare("SELECT COUNT(*) as count FROM sessions").get().count
+      const userCount = (db.prepare("SELECT COUNT(*) as count FROM users").get() as CountResult).count;
+      const sessionCount = (db.prepare("SELECT COUNT(*) as count FROM sessions").get() as CountResult).count;
 
       dbInfo = {
         userCount,

@@ -16,7 +16,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { useState } from "react"
 
 interface AuthButtonProps {
-  user: { username: string; email: string } | null
+  user: { username: string } | null
   loading?: boolean
 }
 
@@ -83,7 +83,7 @@ export function AuthButton({ user, loading = false }: AuthButtonProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="flex items-center gap-2">
           <User className="h-4 w-4" />
-          <span className="hidden md:inline">{user.username || user.email}</span>
+          <span className="hidden md:inline">{user.username}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

@@ -21,8 +21,7 @@ import {
   BarChart3,
   Users,
   DollarSign,
-  AlertTriangle,
-  CheckCircle
+  Trash
 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { MarketAnalysisChart } from "@/components/market-analysis/market-analysis-chart"
@@ -40,11 +39,10 @@ interface MarketData {
   avgPrice: number
   salesVolume: number
   competitorCount: number
-  trend: 'up' | 'down' | 'stable'
+  trend: 'up' | 'down' | 'stable' // Cette propriété n'est plus utilisée pour l'icône/couleur, mais peut rester pour d'autres usages
   trendPercentage: number
   lastUpdated: string
   recommendedPrice: number
-  profitMargin: number
   marketShare: number
   demandLevel: 'low' | 'medium' | 'high'
 }
@@ -54,45 +52,156 @@ export default function AnalyseMarchePage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [autoUpdate, setAutoUpdate] = useState(false)
   const [updateInterval, setUpdateInterval] = useState("60")
-  const [targetMargin, setTargetMargin] = useState("30")
   const [marketData, setMarketData] = useState<MarketData[]>([])
   const [selectedProduct, setSelectedProduct] = useState<MarketData | null>(null)
   const { toast } = useToast()
 
-  // Simulation de données de marché
+  // Charger les données d'analyse de marché depuis l'API au chargement de la page
+  useEffect(() => {
+    const loadAnalyses = async () => {
+      try {
+        const response = await fetch("/api/market-analysis")
+        if (!response.ok) {
+          throw new Error("Erreur lors du chargement des analyses de marché")
+        }
+        const analyses = await response.json() as MarketData[]
+        setMarketData(analyses)
+        if (analyses.length > 0) {
+          setSelectedProduct(analyses[0]) // Sélectionner le premier produit par défaut
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des analyses de marché:", error)
+        toast({
+          variant: "destructive",
+          title: "Erreur de chargement",
+          description: "Impossible de charger les analyses de marché."
+        })
+      }
+    }
+    loadAnalyses()
+  }, [toast])
+
   const generateMarketData = (productName: string): MarketData => {
     const basePrice = Math.random() * 100 + 20
     const variation = basePrice * 0.3
-    const minPrice = basePrice - variation
-    const maxPrice = basePrice + variation
-    const avgPrice = (minPrice + maxPrice) / 2
+    const minPrice = parseFloat((basePrice - variation).toFixed(2))
+    const maxPrice = parseFloat((basePrice + variation).toFixed(2))
+    const avgPrice = parseFloat(((minPrice + maxPrice) / 2).toFixed(2))
     const salesVolume = Math.floor(Math.random() * 1000) + 100
     const competitorCount = Math.floor(Math.random() * 20) + 5
-    const trends = ['up', 'down', 'stable'] as const
-    const trend = trends[Math.floor(Math.random() * trends.length)]
-    const trendPercentage = Math.random() * 20 - 10
+    const trends = ['up', 'down', 'stable'] as const 
+    const trend = trends[Math.floor(Math.random() * trends.length)] 
+    const trendPercentage = parseFloat((Math.random() * 20 - 10).toFixed(1))
     const demandLevels = ['low', 'medium', 'high'] as const
     const demandLevel = demandLevels[Math.floor(Math.random() * demandLevels.length)]
     
-    const margin = parseFloat(targetMargin)
-    const recommendedPrice = avgPrice * (1 + margin / 100)
+    // Placeholder for recommendedPrice, will be updated by historical data
+    const recommendedPrice = avgPrice 
 
     return {
-      id: crypto.randomUUID(),
+      id: crypto.randomUUID(), 
       productName,
       currentPrice: parseFloat(basePrice.toFixed(2)),
-      minPrice: parseFloat(minPrice.toFixed(2)),
-      maxPrice: parseFloat(maxPrice.toFixed(2)),
-      avgPrice: parseFloat(avgPrice.toFixed(2)),
+      minPrice,
+      maxPrice,
+      avgPrice,
       salesVolume,
       competitorCount,
-      trend,
-      trendPercentage: parseFloat(trendPercentage.toFixed(1)),
+      trend, 
+      trendPercentage,
       lastUpdated: new Date().toISOString(),
-      recommendedPrice: parseFloat(recommendedPrice.toFixed(2)),
-      profitMargin: margin,
+      recommendedPrice,
       marketShare: parseFloat((Math.random() * 15 + 2).toFixed(1)),
       demandLevel
+    }
+  }
+
+  const saveMarketAnalysis = async (data: MarketData) => {
+    try {
+      const response = await fetch("/api/market-analysis", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      })
+      if (!response.ok) {
+        throw new Error("Erreur lors de la sauvegarde de l'analyse de marché")
+      }
+      const result = await response.json()
+      return result.id || data.id 
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde de l'analyse de marché:", error)
+      toast({
+        variant: "destructive",
+        title: "Erreur de sauvegarde",
+        description: "Impossible de sauvegarder l'analyse de marché."
+      })
+      throw error
+    }
+  }
+
+  const saveHistoricalData = async (productName: string, price: number, salesVolume: number) => {
+    try {
+      const response = await fetch("/api/historical-prices", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ productName, price, salesVolume }),
+      })
+      if (!response.ok) {
+        throw new Error("Erreur lors de l'enregistrement des données historiques")
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'enregistrement des données historiques:", error)
+      toast({
+        variant: "destructive",
+        title: "Erreur historique",
+        description: "Impossible d'enregistrer les données historiques."
+      })
+    }
+  }
+
+  const getRecommendedPriceFromAPI = async (productName: string): Promise<number | null> => {
+    try {
+      const response = await fetch(`/api/historical-prices?productName=${encodeURIComponent(productName)}`)
+      if (!response.ok) {
+        throw new Error("Erreur lors de la récupération du prix recommandé")
+      }
+      const data = await response.json()
+      return data.recommendedPrice
+    } catch (error) {
+      console.error("Erreur lors de la récupération du prix recommandé:", error)
+      toast({
+        variant: "destructive",
+        title: "Erreur de recommandation",
+        description: "Impossible de récupérer le prix recommandé."
+      })
+      return null
+    }
+  }
+
+  const deleteMarketAnalysisFromDB = async (productId: string) => {
+    try {
+      const response = await fetch("/api/market-analysis", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: productId }),
+      })
+      if (!response.ok) {
+        throw new Error("Erreur lors de la suppression de l'analyse de marché")
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression de l'analyse de marché:", error)
+      toast({
+        variant: "destructive",
+        title: "Erreur de suppression",
+        description: "Impossible de supprimer l'analyse de marché."
+      })
+      throw error
     }
   }
 
@@ -108,30 +217,49 @@ export default function AnalyseMarchePage() {
 
     setIsAnalyzing(true)
     
-    // Simulation d'une analyse qui prend du temps
     await new Promise(resolve => setTimeout(resolve, 2000))
     
-    const newMarketData = generateMarketData(searchTerm)
-    setMarketData(prev => {
-      const existing = prev.find(item => item.productName.toLowerCase() === searchTerm.toLowerCase())
-      if (existing) {
-        return prev.map(item => 
-          item.productName.toLowerCase() === searchTerm.toLowerCase() 
-            ? { ...newMarketData, id: item.id }
-            : item
-        )
+    let newMarketData = generateMarketData(searchTerm)
+    
+    try {
+      // Enregistrer les données actuelles comme données historiques
+      await saveHistoricalData(newMarketData.productName, newMarketData.currentPrice, newMarketData.salesVolume)
+
+      // Récupérer le prix recommandé basé sur les données historiques
+      const recommendedPrice = await getRecommendedPriceFromAPI(newMarketData.productName)
+      if (recommendedPrice !== null) {
+        newMarketData = { ...newMarketData, recommendedPrice }
       }
-      return [...prev, newMarketData]
-    })
-    
-    setSelectedProduct(newMarketData)
-    setIsAnalyzing(false)
-    setSearchTerm("")
-    
-    toast({
-      title: "Analyse terminée",
-      description: `L'analyse de marché pour "${newMarketData.productName}" a été mise à jour`
-    })
+
+      const savedId = await saveMarketAnalysis(newMarketData)
+      newMarketData.id = savedId; 
+
+      setMarketData(prev => {
+        const existingIndex = prev.findIndex(item => item.productName.toLowerCase() === searchTerm.toLowerCase())
+        if (existingIndex !== -1) {
+          const updatedPrev = [...prev]
+          updatedPrev[existingIndex] = { ...newMarketData, id: prev[existingIndex].id } 
+          return updatedPrev
+        }
+        return [...prev, newMarketData]
+      })
+      
+      setSelectedProduct(newMarketData)
+      setSearchTerm("")
+      
+      toast({
+        title: "Analyse terminée",
+        description: `L'analyse de marché pour "${newMarketData.productName}" a été mise à jour`
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Échec de l'analyse et de la sauvegarde du produit."
+      })
+    } finally {
+      setIsAnalyzing(false)
+    }
   }
 
   const refreshAnalysis = async (productId: string) => {
@@ -141,22 +269,65 @@ export default function AnalyseMarchePage() {
     setIsAnalyzing(true)
     await new Promise(resolve => setTimeout(resolve, 1000))
     
-    const updatedData = generateMarketData(product.productName)
-    setMarketData(prev => prev.map(item => 
-      item.id === productId 
-        ? { ...updatedData, id: productId }
-        : item
-    ))
-    
-    if (selectedProduct?.id === productId) {
-      setSelectedProduct({ ...updatedData, id: productId })
+    let updatedData = generateMarketData(product.productName)
+    updatedData.id = productId; 
+
+    try {
+      // Enregistrer les données actuelles comme données historiques
+      await saveHistoricalData(updatedData.productName, updatedData.currentPrice, updatedData.salesVolume)
+
+      // Récupérer le prix recommandé basé sur les données historiques
+      const recommendedPrice = await getRecommendedPriceFromAPI(updatedData.productName)
+      if (recommendedPrice !== null) {
+        updatedData = { ...updatedData, recommendedPrice }
+      }
+
+      await saveMarketAnalysis(updatedData)
+
+      setMarketData(prev => prev.map(item => 
+        item.id === productId 
+          ? updatedData
+          : item
+      ))
+      
+      if (selectedProduct?.id === productId) {
+        setSelectedProduct(updatedData)
+      }
+      
+      toast({
+        title: "Données mises à jour",
+        description: `L'analyse pour "${product.productName}" a été actualisée`
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Échec de l'actualisation du produit."
+      })
+    } finally {
+      setIsAnalyzing(false)
     }
-    
-    setIsAnalyzing(false)
-    toast({
-      title: "Données mises à jour",
-      description: `L'analyse pour "${product.productName}" a été actualisée`
-    })
+  }
+
+  const deleteProduct = async (productId: string) => {
+    try {
+      await deleteMarketAnalysisFromDB(productId)
+
+      setMarketData(prev => prev.filter(item => item.id !== productId))
+      if (selectedProduct?.id === productId) {
+        setSelectedProduct(null)
+      }
+      toast({
+        title: "Produit supprimé",
+        description: "Le produit a été retiré de la liste des analyses"
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Échec de la suppression du produit."
+      })
+    }
   }
 
   const exportToCSV = () => {
@@ -174,13 +345,11 @@ export default function AnalyseMarchePage() {
       'Prix Actuel (€)',
       'Prix Min (€)',
       'Prix Max (€)',
-      'Prix Moyen (€)',
       'Volume Ventes',
       'Concurrents',
       'Tendance',
       'Variation (%)',
       'Prix Recommandé (€)',
-      'Marge (%)',
       'Part de Marché (%)',
       'Niveau Demande',
       'Dernière MAJ'
@@ -193,13 +362,11 @@ export default function AnalyseMarchePage() {
         item.currentPrice,
         item.minPrice,
         item.maxPrice,
-        item.avgPrice,
         item.salesVolume,
         item.competitorCount,
         item.trend,
         item.trendPercentage,
         item.recommendedPrice,
-        item.profitMargin,
         item.marketShare,
         item.demandLevel,
         `"${new Date(item.lastUpdated).toLocaleString()}"`
@@ -222,7 +389,6 @@ export default function AnalyseMarchePage() {
     })
   }
 
-  // Auto-update functionality
   useEffect(() => {
     if (!autoUpdate || marketData.length === 0) return
 
@@ -235,9 +401,9 @@ export default function AnalyseMarchePage() {
     return () => clearInterval(interval)
   }, [autoUpdate, updateInterval, marketData])
 
-  const getTrendIcon = (trend: string, percentage: number) => {
-    if (trend === 'up') return <TrendingUp className="h-4 w-4 text-green-500" />
-    if (trend === 'down') return <TrendingDown className="h-4 w-4 text-red-500" />
+  const getTrendIcon = (percentage: number) => {
+    if (percentage > 0) return <TrendingUp className="h-4 w-4 text-green-500" />
+    if (percentage < 0) return <TrendingDown className="h-4 w-4 text-red-500" />
     return <BarChart3 className="h-4 w-4 text-gray-500" />
   }
 
@@ -273,7 +439,6 @@ export default function AnalyseMarchePage() {
         </p>
       </motion.div>
 
-      {/* Section de recherche et configuration */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -294,17 +459,6 @@ export default function AnalyseMarchePage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && analyzeProduct()}
-              />
-            </div>
-            <div className="w-32">
-              <Label htmlFor="target-margin">Marge cible (%)</Label>
-              <Input
-                id="target-margin"
-                type="number"
-                value={targetMargin}
-                onChange={(e) => setTargetMargin(e.target.value)}
-                min="0"
-                max="100"
               />
             </div>
             <div className="flex items-end">
@@ -328,7 +482,6 @@ export default function AnalyseMarchePage() {
             </div>
           </div>
 
-          {/* Configuration auto-update */}
           <div className="flex items-center justify-between pt-4 border-t">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
@@ -364,7 +517,6 @@ export default function AnalyseMarchePage() {
         </CardContent>
       </Card>
 
-      {/* Tableau des analyses */}
       {marketData.length > 0 && (
         <Card>
           <CardHeader>
@@ -379,7 +531,6 @@ export default function AnalyseMarchePage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Produit</TableHead>
-                    <TableHead>Prix Moyen</TableHead>
                     <TableHead>Volume</TableHead>
                     <TableHead>Concurrents</TableHead>
                     <TableHead>Tendance</TableHead>
@@ -396,15 +547,14 @@ export default function AnalyseMarchePage() {
                       onClick={() => setSelectedProduct(item)}
                     >
                       <TableCell className="font-medium">{item.productName}</TableCell>
-                      <TableCell>{item.avgPrice.toFixed(2)} €</TableCell>
                       <TableCell>{item.salesVolume.toLocaleString()}</TableCell>
                       <TableCell>{item.competitorCount}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-1">
-                          {getTrendIcon(item.trend, item.trendPercentage)}
+                          {getTrendIcon(item.trendPercentage)}
                           <span className={`text-sm ${
-                            item.trend === 'up' ? 'text-green-600' : 
-                            item.trend === 'down' ? 'text-red-600' : 'text-gray-600'
+                            item.trendPercentage > 0 ? 'text-green-600' : 
+                            item.trendPercentage < 0 ? 'text-red-600' : 'text-gray-600'
                           }`}>
                             {item.trendPercentage > 0 ? '+' : ''}{item.trendPercentage}%
                           </span>
@@ -415,17 +565,29 @@ export default function AnalyseMarchePage() {
                         {item.recommendedPrice.toFixed(2)} €
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            refreshAnalysis(item.id)
-                          }}
-                          disabled={isAnalyzing}
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              refreshAnalysis(item.id)
+                            }}
+                            disabled={isAnalyzing}
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteProduct(item.id)
+                            }}
+                          >
+                            <Trash className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -436,7 +598,6 @@ export default function AnalyseMarchePage() {
         </Card>
       )}
 
-      {/* Analyse détaillée */}
       {selectedProduct && (
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList>
@@ -516,7 +677,7 @@ export default function AnalyseMarchePage() {
           </TabsContent>
 
           <TabsContent value="recommendation">
-            <PriceRecommendation product={selectedProduct} targetMargin={parseFloat(targetMargin)} />
+            <PriceRecommendation product={selectedProduct} />
           </TabsContent>
         </Tabs>
       )}

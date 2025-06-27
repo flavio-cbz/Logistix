@@ -2,19 +2,19 @@
 
 import { revalidatePath } from "next/cache"
 import { db, generateId, getCurrentTimestamp } from "./db"
-import { requireAuth, createUser, verifyCredentials, createSession, signOut as authSignOut, hashPassword } from "./auth"
+import { requireAuth, createUser, verifyCredentials, createSession, signOut as authSignOut, UserSession } from "./auth"
 import { z } from "zod"
 import { v4 as uuidv4 } from "uuid"
+import { ProfileFormValues } from "@/components/auth/profile-form"
+import { Parcelle, Produit, DashboardConfig } from "@/types"
 
 // Schémas de validation
 const userSchema = z.object({
   username: z.string().min(2, "Le nom d'utilisateur doit faire au moins 2 caractères"),
-  email: z.string().email("Email invalide"),
   password: z.string().min(6, "Le mot de passe doit faire au moins 6 caractères"),
 })
 
 const loginSchema = z.object({
-  email: z.string().email("Email invalide"),
   password: z.string().min(1, "Le mot de passe est requis"),
 })
 
@@ -42,21 +42,20 @@ const produitSchema = z.object({
 // Actions d'authentification
 export async function signUp(formData: FormData) {
   const username = formData.get("username") as string
-  const email = formData.get("email") as string
   const password = formData.get("password") as string
 
-  console.log("Données reçues pour l'inscription:", { username, email, password: "***" })
+  console.log("Données reçues pour l'inscription:", { username, password: "***" })
 
-  if (!username || !email || !password) {
+  if (!username || !password) {
     console.error("Données d'inscription incomplètes")
     return { success: false, message: "Tous les champs sont requis" }
   }
 
   try {
-    const validatedData = userSchema.parse({ username, email, password })
+    const validatedData = userSchema.parse({ username, password })
     console.log("Données validées avec succès")
 
-    const user = createUser(validatedData.username, validatedData.email, validatedData.password)
+    const user = createUser(validatedData.username, validatedData.password)
     console.log("Utilisateur créé avec succès:", user.id)
 
     const sessionId = createSession(user.id)
@@ -78,13 +77,12 @@ export async function signUp(formData: FormData) {
 
 // Dans la fonction signIn, utilisons une approche différente pour définir le cookie
 export async function signIn(formData: FormData) {
-  const email = formData.get("email") as string
   const password = formData.get("password") as string
 
-  console.log("Action signIn appelée avec email:", email)
+  console.log("Action signIn appelée.")
 
   try {
-    const validatedData = loginSchema.parse({ email, password })
+    const validatedData = loginSchema.parse({ password })
 
     // Vérifier si la table users existe
     try {
@@ -99,11 +97,11 @@ export async function signIn(formData: FormData) {
       }
     }
 
-    const user = verifyCredentials(validatedData.email, validatedData.password)
+    const user = verifyCredentials(validatedData.password)
 
     if (!user) {
       console.log("Identifiants invalides")
-      return { success: false, message: "Email ou mot de passe incorrect" }
+      return { success: false, message: "Mot de passe incorrect" }
     }
 
     console.log("Utilisateur authentifié, création de session pour:", user.id)
@@ -155,8 +153,8 @@ export async function signOut() {
 }
 
 // Actions pour les parcelles
-export async function getParcelles() {
-  const user = requireAuth()
+export async function getParcelles(): Promise<Parcelle[]> {
+  const user: UserSession = await requireAuth()
 
   try {
     const parcelles = db
@@ -165,7 +163,7 @@ export async function getParcelles() {
       WHERE user_id = ?
       ORDER BY created_at DESC
     `)
-      .all(user.id)
+      .all(user.id) as Parcelle[]
 
     return parcelles
   } catch (error: any) {
@@ -175,7 +173,7 @@ export async function getParcelles() {
 }
 
 export async function addParcelle(formData: FormData) {
-  const user = requireAuth()
+  const user: UserSession = await requireAuth()
 
   try {
     const numero = formData.get("numero") as string
@@ -220,7 +218,7 @@ export async function addParcelle(formData: FormData) {
 }
 
 export async function updateParcelle(id: string, formData: FormData) {
-  const user = requireAuth()
+  const user: UserSession = await requireAuth()
 
   try {
     const numero = formData.get("numero") as string
@@ -259,7 +257,7 @@ export async function updateParcelle(id: string, formData: FormData) {
       SELECT id, poids FROM produits
       WHERE parcelleId = ? AND user_id = ?
     `)
-      .all(id, user.id)
+      .all(id, user.id) as { id: string; poids: number }[]
 
     const updateProduitStmt = db.prepare(`
       UPDATE produits
@@ -283,7 +281,7 @@ export async function updateParcelle(id: string, formData: FormData) {
 }
 
 export async function deleteParcelle(id: string) {
-  const user = requireAuth()
+  const user: UserSession = await requireAuth()
 
   try {
     // Vérifier si des produits sont associés à cette parcelle
@@ -292,7 +290,7 @@ export async function deleteParcelle(id: string) {
       SELECT COUNT(*) as count FROM produits
       WHERE parcelleId = ? AND user_id = ?
     `)
-      .get(id, user.id)
+      .get(id, user.id) as { count: number }
 
     if (produits.count > 0) {
       return {
@@ -317,8 +315,8 @@ export async function deleteParcelle(id: string) {
 }
 
 // Actions pour les produits
-export async function getProduits() {
-  const user = requireAuth()
+export async function getProduits(): Promise<Produit[]> {
+  const user: UserSession = await requireAuth()
 
   try {
     const produits = db
@@ -327,7 +325,7 @@ export async function getProduits() {
       WHERE user_id = ?
       ORDER BY created_at DESC
     `)
-      .all(user.id)
+      .all(user.id) as Produit[]
 
     return produits
   } catch (error: any) {
@@ -337,7 +335,7 @@ export async function getProduits() {
 }
 
 export async function addProduit(formData: FormData) {
-  const user = requireAuth()
+  const user: UserSession = await requireAuth()
 
   try {
     const commandeId = formData.get("commandeId") as string
@@ -365,7 +363,7 @@ export async function addProduit(formData: FormData) {
       SELECT prixParGramme FROM parcelles
       WHERE id = ? AND user_id = ?
     `)
-      .get(validatedData.parcelleId, user.id)
+      .get(validatedData.parcelleId, user.id) as { prixParGramme: number }
 
     if (!parcelle) {
       return { success: false, message: "Parcelle introuvable" }
@@ -435,7 +433,7 @@ export async function addProduit(formData: FormData) {
 }
 
 export async function updateProduit(id: string, formData: FormData) {
-  const user = requireAuth()
+  const user: UserSession = await requireAuth()
 
   try {
     const commandeId = formData.get("commandeId") as string
@@ -463,7 +461,7 @@ export async function updateProduit(id: string, formData: FormData) {
       SELECT prixParGramme FROM parcelles
       WHERE id = ? AND user_id = ?
     `)
-      .get(validatedData.parcelleId, user.id)
+      .get(validatedData.parcelleId, user.id) as { prixParGramme: number }
 
     if (!parcelle) {
       return { success: false, message: "Parcelle introuvable" }
@@ -539,7 +537,7 @@ export async function updateProduit(id: string, formData: FormData) {
 }
 
 export async function deleteProduit(id: string) {
-  const user = requireAuth()
+  const user: UserSession = await requireAuth()
 
   try {
     db.prepare(`
@@ -558,97 +556,33 @@ export async function deleteProduit(id: string) {
 }
 
 // Actions pour le profil utilisateur
-export async function getAppProfile() {
-  const user = requireAuth()
-
+export async function updateAppProfile(data: ProfileFormValues) {
   try {
-    const profile = db
-      .prepare(`
-      SELECT username, email, bio, avatar, language, theme
-      FROM users
-      WHERE id = ?
-    `)
-      .get(user.id)
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/profile/update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    })
 
-    return (
-      profile || {
-        username: user.username,
-        email: user.email,
-        bio: "",
-        avatar: "",
-        language: "fr",
-        theme: "system",
-      }
-    )
-  } catch (error: any) {
-    console.error("Erreur lors de la récupération du profil:", error)
-    return {
-      username: user.username,
-      email: user.email,
-      bio: "",
-      avatar: "",
-      language: "fr",
-      theme: "system",
-    }
-  }
-}
-
-export async function updateAppProfile(formData: FormData) {
-  const user = requireAuth()
-
-  try {
-    if (!user || !user.id) {
-      console.error("Utilisateur non authentifié ou ID manquant")
-      return { success: false, message: "Utilisateur non authentifié" }
+    if (!response.ok) {
+      const errorData = await response.json()
+      return { success: false, message: errorData.message || "Erreur lors de la mise à jour du profil." }
     }
 
-    const username = formData.get("username") as string
-    const email = formData.get("email") as string
-    const bio = (formData.get("bio") as string) || ""
-    const avatar = (formData.get("avatar") as string) || ""
-    const language = (formData.get("language") as string) || "fr"
-    const theme = (formData.get("theme") as string) || "system"
-    const password = formData.get("password") as string
-
-    console.log("Mise à jour du profil pour l'utilisateur:", user.id)
-    console.log("Données reçues:", { username, email, language, theme })
-
-    const timestamp = getCurrentTimestamp()
-
-    try {
-      // Mettre à jour le profil dans la base de données SQLite
-      if (password && password.length > 0) {
-        const passwordHash = hashPassword(password)
-
-        db.prepare(`
-          UPDATE users
-          SET username = ?, email = ?, bio = ?, avatar = ?, language = ?, theme = ?, password_hash = ?, updated_at = ?
-          WHERE id = ?
-        `).run(username, email, bio, avatar, language, theme, passwordHash, timestamp, user.id)
-      } else {
-        db.prepare(`
-          UPDATE users
-          SET username = ?, email = ?, bio = ?, avatar = ?, language = ?, theme = ?, updated_at = ?
-          WHERE id = ?
-        `).run(username, email, bio, avatar, language, theme, timestamp, user.id)
-      }
-
-      console.log("Profil mis à jour avec succès")
-      revalidatePath("/profile")
-      return { success: true, message: "Profil mis à jour avec succès" }
-    } catch (dbError: any) {
-      console.error("Erreur lors de la mise à jour en base de données:", dbError)
-      return { success: false, message: `Erreur de base de données: ${dbError.message}` }
-    }
+    const result = await response.json()
+    revalidatePath("/profile")
+    return { success: result.success, message: result.message }
   } catch (error: any) {
     console.error("Erreur lors de la mise à jour du profil:", error)
-    return { success: false, message: `Une erreur est survenue: ${error.message}` }
+    return { success: false, message: error.message || "Une erreur s'est produite lors de la mise à jour du profil." }
   }
 }
 
 // Actions pour la configuration du dashboard
-export async function getDashboardConfig() {
-  const user = requireAuth()
+export async function getDashboardConfig(): Promise<DashboardConfig> {
+  const user: UserSession = await requireAuth()
 
   try {
     const config = db
@@ -657,7 +591,7 @@ export async function getDashboardConfig() {
       FROM dashboard_config
       WHERE user_id = ?
     `)
-      .get(user.id)
+      .get(user.id) as { config: string }
 
     if (!config) {
       // Configuration par défaut
@@ -709,7 +643,7 @@ export async function getDashboardConfig() {
       }
     }
 
-    return JSON.parse(config.config)
+    return JSON.parse(config.config) as DashboardConfig
   } catch (error: any) {
     console.error("Erreur lors de la récupération de la configuration du dashboard:", error)
     // Configuration par défaut en cas d'erreur
@@ -739,7 +673,7 @@ export async function getDashboardConfig() {
 }
 
 export async function updateDashboardConfig(config: any) {
-  const user = requireAuth()
+  const user: UserSession = await requireAuth()
 
   try {
     const timestamp = getCurrentTimestamp()
@@ -777,7 +711,7 @@ export async function updateDashboardConfig(config: any) {
 
 // Actions pour les statistiques
 export async function getStatistiques() {
-  const user = requireAuth()
+  const user: UserSession = await requireAuth()
 
   try {
     // Récupérer les produits pour calculer les statistiques
@@ -786,7 +720,7 @@ export async function getStatistiques() {
       SELECT * FROM produits
       WHERE user_id = ?
     `)
-      .all(user.id)
+      .all(user.id) as Produit[]
 
     // Récupérer les parcelles
     const parcelles = db
@@ -794,12 +728,12 @@ export async function getStatistiques() {
       SELECT * FROM parcelles
       WHERE user_id = ?
     `)
-      .all(user.id)
+      .all(user.id) as Parcelle[]
 
     // Calculer les statistiques
     const produitsVendus = produits.filter((p) => p.vendu).length
-    const ventesTotales = produits.filter((p) => p.vendu && p.prixVente).reduce((sum, p) => sum + p.prixVente, 0)
-    const beneficesTotaux = produits.filter((p) => p.benefices).reduce((sum, p) => sum + p.benefices, 0)
+    const ventesTotales = produits.filter((p) => p.vendu && p.prixVente).reduce((sum, p) => sum + (p.prixVente || 0), 0)
+    const beneficesTotaux = produits.filter((p) => p.benefices).reduce((sum, p) => sum + (p.benefices || 0), 0)
     const nombreParcelles = parcelles.length
 
     return {

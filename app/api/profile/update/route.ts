@@ -1,140 +1,117 @@
 import { NextResponse } from "next/server"
-import { getSessionUser } from "@/lib/auth"
+import { getSessionUser, hashPassword } from "@/lib/auth"
 import { db, getCurrentTimestamp } from "@/lib/db"
-import { hashPassword } from "@/lib/auth"
+import * as z from "zod"
+
+// Le schéma de validation corrigé avec superRefine pour une logique conditionnelle
+const profileFormSchema = z
+	.object({
+		username: z.string().min(2, { message: "Le nom d'utilisateur doit faire au moins 2 caractères." }).max(30, { message: "Le nom d'utilisateur ne peut pas dépasser 30 caractères." }),
+		email: z.string().min(1, { message: "L'email est requis." }).email("Email invalide."),
+		password: z.string().optional(), // La validation de la longueur se fera dans superRefine
+		bio: z.string().optional(), // La validation de la longueur se fera dans superRefine
+		language: z.string({ required_error: "Veuillez sélectionner une langue." }),
+		theme: z.string({ required_error: "Veuillez sélectionner un thème." }),
+		avatar: z.string().url({ message: "Veuillez entrer une URL valide pour l'avatar." }).optional().or(z.literal("")),
+	})
+	.superRefine((data, ctx) => {
+		// Valide la longueur du mot de passe uniquement s'il est fourni et non vide.
+		if (data.password && data.password.length > 0 && data.password.length < 4) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.too_small,
+				minimum: 4,
+				type: "string",
+				inclusive: true,
+				message: "Le mot de passe doit contenir au moins 4 caractères.",
+				path: ["password"],
+			})
+		}
+		// Valide la longueur de la bio uniquement si elle est fournie et non vide.
+		if (data.bio && data.bio.length > 0 && data.bio.length < 4) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.too_small,
+				minimum: 4,
+				type: "string",
+				inclusive: true,
+				message: "La biographie doit contenir au moins 4 caractères.",
+				path: ["bio"],
+			})
+		}
+		// Valide la longueur maximale de la bio
+		if (data.bio && data.bio.length > 160) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.too_big,
+				maximum: 160,
+				type: "string",
+				inclusive: true,
+				message: "La biographie ne peut pas dépasser 160 caractères.",
+				path: ["bio"],
+			})
+		}
+	})
 
 export async function POST(request: Request) {
-  try {
-    // Vérifier l'authentification
-    const user = getSessionUser()
-    if (!user) {
-      return NextResponse.json({ success: false, message: "Non authentifié" }, { status: 401 })
-    }
+	try {
+		// 1. Vérifier l'authentification
+		const user = await getSessionUser()
+		if (!user) {
+			return NextResponse.json({ success: false, message: "Non authentifié" }, { status: 401 })
+		}
 
-    // Récupérer les données du corps de la requête
-    const data = await request.json()
-    const { username, email, bio, avatar, language, theme, password } = data
+		// 2. Récupérer et valider les données
+		const data = await request.json()
+		const validation = profileFormSchema.safeParse(data)
 
-    console.log("Mise à jour du profil pour l'utilisateur:", user.id)
-    console.log("Données reçues:", { username, email, language, theme })
+		if (!validation.success) {
+			const errors = validation.error.errors.map((err) => err.message).join(", ")
+			return NextResponse.json({ success: false, message: `Données invalides: ${errors}` }, { status: 400 })
+		}
 
-    // Vérifier si le nom d'utilisateur existe déjà (sauf pour l'utilisateur actuel)
-    if (username !== user.username) {
-      try {
-        // Utiliser une requête préparée avec des paramètres nommés pour plus de clarté
-        const existingUser = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(username, user.id)
+		const { username, email, bio, avatar, language, theme, password } = validation.data
 
-        if (existingUser) {
-          return NextResponse.json(
-            {
-              success: false,
-              message: "Ce nom d'utilisateur est déjà utilisé",
-            },
-            { status: 400 },
-          )
-        }
-      } catch (error) {
-        console.error("Erreur lors de la vérification du nom d'utilisateur:", error)
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Erreur lors de la vérification du nom d'utilisateur",
-          },
-          { status: 500 },
-        )
-      }
-    }
+		// 3. Vérifications d'unicité
+		if (username && username !== user.username) {
+			const existingUser = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(username, user.id)
+			if (existingUser) {
+				return NextResponse.json({ success: false, message: "Ce nom d'utilisateur est déjà utilisé" }, { status: 400 })
+			}
+		}
 
-    // Vérifier si l'email existe déjà (sauf pour l'utilisateur actuel)
-    if (email !== user.email) {
-      try {
-        const existingUser = db.prepare("SELECT id FROM users WHERE email = ? AND id != ?").get(email, user.id)
+		const timestamp = getCurrentTimestamp()
 
-        if (existingUser) {
-          return NextResponse.json(
-            {
-              success: false,
-              message: "Cette adresse email est déjà utilisée",
-            },
-            { status: 400 },
-          )
-        }
-      } catch (error) {
-        console.error("Erreur lors de la vérification de l'email:", error)
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Erreur lors de la vérification de l'email",
-          },
-          { status: 500 },
-        )
-      }
-    }
-
-    const timestamp = getCurrentTimestamp()
-
-    try {
-      // Mettre à jour le profil dans la base de données
-      if (password && password.length > 0) {
-        const passwordHash = hashPassword(password)
-
-        db.prepare(`
+		// 4. Mise à jour en base de données
+		try {
+			if (password && password.length > 0) {
+				// Mettre à jour avec le nouveau mot de passe
+				const passwordHash = hashPassword(password)
+				db.prepare(
+					`
           UPDATE users
           SET username = ?, email = ?, bio = ?, avatar = ?, language = ?, theme = ?, password_hash = ?, updated_at = ?
           WHERE id = ?
-        `).run(
-          username,
-          email,
-          bio || null,
-          avatar || null,
-          language || "fr",
-          theme || "system",
-          passwordHash,
-          timestamp,
-          user.id,
-        )
-      } else {
-        db.prepare(`
+        `,
+				).run(username, email, bio || "", avatar || "", language, theme, passwordHash, timestamp, user.id)
+			} else {
+				// Mettre à jour sans changer le mot de passe
+				db.prepare(
+					`
           UPDATE users
           SET username = ?, email = ?, bio = ?, avatar = ?, language = ?, theme = ?, updated_at = ?
           WHERE id = ?
-        `).run(username, email, bio || null, avatar || null, language || "fr", theme || "system", timestamp, user.id)
-      }
+        `,
+				).run(username, email, bio || "", avatar || "", language, theme, timestamp, user.id)
+			}
 
-      console.log("Profil mis à jour avec succès")
-
-      return NextResponse.json({
-        success: true,
-        message: "Profil mis à jour avec succès",
-        user: {
-          id: user.id,
-          username,
-          email,
-          bio,
-          avatar,
-          language,
-          theme,
-        },
-      })
-    } catch (dbError: any) {
-      console.error("Erreur lors de la mise à jour en base de données:", dbError)
-      return NextResponse.json(
-        {
-          success: false,
-          message: `Erreur de base de données: ${dbError.message}`,
-        },
-        { status: 500 },
-      )
-    }
-  } catch (error: any) {
-    console.error("Erreur lors de la mise à jour du profil:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        message: error.message || "Une erreur s'est produite lors de la mise à jour du profil",
-      },
-      { status: 500 },
-    )
-  }
+			return NextResponse.json({
+				success: true,
+				message: "Profil mis à jour avec succès",
+			})
+		} catch (dbError: any) {
+			console.error("Erreur lors de la mise à jour en base de données:", dbError)
+			return NextResponse.json({ success: false, message: `Erreur de base de données: ${dbError.message}` }, { status: 500 })
+		}
+	} catch (error: any) {
+		console.error("Erreur inattendue lors de la mise à jour du profil:", error)
+		return NextResponse.json({ success: false, message: error.message || "Une erreur serveur s'est produite" }, { status: 500 })
+	}
 }
-

@@ -2,6 +2,14 @@ import { NextResponse } from "next/server"
 import { hashPassword } from "@/lib/auth"
 import { db, generateId } from "@/lib/db"
 import { z } from "zod"
+import { cookies } from "next/headers" // Importez cookies ici
+
+// Interfaces pour les types de données de la base de données (à importer de lib/auth si possible)
+interface User {
+  id: string;
+  username: string;
+  password_hash: string;
+}
 
 // Schéma de validation
 const loginSchema = z.object({
@@ -35,16 +43,14 @@ export async function POST(request: Request) {
         }
       }
 
-      // Vérifier les identifiants (email ou username)
       const passwordHash = hashPassword(password)
 
-      // Rechercher l'utilisateur par email ou nom d'utilisateur
       const user = db
-        .prepare(`
-        SELECT id, username, email, password_hash FROM users
-        WHERE email = ? OR username = ?
+        .prepare<[string], User>(`
+        SELECT id, username, password_hash FROM users
+        WHERE username = ?
       `)
-        .get(identifier, identifier)
+        .get(identifier)
 
       if (!user) {
         console.log("Utilisateur non trouvé")
@@ -100,12 +106,12 @@ export async function POST(request: Request) {
       const response = NextResponse.json({
         success: true,
         message: "Connexion réussie",
-        user: { id: user.id, username: user.username, email: user.email },
+        user: { id: user.id, username: user.username },
       })
 
       // Définir le cookie de session
       const expiresAtDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 jours
-      response.cookies.set({
+      response.cookies.set({ // Utiliser response.cookies.set()
         name: "session_id",
         value: sessionId,
         expires: expiresAtDate,
@@ -128,4 +134,3 @@ export async function POST(request: Request) {
     )
   }
 }
-

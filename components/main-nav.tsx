@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { LayoutGrid, Package, Map, BarChart, Shield, TrendingUp } from "lucide-react"
+import { LayoutGrid, Package, Map, BarChart, Shield, TrendingUp, Search } from "lucide-react"
 import { useAuth } from "@/components/auth/auth-provider"
 
 export function MainNav() {
@@ -75,20 +75,6 @@ export function MainNav() {
         </Button>
       </Link>
 
-      {isAdmin && (
-        <Link
-          href="/admin"
-          className={cn(
-            "text-sm font-medium transition-colors hover:text-primary",
-            pathname === "/admin" ? "text-primary" : "text-muted-foreground",
-          )}
-        >
-          <Button variant="ghost" className="w-full justify-start">
-            <Shield className="mr-2 h-4 w-4" />
-            Admin
-          </Button>
-        </Link>
-      )}
     </nav>
   )
 }

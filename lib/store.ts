@@ -1,6 +1,9 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import type { Parcelle, Produit, DashboardConfig } from "@/types"
+import { Logger } from "./logger"
+
+const logger = new Logger("lib/store")
 
 // Mettons à jour la configuration par défaut du dashboard avec nos nouveaux composants
 const defaultDashboardConfig: DashboardConfig = {
@@ -120,10 +123,10 @@ export const useStore = create<StoreState>()(
 
           // Si le chargement a échoué, utiliser les données locales
           if (!success) {
-            console.log("Utilisation des données locales")
+            logger.info("Utilisation des données locales")
           }
         } catch (error) {
-          console.error("Erreur lors de l'initialisation du store:", error)
+          logger.error("Erreur lors de l'initialisation du store:", error)
         }
       },
 
@@ -351,14 +354,14 @@ export const useStore = create<StoreState>()(
       // Import/Export
       importData: (data) => {
         // Fonctionnalité temporairement désactivée
-        console.log("Fonctionnalité d'importation temporairement désactivée")
+        logger.warn("Tentative d'utilisation de la fonctionnalité d'importation désactivée.", { data })
         get().addNotification("warning", "La fonctionnalité d'importation est temporairement désactivée.")
         return false
       },
 
       exportData: () => {
         // Fonctionnalité temporairement désactivée
-        console.log("Fonctionnalité d'exportation temporairement désactivée")
+        logger.warn("Tentative d'utilisation de la fonctionnalité d'exportation désactivée.")
         get().addNotification("warning", "La fonctionnalité d'exportation est temporairement désactivée.")
         return {
           parcelles: [],
@@ -398,7 +401,7 @@ export const useStore = create<StoreState>()(
           get().addNotification("success", "Données synchronisées avec le serveur")
           return true
         } catch (error) {
-          console.error("Erreur lors de la synchronisation avec la base de données:", error)
+          logger.error("Erreur lors de la synchronisation avec la base de données:", error)
           // Ajouter une notification d'erreur
           get().addNotification("error", "Échec de la synchronisation avec le serveur")
           return false
@@ -430,10 +433,10 @@ export const useStore = create<StoreState>()(
           })
 
           // Ajouter une notification de succès
-          get().addNotification("info", "Données chargées depuis le serveur")
+          // get().addNotification("info", "Données chargées depuis le serveur")
           return true
         } catch (error) {
-          console.error("Erreur lors du chargement depuis la base de données:", error)
+          logger.error("Erreur lors du chargement depuis la base de données:", error)
           // Ajouter une notification d'erreur
           get().addNotification("warning", "Utilisation des données locales")
           return false
