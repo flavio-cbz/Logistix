@@ -1,4 +1,4 @@
-### Comprendre les Bases de Données avec Authentification: Guide pour Débutants
+Thought for 7 seconds### Comprendre les Bases de Données avec Authentification: Guide pour Débutants
 
 En utilisant le projet Logistix comme exemple concret, je vais vous expliquer comment fonctionne une base de données avec authentification, étape par étape.
 

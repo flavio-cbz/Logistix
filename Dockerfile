@@ -1,5 +1,6 @@
+
 # Étape de construction
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 # Installation des dépendances nécessaires pour better-sqlite3
 RUN apk add --no-cache python3 make g++ gcc
@@ -26,7 +27,7 @@ RUN npm run db:migrate
 RUN npm run build
 
 # Étape de production
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 
 # Installation des dépendances nécessaires pour better-sqlite3
 RUN apk add --no-cache python3 make g++ gcc
