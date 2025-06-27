@@ -18,7 +18,7 @@ export async function middleware(req: NextRequest) {
   const isAuthenticated = !!sessionId
 
   // Routes protégées qui nécessitent une authentification
-  const protectedRoutes = ["/dashboard", "/profile", "/produits", "/parcelles", "/statistiques", "/admin"]
+  const protectedRoutes = ["/dashboard", "/profile", "/produits", "/parcelles", "/statistiques", "/admin", "/analyse-marche"]
 
   // Routes publiques accessibles uniquement si non connecté
   const publicRoutes = ["/login", "/signup"]
@@ -104,6 +104,7 @@ export const config = {
     "/parcelles/:path*",
     "/statistiques/:path*",
     "/admin/:path*",
+    "/analyse-marche/:path*",
     "/login",
     "/signup",
     "/",
@@ -111,4 +112,3 @@ export const config = {
     "/api/:path*",
   ],
 }
-
