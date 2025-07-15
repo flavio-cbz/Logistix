@@ -43,7 +43,7 @@ export default function LoginForm() {
 
     try {
       const formElement = event.currentTarget
-      const username = formElement.identifier.value
+      const username = formElement.username.value
       const password = formElement.password.value
 
       console.log("Tentative de connexion avec:", {
@@ -57,7 +57,7 @@ export default function LoginForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ identifier: username, password }),
       })
 
       const result = await response.json()
