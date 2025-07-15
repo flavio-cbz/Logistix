@@ -242,4 +242,10 @@ async def main():
         print("\n\n--- Tous les produits ont été traités. Script terminé. ---")
 
 if __name__ == "__main__":
-    import asyncio
+    try:
+        import asyncio
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nExécution interrompue par l'utilisateur.")
+    except Exception as e:
+        print(f"Erreur inattendue : {e}")
