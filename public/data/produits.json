@@ -1,0 +1,42 @@
+[
+  {
+    "id": "prod1",
+    "commandeId": "CMD001",
+    "nom": "Nike Air Max",
+    "parcelleId": "p1",
+    "details": "Taille 42, Noir",
+    "prixArticle": 89.99,
+    "prixArticleTTC": 95.98,
+    "poids": 400,
+    "vendu": true,
+    "dateVente": "2024-02-15",
+    "tempsEnLigne": "3 jours",
+    "prixVente": 159.99,
+    "plateforme": "Vinted",
+    "prixLivraison": 5.99,
+    "benefices": 64.01,
+    "pourcentageBenefice": 66.69,
+    "createdAt": "2025-07-15T12:48:28.887Z",
+    "updatedAt": "2025-07-15T12:48:28.887Z"
+  },
+  {
+    "id": "prod2",
+    "commandeId": "CMD002",
+    "nom": "Adidas Superstar",
+    "parcelleId": "p1",
+    "details": "Taille 41, Blanc",
+    "prixArticle": 79.99,
+    "prixArticleTTC": 85.98,
+    "poids": 350,
+    "vendu": true,
+    "dateVente": "2024-02-10",
+    "tempsEnLigne": "5 jours",
+    "prixVente": 129.99,
+    "plateforme": "Vinted",
+    "prixLivraison": 5.99,
+    "benefices": 44.01,
+    "pourcentageBenefice": 51.19,
+    "createdAt": "2025-07-15T12:48:28.887Z",
+    "updatedAt": "2025-07-15T12:48:28.887Z"
+  }
+]
