@@ -124,9 +124,11 @@ export const useStore = create<StoreState>()(
           // Si le chargement a échoué, utiliser les données locales
           if (!success) {
             logger.info("Utilisation des données locales")
+            get().addNotification("warning", "Chargement local des données (base distante inaccessible)")
           }
         } catch (error) {
           logger.error("Erreur lors de l'initialisation du store:", error)
+          get().addNotification("error", "Erreur lors de l'initialisation du store")
         }
       },
 

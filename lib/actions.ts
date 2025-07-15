@@ -44,26 +44,27 @@ export async function signUp(formData: FormData) {
   const username = formData.get("username") as string
   const password = formData.get("password") as string
 
-  console.log("Données reçues pour l'inscription:", { username, password: "***" })
+  // DEBUG: Pour activer le debug, décommentez la ligne suivante
+  // logger.debug("Données reçues pour l'inscription:", { username, password: "***" })
 
   if (!username || !password) {
-    console.error("Données d'inscription incomplètes")
+    // logger.error("Données d'inscription incomplètes")
     return { success: false, message: "Tous les champs sont requis" }
   }
 
   try {
     const validatedData = userSchema.parse({ username, password })
-    console.log("Données validées avec succès")
+    // logger.debug("Données validées avec succès")
 
     const user = createUser(validatedData.username, validatedData.password)
-    console.log("Utilisateur créé avec succès:", user.id)
+    // logger.info("Utilisateur créé avec succès:", user.id)
 
     const sessionId = createSession(user.id)
-    console.log("Session créée avec succès")
+    // logger.info("Session créée avec succès")
 
     return { success: true, message: "Inscription réussie" }
   } catch (error: any) {
-    console.error("Erreur lors de l'inscription:", error)
+    // logger.error("Erreur lors de l'inscription:", error)
 
     // Gestion spécifique des erreurs de validation Zod
     if (error.errors) {
@@ -79,7 +80,7 @@ export async function signUp(formData: FormData) {
 export async function signIn(formData: FormData) {
   const password = formData.get("password") as string
 
-  console.log("Action signIn appelée.")
+  // logger.debug("Action signIn appelée.")
 
   try {
     const validatedData = loginSchema.parse({ password })
@@ -88,7 +89,7 @@ export async function signIn(formData: FormData) {
     try {
       db.prepare("SELECT 1 FROM users LIMIT 1").get()
     } catch (error: any) {
-      console.error("Erreur lors de l'accès à la table users:", error)
+      // logger.error("Erreur lors de l'accès à la table users:", error)
       if (error.message.includes("no such table")) {
         return {
           success: false,
@@ -100,23 +101,18 @@ export async function signIn(formData: FormData) {
     const user = verifyCredentials(validatedData.password)
 
     if (!user) {
-      console.log("Identifiants invalides")
+      // logger.warn("Identifiants invalides")
       return { success: false, message: "Mot de passe incorrect" }
     }
 
-    console.log("Utilisateur authentifié, création de session pour:", user.id)
+    // logger.info("Utilisateur authentifié, création de session pour:", user.id)
 
     // Supprimer toute session existante pour cet utilisateur
     try {
       const result = db.prepare("DELETE FROM sessions WHERE user_id = ?").run(user.id)
-      console.log(
-        "Sessions existantes supprimées pour l'utilisateur:",
-        user.id,
-        "Nombre de sessions supprimées:",
-        result.changes,
-      )
+      // logger.info("Sessions existantes supprimées pour l'utilisateur:", user.id, "Nombre de sessions supprimées:", result.changes)
     } catch (error) {
-      console.error("Erreur lors de la suppression des sessions existantes:", error)
+      // logger.error("Erreur lors de la suppression des sessions existantes:", error)
     }
 
     // Créer une nouvelle session
@@ -129,7 +125,7 @@ export async function signIn(formData: FormData) {
         VALUES (?, ?, ?)
       `).run(sessionId, user.id, expiresAt)
 
-      console.log("Session créée dans la base de données:", sessionId)
+      // logger.info("Session créée dans la base de données:", sessionId)
 
       // Retourner le sessionId pour que le client puisse le définir
       return {
@@ -138,11 +134,11 @@ export async function signIn(formData: FormData) {
         sessionId: sessionId,
       }
     } catch (error) {
-      console.error("Erreur lors de la création de la session:", error)
+      // logger.error("Erreur lors de la création de la session:", error)
       return { success: false, message: "Erreur lors de la création de la session" }
     }
   } catch (error: any) {
-    console.error("Erreur dans l'action signIn:", error)
+    // logger.error("Erreur dans l'action signIn:", error)
     return { success: false, message: error.message }
   }
 }

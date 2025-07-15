@@ -22,6 +22,8 @@ export function isAdmin(userId: string): boolean {
     return !!user && user.username === "admin"
   } catch (error) {
     logger.error("Erreur lors de la vérification du statut d'administrateur:", error)
+    // Ajout d'un message plus explicite pour le debug
+    logger.warn("Vérifiez la connexion à la base de données ou l'intégrité de la table users.")
     return false
   }
 }
@@ -57,6 +59,7 @@ export function initializeAdmin(): void {
     }
   } catch (error) {
     logger.error("Erreur lors de l'initialisation de l'administrateur:", error)
+    logger.warn("Vérifiez les droits d'écriture sur la base de données et la structure de la table users.")
   }
 }
 
