@@ -20,6 +20,15 @@
       }
     ],
     "paths": {
+      "@/lib/services/*": ["./lib/services/*"],
+      "@/lib/utils/*": ["./lib/utils/*"],
+      "@/lib/constants/*": ["./lib/constants/*"],
+      "@/components/market-analysis/*": ["./components/features/market-analysis/*"],
+      "@/components/dashboard/*": ["./components/features/dashboard/*"],
+      "@/components/notifications/*": ["./components/features/notifications/*"],
+      "@/components/parcelles/*": ["./components/features/parcelles/*"],
+      "@/components/produits/*": ["./components/features/produits/*"],
+      "@/components/statistiques/*": ["./components/features/statistiques/*"],
       "@/*": ["./*"]
     }
   },

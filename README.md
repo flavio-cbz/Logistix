@@ -26,6 +26,7 @@ LogistiX est une application web complète dédiée à la gestion de parcelles e
 - **Tableau de Bord Personnalisable** : Visualisations interactives et statistiques détaillées.
 - **Analyse des Performances** : Suivi des bénéfices et des indicateurs de performance.
 - **Import/Export de Données** : Outils intégrés pour faciliter la manipulation et le transfert de données.
+- **Optimisation des Performances** : Améliorations de la structure du code et du système de cache.
 
 ## Technologies Utilisées
 
@@ -40,6 +41,7 @@ LogistiX est une application web complète dédiée à la gestion de parcelles e
 - **Node.js** : Version 18 ou supérieure.
 - **npm** ou **pnpm** : Pour la gestion des dépendances.
 - **Docker** (optionnel) : Pour déployer l’application dans un environnement conteneurisé.
+- **SQLite** : Base de données légère et performante.
 
 ## Installation et Démarrage
 
@@ -140,6 +142,7 @@ Adaptez ces valeurs en fonction de vos besoins.
 - **Gestion des Produits** : Créez, mettez à jour et suivez les ventes de vos produits.
 - **Tableau de Bord** : Personnalisez le tableau de bord pour visualiser les statistiques et indicateurs clés en temps réel.
 - **Import/Export** : Transférez vos données facilement grâce aux outils d’import/export intégrés.
+- **Cache API** : Un système de cache a été implémenté pour améliorer les performances des requêtes API.
 
 ## Tests
 

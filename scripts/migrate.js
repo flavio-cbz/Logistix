@@ -54,11 +54,12 @@ CREATE TABLE IF NOT EXISTS parcelles (
   user_id TEXT NOT NULL,
   numero TEXT NOT NULL,
   transporteur TEXT NOT NULL,
+  prixAchat REAL NOT NULL,
   poids REAL NOT NULL,
   prixTotal REAL NOT NULL,
   prixParGramme REAL NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 `)
@@ -102,28 +103,8 @@ CREATE TABLE IF NOT EXISTS dashboard_config (
 );
 `)
 
-// Fonction pour générer un ID aléatoire
-function generateId() {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-}
-
-// Fonction pour obtenir la date actuelle au format ISO
-function getCurrentTimestamp() {
-  return new Date().toISOString()
-}
-
-// Fonction pour hacher un mot de passe
-function hashPassword(password) {
-  return crypto.createHash("sha256").update(password).digest("hex")
-}
-
 // Vérifier si l'utilisateur admin existe déjà
-const adminUser = db
-  .prepare(`
-  SELECT id FROM users
-  WHERE username = 'admin'
-`)
-  .get()
+const adminUser = db.prepare(`SELECT id FROM users WHERE username = 'admin'`).get()
 
 // Créer l'utilisateur admin s'il n'existe pas
 if (!adminUser) {
@@ -135,6 +116,11 @@ if (!adminUser) {
   // Créer le fichier de mot de passe admin
   const adminPasswordFile = path.join(process.cwd(), "data", "admin-password.txt")
   fs.writeFileSync(adminPasswordFile, adminPassword)
+
+  // Fonctions utilitaires
+  const generateId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+  const getCurrentTimestamp = () => new Date().toISOString()
+  const hashPassword = (password) => crypto.createHash("sha256").update(password).digest("hex")
 
   // Insérer l'utilisateur admin dans la base de données
   const id = generateId()
@@ -155,4 +141,3 @@ console.log("Migrations terminées avec succès.")
 
 // Fermeture de la connexion
 db.close()
-

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { db, generateId, getCurrentTimestamp } from "./db"
 import { requireAuth, createUser, verifyCredentials, createSession, signOut as authSignOut, UserSession } from "./auth"
 import { z } from "zod"
-import { v4 as uuidv4 } from "uuid"
+import { calculerBenefices } from "@/lib/calculations" // Import de calculerBenefices
 import { ProfileFormValues } from "@/components/auth/profile-form"
 import { Parcelle, Produit, DashboardConfig } from "@/types"
 
@@ -120,7 +120,7 @@ export async function signIn(formData: FormData) {
     }
 
     // Créer une nouvelle session
-    const sessionId = uuidv4()
+    const sessionId = generateId() // Utilisation de generateId
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 jours
 
     try {
@@ -374,7 +374,7 @@ export async function addProduit(formData: FormData) {
     const timestamp = getCurrentTimestamp()
 
     // Préparer les données pour l'insertion
-    const insertData: any = {
+    const insertData: Partial<Produit> = { // Typage plus précis
       id,
       commandeId: validatedData.commandeId,
       nom: validatedData.nom,
@@ -382,11 +382,11 @@ export async function addProduit(formData: FormData) {
       prixArticle: validatedData.prixArticle,
       poids: validatedData.poids,
       prixLivraison,
-      vendu: validatedData.vendu ? 1 : 0,
+      vendu: validatedData.vendu,
       parcelleId: validatedData.parcelleId,
-      user_id: user.id,
-      created_at: timestamp,
-      updated_at: timestamp,
+      userId: user.id, // Correction: user_id -> userId
+      createdAt: timestamp, // Correction: created_at -> createdAt
+      updatedAt: timestamp, // Correction: updated_at -> updatedAt
     }
 
     // Si le produit est vendu, ajouter les informations de vente
@@ -396,9 +396,13 @@ export async function addProduit(formData: FormData) {
       const prixVente = Number(formData.get("prixVente"))
       const plateforme = formData.get("plateforme") as string
 
-      // Calculer les bénéfices
-      const benefices = prixVente - (validatedData.prixArticle + prixLivraison)
-      const pourcentageBenefice = (benefices / (validatedData.prixArticle + prixLivraison)) * 100
+      // Calculer les bénéfices en utilisant la fonction centralisée
+      const { benefices, pourcentageBenefice } = calculerBenefices({
+        prixVente,
+        prixArticle: validatedData.prixArticle,
+        prixLivraison,
+        vendu: true, // Assurer que vendu est true pour le calcul
+      })
 
       Object.assign(insertData, {
         dateVente,
@@ -471,16 +475,16 @@ export async function updateProduit(id: string, formData: FormData) {
     const timestamp = getCurrentTimestamp()
 
     // Préparer les données pour la mise à jour
-    const updateData: any = {
+    const updateData: Partial<Produit> = { // Typage plus précis
       commandeId: validatedData.commandeId,
       nom: validatedData.nom,
       details: validatedData.details,
       prixArticle: validatedData.prixArticle,
       poids: validatedData.poids,
       prixLivraison,
-      vendu: validatedData.vendu ? 1 : 0,
+      vendu: validatedData.vendu,
       parcelleId: validatedData.parcelleId,
-      updated_at: timestamp,
+      updatedAt: timestamp, // Correction: updated_at -> updatedAt
     }
 
     // Si le produit est vendu, ajouter les informations de vente
@@ -490,9 +494,13 @@ export async function updateProduit(id: string, formData: FormData) {
       const prixVente = Number(formData.get("prixVente"))
       const plateforme = formData.get("plateforme") as string
 
-      // Calculer les bénéfices
-      const benefices = prixVente - (validatedData.prixArticle + prixLivraison)
-      const pourcentageBenefice = (benefices / (validatedData.prixArticle + prixLivraison)) * 100
+      // Calculer les bénéfices en utilisant la fonction centralisée
+      const { benefices, pourcentageBenefice } = calculerBenefices({
+        prixVente,
+        prixArticle: validatedData.prixArticle,
+        prixLivraison,
+        vendu: true, // Assurer que vendu est true pour le calcul
+      })
 
       Object.assign(updateData, {
         dateVente,
@@ -672,7 +680,7 @@ export async function getDashboardConfig(): Promise<DashboardConfig> {
   }
 }
 
-export async function updateDashboardConfig(config: any) {
+export async function updateDashboardConfig(config: DashboardConfig) { // Typage plus précis
   const user: UserSession = await requireAuth()
 
   try {
@@ -752,4 +760,3 @@ export async function getStatistiques() {
     }
   }
 }
-

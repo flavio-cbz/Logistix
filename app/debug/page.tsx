@@ -17,7 +17,7 @@ export default function DebugPage() {
   const fetchSessionData = async () => {
     setLoading((prev) => ({ ...prev, session: true }))
     try {
-      const response = await fetch("/api/debug/session")
+      const response = await fetch("/api/v1/debug/session")
       const data = await response.json()
       setSessionData(data)
     } catch (error) {
@@ -30,7 +30,7 @@ export default function DebugPage() {
   const fetchDatabaseData = async () => {
     setLoading((prev) => ({ ...prev, database: true }))
     try {
-      const response = await fetch("/api/debug/database")
+      const response = await fetch("/api/v1/debug/database")
       const data = await response.json()
       setDatabaseData(data)
     } catch (error) {
@@ -43,7 +43,7 @@ export default function DebugPage() {
   const fetchCookiesData = async () => {
     setLoading((prev) => ({ ...prev, cookies: true }))
     try {
-      const response = await fetch("/api/debug/cookies")
+      const response = await fetch("/api/v1/debug/cookies")
       const data = await response.json()
       setCookiesData(data)
     } catch (error) {
@@ -128,7 +128,7 @@ export default function DebugPage() {
             </Button>
             <Button
               onClick={async () => {
-                await fetch("/api/debug/set-cookie")
+                await fetch("/api/v1/debug/set-cookie")
                 setTimeout(fetchCookiesData, 100)
               }}
             >
@@ -136,7 +136,7 @@ export default function DebugPage() {
             </Button>
             <Button
               onClick={async () => {
-                await fetch("/api/debug/set-session")
+                await fetch("/api/v1/debug/set-session")
                 setTimeout(() => {
                   fetchSessionData()
                   fetchCookiesData()

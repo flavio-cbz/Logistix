@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ParcellesList } from "@/components/parcelles/parcelles-list"
-import { useStore } from "@/lib/store"
+import { ParcellesList } from "@/components/features/parcelles/parcelles-list"
+import { useStore } from "@/store/store"
 import { motion } from "framer-motion"
 
 export default function ParcellesPage() {

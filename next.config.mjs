@@ -1,10 +1,20 @@
+<<<<<<< HEAD
+import bundleAnalyzer from '@next/bundle-analyzer';
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
+=======
 import withBundleAnalyzer from '@next/bundle-analyzer'
+>>>>>>> 0bc3d45c5be03de1342906ecaa9d231155263bf0
 
 let userConfig = undefined
 try {
-  userConfig = await import('./v0-user-next.config')
-} catch (e) {
-  // ignore error
+  userConfig = require('./next.config.user.mjs');
+} catch (error) {
+  if (error.code !== 'MODULE_NOT_FOUND') {
+    console.error('Error loading user config:', error);
+  }
 }
 
 /** @type {import('next').NextConfig} */
@@ -111,9 +121,13 @@ if (userConfig) {
   }
 }
 
+<<<<<<< HEAD
+export default withBundleAnalyzer(nextConfig);
+=======
 // Bundle analyzer setup
 const bundleAnalyzer = withBundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 })
 
 export default bundleAnalyzer(nextConfig)
+>>>>>>> 0bc3d45c5be03de1342906ecaa9d231155263bf0
