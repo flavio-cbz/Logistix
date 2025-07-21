@@ -1,19 +1,23 @@
 # LogistiX - Gestion de Parcelles et Produits
 
-LogistiX est une application web complète dédiée à la gestion de parcelles et de produits agricoles. Elle permet de suivre les ventes, d'analyser les bénéfices et de gérer efficacement vos ressources. Ce dépôt contient le code source de l’application ainsi que tous les outils nécessaires à son déploiement et à son évolution.
+LogistiX est une application web complète dédiée à la gestion de parcelles et de produits agricoles. Elle permet de suivre les ventes, d'analyser les bénéfices et de gérer efficacement vos ressources. Ce dépôt contient le code source de l'application ainsi que tous les outils nécessaires à son déploiement et à son évolution.
 
 ## Table des Matières
 
 - [Fonctionnalités](#fonctionnalités)
 - [Technologies Utilisées](#technologies-utilisées)
+- [Architecture](#architecture)
 - [Prérequis](#prérequis)
 - [Installation et Démarrage](#installation-et-démarrage)
   - [En Développement](#en-développement)
   - [En Production](#en-production)
   - [Déploiement avec Docker](#déploiement-avec-docker)
 - [Configuration](#configuration)
+- [Structure du Projet](#structure-du-projet)
 - [Utilisation](#utilisation)
 - [Tests](#tests)
+- [Scripts de Maintenance](#scripts-de-maintenance)
+- [Performance](#performance)
 - [Contribuer](#contribuer)
 - [Licence](#licence)
 - [Auteurs et Remerciements](#auteurs-et-remerciements)
@@ -21,166 +25,386 @@ LogistiX est une application web complète dédiée à la gestion de parcelles e
 
 ## Fonctionnalités
 
-- **Gestion des Parcelles** : Ajout, modification et suppression de parcelles.
-- **Gestion des Produits** : Création, mise à jour et suivi des ventes de produits.
-- **Tableau de Bord Personnalisable** : Visualisations interactives et statistiques détaillées.
-- **Analyse des Performances** : Suivi des bénéfices et des indicateurs de performance.
-- **Import/Export de Données** : Outils intégrés pour faciliter la manipulation et le transfert de données.
-- **Optimisation des Performances** : Améliorations de la structure du code et du système de cache.
+### Gestion des Parcelles
+
+- **Création et modification** : Ajoutez et modifiez facilement vos parcelles
+- **Suivi détaillé** : Informations sur la localisation, la superficie, les cultures
+- **Historique complet** : Historique des cultures et des rendements par parcelle
+
+### Gestion des Produits
+
+- **Catalogue produits** : Gestion complète des produits agricoles
+- **Suivi des ventes** : Enregistrement et analyse des ventes par produit
+- **Gestion des stocks** : Contrôle en temps réel des niveaux de stock
+
+### Analyse et Statistiques
+
+- **Tableau de bord personnalisable** : Widgets configurables selon vos besoins
+- **Analyse de marché** : Suivi des tendances et comparaison concurrentielle
+- **Statistiques détaillées** : ROI, temps de vente, performance par plateforme
+- **Prévisions** : Analyse prédictive des ventes futures
+
+### Visualisations Avancées
+
+- **Graphiques interactifs** : Recharts pour des visualisations riches
+- **Heatmaps** : Cartes de performance géographique
+- **Diagrammes Sankey** : Flux de ventes et de revenus
+- **Radar charts** : Analyse multicritère des performances
+
+### Import/Export de Données
+
+- **Formats multiples** : Support CSV, JSON, Excel
+- **Synchronisation** : Import/export automatisé des données
+- **Templates** : Modèles prédéfinis pour faciliter l'import
+
+### Sécurité et Authentification
+
+- **Système d'authentification** : Connexion sécurisée avec gestion de session
+- **Profils utilisateurs** : Gestion des profils et préférences
+- **Protection des données** : Chiffrement et sauvegardes automatiques
 
 ## Technologies Utilisées
 
-- **Next.js** : Pour une interface utilisateur moderne et réactive.
-- **TypeScript** : Pour un code robuste et bien typé.
-- **Tailwind CSS** : Pour des interfaces élégantes et personnalisables.
-- **Node.js** : Pour l’exécution côté serveur.
-- **Docker** : Pour une conteneurisation facilitant le déploiement.
+### Frontend
+
+- **Next.js 14** : Framework React moderne avec App Router
+- **TypeScript** : Typage statique fort pour un code robuste
+- **Tailwind CSS** : Framework CSS utilitaire avec animations
+- **Framer Motion** : Animations fluides et interactions
+- **Recharts** : Bibliothèque de graphiques interactifs
+
+### Backend
+
+- **Next.js API Routes** : API REST intégrée
+- **Better-SQLite3** : Base de données légère et performante
+- **bcrypt** : Hashage sécurisé des mots de passe
+- **Zod** : Validation des schémas de données
+
+### Outils de Développement
+
+- **Vitest** : Tests unitaires et d'intégration
+- **ESLint** : Linting et qualité du code
+- **Bundle Analyzer** : Analyse de la taille des bundles
+- **Lighthouse** : Audit de performance
+
+### UI/UX
+
+- **Radix UI** : Composants accessibles et personnalisables
+- **Lucide React** : Icônes modernes et cohérentes
+- **Dark Mode** : Support complet du mode sombre
+- **Responsive Design** : Adaptation mobile-first
+
+## Architecture
+
+L'application suit une architecture modulaire avec séparation claire des responsabilités :
+
+```
+LogistiX/
+├── app/                    # App Router Next.js 14
+│   ├── (dashboard)/       # Pages protégées du tableau de bord
+│   ├── api/v1/            # API REST
+│   ├── features/          # Fonctionnalités principales
+│   └── login/             # Authentification
+├── components/            # Composants React réutilisables
+├── lib/                   # Utilitaires et services
+├── types/                 # Définitions TypeScript
+└── scripts/               # Scripts de maintenance
+```
 
 ## Prérequis
 
-- **Node.js** : Version 18 ou supérieure.
-- **npm** ou **pnpm** : Pour la gestion des dépendances.
-- **Docker** (optionnel) : Pour déployer l’application dans un environnement conteneurisé.
-- **SQLite** : Base de données légère et performante.
+- **Node.js** : Version 18.0.0 ou supérieure
+- **npm** ou **pnpm** : Pour la gestion des dépendances
+- **Git** : Pour le contrôle de version
+- **Docker** (optionnel) : Pour le déploiement conteneurisé
 
 ## Installation et Démarrage
 
 ### En Développement
 
 1. **Cloner le dépôt** :
+
     ```bash
     git clone https://github.com/flavio-cbz/Logistix.git
     cd Logistix
     ```
+
 2. **Installer les dépendances** :
+
     ```bash
     npm install
-    ```
-    ou, si vous utilisez pnpm :
-    ```bash
+    # ou avec pnpm
     pnpm install
     ```
-3. **Démarrer l'application en mode développement** :
+
+3. **Initialiser la base de données** :
+
+    ```bash
+    npm run db:migrate
+    ```
+
+4. **Démarrer l'application** :
+
     ```bash
     npm run dev
-    ```
-    ou
-    ```bash
+    # ou avec pnpm
     pnpm dev
     ```
-4. **Accéder à l'application** :
-    Ouvrez [http://localhost:3000](http://localhost:3000) dans votre navigateur.
+
+5. **Accéder à l'application** :
+   Ouvrez [http://localhost:3000](http://localhost:3000) dans votre navigateur.
 
 ### En Production
 
 1. **Installer les dépendances** :
+
     ```bash
-    npm install
+    npm install --production
     ```
+
 2. **Construire l'application** :
+
     ```bash
     npm run build
     ```
+
 3. **Démarrer l'application** :
+
     ```bash
     npm start
     ```
 
 ### Déploiement avec Docker
 
-Une image Docker officielle est disponible sur [Docker Hub](https://hub.docker.com/r/nethunter59/logistix) pour simplifier le déploiement.
+Une image Docker officielle est disponible sur [Docker Hub](https://hub.docker.com/r/nethunter59/logistix).
 
-#### Exemple de fichier `docker-compose.yml`
+#### Docker Compose
 
 ```yaml
 version: '3.8'
 services:
   logistix:
-    image: nethunter59/logistix
+    image: nethunter59/logistix:latest
     container_name: logistix
     ports:
       - "3000:3000"
     volumes:
       - ./data:/app/data
+      - ./uploads:/app/uploads
     environment:
       - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
 ```
 
-Pour déployer l'application avec Docker Compose :
+#### Commandes Docker
 
-1. Placez ce fichier `docker-compose.yml` à la racine du projet.
-2. Assurez-vous que le répertoire `data` contenant le fichier `admin-password.txt` existe.
-3. Exécutez :
-    ```bash
-    docker-compose up --build
-    ```
-4. Accédez à l'application via [http://localhost:3000](http://localhost:3000).
+```bash
+# Construire l'image
+npm run docker:build
 
-#### Identifiants de Connexion par Défaut
+# Démarrer les conteneurs
+npm run docker:up
 
-- **Email** : admin@logistix.local  
-- **Nom d'utilisateur** : admin  
-- **Mot de passe** : admin123  
-
-> Ces identifiants sont configurables en modifiant le fichier `data/admin-password.txt`.
+# Arrêter les conteneurs
+npm run docker:down
+```
 
 ## Configuration
 
-Pour adapter l’application à votre environnement, vous pouvez définir des variables d’environnement dans un fichier `.env` placé à la racine du projet. Par exemple :
+### Variables d'environnement
+
+Créez un fichier `.env` à la racine du projet :
 
 ```env
+# Environnement
 NODE_ENV=development
 PORT=3000
-API_URL=http://localhost:3000/api
+
+# Base de données
+DATABASE_URL=./data/logistix.db
+
+# Sécurité
+SESSION_SECRET=votre-secret-session
+BCRYPT_ROUNDS=12
+
+# API
+API_URL=http://localhost:3000/api/v1
+
+# Uploads
+MAX_FILE_SIZE=10485760
+UPLOAD_DIR=./uploads
 ```
 
-Adaptez ces valeurs en fonction de vos besoins.
+### Configuration de la base de données
+
+L'application utilise SQLite par défaut. Le fichier de base de données est créé automatiquement lors du premier démarrage.
+
+## Structure du Projet
+
+```
+LogistiX/
+├── app/
+│   ├── (dashboard)/          # Routes protégées
+│   │   ├── dashboard/        # Tableau de bord principal
+│   │   ├── parcelles/        # Gestion des parcelles
+│   │   ├── produits/         # Gestion des produits
+│   │   ├── statistiques/     # Statistiques détaillées
+│   │   ├── analyse-marche/   # Analyse de marché
+│   │   └── profile/          # Profil utilisateur
+│   ├── api/v1/              # API REST
+│   │   ├── auth/            # Authentification
+│   │   ├── parcelles/       # CRUD parcelles
+│   │   ├── produits/        # CRUD produits
+│   │   ├── statistiques/    # Données statistiques
+│   │   └── market-analysis/ # Analyse de marché
+│   └── login/               # Page de connexion
+├── components/
+│   ├── features/            # Composants spécifiques aux features
+│   ├── ui/                  # Composants UI génériques
+│   └── auth/                # Composants d'authentification
+├── lib/
+│   ├── services/            # Services métier
+│   ├── utils/               # Utilitaires
+│   └── constants/           # Constantes
+├── types/                   # Types TypeScript
+├── scripts/                 # Scripts de maintenance
+└── data/                    # Données et uploads
+```
 
 ## Utilisation
 
-- **Gestion des Parcelles** : Ajoutez, modifiez ou supprimez des parcelles via l’interface dédiée.
-- **Gestion des Produits** : Créez, mettez à jour et suivez les ventes de vos produits.
-- **Tableau de Bord** : Personnalisez le tableau de bord pour visualiser les statistiques et indicateurs clés en temps réel.
-- **Import/Export** : Transférez vos données facilement grâce aux outils d’import/export intégrés.
-- **Cache API** : Un système de cache a été implémenté pour améliorer les performances des requêtes API.
+### Première connexion
+
+1. Accédez à [http://localhost:3000](http://localhost:3000)
+2. Connectez-vous avec les identifiants par défaut :
+   - **Email** : <admin@logistix.local>
+   - **Mot de passe** : admin123
+3. Modifiez immédiatement votre mot de passe dans les paramètres
+
+### Navigation principale
+
+- **Tableau de bord** : Vue d'ensemble des performances
+- **Parcelles** : Gestion des parcelles et cultures
+- **Produits** : Catalogue et ventes de produits
+- **Statistiques** : Analyses détaillées et rapports
+- **Analyse de marché** : Suivi des tendances et prix
+
+### Import de données
+
+1. Allez dans **Paramètres > Import/Export**
+2. Choisissez le type de données à importer
+3. Téléchargez votre fichier (CSV, JSON, Excel)
+4. Mappez les colonnes avec les champs de l'application
+5. Validez l'import
 
 ## Tests
 
-*(Section à compléter selon l’implémentation des tests)*
+### Tests unitaires
 
-Pour exécuter les tests (si configurés) :
 ```bash
 npm run test
 ```
 
-Des informations complémentaires sur la couverture et la configuration des tests seront ajoutées ultérieurement.
+### Tests de performance
+
+```bash
+# Audit Lighthouse
+npm run perf:audit
+
+# Analyse du bundle
+npm run perf:bundle
+```
+
+### Tests de linting
+
+```bash
+npm run lint
+npm run type-check
+```
+
+## Scripts de Maintenance
+
+| Script | Description |
+|--------|-------------|
+| `npm run db:migrate` | Exécuter les migrations de base de données |
+| `npm run db:backup` | Créer une sauvegarde de la base de données |
+| `npm run db:restore` | Restaurer une sauvegarde |
+| `npm run clean` | Nettoyer le cache et les builds |
+| `npm run optimize:images` | Optimiser les images du projet |
+
+## Performance
+
+L'application intègre plusieurs optimisations de performance :
+
+- **Code splitting** automatique avec Next.js
+- **Lazy loading** des composants
+- **Cache API** avec invalidation intelligente
+- **Optimisation des images** avec next/image
+- **Bundle analyzer** pour surveiller la taille des bundles
+
+### Métriques de performance
+
+- **First Contentful Paint** : < 1.5s
+- **Time to Interactive** : < 3.5s
+- **Bundle size** : < 300KB (JS), < 50KB (CSS)
 
 ## Contribuer
 
 Les contributions sont les bienvenues ! Pour contribuer :
 
-1. **Forkez** le dépôt.
-2. **Créez** une branche pour votre nouvelle fonctionnalité ou correction :
+1. **Forkez** le dépôt
+2. **Créez** une branche pour votre fonctionnalité :
+
     ```bash
     git checkout -b feature/nouvelle-fonctionnalité
     ```
+
 3. **Commitez** vos modifications :
+
     ```bash
-    git commit -m "Ajout d'une nouvelle fonctionnalité"
+    git commit -m "feat: ajout d'une nouvelle fonctionnalité"
     ```
+
 4. **Poussez** votre branche :
+
     ```bash
     git push origin feature/nouvelle-fonctionnalité
     ```
-5. **Ouvrez** une Pull Request pour soumettre vos modifications.
 
-Merci de respecter les bonnes pratiques de contribution et de consulter, le cas échéant, un futur guide [CONTRIBUTING.md].
+5. **Ouvrez** une Pull Request
+
+### Conventions de commit
+
+- `feat`: Nouvelle fonctionnalité
+- `fix`: Correction de bug
+- `docs`: Documentation
+- `style`: Formatage du code
+- `refactor`: Refactoring
+- `test`: Ajout de tests
+- `chore`: Maintenance
 
 ## Licence
 
-Ce projet est sous licence [MIT](LICENSE) *(ou autre licence à préciser)*. Veuillez consulter le fichier LICENSE pour plus de détails.
+Ce projet est sous licence [MIT](LICENSE). Veuillez consulter le fichier LICENSE pour plus de détails.
 
 ## Auteurs et Remerciements
 
-- **Flavio CBZ** – Créateur du projet  
+- **Flavio CBZ** – Créateur et mainteneur principal  
   [GitHub](https://github.com/flavio-cbz)
+
+### Remerciements
+
+- La communauté open source pour les bibliothèques utilisées
+- Les contributeurs et testeurs bêta
+- Les agriculteurs pour leurs retours et suggestions
+
+## Contact
+
+- **Email** : <flavio@logistix.fr>
+- **GitHub Issues** : [Créer une issue](https://github.com/flavio-cbz/Logistix/issues)
+- **Discussions** : [GitHub Discussions](https://github.com/flavio-cbz/Logistix/discussions)
+
+---
+
+**Développé avec ❤️ pour l'agriculture moderne**
