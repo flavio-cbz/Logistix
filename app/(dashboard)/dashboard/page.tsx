@@ -32,46 +32,59 @@ const TendancesVente = lazy(() => import("@/components/dashboard/tendances-vente
 
 
 export default function DashboardPage() {
+  const { parcelles, produits, dashboardConfig, loadParcelles, loadProduits, loadDashboardConfig } = useStore()
   const [isLoading, setIsLoading] = useState(true)
-  const { parcelles, produits, dashboardConfig, initializeStore } = useStore()
+
+  // Memoized calculations to prevent recalculation on every render
+  const { produitsVendus, chiffreAffaires, enabledCards, sortedCards } = useMemo(() => {
+    const vendus = produits.filter(p => p.vendu)
+    const ca = vendus.reduce((sum, p) => sum + (p.prixVente || 0), 0)
+    const enabled = dashboardConfig.cards.filter(card => card.enabled)
+    const sorted = enabled.sort((a, b) => a.order - b.order)
+    
+    return {
+      produitsVendus: vendus,
+      chiffreAffaires: ca,
+      enabledCards: enabled,
+      sortedCards: sorted,
+    }
+  }, [produits, dashboardConfig.cards])
 
   useEffect(() => {
-    // Initialiser le store et synchroniser avec la base de données
     const loadData = async () => {
-      await initializeStore()
-
-      // Simuler un chargement pour laisser le temps aux données de s'initialiser
-      const timer = setTimeout(() => {
+      try {
+        await Promise.all([
+          loadParcelles(),
+          loadProduits(),
+          loadDashboardConfig(),
+        ])
+      } catch (error) {
+        console.error("Erreur lors du chargement des données:", error)
+      } finally {
         setIsLoading(false)
-      }, 500)
-
-      return () => clearTimeout(timer)
+      }
     }
 
     loadData()
-  }, [initializeStore])
-
-  // Calcul des statistiques générales
-  const produitsVendus = produits.filter((p) => p.vendu).length
-  const ventesTotales = produits.filter((p) => p.vendu && p.prixVente).reduce((acc, p) => acc + (p.prixVente || 0), 0)
-  const beneficesTotaux = produits.filter((p) => p.vendu && p.benefices).reduce((acc, p) => acc + (p.benefices || 0), 0)
+  }, [loadParcelles, loadProduits, loadDashboardConfig])
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <motion.div
-          className="text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <motion.div
-            className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-          />
-          <p>Chargement des données...</p>
-        </motion.div>
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="h-80 w-full" />
+          ))}
+        </div>
       </div>
     )
   }
@@ -149,30 +162,49 @@ export default function DashboardPage() {
     }))
 
   return (
-    <motion.div className="grid gap-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
-      <motion.div
-        className="flex items-center justify-between"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
-        <DashboardConfig config={dashboardConfig} />
-      </motion.div>
+    <Motion {...staggerContainer} className="container mx-auto px-4 py-8 space-y-8">
+      <Motion {...fadeInUp} className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <Suspense fallback={<Skeleton className="h-10 w-32" />}>
+          <DashboardConfig />
+        </Suspense>
+      </Motion>
 
-      <div className={`grid gap-4 md:grid-cols-${gridCols.md} lg:grid-cols-${gridCols.lg}`}>
-        {activeWidgets.map((widget, index) => (
-          <motion.div
-            key={widget.id}
-            className="col-span-1"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-          >
-            {widget.component}
-          </motion.div>
-        ))}
-      </div>
-    </motion.div>
+      {/* Stats Section */}
+      <Motion {...staggerItem}>
+        <StatsSection 
+          parcelles={parcelles}
+          produits={produits}
+          produitsVendus={produitsVendus}
+          chiffreAffaires={chiffreAffaires}
+        />
+      </Motion>
+
+      {/* Dynamic Dashboard Cards */}
+      <Motion {...staggerContainer} className="grid gap-6 md:grid-cols-2">
+        {sortedCards.map((card, index) => {
+          const Component = componentRegistry[card.component as keyof typeof componentRegistry]
+          
+          if (!Component || card.component === 'MainStats') return null
+
+          return (
+            <Motion key={card.id} {...staggerItem} style={{ animationDelay: `${index * 0.1}s` }}>
+              <Suspense fallback={
+                <Card className="h-80">
+                  <CardHeader>
+                    <CardTitle><Skeleton className="h-6 w-32" /></CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-64 w-full" />
+                  </CardContent>
+                </Card>
+              }>
+                <Component />
+              </Suspense>
+            </Motion>
+          )
+        })}
+      </Motion>
+    </Motion>
   )
 }

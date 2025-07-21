@@ -5,8 +5,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:analyze": "ANALYZE=true npm run build",
+    "build:prod": "NODE_ENV=production next build",
     "start": "next start",
     "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "perf:audit": "npm run build && npx lighthouse http://localhost:3000 --output=html --output-path=./performance-report.html",
+    "perf:bundle": "npm run build:analyze",
+    "perf:size": "npx bundlesize",
     "vite:dev": "vite",
     "vite:build": "vite build",
     "test": "vitest run",
@@ -17,7 +24,9 @@
     "deploy": "bash deploy.sh",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down"
+    "docker:down": "docker-compose down",
+    "clean": "rm -rf .next out node_modules/.cache",
+    "optimize:images": "node scripts/optimize-images.js"
   },
   "dependencies": {
     "@genkit-ai/mcp": "^1.15.2",
@@ -91,5 +100,15 @@
     "@npmcli/move-file": "^2.0.0",
     "glob": "^9.0.0",
     "rimraf": "^4.0.0"
-  }
+  },
+  "bundlesize": [
+    {
+      "path": ".next/static/js/**/*.js",
+      "maxSize": "300 kB"
+    },
+    {
+      "path": ".next/static/css/**/*.css",
+      "maxSize": "50 kB"
+    }
+  ]
 }

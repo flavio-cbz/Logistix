@@ -17,14 +17,38 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true })
 }
 
-// Création de la connexion à la base de données
-const db = new Database(dbPath)
+// Global database instance to prevent multiple initializations
+let _db: Database.Database | null = null
 
-// Activer les clés étrangères
-db.pragma("foreign_keys = ON")
+// Création de la connexion à la base de données avec cache
+function getDatabase() {
+  if (_db) return _db
+  
+  _db = new Database(dbPath)
+  
+  // Configuration optimisée pour les performances
+  _db.pragma("foreign_keys = ON")
+  _db.pragma("journal_mode = WAL")
+  _db.pragma("synchronous = NORMAL") // Changed from FULL for better performance
+  _db.pragma("cache_size = 10000") // Increase cache size
+  _db.pragma("temp_store = memory") // Use memory for temp storage
+  _db.pragma("mmap_size = 268435456") // 256MB memory map
+  
+  return _db
+}
 
-// Fonction pour initialiser la base de données
+const db = getDatabase()
+
+// Track if database is already initialized to prevent multiple runs
+let isInitialized = false
+
+// Fonction pour initialiser la base de données (optimisée)
 function initializeDatabase() {
+  if (isInitialized) {
+    logger.info("Base de données déjà initialisée, ignorer...")
+    return
+  }
+  
   logger.info("Initialisation de la base de données...")
 
   try {
@@ -200,7 +224,23 @@ function initializeDatabase() {
       logger.info("Un utilisateur existe déjà.")
     }
 
+      // Performance indexes
+      db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+      CREATE INDEX IF NOT EXISTS idx_parcelles_user_id ON parcelles(user_id);
+      CREATE INDEX IF NOT EXISTS idx_parcelles_created_at ON parcelles(created_at);
+      CREATE INDEX IF NOT EXISTS idx_produits_user_id ON produits(user_id);
+      CREATE INDEX IF NOT EXISTS idx_produits_parcelle_id ON produits(parcelleId);
+      CREATE INDEX IF NOT EXISTS idx_produits_vendu ON produits(vendu);
+      CREATE INDEX IF NOT EXISTS idx_produits_created_at ON produits(created_at);
+      `)
+    })
+    
+    initTransaction()
+    isInitialized = true
     logger.info("Initialisation de la base de données terminée avec succès")
+    
   } catch (error) {
     logger.error("Erreur lors de l'initialisation de la base de données:", error)
     throw error
