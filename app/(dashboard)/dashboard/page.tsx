@@ -1,21 +1,35 @@
 "use client"
 
 import type React from "react"
-
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense, lazy } from "react" // Ajout de lazy et Suspense
 import { CardStats } from "@/components/ui/card-stats"
 import { Package, Map, TrendingUp, ShoppingBag } from "lucide-react"
-import { useStore } from "@/lib/store"
-import { MargeMensuelle } from "@/components/dashboard/marge-mensuelle"
-import { PerformanceChart } from "@/components/dashboard/performance-chart"
-import { TopProduits } from "@/components/dashboard/top-produits"
-import { VentesPlateformes } from "@/components/dashboard/ventes-plateformes"
-import { TempsVente } from "@/components/dashboard/temps-vente"
-import { DashboardConfig } from "@/components/dashboard/dashboard-config"
-import { CoutPoids } from "@/components/dashboard/cout-poids"
-import { TopParcelles } from "@/components/dashboard/top-parcelles"
-import { TendancesVente } from "@/components/dashboard/tendances-vente"
+import { useStore } from "@/store/store"
+import { DashboardConfig } from "@/components/dashboard/dashboard-config" // Garder l'import direct pour ce composant léger
 import { motion } from "framer-motion"
+
+// Composant de chargement générique
+function LoadingComponent() {
+  return (
+    <div className="h-[300px] w-full flex items-center justify-center">
+      <div className="flex flex-col items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+        <p className="text-muted-foreground">Chargement du composant...</p>
+      </div>
+    </div>
+  )
+}
+
+// Chargement paresseux des composants lourds
+const MargeMensuelle = lazy(() => import("@/components/dashboard/marge-mensuelle").then(mod => ({ default: mod.MargeMensuelle })));
+const PerformanceChart = lazy(() => import("@/components/dashboard/performance-chart").then(mod => ({ default: mod.PerformanceChart })));
+const TopProduits = lazy(() => import("@/components/dashboard/top-produits").then(mod => ({ default: mod.TopProduits })));
+const VentesPlateformes = lazy(() => import("@/components/dashboard/ventes-plateformes").then(mod => ({ default: mod.VentesPlateformes })));
+const TempsVente = lazy(() => import("@/components/dashboard/temps-vente").then(mod => ({ default: mod.TempsVente })));
+const CoutPoids = lazy(() => import("@/components/dashboard/cout-poids").then(mod => ({ default: mod.CoutPoids })));
+const TopParcelles = lazy(() => import("@/components/dashboard/top-parcelles").then(mod => ({ default: mod.TopParcelles })));
+const TendancesVente = lazy(() => import("@/components/dashboard/tendances-vente").then(mod => ({ default: mod.TendancesVente })));
+
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -108,14 +122,14 @@ export default function DashboardPage() {
         </motion.div>
       </div>
     ),
-    performance: <PerformanceChart produits={produits} />,
-    plateformes: <VentesPlateformes produits={produits} />,
-    "top-produits": <TopProduits produits={produits} />,
-    "temps-vente": <TempsVente produits={produits} />,
-    "marge-mensuelle": <MargeMensuelle produits={produits} />,
-    "top-parcelles": <TopParcelles parcelles={parcelles} produits={produits} />,
-    "cout-poids": <CoutPoids parcelles={parcelles} />,
-    tendances: <TendancesVente produits={produits} />,
+    performance: <Suspense fallback={<LoadingComponent />}><PerformanceChart produits={produits} /></Suspense>,
+    plateformes: <Suspense fallback={<LoadingComponent />}><VentesPlateformes produits={produits} /></Suspense>,
+    "top-produits": <Suspense fallback={<LoadingComponent />}><TopProduits produits={produits} /></Suspense>,
+    "temps-vente": <Suspense fallback={<LoadingComponent />}><TempsVente produits={produits} /></Suspense>,
+    "marge-mensuelle": <Suspense fallback={<LoadingComponent />}><MargeMensuelle produits={produits} /></Suspense>,
+    "top-parcelles": <Suspense fallback={<LoadingComponent />}><TopParcelles parcelles={parcelles} produits={produits} /></Suspense>,
+    "cout-poids": <Suspense fallback={<LoadingComponent />}><CoutPoids parcelles={parcelles} /></Suspense>,
+    tendances: <Suspense fallback={<LoadingComponent />}><TendancesVente produits={produits} /></Suspense>,
   }
 
   // Obtenir la grille de colonnes à partir de la configuration
@@ -162,4 +176,3 @@ export default function DashboardPage() {
     </motion.div>
   )
 }
-

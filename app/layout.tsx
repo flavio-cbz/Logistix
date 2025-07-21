@@ -21,11 +21,6 @@ export const metadata: Metadata = {
         sizes: "any",
       },
       {
-        url: "/icon.png",
-        type: "image/png",
-        sizes: "192x192",
-      },
-      {
         url: "/icon-512.png",
         type: "image/png",
         sizes: "512x512",
@@ -36,8 +31,6 @@ export const metadata: Metadata = {
       sizes: "180x180",
     },
   },
-  manifest: "/manifest.json",
-  generator: "v0.dev",
 }
 
 export default function RootLayout({

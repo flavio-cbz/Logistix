@@ -28,7 +28,7 @@ export function AuthButton({ user, loading = false }: AuthButtonProps) {
   async function handleSignOut() {
     setIsSigningOut(true)
     try {
-      const response = await fetch("/api/auth/logout", {
+      const response = await fetch("/api/v1/auth/logout", {
         method: "POST",
       })
 

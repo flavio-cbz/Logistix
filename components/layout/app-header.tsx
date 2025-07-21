@@ -3,7 +3,7 @@
 import { useTheme } from "next-themes"
 import { Package2 } from "lucide-react"
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts"
-import { NotificationCenter } from "@/components/notifications/notification-center"
+import { NotificationCenter } from "@/components/features/notifications/notification-center"
 import { GlobalSearch } from "@/components/search/global-search"
 
 export function AppHeader() {

@@ -60,7 +60,7 @@ export default function AnalyseMarchePage() {
   useEffect(() => {
     const loadAnalyses = async () => {
       try {
-        const response = await fetch("/api/market-analysis")
+        const response = await fetch("/api/v1/market-analysis")
         if (!response.ok) {
           throw new Error("Erreur lors du chargement des analyses de marché")
         }
@@ -118,7 +118,7 @@ export default function AnalyseMarchePage() {
 
   const saveMarketAnalysis = async (data: MarketData) => {
     try {
-      const response = await fetch("/api/market-analysis", {
+      const response = await fetch("/api/v1/market-analysis", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -143,7 +143,7 @@ export default function AnalyseMarchePage() {
 
   const saveHistoricalData = async (productName: string, price: number, salesVolume: number) => {
     try {
-      const response = await fetch("/api/historical-prices", {
+      const response = await fetch("/api/v1/historical-prices", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -165,7 +165,7 @@ export default function AnalyseMarchePage() {
 
   const getRecommendedPriceFromAPI = async (productName: string): Promise<number | null> => {
     try {
-      const response = await fetch(`/api/historical-prices?productName=${encodeURIComponent(productName)}`)
+      const response = await fetch(`/api/v1/historical-prices?productName=${encodeURIComponent(productName)}`)
       if (!response.ok) {
         throw new Error("Erreur lors de la récupération du prix recommandé")
       }
@@ -184,7 +184,7 @@ export default function AnalyseMarchePage() {
 
   const deleteMarketAnalysisFromDB = async (productId: string) => {
     try {
-      const response = await fetch("/api/market-analysis", {
+      const response = await fetch("/api/v1/market-analysis", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

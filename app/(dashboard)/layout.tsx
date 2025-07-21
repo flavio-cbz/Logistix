@@ -2,9 +2,9 @@ import type React from "react"
 import { MainNav } from "@/components/main-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AppHeader } from "@/components/layout/app-header"
-import { NotificationList } from "@/components/notifications/notification-list"
+import { NotificationList } from "@/components/features/notifications/notification-list"
 import { AuthButton } from "@/components/auth/auth-button"
-import { getSessionUser } from "@/lib/auth"
+import { getSessionUser } from "@/lib/services/auth"
 import { redirect } from "next/navigation"
 
 // Améliorons la gestion de l'authentification dans le layout du dashboard

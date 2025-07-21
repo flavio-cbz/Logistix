@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ProduitsList } from "@/components/produits/produits-list"
-import { useStore } from "@/lib/store"
+import { ProduitsList } from "@/components/features/produits/produits-list"
+import { useStore } from "@/store/store"
 import { motion } from "framer-motion"
 
 export default function ProduitsPage() {

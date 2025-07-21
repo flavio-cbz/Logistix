@@ -1,8 +1,16 @@
+import bundleAnalyzer from '@next/bundle-analyzer';
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 let userConfig = undefined
 try {
-  userConfig = await import('./v0-user-next.config')
-} catch (e) {
-  // ignore error
+  userConfig = require('./next.config.user.mjs');
+} catch (error) {
+  if (error.code !== 'MODULE_NOT_FOUND') {
+    console.error('Error loading user config:', error);
+  }
 }
 
 /** @type {import('next').NextConfig} */
@@ -42,4 +50,4 @@ if (userConfig) {
   }
 }
 
-export default nextConfig
+export default withBundleAnalyzer(nextConfig);

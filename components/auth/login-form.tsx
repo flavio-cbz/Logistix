@@ -43,7 +43,7 @@ export default function LoginForm() {
 
     try {
       const formElement = event.currentTarget
-      const username = formElement.identifier.value
+      const username = formElement.username.value
       const password = formElement.password.value
 
       console.log("Tentative de connexion avec:", {
@@ -52,12 +52,12 @@ export default function LoginForm() {
       })
 
       // Utiliser fetch pour appeler l'API de connexion
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("/api/v1/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ identifier: username, password }),
       })
 
       const result = await response.json()

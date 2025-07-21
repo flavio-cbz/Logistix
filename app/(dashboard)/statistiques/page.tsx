@@ -2,13 +2,20 @@
 
 import { Suspense, useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { DollarSign, Package, TrendingUp, Users } from "lucide-react"
+import { DollarSign, Package, TrendingUp, Users, FileText, FileSpreadsheet } from "lucide-react" // Import des icônes
 import { CardStats } from "@/components/ui/card-stats"
-import { useStore } from "@/lib/store"
-import { VentesChart } from "@/components/statistiques/ventes-chart"
-import { VentesBar } from "@/components/statistiques/ventes-bar"
+import { useStore } from "@/lib/services/store"
 import { ProduitsTable } from "@/components/statistiques/produits-table"
 import { ParcellesTable } from "@/components/statistiques/parcelles-table"
+import { RoiTable } from "@/components/features/statistiques/roi-table"
+import { TempsMoyenVenteTable } from "@/components/features/statistiques/temps-moyen-vente-table"
+import { HeatmapChart } from "@/components/features/statistiques/heatmap-chart"
+import { PlateformesRentabiliteTable } from "@/components/features/statistiques/plateformes-rentabilite-table"
+import { RadarChart } from "@/components/features/statistiques/radar-chart"
+import { TendancesSaisonnieresTable } from "@/components/features/statistiques/tendances-saisonnieres-table"
+import { TrendChart } from "@/components/features/statistiques/trend-chart"
+import { PrevisionsVentesTable } from "@/components/features/statistiques/previsions-ventes-table"
+import { Button } from "@/components/ui/button" // Import du composant Button
 
 // Composant de chargement amélioré
 function LoadingComponent() {
@@ -24,85 +31,57 @@ function LoadingComponent() {
 
 export default function StatistiquesPage() {
   const { parcelles, produits, initializeStore } = useStore()
-  const [stats, setStats] = useState({
-    produitsVendus: 0,
-    ventesTotales: 0,
-    beneficesTotaux: 0,
-    nombreParcelles: 0,
-  })
+  const [advancedStats, setAdvancedStats] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [ventesData, setVentesData] = useState<any[]>([])
 
   useEffect(() => {
     const loadData = async () => {
-      console.log("Initialisation des données statistiques...")
-      await initializeStore()
-      setIsLoading(false)
+      setIsLoading(true)
+      try {
+        await initializeStore()
+        
+        const response = await fetch("/api/v1/statistiques")
+        if (!response.ok) {
+          throw new Error("Erreur lors de la récupération des statistiques avancées")
+        }
+        const data = await response.json()
+        setAdvancedStats(data)
+
+      } catch (error) {
+        console.error(error)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
     loadData()
   }, [initializeStore])
 
-  useEffect(() => {
-    if (produits.length > 0 || parcelles.length > 0) {
-      console.log("Calcul des statistiques avec", produits.length, "produits et", parcelles.length, "parcelles")
+  const handleExport = async (format: 'csv' | 'pdf') => {
+    try {
+      const response = await fetch(`/api/v1/statistiques?format=${format}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(`Erreur lors de l'export ${format.toUpperCase()} : ${errorData.message}`);
+        return;
+      }
 
-      // Calcul des statistiques
-      const produitsVendus = produits.filter((p) => p.vendu).length
-      const ventesTotales = produits
-        .filter((p) => p.vendu && p.prixVente)
-        .reduce((acc, p) => acc + (p.prixVente || 0), 0)
-      const beneficesTotaux = produits
-        .filter((p) => p.vendu && p.benefices)
-        .reduce((acc, p) => acc + (p.benefices || 0), 0)
-
-      setStats({
-        produitsVendus,
-        ventesTotales,
-        beneficesTotaux,
-        nombreParcelles: parcelles.length,
-      })
-
-      // Préparation des données pour les graphiques
-      const derniers6Mois = Array.from({ length: 6 }, (_, i) => {
-        const date = new Date()
-        date.setMonth(date.getMonth() - i)
-        return {
-          mois: date.toLocaleString("fr-FR", { month: "short" }),
-          debut: new Date(date.getFullYear(), date.getMonth(), 1),
-          fin: new Date(date.getFullYear(), date.getMonth() + 1, 0),
-        }
-      }).reverse()
-
-      const data = derniers6Mois.map(({ mois, debut, fin }) => {
-        const produitsVendus = produits.filter(
-          (p) => p.vendu && p.dateVente && new Date(p.dateVente) >= debut && new Date(p.dateVente) <= fin,
-        )
-
-        // Ajout de vérifications pour éviter les valeurs undefined
-        const ventes = produitsVendus.reduce((acc, p) => acc + (p.prixVente || 0), 0)
-        const benefices = produitsVendus.reduce((acc, p) => {
-          // Vérifier que toutes les valeurs nécessaires existent
-          if (p.prixVente === undefined || p.prixArticle === undefined || p.prixLivraison === undefined) {
-            return acc
-          }
-          return acc + (p.prixVente - p.prixArticle - p.prixLivraison)
-        }, 0)
-        const marge = ventes > 0 ? (benefices / ventes) * 100 : 0
-
-        return {
-          mois,
-          ventes: Number(ventes.toFixed(2)),
-          benefices: Number(benefices.toFixed(2)),
-          marge: Number(marge.toFixed(1)),
-        }
-      })
-
-      setVentesData(data)
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `statistiques.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(`Erreur lors de l'export ${format.toUpperCase()}:`, error);
+      alert(`Une erreur inattendue est survenue lors de l'export ${format.toUpperCase()}.`);
     }
-  }, [parcelles, produits])
+  };
 
-  if (isLoading) {
+  if (isLoading || !advancedStats) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <motion.div
@@ -116,13 +95,12 @@ export default function StatistiquesPage() {
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
           />
-          <p className="text-muted-foreground">Chargement des statistiques...</p>
+          <p className="text-muted-foreground">Chargement des statistiques avancées...</p>
         </motion.div>
       </div>
     )
   }
 
-  // Filtrer les produits vendus pour les tableaux
   const produitsVendusData = produits
     .filter((p) => p.vendu && p.prixVente && p.benefices)
     .sort((a, b) => (b.benefices || 0) - (a.benefices || 0))
@@ -130,9 +108,19 @@ export default function StatistiquesPage() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <h3 className="text-lg font-medium">Statistiques</h3>
-        <p className="text-sm text-muted-foreground">Vue d'ensemble des performances et analyses.</p>
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex justify-between items-center">
+        <div>
+          <h3 className="text-lg font-medium">Statistiques Avancées</h3>
+          <p className="text-sm text-muted-foreground">Vue d'overview des performances et analyses détaillées.</p>
+        </div>
+        <div className="flex space-x-2">
+          <Button onClick={() => handleExport('csv')} variant="outline" size="sm">
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> Export CSV
+          </Button>
+          <Button onClick={() => handleExport('pdf')} variant="outline" size="sm">
+            <FileText className="mr-2 h-4 w-4" /> Export PDF
+          </Button>
+        </div>
       </motion.div>
 
       <motion.div
@@ -148,7 +136,7 @@ export default function StatistiquesPage() {
         >
           <CardStats
             title="Ventes Totales"
-            value={`${stats.ventesTotales.toFixed(2)} €`}
+            value={`${advancedStats.ventesTotales.toFixed(2)} €`}
             icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
           />
         </motion.div>
@@ -159,7 +147,7 @@ export default function StatistiquesPage() {
         >
           <CardStats
             title="Produits Vendus"
-            value={stats.produitsVendus}
+            value={advancedStats.produitsVendus}
             icon={<Package className="h-4 w-4 text-muted-foreground" />}
           />
         </motion.div>
@@ -170,7 +158,7 @@ export default function StatistiquesPage() {
         >
           <CardStats
             title="Bénéfices"
-            value={`${stats.beneficesTotaux.toFixed(2)} €`}
+            value={`${advancedStats.beneficesTotaux.toFixed(2)} €`}
             icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
           />
         </motion.div>
@@ -181,48 +169,55 @@ export default function StatistiquesPage() {
         >
           <CardStats
             title="Parcelles"
-            value={stats.nombreParcelles}
+            value={advancedStats.nombreParcelles}
             icon={<Users className="h-4 w-4 text-muted-foreground" />}
           />
         </motion.div>
       </motion.div>
+      
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
+        <HeatmapChart data={advancedStats.heatmapVentes} />
+      </motion.div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Suspense fallback={<LoadingComponent />}>
-            <VentesChart data={ventesData} />
-          </Suspense>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
+           <RoiTable data={advancedStats.roiParProduit} />
         </motion.div>
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <Suspense fallback={<LoadingComponent />}>
-            <VentesBar data={ventesData} />
-          </Suspense>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
+           <TempsMoyenVenteTable data={advancedStats.tempsMoyenVente} />
         </motion.div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}>
+           <PlateformesRentabiliteTable data={advancedStats.meilleuresPlateformes} />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
+           <RadarChart data={advancedStats.radarPerformances} />
+        </motion.div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}>
+           <TendancesSaisonnieresTable data={advancedStats.tendancesSaisonnieres} />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }}>
+           <TrendChart data={advancedStats.courbeTendance} />
+        </motion.div>
+      </div>
+
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }}>
+         <PrevisionsVentesTable data={advancedStats.previsionsVentes} />
+      </motion.div>
+
+      {/* Tables existantes */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.0 }}>
           <Suspense fallback={<LoadingComponent />}>
             <ProduitsTable produits={produitsVendusData} />
           </Suspense>
         </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.1 }}>
           <Suspense fallback={<LoadingComponent />}>
             <ParcellesTable parcelles={parcelles} />
           </Suspense>
@@ -231,4 +226,3 @@ export default function StatistiquesPage() {
     </div>
   )
 }
-

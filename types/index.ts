@@ -3,8 +3,9 @@ export interface Parcelle {
   numero: string
   transporteur: string
   poids: number
-  prixTotal: number // En euros uniquement
-  prixParGramme: number // En euros uniquement
+  prixAchat: number
+  prixTotal: number // Calculé : prixAchat
+  prixParGramme: number // Calculé : prixAchat / poids
   createdAt?: string
   updatedAt?: string
 }
@@ -12,7 +13,7 @@ export interface Parcelle {
 export interface Produit {
   id: string
   commandeId: string
-  nom: string
+  nom: string | null
   details?: string
   prixArticle: number // En euros uniquement
   poids: number
@@ -46,4 +47,3 @@ export interface DashboardConfig {
     md: number
   }
 }
-

@@ -11,7 +11,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-import { useStore } from "@/lib/store"
+import { useStore } from "@/store/store"
 import { Package, Map, BarChart, User } from "lucide-react"
 
 export function GlobalSearch() {
@@ -40,6 +40,7 @@ export function GlobalSearch() {
       type: "page",
       icon: <BarChart className="mr-2 h-4 w-4" />,
       onSelect: () => router.push("/dashboard"),
+      description: undefined, // Explicitly undefined for pages
     },
     {
       id: "parcelles",
@@ -47,6 +48,7 @@ export function GlobalSearch() {
       type: "page",
       icon: <Map className="mr-2 h-4 w-4" />,
       onSelect: () => router.push("/parcelles"),
+      description: undefined, // Explicitly undefined for pages
     },
     {
       id: "produits",
@@ -54,6 +56,7 @@ export function GlobalSearch() {
       type: "page",
       icon: <Package className="mr-2 h-4 w-4" />,
       onSelect: () => router.push("/produits"),
+      description: undefined, // Explicitly undefined for pages
     },
     {
       id: "statistiques",
@@ -61,6 +64,7 @@ export function GlobalSearch() {
       type: "page",
       icon: <BarChart className="mr-2 h-4 w-4" />,
       onSelect: () => router.push("/statistiques"),
+      description: undefined, // Explicitly undefined for pages
     },
     {
       id: "profile",
@@ -68,10 +72,11 @@ export function GlobalSearch() {
       type: "page",
       icon: <User className="mr-2 h-4 w-4" />,
       onSelect: () => router.push("/profile"),
+      description: undefined, // Explicitly undefined for pages
     },
 
     // Parcelles
-    ...parcelles.map((parcelle) => ({
+    ...parcelles.filter(Boolean).map((parcelle) => ({
       id: `parcelle-${parcelle.id}`,
       name: `Parcelle #${parcelle.numero}`,
       description: `${parcelle.transporteur} - ${parcelle.poids}g`,
@@ -84,7 +89,7 @@ export function GlobalSearch() {
     })),
 
     // Produits
-    ...produits.map((produit) => ({
+    ...produits.filter(Boolean).map((produit) => ({
       id: `produit-${produit.id}`,
       name: produit.nom,
       description: produit.vendu ? "Vendu" : "Non vendu",
@@ -160,4 +165,3 @@ export function GlobalSearch() {
     </>
   )
 }
-
