@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
-import { test, expect, describe } from 'vitest';
-import { PerformanceChart } from '../performance-chart';
-import { Produit } from '@/types';
+import { test, expect, describe, vi } from 'vitest';
+import PerformanceChart from '../performance-chart';
+import type { Produit } from '@/types/database';
 import React from 'react';
 
 // Mock de la librairie recharts

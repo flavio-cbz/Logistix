@@ -1,3 +1,5 @@
+import logging
+logging.basicConfig(level=logging.DEBUG)
 import requests
 import pandas as pd
 import json
@@ -33,7 +35,7 @@ def search_vinted_items(access_token: str, brand_id: Optional[int], catalog_id: 
         try:
             response = requests.get(base_url, headers=headers, params=params)
             response.raise_for_status()
-            data = response.get("items", [])
+            data = response.json()
             items = data.get("items", [])
             
             if not items:

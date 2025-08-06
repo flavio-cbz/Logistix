@@ -20,7 +20,6 @@ export async function middleware(req: NextRequest) {
     "/parcelles",
     "/statistiques",
     "/admin",
-    "/analyse-marche",
     "/vinted-scraper", // Ajout de la nouvelle route
   ])
   const publicRoutes = new Set(["/login", "/signup"])
@@ -72,7 +71,6 @@ export const config = {
     "/parcelles/:path*",
     "/statistiques/:path*",
     "/admin/:path*",
-    "/analyse-marche/:path*",
     "/login",
     "/signup",
     "/",

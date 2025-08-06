@@ -1,11 +1,14 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from fastapi import FastAPI, Depends, HTTPException, status
 from pydantic import BaseModel
 import os
-from .database import save_analysis_to_db
-from .dependencies import get_current_user
-from ..find_representative_item import find_representative_item
-from ..analyze_similar_sold_items import analyze_similar_sold_items
-from .config import JWT_SECRET
+from database import save_analysis_to_db
+from dependencies import get_current_user
+from find_representative_item import find_representative_item
+from analyze_similar_sold_items import analyze_similar_sold_items
+from config import JWT_SECRET
 
 app = FastAPI()
 
@@ -46,6 +49,8 @@ def analyze_market(request: AnalysisRequest, current_user: User = Depends(get_cu
 def get_analyses(current_user: User = Depends(get_current_user)):
     return []
 
-@app.delete("/api/analyses/{analysis_id}")
-def delete_analysis(analysis_id: str, current_user: User = Depends(get_current_user)):
-    return {"message": f"Analyse {analysis_id} supprimée avec succès"}
+@app.get("/api/analyses/{analysis_id}")
+def get_analysis(analysis_id: str, current_user: User = Depends(get_current_user)):
+    # Implémentation de la récupération de l'analyse
+    # Exemple : requête à la base de données
+    return {"analysis_id": analysis_id, "data": "Données de l'analyse"}

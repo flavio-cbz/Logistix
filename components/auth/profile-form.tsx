@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { VintedTokenConfig } from "./vinted-token-config"
 
 const profileFormSchema = z.object({
   username: z
@@ -43,6 +44,37 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState(initialData.avatar || "")
+  const [vintedTokenStatus, setVintedTokenStatus] = useState<{
+    configured: boolean
+    valid: boolean
+    lastValidated?: string
+    token?: string
+  }>({
+    configured: false,
+    valid: false,
+  })
+
+  // Charger le statut du token Vinted au montage du composant
+  useEffect(() => {
+    const loadVintedTokenStatus = async () => {
+      try {
+        const response = await fetch('/api/v1/market-analysis/token')
+        if (response.ok) {
+          const data = await response.json()
+          setVintedTokenStatus({
+            configured: data.configured || false,
+            valid: data.valid || false,
+            lastValidated: data.lastValidated,
+            token: data.token, // Pour l'affichage masqué
+          })
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement du statut Vinted:', error)
+      }
+    }
+
+    loadVintedTokenStatus()
+  }, [])
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -125,6 +157,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Configuration Vinted */}
+      <VintedTokenConfig
+        initialToken={vintedTokenStatus.token}
+        isConfigured={vintedTokenStatus.configured}
+        isValid={vintedTokenStatus.valid}
+        lastValidated={vintedTokenStatus.lastValidated}
+      />
       <Card>
         <CardHeader>
           <CardTitle>Informations personnelles</CardTitle>

@@ -2,13 +2,13 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
-import type { Produit } from "@/types"
+import type { Produit } from "@/types/database"
 
 interface TempsVenteProps {
   produits: Produit[]
 }
 
-export function TempsVente({ produits }: TempsVenteProps) {
+export default function TempsVente({ produits }: TempsVenteProps) {
   // Distribution des temps de vente
   const distribution = produits.reduce(
     (acc, produit) => {

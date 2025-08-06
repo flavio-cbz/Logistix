@@ -2,14 +2,14 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
-import type { Produit } from "@/types"
+import type { Produit } from "@/types/database"
 
 interface TendancesVenteProps {
   produits: Produit[]
   title?: string
 }
 
-export function TendancesVente({ produits, title = "Tendances de vente" }: TendancesVenteProps) {
+export default function TendancesVente({ produits, title = "Tendances de vente" }: TendancesVenteProps) {
   // Préparer les données pour le graphique
   const derniers6Mois = Array.from({ length: 6 }, (_, i) => {
     const date = new Date()

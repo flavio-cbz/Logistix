@@ -13,6 +13,7 @@ services:
       - COOKIE_NAME=${COOKIE_NAME:-logistix_session}
       - COOKIE_MAX_AGE=${COOKIE_MAX_AGE:-604800}
       - DATABASE_PATH=${DATABASE_PATH:-/app/data/logistix.db}
+      - REDIS_URL=redis://redis:6379 # Ajouter cette ligne pour la connexion Redis
     volumes:
       - ./data:/app/data
     healthcheck:
@@ -21,4 +22,17 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-
+    depends_on:
+      redis:
+        condition: service_healthy
+  redis: # Nouveau service Redis
+    image: "redis:7-alpine"
+    container_name: Logistix_Redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5

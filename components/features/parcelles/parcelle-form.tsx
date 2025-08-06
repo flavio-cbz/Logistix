@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { useStore } from "@/store/store"
 import { useToast } from "@/components/ui/use-toast"
-import type { Parcelle } from "@/types"
+import type { Parcelle } from "@/types/database"
 
 const formSchema = z.object({
   numero: z.string().min(1, "Le numéro est requis"),
@@ -27,25 +27,29 @@ const formSchema = z.object({
   prixAchat: z.coerce.number().min(0, "Le prix doit être positif"),
 })
 
+type ParcelleFormData = z.infer<typeof formSchema>
+
 interface ParcelleFormProps {
   editParcelle?: Parcelle | null
   onClose?: () => void
   className?: string;
 }
 
-export function ParcelleForm({ editParcelle, onClose, className }: ParcelleFormProps) {
+export default function ParcelleForm({ editParcelle, onClose, className }: ParcelleFormProps) {
+  // Forcer le typage pour éviter les erreurs de propriété manquante
+  const safeEditParcelle = editParcelle as (Parcelle & { prixAchat: number }) | null;
   const [open, setOpen] = useState(false)
   const { addParcelle, updateParcelle } = useStore()
   const { toast } = useToast()
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<ParcelleFormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: editParcelle
+    defaultValues: safeEditParcelle
       ? {
-          numero: editParcelle.numero,
-          transporteur: editParcelle.transporteur,
-          poids: editParcelle.poids,
-          prixAchat: editParcelle.prixAchat,
+          numero: safeEditParcelle.numero,
+          transporteur: safeEditParcelle.transporteur,
+          poids: safeEditParcelle.poids,
+          prixAchat: safeEditParcelle.prixAchat,
         }
       : {
           numero: "",
@@ -56,12 +60,12 @@ export function ParcelleForm({ editParcelle, onClose, className }: ParcelleFormP
   })
 
   useEffect(() => {
-    if (editParcelle) {
+    if (safeEditParcelle) {
       form.reset({
-        numero: editParcelle.numero,
-        transporteur: editParcelle.transporteur,
-        poids: editParcelle.poids,
-        prixAchat: editParcelle.prixAchat,
+        numero: safeEditParcelle.numero,
+        transporteur: safeEditParcelle.transporteur,
+        poids: safeEditParcelle.poids,
+        prixAchat: safeEditParcelle.prixAchat,
       })
     } else {
       form.reset({
@@ -71,9 +75,9 @@ export function ParcelleForm({ editParcelle, onClose, className }: ParcelleFormP
           prixAchat: 0,
       })
     }
-  }, [editParcelle, form])
+  }, [safeEditParcelle, form])
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: ParcelleFormData) {
     if (editParcelle) {
       updateParcelle(editParcelle.id, values)
       toast({
@@ -81,7 +85,19 @@ export function ParcelleForm({ editParcelle, onClose, className }: ParcelleFormP
         description: "La parcelle a été mise à jour avec succès.",
       })
     } else {
-      addParcelle(values)
+      const newParcelle: Parcelle = {
+        id: crypto.randomUUID(),
+        userId: "",
+        numero: values.numero!,
+        transporteur: values.transporteur!,
+        poids: values.poids!,
+        prixAchat: values.prixAchat!,
+        prixTotal: values.prixAchat,
+        prixParGramme: values.poids > 0 ? values.prixAchat / values.poids : 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      addParcelle(newParcelle)
       toast({
         title: "Parcelle créée",
         description: "La nouvelle parcelle a été créée avec succès.",

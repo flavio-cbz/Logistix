@@ -5,12 +5,12 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ProduitForm } from "@/components/features/produits/produit-form"
+import ProduitForm from "@/components/features/produits/produit-form"
 import { Copy, Edit, Trash2, DollarSign } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { ConfirmDialog } from "@/components/confirm-dialog"
-import { VenteForm } from "@/components/features/produits/vente-form"
-import type { Produit } from "@/types"
+import VenteForm from "@/components/features/produits/vente-form"
+import type { Produit } from "@/types/database"
 import { useToast } from "@/components/ui/use-toast"
 import { useStore } from "@/store/store"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -20,14 +20,14 @@ interface ProduitsListProps {
   initialProduits: Produit[]
 }
 
-export function ProduitsList({ initialProduits = [] }: ProduitsListProps) {
+export default function ProduitsList({ initialProduits = [] }: ProduitsListProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [editProduit, setEditProduit] = useState<Produit | null>(null)
   const [venteFormProduitId, setVenteFormProduitId] = useState<string | null>(null)
   const { toast } = useToast()
   const { deleteProduit, updateProduit, addProduit } = useStore() // Destructurer addProduit du store
-  const duplicateProduit = useDuplicateEntity<Produit>(); // Utilisation du hook générique
+  const { duplicateEntity } = useDuplicateEntity<Produit>(); // Utilisation du hook générique
 
 
   const filteredProduits = initialProduits.filter((produit) => {
@@ -82,17 +82,11 @@ export function ProduitsList({ initialProduits = [] }: ProduitsListProps) {
 
   // Fonction pour dupliquer un produit
   const handleDuplicate = (produit: Produit) => {
-    duplicateProduit({
+    duplicateEntity({
       entity: produit,
       transform: (p) => ({
+        ...p,
         nom: `${p.nom} (copie)`,
-        prixArticle: p.prixArticle,
-        prixLivraison: p.prixLivraison,
-        poids: p.poids,
-        commandeId: p.commandeId,
-        parcelleId: p.parcelleId,
-        details: p.details,
-        vendu: false,
       }),
       addFunction: addProduit,
       entityName: "Produit",

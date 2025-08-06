@@ -1,11 +1,13 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState, Suspense, lazy } from "react" // Ajout de lazy et Suspense
+import { useEffect, useState, useMemo, Suspense, lazy } from "react" // Ajout de useMemo, lazy et Suspense
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { CardStats } from "@/components/ui/card-stats"
 import { Package, Map, TrendingUp, ShoppingBag } from "lucide-react"
 import { useStore } from "@/store/store"
-import { DashboardConfig } from "@/components/dashboard/dashboard-config" // Garder l'import direct pour ce composant léger
+import DashboardConfig from "@/components/features/dashboard/dashboard-config" // Garder l'import direct pour ce composant léger
 import { motion } from "framer-motion"
 
 // Composant de chargement générique
@@ -21,52 +23,47 @@ function LoadingComponent() {
 }
 
 // Chargement paresseux des composants lourds
-const MargeMensuelle = lazy(() => import("@/components/dashboard/marge-mensuelle").then(mod => ({ default: mod.MargeMensuelle })));
-const PerformanceChart = lazy(() => import("@/components/dashboard/performance-chart").then(mod => ({ default: mod.PerformanceChart })));
-const TopProduits = lazy(() => import("@/components/dashboard/top-produits").then(mod => ({ default: mod.TopProduits })));
-const VentesPlateformes = lazy(() => import("@/components/dashboard/ventes-plateformes").then(mod => ({ default: mod.VentesPlateformes })));
-const TempsVente = lazy(() => import("@/components/dashboard/temps-vente").then(mod => ({ default: mod.TempsVente })));
-const CoutPoids = lazy(() => import("@/components/dashboard/cout-poids").then(mod => ({ default: mod.CoutPoids })));
-const TopParcelles = lazy(() => import("@/components/dashboard/top-parcelles").then(mod => ({ default: mod.TopParcelles })));
-const TendancesVente = lazy(() => import("@/components/dashboard/tendances-vente").then(mod => ({ default: mod.TendancesVente })));
+const MargeMensuelle = lazy(() => import("@/components/features/dashboard/marge-mensuelle"));
+const PerformanceChart = lazy(() => import("@/components/features/dashboard/performance-chart"));
+const TopProduits = lazy(() => import("@/components/features/dashboard/top-produits"));
+const VentesPlateformes = lazy(() => import("@/components/features/dashboard/ventes-plateformes"));
+const TempsVente = lazy(() => import("@/components/features/dashboard/temps-vente"));
+const CoutPoids = lazy(() => import("@/components/features/dashboard/cout-poids"));
+const TopParcelles = lazy(() => import("@/components/features/dashboard/top-parcelles"));
+const TendancesVente = lazy(() => import("@/components/features/dashboard/tendances-vente"));
 
 
 export default function DashboardPage() {
-  const { parcelles, produits, dashboardConfig, loadParcelles, loadProduits, loadDashboardConfig } = useStore()
+  const { parcelles, produits, dashboardConfig, initializeStore } = useStore()
   const [isLoading, setIsLoading] = useState(true)
 
   // Memoized calculations to prevent recalculation on every render
-  const { produitsVendus, chiffreAffaires, enabledCards, sortedCards } = useMemo(() => {
+  const { produitsVendus, chiffreAffaires, ventesTotales, beneficesTotaux, enabledCards, sortedCards } = useMemo(() => {
     const vendus = produits.filter(p => p.vendu)
     const ca = vendus.reduce((sum, p) => sum + (p.prixVente || 0), 0)
+    const coutTotal = vendus.reduce((sum, p) => sum + (p.prixArticle + p.prixLivraison), 0)
+    const benefices = ca - coutTotal
     const enabled = dashboardConfig.cards.filter(card => card.enabled)
     const sorted = enabled.sort((a, b) => a.order - b.order)
-    
+
     return {
       produitsVendus: vendus,
       chiffreAffaires: ca,
+      ventesTotales: ca,
+      beneficesTotaux: benefices,
       enabledCards: enabled,
       sortedCards: sorted,
     }
   }, [produits, dashboardConfig.cards])
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        await Promise.all([
-          loadParcelles(),
-          loadProduits(),
-          loadDashboardConfig(),
-        ])
-      } catch (error) {
-        console.error("Erreur lors du chargement des données:", error)
-      } finally {
-        setIsLoading(false)
-      }
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      await initializeStore();
+      setIsLoading(false);
     }
-
-    loadData()
-  }, [loadParcelles, loadProduits, loadDashboardConfig])
+    loadInitialData();
+  }, [initializeStore])
 
   if (isLoading) {
     return (
@@ -107,7 +104,7 @@ export default function DashboardPage() {
         >
           <CardStats
             title="Produits Vendus"
-            value={produitsVendus}
+            value={produitsVendus.length}
             icon={<Package className="h-4 w-4 text-muted-foreground" />}
           />
         </motion.div>
@@ -135,7 +132,6 @@ export default function DashboardPage() {
         </motion.div>
       </div>
     ),
-    performance: <Suspense fallback={<LoadingComponent />}><PerformanceChart produits={produits} /></Suspense>,
     plateformes: <Suspense fallback={<LoadingComponent />}><VentesPlateformes produits={produits} /></Suspense>,
     "top-produits": <Suspense fallback={<LoadingComponent />}><TopProduits produits={produits} /></Suspense>,
     "temps-vente": <Suspense fallback={<LoadingComponent />}><TempsVente produits={produits} /></Suspense>,
@@ -162,49 +158,41 @@ export default function DashboardPage() {
     }))
 
   return (
-    <Motion {...staggerContainer} className="container mx-auto px-4 py-8 space-y-8">
-      <Motion {...fadeInUp} className="flex items-center justify-between">
+    <div className="container mx-auto px-4 py-8 space-y-8">
+      <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <Suspense fallback={<Skeleton className="h-10 w-32" />}>
-          <DashboardConfig />
+          <DashboardConfig config={dashboardConfig} />
         </Suspense>
-      </Motion>
+      </div>
 
       {/* Stats Section */}
-      <Motion {...staggerItem}>
-        <StatsSection 
-          parcelles={parcelles}
-          produits={produits}
-          produitsVendus={produitsVendus}
-          chiffreAffaires={chiffreAffaires}
-        />
-      </Motion>
+      {dashboardComponents.stats}
 
       {/* Dynamic Dashboard Cards */}
-      <Motion {...staggerContainer} className="grid gap-6 md:grid-cols-2">
-        {sortedCards.map((card, index) => {
-          const Component = componentRegistry[card.component as keyof typeof componentRegistry]
-          
-          if (!Component || card.component === 'MainStats') return null
+      <div className="grid gap-6 md:grid-cols-2">
+        {activeWidgets.map((widget, index) => {
+          if (!widget.component) return null
 
           return (
-            <Motion key={card.id} {...staggerItem} style={{ animationDelay: `${index * 0.1}s` }}>
-              <Suspense fallback={
-                <Card className="h-80">
-                  <CardHeader>
-                    <CardTitle><Skeleton className="h-6 w-32" /></CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-64 w-full" />
-                  </CardContent>
-                </Card>
-              }>
-                <Component />
-              </Suspense>
-            </Motion>
+            <motion.div
+              key={widget.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+            >
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle>{widget.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {widget.component}
+                </CardContent>
+              </Card>
+            </motion.div>
           )
         })}
-      </Motion>
-    </Motion>
+      </div>
+    </div>
   )
 }

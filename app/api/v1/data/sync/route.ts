@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server"
-import { db, generateId, getCurrentTimestamp } from "@/lib/services/db"
+import { databaseService, generateId, getCurrentTimestamp } from "@/lib/services/database/db"
 import { getSessionUser } from "@/lib/services/auth"
-import { Logger } from "@/lib/utils/logger"
+// Simple logger disabled
+// import { Logger } from "@/lib/utils/logging/simple-logger"
 
-const logger = new Logger("api/data/sync")
+// Simple logger disabled
+const logger = { 
+  log: console.log, 
+  error: console.error, 
+  warn: console.warn,
+  info: console.log,
+  debug: console.log
+};
 
 export async function POST(request: Request) {
   try {
@@ -23,8 +31,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Format de données invalide" }, { status: 400 })
     }
 
-    const syncTransaction = db.transaction(() => {
+    await databaseService.transaction((db) => {
       logger.info("Début de la transaction de synchronisation")
+      
       // Supprimer les anciennes données de l'utilisateur
       db.prepare("DELETE FROM parcelles WHERE user_id = ?").run(user.id)
       db.prepare("DELETE FROM produits WHERE user_id = ?").run(user.id)
@@ -87,9 +96,7 @@ export async function POST(request: Request) {
       }
       logger.info(`${produits.length} produits insérés`)
       logger.info("Transaction de synchronisation terminée")
-    })
-
-    syncTransaction()
+    }, 'data-sync')
 
     return NextResponse.json({
       success: true,
@@ -121,26 +128,18 @@ export async function GET() {
     }
 
     // Récupérer les parcelles de l'utilisateur
-    const parcelles = db
-      .prepare(
-        `
-        SELECT * FROM parcelles
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-      `,
-      )
-      .all(user.id)
+    const parcelles = await databaseService.query(
+      `SELECT * FROM parcelles WHERE user_id = ? ORDER BY created_at DESC`,
+      [user.id],
+      'sync-get-parcelles'
+    )
 
     // Récupérer les produits de l'utilisateur
-    const produits = db
-      .prepare(
-        `
-        SELECT * FROM produits
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-      `,
-      )
-      .all(user.id)
+    const produits = await databaseService.query(
+      `SELECT * FROM produits WHERE user_id = ? ORDER BY created_at DESC`,
+      [user.id],
+      'sync-get-produits'
+    )
 
     return NextResponse.json({
       success: true,

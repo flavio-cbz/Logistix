@@ -1,42 +1,158 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { Parcelle } from "@/types"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Parcelle } from "@/types/database";
+import { Button } from "@/components/ui/button";
+import { PencilIcon, Trash2Icon, CopyIcon } from "lucide-react";
+import { useDuplicateEntity } from "@/lib/utils/duplication";
+import { useStore } from "@/store/store"; // Correction: chemin vers le store
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import ParcelleForm from "@/components/features/parcelles/parcelle-form"; // Correction: import par défaut
 
 interface ParcellesTableProps {
-  parcelles: Parcelle[]
+  parcelles: Parcelle[];
 }
 
 export function ParcellesTable({ parcelles }: ParcellesTableProps) {
+  const { addParcelle, updateParcelle, deleteParcelle } = useStore();
+  const { duplicateEntity } = useDuplicateEntity<Parcelle>();
+  const [editingParcelle, setEditingParcelle] = useState<Parcelle | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const handleDuplicate = (parcelle: Parcelle) => {
+    duplicateEntity({
+      entity: parcelle,
+      transform: (p) => ({
+        ...p,
+        numero: `${p.numero}-copie`, // Exemple: ajouter "-copie" au numéro
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }),
+      addFunction: addParcelle,
+      entityName: "Parcelle",
+    });
+  };
+
+  const handleEdit = (parcelle: Parcelle) => {
+    setEditingParcelle(parcelle);
+    setIsFormOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Êtes-vous sûr de vouloir supprimer cette parcelle ?")) {
+      await deleteParcelle(id);
+    }
+  };
+
+  const handleFormClose = () => {
+    setEditingParcelle(null);
+    setIsFormOpen(false);
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Parcelles les plus économiques</CardTitle>
-        <CardDescription>Classement des parcelles par prix au gramme</CardDescription>
+        <CardTitle>Liste des Parcelles</CardTitle>
+        <CardDescription>
+          Gérez et visualisez toutes vos parcelles.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Parcelle</TableHead>
-              <TableHead className="text-right">Prix/g</TableHead>
-              <TableHead className="text-right">Poids total</TableHead>
-              <TableHead className="text-right">Prix total</TableHead>
+              <TableHead>Numéro</TableHead>
+              <TableHead>Transporteur</TableHead>
+              <TableHead>Poids (g)</TableHead>
+              <TableHead>Prix Achat (€)</TableHead>
+              <TableHead>Prix/Gramme (€)</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {parcelles.map((parcelle) => (
-              <TableRow key={parcelle.id}>
-                <TableCell className="font-medium">#{parcelle.numero}</TableCell>
-                <TableCell className="text-right">{parcelle.prixParGramme.toFixed(3)} €/g</TableCell>
-                <TableCell className="text-right">{parcelle.poids}g</TableCell>
-                <TableCell className="text-right">{parcelle.prixTotal.toFixed(2)} €</TableCell>
+            {parcelles.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center">
+                  Aucune parcelle trouvée.
+                </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              parcelles.map((parcelle) => (
+                <TableRow key={parcelle.id}>
+                  <TableCell className="font-medium">
+                    {parcelle.numero}
+                  </TableCell>
+                  <TableCell>{parcelle.transporteur}</TableCell>
+                  <TableCell>{parcelle.poids}</TableCell>
+                  <TableCell>{parcelle.prixAchat.toFixed(2)}</TableCell>
+                  <TableCell>{parcelle.prixParGramme.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(parcelle)}
+                      className="mr-1"
+                    >
+                      <PencilIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDuplicate(parcelle)}
+                      className="mr-1"
+                    >
+                      <CopyIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(parcelle.id)}
+                    >
+                      <Trash2Icon className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </CardContent>
+
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingParcelle ? "Modifier la parcelle" : "Ajouter une parcelle"}
+            </DialogTitle>
+          </DialogHeader>
+          {editingParcelle && (
+            <ParcelleForm
+              editParcelle={editingParcelle}
+              onClose={handleFormClose}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
-  )
+  );
 }

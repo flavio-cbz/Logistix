@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { Parcelle, Produit } from "@/types"
+import type { Parcelle, Produit } from "@/types/database"
 
 interface TopParcellesProps {
   parcelles: Parcelle[]
@@ -10,7 +10,7 @@ interface TopParcellesProps {
   title?: string
 }
 
-export function TopParcelles({ parcelles, produits, title = "Parcelles les plus rentables" }: TopParcellesProps) {
+export default function TopParcelles({ parcelles, produits, title = "Parcelles les plus rentables" }: TopParcellesProps) {
   // Calculer les bénéfices totaux par parcelle
   const parcellesAvecBenefices = parcelles.map((parcelle) => {
     const produitsDeLaParcelle = produits.filter((p) => p.parcelleId === parcelle.id && p.vendu)

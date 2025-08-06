@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ParcelleForm } from "@/components/features/parcelles/parcelle-form"
+import ParcelleForm from "@/components/features/parcelles/parcelle-form"
 import { Copy, Edit, Trash2 } from "lucide-react"
 import { ConfirmDialog } from "@/components/confirm-dialog"
-import type { Parcelle } from "@/types"
+import type { Parcelle } from "@/types/database"
 import { useToast } from "@/components/ui/use-toast"
 import { useStore } from "@/store/store"
 import { useDuplicateEntity } from "@/lib/utils/duplication" // Import du hook de duplication
@@ -18,13 +18,13 @@ interface ParcellesListProps {
   onDelete: (id: string) => Promise<void>
 }
 
-export function ParcellesList({ initialParcelles = [], onDelete }: ParcellesListProps) {
+export default function ParcellesList({ initialParcelles = [], onDelete }: ParcellesListProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [editParcelle, setEditParcelle] = useState<Parcelle | null>(null)
   const { toast } = useToast()
   const { addParcelle } = useStore() // Destructurer addParcelle du store
-  const duplicateParcelle = useDuplicateEntity<Parcelle>(); // Utilisation du hook générique
+  const { duplicateEntity } = useDuplicateEntity<Parcelle>(); // Utilisation du hook générique
 
   const filteredParcelles = initialParcelles
     .filter(Boolean) // Supprimer les parcelles undefined/null
@@ -53,7 +53,7 @@ export function ParcellesList({ initialParcelles = [], onDelete }: ParcellesList
 
   // Fonction pour dupliquer une parcelle
   const handleDuplicate = (parcelle: Parcelle) => {
-    duplicateParcelle({
+    duplicateEntity({
       entity: parcelle,
       transform: (p) => ({
         ...p,

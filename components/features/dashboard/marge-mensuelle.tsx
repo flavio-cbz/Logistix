@@ -2,14 +2,14 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts"
-import type { Produit } from "@/types"
+import type { Produit } from "@/types/database"
 
 interface MargeMensuelleProps {
   produits: Produit[]
   title?: string
 }
 
-export function MargeMensuelle({ produits, title = "Évolution des marges" }: MargeMensuelleProps) {
+export default function MargeMensuelle({ produits, title = "Évolution des marges" }: MargeMensuelleProps) {
   // Préparation des données par mois
   const derniers12Mois = Array.from({ length: 12 }, (_, i) => {
     const date = new Date()

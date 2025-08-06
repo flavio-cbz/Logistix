@@ -24,7 +24,7 @@ interface VenteFormProps {
   onClose: () => void
 }
 
-export function VenteForm({ produitId, open, onClose }: VenteFormProps) {
+export default function VenteForm({ produitId, open, onClose }: VenteFormProps) {
   const { updateProduitVente } = useStore()
   const { toast } = useToast()
 

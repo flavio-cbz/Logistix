@@ -1,21 +1,8 @@
-<<<<<<< HEAD
 import bundleAnalyzer from '@next/bundle-analyzer';
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
-=======
-import withBundleAnalyzer from '@next/bundle-analyzer'
->>>>>>> 0bc3d45c5be03de1342906ecaa9d231155263bf0
-
-let userConfig = undefined
-try {
-  userConfig = require('./next.config.user.mjs');
-} catch (error) {
-  if (error.code !== 'MODULE_NOT_FOUND') {
-    console.error('Error loading user config:', error);
-  }
-}
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -39,6 +26,56 @@ const nextConfig = {
   
   // Bundle optimization
   webpack: (config, { dev, isServer }) => {
+    // Suppress noisy warnings
+    config.infrastructureLogging = {
+      level: 'error',
+    };
+    
+    // Suppress specific warnings - more comprehensive approach
+    config.ignoreWarnings = [
+      /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
+      /require-in-the-middle/,
+      /@opentelemetry/,
+      /@sentry/,
+      /node_modules/,
+      (warning) => {
+        return warning.message && (
+          warning.message.includes('Critical dependency') ||
+          warning.message.includes('require-in-the-middle') ||
+          warning.message.includes('@opentelemetry') ||
+          warning.message.includes('@sentry')
+        );
+      },
+    ];
+
+    // Suppress stats warnings
+    config.stats = {
+      warnings: false,
+      warningsFilter: [
+        /Critical dependency/,
+        /require-in-the-middle/,
+        /@opentelemetry/,
+        /@sentry/,
+        (warning) => {
+          return warning && (
+            warning.includes('Critical dependency') ||
+            warning.includes('require-in-the-middle') ||
+            warning.includes('@opentelemetry') ||
+            warning.includes('@sentry')
+          );
+        },
+      ],
+    };
+
+    // Externalize problematic modules for server-side
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push({
+        'require-in-the-middle': 'commonjs require-in-the-middle',
+        '@opentelemetry/instrumentation': 'commonjs @opentelemetry/instrumentation',
+      });
+    }
+
     // Optimize bundle splitting
     if (!dev && !isServer) {
       config.optimization.splitChunks = {
@@ -103,31 +140,4 @@ const nextConfig = {
   },
 }
 
-// Apply user config if exists
-if (userConfig) {
-  const config = userConfig.default || userConfig
-  for (const key in config) {
-    if (
-      typeof nextConfig[key] === 'object' &&
-      !Array.isArray(nextConfig[key])
-    ) {
-      nextConfig[key] = {
-        ...nextConfig[key],
-        ...config[key],
-      }
-    } else {
-      nextConfig[key] = config[key]
-    }
-  }
-}
-
-<<<<<<< HEAD
 export default withBundleAnalyzer(nextConfig);
-=======
-// Bundle analyzer setup
-const bundleAnalyzer = withBundleAnalyzer({
-  enabled: process.env.ANALYZE === 'true',
-})
-
-export default bundleAnalyzer(nextConfig)
->>>>>>> 0bc3d45c5be03de1342906ecaa9d231155263bf0

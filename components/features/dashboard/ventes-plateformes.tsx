@@ -2,13 +2,13 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
-import type { Produit } from "@/types"
+import type { Produit } from "@/types/database"
 
 interface VentesPlateformesProps {
   produits: Produit[]
 }
 
-export function VentesPlateformes({ produits }: VentesPlateformesProps) {
+export default function VentesPlateformes({ produits }: VentesPlateformesProps) {
   // Agrégation des ventes par plateforme
   const ventesParPlateforme = produits.reduce(
     (acc, produit) => {

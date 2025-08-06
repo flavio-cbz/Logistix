@@ -1,0 +1,17 @@
+{
+  "name": "logistix-metadata-sync",
+  "version": "1.0.0",
+  "description": "Script CRON pour synchroniser les métadonnées Vinted",
+  "main": "sync-metadata.js",
+  "scripts": {
+    "sync": "node sync-metadata.js",
+    "sync:user": "node sync-metadata.js",
+    "test": "node test-sync.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.6.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

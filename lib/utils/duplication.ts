@@ -1,36 +1,39 @@
-import { useStore } from "@/store/store";
-import { useToast } from "@/components/ui/use-toast";
-import type { Parcelle, Produit } from "@/types";
+import { useState, useCallback } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
-type DuplicableEntity = Parcelle | Produit;
-
-interface DuplicateOptions<T extends DuplicableEntity> {
+interface DuplicateEntityOptions<T> {
   entity: T;
-  transform: (entity: T) => Omit<T, "id" | "createdAt" | "updatedAt">;
-  addFunction: (newEntity: Omit<T, "id" | "createdAt" | "updatedAt">) => void;
-  entityName: string;
+  transform?: (entity: T) => Partial<T>;
+  addFunction: (newEntity: T) => void;
+  entityName?: string;
 }
 
-export function useDuplicateEntity<T extends DuplicableEntity>() {
-  const { toast } = useToast();
+export function useDuplicateEntity<T extends { id: string }>() {
+  const [isDuplicating, setIsDuplicating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const duplicateEntity = ({ entity, transform, addFunction, entityName }: DuplicateOptions<T>) => {
-    try {
-      const newEntityData = transform(entity);
-      addFunction(newEntityData);
+  const duplicateEntity = useCallback(
+    ({ entity, transform, addFunction, entityName = 'entity' }: DuplicateEntityOptions<T>) => {
+      setIsDuplicating(true);
+      setError(null);
+      try {
+        const newId = uuidv4();
+        const duplicatedEntity: T = {
+          ...entity,
+          id: newId,
+          ...(transform ? transform(entity) : {}),
+        };
+        addFunction(duplicatedEntity);
+        // console.log(`Duplication de ${entityName} réussie avec le nouvel ID: ${newId}`);
+      } catch (err) {
+        // console.error(`Erreur lors de la duplication de ${entityName}:`, err);
+        setError(`Échec de la duplication de ${entityName}.`);
+      } finally {
+        setIsDuplicating(false);
+      }
+    },
+    []
+  );
 
-      toast({
-        title: `${entityName} dupliqué(e)`,
-        description: `Le/La ${entityName.toLowerCase()} a été dupliqué(e) avec succès.`,
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: `Une erreur est survenue lors de la duplication du/de la ${entityName.toLowerCase()}.`,
-      });
-    }
-  };
-
-  return duplicateEntity;
+  return { duplicateEntity, isDuplicating, error };
 }

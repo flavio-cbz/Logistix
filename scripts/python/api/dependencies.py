@@ -2,8 +2,8 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 import jwt
 from pydantic import BaseModel
-from .config import JWT_SECRET
-from .database import get_db_connection
+from config import JWT_SECRET
+from database import get_db_connection
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 

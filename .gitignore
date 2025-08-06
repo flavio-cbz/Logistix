@@ -26,3 +26,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env
+logs/*
+kilo-code-settings.json
+data/logistix.db
+data/logistix.db-shm
+data/logistix.db-wal

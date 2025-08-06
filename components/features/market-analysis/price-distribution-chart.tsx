@@ -3,41 +3,26 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
 
-interface MarketData {
-  id: string
-  productName: string
-  currentPrice: number
-  minPrice: number
-  maxPrice: number
-  avgPrice: number
-  salesVolume: number
-  competitorCount: number
-  trend: 'up' | 'down' | 'stable'
-  trendPercentage: number
-  lastUpdated: string
-  recommendedPrice: number
-  marketShare: number
-  demandLevel: 'low' | 'medium' | 'high'
-}
+import { type VintedAnalysisResult } from "@/types/vinted-market-analysis"
 
 interface PriceDistributionChartProps {
-  product: MarketData
+  analysis: VintedAnalysisResult
 }
 
-export function PriceDistributionChart({ product }: PriceDistributionChartProps) {
+export default function PriceDistributionChart({ analysis }: PriceDistributionChartProps) {
   // Génération de la distribution des prix
   const generatePriceDistribution = () => {
-    const priceRange = product.maxPrice - product.minPrice
+    const priceRange = analysis.priceRange.max - analysis.priceRange.min
     const stepSize = priceRange / 8
     const data = []
 
     for (let i = 0; i < 8; i++) {
-      const rangeStart = product.minPrice + (i * stepSize)
+      const rangeStart = analysis.priceRange.min + (i * stepSize)
       const rangeEnd = rangeStart + stepSize
       const rangeMid = (rangeStart + rangeEnd) / 2
       
       // Simulation d'une distribution normale autour du prix moyen
-      const distanceFromAvg = Math.abs(rangeMid - product.avgPrice)
+      const distanceFromAvg = Math.abs(rangeMid - analysis.avgPrice)
       const maxDistance = priceRange / 2
       const normalizedDistance = distanceFromAvg / maxDistance
       const frequency = Math.max(1, Math.floor(50 * (1 - normalizedDistance) + Math.random() * 20))
@@ -46,8 +31,8 @@ export function PriceDistributionChart({ product }: PriceDistributionChartProps)
         range: `${rangeStart.toFixed(0)}-${rangeEnd.toFixed(0)}€`,
         frequency: frequency,
         midPrice: rangeMid,
-        isRecommended: rangeMid >= product.recommendedPrice - stepSize/2 && 
-                      rangeMid <= product.recommendedPrice + stepSize/2
+        isRecommended: rangeMid >= analysis.avgPrice - stepSize/2 &&
+                      rangeMid <= analysis.avgPrice + stepSize/2
       })
     }
 

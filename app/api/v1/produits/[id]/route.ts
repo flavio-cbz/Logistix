@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/services/auth';
-import { db } from '@/lib/services/db';
+import { databaseService } from '@/lib/services/database/db';
 import { z } from 'zod';
-import type { Produit } from '@/types';
+import type { Produit } from '@/types/database';
 
 // Schéma pour la création (la plupart des champs sont requis)
 const createProductSchema = z.object({
@@ -35,7 +35,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     }
 
     const id = params.id;
-    const produit = db.prepare('SELECT * FROM produits WHERE id = ? AND user_id = ?').get(id, user.id);
+    const produit = await databaseService.queryOne('SELECT * FROM produits WHERE id = ? AND user_id = ?', [id, user.id]);
     if (produit) {
         return NextResponse.json(produit);
     } else {
@@ -55,7 +55,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         const body = await req.json();
         const validatedData = updateProductSchema.parse(body);
 
-        const existingProduit = db.prepare('SELECT * FROM produits WHERE id = ? AND user_id = ?').get(id, user.id) as Produit | undefined;
+        const existingProduit = await databaseService.queryOne<Produit>('SELECT * FROM produits WHERE id = ? AND user_id = ?', [id, user.id]);
 
         if (!existingProduit) {
             return NextResponse.json({ success: false, message: 'Produit non trouvé ou non autorisé' }, { status: 404 });
@@ -76,15 +76,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
             ? (benefices / totalCost) * 100
             : null;
 
-        const stmt = db.prepare(`
+        await databaseService.execute(`
             UPDATE produits
             SET parcelleId = ?, commandeId = ?, nom = ?, details = ?, prixArticle = ?, prixArticleTTC = ?,
                 poids = ?, prixLivraison = ?, vendu = ?, dateVente = ?, tempsEnLigne = ?, prixVente = ?,
                 plateforme = ?, benefices = ?, pourcentageBenefice = ?, updated_at = ?
             WHERE id = ? AND user_id = ?
-        `);
-
-        stmt.run(
+        `, [
             finalData.parcelleId || null,
             finalData.commandeId,
             finalData.nom,
@@ -103,7 +101,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
             updated_at,
             id,
             user.id
-        );
+        ]);
 
         const updatedProduit = {
             ...finalData,
@@ -136,8 +134,8 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     }
 
     try {
-        const stmt = db.prepare('DELETE FROM produits WHERE id = ? AND user_id = ?');
-        const info = stmt.run(id, user.id);
+        
+        const info = await databaseService.execute('DELETE FROM produits WHERE id = ? AND user_id = ?', [id, user.id]);
 
         if (info.changes === 0) {
             return NextResponse.json({ success: false, message: 'Produit non trouvé ou non autorisé' }, { status: 404 });

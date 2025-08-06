@@ -6,25 +6,10 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Star, TrendingUp, TrendingDown, Minus } from "lucide-react"
 
-interface MarketData {
-  id: string
-  productName: string
-  currentPrice: number
-  minPrice: number
-  maxPrice: number
-  avgPrice: number
-  salesVolume: number
-  competitorCount: number
-  trend: 'up' | 'down' | 'stable'
-  trendPercentage: number
-  lastUpdated: string
-  recommendedPrice: number
-  marketShare: number
-  demandLevel: 'low' | 'medium' | 'high'
-}
+import { type VintedAnalysisResult } from "@/types/vinted-market-analysis"
 
 interface CompetitorAnalysisProps {
-  product: MarketData
+  analysis: VintedAnalysisResult
 }
 
 interface Competitor {
@@ -39,19 +24,19 @@ interface Competitor {
   position: 'leader' | 'challenger' | 'follower'
 }
 
-export function CompetitorAnalysis({ product }: CompetitorAnalysisProps) {
+export default function CompetitorAnalysis({ analysis }: CompetitorAnalysisProps) {
   // Génération de données de concurrents simulées
   const generateCompetitors = (): Competitor[] => {
     const competitors: Competitor[] = []
-    const basePrice = product.avgPrice
+    const basePrice = analysis.avgPrice
     
     const competitorNames = [
-      "MarketLeader Pro", "PriceKing", "QualityFirst", "BestValue Store", 
+      "MarketLeader Pro", "PriceKing", "QualityFirst", "BestValue Store",
       "Premium Choice", "EconoMax", "TrendSetter", "ValueMaster",
       "TopSeller", "SmartBuy", "EliteGoods", "BargainHunter"
     ]
 
-    for (let i = 0; i < Math.min(product.competitorCount, 12); i++) {
+    for (let i = 0; i < Math.min(analysis.salesVolume, 12); i++) {
       const priceVariation = (Math.random() - 0.5) * 0.4
       const price = basePrice * (1 + priceVariation)
       const rating = 3 + Math.random() * 2
@@ -139,7 +124,7 @@ export function CompetitorAnalysis({ product }: CompetitorAnalysisProps) {
               {Math.min(...competitors.map(c => c.price)).toFixed(2)} €
             </div>
             <p className="text-xs text-muted-foreground">
-              {((Math.min(...competitors.map(c => c.price)) / product.avgPrice - 1) * 100).toFixed(1)}% 
+              {((Math.min(...competitors.map(c => c.price)) / analysis.avgPrice - 1) * 100).toFixed(1)}%
               sous la moyenne
             </p>
           </CardContent>
@@ -154,7 +139,7 @@ export function CompetitorAnalysis({ product }: CompetitorAnalysisProps) {
               {Math.max(...competitors.map(c => c.price)).toFixed(2)} €
             </div>
             <p className="text-xs text-muted-foreground">
-              +{((Math.max(...competitors.map(c => c.price)) / product.avgPrice - 1) * 100).toFixed(1)}% 
+              +{((Math.max(...competitors.map(c => c.price)) / analysis.avgPrice - 1) * 100).toFixed(1)}%
               au-dessus de la moyenne
             </p>
           </CardContent>
@@ -180,7 +165,7 @@ export function CompetitorAnalysis({ product }: CompetitorAnalysisProps) {
         <CardHeader>
           <CardTitle>Analyse Détaillée des Concurrents</CardTitle>
           <CardDescription>
-            Comparaison avec les principaux acteurs du marché pour {product.productName}
+            Comparaison avec les principaux acteurs du marché
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -211,11 +196,11 @@ export function CompetitorAnalysis({ product }: CompetitorAnalysisProps) {
                       <div className="flex flex-col">
                         <span className="font-medium">{competitor.price.toFixed(2)} €</span>
                         <span className={`text-xs ${
-                          competitor.price < product.avgPrice ? 'text-green-600' : 
-                          competitor.price > product.avgPrice ? 'text-red-600' : 'text-gray-600'
+                          competitor.price < analysis.avgPrice ? 'text-green-600' :
+                          competitor.price > analysis.avgPrice ? 'text-red-600' : 'text-gray-600'
                         }`}>
-                          {competitor.price < product.avgPrice ? '-' : '+'}
-                          {Math.abs(((competitor.price / product.avgPrice - 1) * 100)).toFixed(1)}%
+                          {competitor.price < analysis.avgPrice ? '-' : '+'}
+                          {Math.abs(((competitor.price / analysis.avgPrice - 1) * 100)).toFixed(1)}%
                         </span>
                       </div>
                     </TableCell>

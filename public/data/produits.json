@@ -16,13 +16,8 @@
     "prixLivraison": 5.99,
     "benefices": 64.01,
     "pourcentageBenefice": 66.69,
-<<<<<<< HEAD
-    "createdAt": "2025-07-20T22:54:33.032Z",
-    "updatedAt": "2025-07-20T22:54:33.032Z"
-=======
-    "createdAt": "2025-07-15T12:48:28.887Z",
-    "updatedAt": "2025-07-15T12:48:28.887Z"
->>>>>>> 0bc3d45c5be03de1342906ecaa9d231155263bf0
+    "createdAt": "2025-08-02T11:23:13.007Z",
+    "updatedAt": "2025-08-02T11:23:13.007Z"
   },
   {
     "id": "prod2",
@@ -41,12 +36,7 @@
     "prixLivraison": 5.99,
     "benefices": 44.01,
     "pourcentageBenefice": 51.19,
-<<<<<<< HEAD
-    "createdAt": "2025-07-20T22:54:33.032Z",
-    "updatedAt": "2025-07-20T22:54:33.032Z"
-=======
-    "createdAt": "2025-07-15T12:48:28.887Z",
-    "updatedAt": "2025-07-15T12:48:28.887Z"
->>>>>>> 0bc3d45c5be03de1342906ecaa9d231155263bf0
+    "createdAt": "2025-08-02T11:23:13.007Z",
+    "updatedAt": "2025-08-02T11:23:13.007Z"
   }
 ]

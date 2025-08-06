@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/services/auth"
-import { db, generateId, getCurrentTimestamp } from "@/lib/services/db"
-import { cacheService } from "@/app/api/v1/cache/cache-service" // Import du service de cache
+import { db, generateId, getCurrentTimestamp } from "@/lib/services/database/db"
+// Cache service temporarily disabled
+// import { cacheService } from "@/app/api/v1/cache/cache-service"
 
 interface HistoricalPriceData {
   price: number;
@@ -51,12 +52,7 @@ export async function GET(request: Request) {
       return new NextResponse(JSON.stringify({ message: "Nom du produit manquant" }), { status: 400 })
     }
 
-    const cacheKey = `historical_prices:${productName}`;
-    const cachedData = await cacheService.get<{ recommendedPrice: number | null; message?: string }>(cacheKey);
-
-    if (cachedData) {
-      return NextResponse.json(cachedData);
-    }
+    // Cache temporarily disabled
 
     const historicalData: HistoricalPriceData[] = db.prepare(`
       SELECT price, sales_volume FROM historical_prices WHERE product_name = ? ORDER BY date DESC
@@ -64,7 +60,6 @@ export async function GET(request: Request) {
 
     if (historicalData.length === 0) {
       const noDataResponse = { recommendedPrice: null, message: "Aucune donnée historique pour ce produit" };
-      await cacheService.set(cacheKey, noDataResponse, 3600); // Cache pour 1 heure
       return NextResponse.json(noDataResponse);
     }
 
@@ -84,8 +79,6 @@ export async function GET(request: Request) {
 
     const recommendedPrice = totalSalesVolume > 0 ? (totalWeightedPrice / totalSalesVolume) : historicalData[0].price;
     const responseData = { recommendedPrice: parseFloat(recommendedPrice.toFixed(2)) };
-
-    await cacheService.set(cacheKey, responseData, 3600); // Cache pour 1 heure
 
     return NextResponse.json(responseData);
   } catch (error) {

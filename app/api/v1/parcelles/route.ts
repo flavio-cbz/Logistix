@@ -1,23 +1,31 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/services/auth';
-import { db } from '@/lib/services/db';
+import { databaseService } from '@/lib/services/database/db';
 import { v4 as uuidv4 } from 'uuid';
+import { createCriticalDatabaseHandler } from '@/lib/utils/api-route-optimization';
 
-export async function GET() {
+async function getHandler(request: NextRequest): Promise<NextResponse> {
     const user = await getSessionUser();
     if (!user) {
         return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
     }
-    const parcelles = db.prepare('SELECT * FROM parcelles WHERE user_id = ?').all(user.id);
+    
+    const parcelles = await databaseService.query(
+        'SELECT * FROM parcelles WHERE user_id = ?', 
+        [user.id],
+        'get_user_parcelles'
+    );
+    
     return NextResponse.json(parcelles);
 }
 
-export async function POST(req: Request) {
+async function postHandler(request: NextRequest): Promise<NextResponse> {
     const user = await getSessionUser();
     if (!user) {
         return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
     }
-    const { numero, transporteur, prixAchat, poids } = await req.json();
+    
+    const { numero, transporteur, prixAchat, poids } = await request.json();
 
     try {
         const prixTotal = parseFloat(prixAchat);
@@ -28,12 +36,10 @@ export async function POST(req: Request) {
         const created_at = new Date().toISOString();
         const updated_at = new Date().toISOString();
 
-        const stmt = db.prepare(`
+        await databaseService.execute(`
             INSERT INTO parcelles (id, user_id, numero, transporteur, prixAchat, poids, prixTotal, prixParGramme, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-        
-        stmt.run(id, user.id, numero, transporteur, prixAchat, poids, prixTotal, prixParGramme, created_at, updated_at);
+        `, [id, user.id, numero, transporteur, prixAchat, poids, prixTotal, prixParGramme, created_at, updated_at], 'create_parcelle');
 
         const newParcelle = {
             id,
@@ -55,13 +61,13 @@ export async function POST(req: Request) {
     }
 }
 
-export async function PUT(req: Request) {
+async function putHandler(request: NextRequest): Promise<NextResponse> {
     const user = await getSessionUser();
     if (!user) {
         return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
     }
 
-    const { id, ...data } = await req.json();
+    const { id, ...data } = await request.json();
 
     if (!id) {
         return NextResponse.json({ success: false, message: 'ID de parcelle manquant' }, { status: 400 });
@@ -72,15 +78,13 @@ export async function PUT(req: Request) {
         const prixTotal = parseFloat(data.prixAchat);
         const prixParGramme = prixTotal / parseFloat(data.poids);
 
-        const stmt = db.prepare(`
+        const result = await databaseService.execute(`
             UPDATE parcelles
             SET numero = ?, transporteur = ?, prixAchat = ?, poids = ?, prixTotal = ?, prixParGramme = ?, updated_at = ?
             WHERE id = ? AND user_id = ?
-        `);
+        `, [data.numero, data.transporteur, data.prixAchat, data.poids, prixTotal, prixParGramme, updated_at, id, user.id], 'update_parcelle');
 
-        const info = stmt.run(data.numero, data.transporteur, data.prixAchat, data.poids, prixTotal, prixParGramme, updated_at, id, user.id);
-
-        if (info.changes === 0) {
+        if (result.changes === 0) {
             return NextResponse.json({ success: false, message: 'Parcelle non trouvée ou non autorisée' }, { status: 404 });
         }
 
@@ -92,23 +96,26 @@ export async function PUT(req: Request) {
     }
 }
 
-export async function DELETE(req: Request) {
+async function deleteHandler(request: NextRequest): Promise<NextResponse> {
     const user = await getSessionUser();
     if (!user) {
         return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
     }
 
-    const { id } = await req.json();
+    const { id } = await request.json();
 
     if (!id) {
         return NextResponse.json({ success: false, message: 'ID de parcelle manquant' }, { status: 400 });
     }
 
     try {
-        const stmt = db.prepare('DELETE FROM parcelles WHERE id = ? AND user_id = ?');
-        const info = stmt.run(id, user.id);
+        const result = await databaseService.execute(
+            'DELETE FROM parcelles WHERE id = ? AND user_id = ?', 
+            [id, user.id], 
+            'delete_parcelle'
+        );
 
-        if (info.changes === 0) {
+        if (result.changes === 0) {
             return NextResponse.json({ success: false, message: 'Parcelle non trouvée ou non autorisée' }, { status: 404 });
         }
 
@@ -118,3 +125,13 @@ export async function DELETE(req: Request) {
         return NextResponse.json({ success: false, message: 'Erreur lors de la suppression de la parcelle', error: errorMessage }, { status: 500 });
     }
 }
+
+// Utiliser le handler optimisé pour les routes critiques de base de données
+const handlers = createCriticalDatabaseHandler({
+    GET: getHandler,
+    POST: postHandler,
+    PUT: putHandler,
+    DELETE: deleteHandler
+});
+
+export const { GET, POST, PUT, DELETE } = handlers;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import { db } from "@/lib/services/db"
+import { db } from "@/lib/services/database/db"
 
 interface SessionQueryResult {
   session_id: string;

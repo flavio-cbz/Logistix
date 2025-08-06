@@ -1,0 +1,79 @@
+openapi: 3.0.0
+info:
+  title: API Analyse de Marché
+  version: "1.0"
+paths:
+  /api/v1/market-analysis:
+    post:
+      summary: Calcul des métriques d’analyse de marché à partir d’une liste de ventes similaires
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/SimilarSale"
+      responses:
+        "200":
+          description: Résultat des métriques de marché
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketMetrics"
+        "500":
+          description: Erreur serveur
+components:
+  schemas:
+    SimilarSale:
+      type: object
+      properties:
+        id: { type: string }
+        price:
+          type: object
+          properties:
+            amount: { type: number }
+            currency: { type: string }
+        size_title: { type: string }
+        status: { type: string }
+        user:
+          type: object
+          properties:
+            login: { type: string }
+            feedback_reputation: { type: number }
+        photos:
+          type: array
+          items:
+            type: object
+            properties:
+              url: { type: string }
+        created_at: { type: string }
+        sold_at: { type: string }
+    MarketMetrics:
+      type: object
+      properties:
+        priceMetrics:
+          type: object
+          properties:
+            minPrice: { type: number }
+            maxPrice: { type: number }
+            avgPrice: { type: number }
+            medianPrice: { type: number }
+        volumeMetrics:
+          type: object
+          properties:
+            salesVolume: { type: integer }
+            competitorCount: { type: integer }
+        distributions:
+          type: object
+          properties:
+            sizeDistribution:
+              type: object
+              additionalProperties: { type: integer }
+            statusDistribution:
+              type: object
+              additionalProperties: { type: integer }
+        sampleItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/SimilarSale"

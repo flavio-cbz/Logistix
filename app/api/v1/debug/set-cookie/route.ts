@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { Logger } from "@/lib/logger"
+// Simple logger disabled
+// import { Logger } from "@/lib/utils/simple-logger.js"
 
 export async function GET(request: Request) {
   try {

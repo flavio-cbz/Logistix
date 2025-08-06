@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { Parcelle, Produit, DashboardConfig } from "@/types"
+import type { Parcelle, Produit } from "@/types/database";
+import type { DashboardConfig } from "@/types/features/dashboard";
 
 const defaultDashboardConfig: DashboardConfig = {
   cards: [

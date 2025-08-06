@@ -12,14 +12,14 @@ import {
   ZAxis,
   Legend,
 } from "recharts"
-import type { Parcelle } from "@/types"
+import type { Parcelle } from "@/types/database"
 
 interface CoutPoidsProps {
   parcelles: Parcelle[]
   title?: string
 }
 
-export function CoutPoids({ parcelles, title = "Coût par poids" }: CoutPoidsProps) {
+export default function CoutPoids({ parcelles, title = "Coût par poids" }: CoutPoidsProps) {
   // Préparation des données pour le graphique
   const data = parcelles.map((parcelle) => ({
     name: parcelle.numero,

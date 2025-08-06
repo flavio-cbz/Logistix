@@ -2,14 +2,14 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts"
-import type { Produit } from "@/types"
+import type { Produit } from "@/types/database"
 import { useTheme } from "next-themes"
 
 interface PerformanceChartProps {
   produits: Produit[]
 }
 
-export function PerformanceChart({ produits }: PerformanceChartProps) {
+export default function PerformanceChart({ produits }: PerformanceChartProps) {
   const { theme } = useTheme()
   const isDark = theme === "dark"
 

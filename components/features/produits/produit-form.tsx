@@ -12,10 +12,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { useStore } from "@/store/store"
 import { useEffect, useState } from "react"
 import { useToast } from "@/components/ui/use-toast"
-import type { Produit } from "@/types"
+import type { Produit } from "@/types/database"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { calculPrixLivraison } from "@/lib/utils/calculations"
+import { calculPrixLivraison } from "@/lib/utils/formatting/calculations"
+import { useAuth } from "@/components/auth/auth-provider"
 
 // Schéma de base pour les produits (non vendus)
 const produitBaseSchema = z.object({
@@ -47,10 +48,11 @@ interface ProduitFormProps {
   onClose?: () => void
 }
 
-export function ProduitForm({ className, editProduit = null, onClose }: ProduitFormProps) {
+export default function ProduitForm({ className, editProduit = null, onClose }: ProduitFormProps) {
   const [open, setOpen] = useState(false)
   const { parcelles, addProduit, updateProduit } = useStore()
   const { toast } = useToast()
+  const { user } = useAuth()
   const [isVendu, setIsVendu] = useState(false)
 
   const form = useForm<z.infer<typeof produitFormSchema>>({
@@ -113,6 +115,7 @@ export function ProduitForm({ className, editProduit = null, onClose }: ProduitF
       prixArticle,
       poids,
       parcelleId,
+      userId: user?.id || '', // Add userId from auth context
     }
 
     // Ajouter les données de vente si le produit est vendu

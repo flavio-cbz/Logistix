@@ -1,12 +1,12 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { db, generateId, getCurrentTimestamp } from "./db"
-import { requireAuth, createUser, verifyCredentials, createSession, signOut as authSignOut, UserSession } from "./auth"
+import { databaseService, generateId, getCurrentTimestamp } from "./services/database/db"
+import { requireAuth, createUser, verifyCredentials, createSession, signOut as authSignOut, UserSession } from "./services/auth/auth"
 import { z } from "zod"
-import { calculerBenefices } from "@/lib/calculations" // Import de calculerBenefices
+import { calculerBenefices } from "@/lib/utils/formatting/calculations" // Import de calculerBenefices
 import { ProfileFormValues } from "@/components/auth/profile-form"
-import { Parcelle, Produit, DashboardConfig } from "@/types"
+import { Parcelle, Produit, DashboardConfig } from "@/types/index"
 
 // Schémas de validation
 const userSchema = z.object({
@@ -55,10 +55,10 @@ export async function signUp(formData: FormData) {
     const validatedData = userSchema.parse({ username, password })
     console.log("Données validées avec succès")
 
-    const user = createUser(validatedData.username, validatedData.password)
+    const user = await createUser(validatedData.username, validatedData.password)
     console.log("Utilisateur créé avec succès:", user.id)
 
-    const sessionId = createSession(user.id)
+    const sessionId = await createSession(user.id)
     console.log("Session créée avec succès")
 
     return { success: true, message: "Inscription réussie" }
@@ -86,7 +86,7 @@ export async function signIn(formData: FormData) {
 
     // Vérifier si la table users existe
     try {
-      db.prepare("SELECT 1 FROM users LIMIT 1").get()
+      await databaseService.queryOne("SELECT 1 FROM users LIMIT 1", [], 'signIn-check')
     } catch (error: any) {
       console.error("Erreur lors de l'accès à la table users:", error)
       if (error.message.includes("no such table")) {
@@ -97,7 +97,7 @@ export async function signIn(formData: FormData) {
       }
     }
 
-    const user = verifyCredentials(validatedData.password)
+    const user = await verifyCredentials(validatedData.password)
 
     if (!user) {
       console.log("Identifiants invalides")
@@ -108,7 +108,7 @@ export async function signIn(formData: FormData) {
 
     // Supprimer toute session existante pour cet utilisateur
     try {
-      const result = db.prepare("DELETE FROM sessions WHERE user_id = ?").run(user.id)
+      const result = await databaseService.execute("DELETE FROM sessions WHERE user_id = ?", [user.id], 'signIn-cleanup')
       console.log(
         "Sessions existantes supprimées pour l'utilisateur:",
         user.id,
@@ -124,10 +124,11 @@ export async function signIn(formData: FormData) {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 jours
 
     try {
-      db.prepare(`
-        INSERT INTO sessions (id, user_id, expires_at)
-        VALUES (?, ?, ?)
-      `).run(sessionId, user.id, expiresAt)
+      await databaseService.execute(
+        `INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)`,
+        [sessionId, user.id, expiresAt],
+        'signIn-createSession'
+      )
 
       console.log("Session créée dans la base de données:", sessionId)
 
@@ -157,13 +158,11 @@ export async function getParcelles(): Promise<Parcelle[]> {
   const user: UserSession = await requireAuth()
 
   try {
-    const parcelles = db
-      .prepare(`
-      SELECT * FROM parcelles
-      WHERE user_id = ?
-      ORDER BY created_at DESC
-    `)
-      .all(user.id) as Parcelle[]
+    const parcelles = await databaseService.query<Parcelle>(
+      `SELECT * FROM parcelles WHERE user_id = ? ORDER BY created_at DESC`,
+      [user.id],
+      'getParcelles'
+    )
 
     return parcelles
   } catch (error: any) {
@@ -192,19 +191,11 @@ export async function addParcelle(formData: FormData) {
     const id = generateId()
     const timestamp = getCurrentTimestamp()
 
-    db.prepare(`
-      INSERT INTO parcelles (id, numero, transporteur, poids, prixTotal, prixParGramme, user_id, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      validatedData.numero,
-      validatedData.transporteur,
-      validatedData.poids,
-      validatedData.prixTotal,
-      prixParGramme,
-      user.id,
-      timestamp,
-      timestamp,
+    await databaseService.execute(
+      `INSERT INTO parcelles (id, numero, transporteur, poids, prixTotal, prixParGramme, user_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, validatedData.numero, validatedData.transporteur, validatedData.poids, validatedData.prixTotal, prixParGramme, user.id, timestamp, timestamp],
+      'addParcelle'
     )
 
     revalidatePath("/parcelles")
@@ -236,38 +227,28 @@ export async function updateParcelle(id: string, formData: FormData) {
     const prixParGramme = validatedData.poids > 0 ? validatedData.prixTotal / validatedData.poids : 0
     const timestamp = getCurrentTimestamp()
 
-    db.prepare(`
-      UPDATE parcelles
-      SET numero = ?, transporteur = ?, poids = ?, prixTotal = ?, prixParGramme = ?, updated_at = ?
-      WHERE id = ? AND user_id = ?
-    `).run(
-      validatedData.numero,
-      validatedData.transporteur,
-      validatedData.poids,
-      validatedData.prixTotal,
-      prixParGramme,
-      timestamp,
-      id,
-      user.id,
+    await databaseService.execute(
+      `UPDATE parcelles
+       SET numero = ?, transporteur = ?, poids = ?, prixTotal = ?, prixParGramme = ?, updated_at = ?
+       WHERE id = ? AND user_id = ?`,
+      [validatedData.numero, validatedData.transporteur, validatedData.poids, validatedData.prixTotal, prixParGramme, timestamp, id, user.id],
+      'updateParcelle'
     )
 
     // Mettre à jour les prix de livraison des produits associés
-    const produits = db
-      .prepare(`
-      SELECT id, poids FROM produits
-      WHERE parcelleId = ? AND user_id = ?
-    `)
-      .all(id, user.id) as { id: string; poids: number }[]
-
-    const updateProduitStmt = db.prepare(`
-      UPDATE produits
-      SET prixLivraison = ?, updated_at = ?
-      WHERE id = ? AND user_id = ?
-    `)
+    const produits = await databaseService.query<{ id: string; poids: number }>(
+      `SELECT id, poids FROM produits WHERE parcelleId = ? AND user_id = ?`,
+      [id, user.id],
+      'updateParcelle-getProduits'
+    )
 
     for (const produit of produits) {
       const prixLivraison = produit.poids * prixParGramme
-      updateProduitStmt.run(prixLivraison, timestamp, produit.id, user.id)
+      await databaseService.execute(
+        `UPDATE produits SET prixLivraison = ?, updated_at = ? WHERE id = ? AND user_id = ?`,
+        [prixLivraison, timestamp, produit.id, user.id],
+        'updateParcelle-updateProduit'
+      )
     }
 
     revalidatePath("/parcelles")
@@ -285,24 +266,24 @@ export async function deleteParcelle(id: string) {
 
   try {
     // Vérifier si des produits sont associés à cette parcelle
-    const produits = db
-      .prepare(`
-      SELECT COUNT(*) as count FROM produits
-      WHERE parcelleId = ? AND user_id = ?
-    `)
-      .get(id, user.id) as { count: number }
+    const produits = await databaseService.queryOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM produits WHERE parcelleId = ? AND user_id = ?`,
+      [id, user.id],
+      'deleteParcelle-check'
+    )
 
-    if (produits.count > 0) {
+    if (produits && produits.count > 0) {
       return {
         success: false,
         message: "Impossible de supprimer cette parcelle car des produits y sont associés",
       }
     }
 
-    db.prepare(`
-      DELETE FROM parcelles
-      WHERE id = ? AND user_id = ?
-    `).run(id, user.id)
+    await databaseService.execute(
+      `DELETE FROM parcelles WHERE id = ? AND user_id = ?`,
+      [id, user.id],
+      'deleteParcelle'
+    )
 
     revalidatePath("/parcelles")
     revalidatePath("/dashboard")
@@ -319,13 +300,11 @@ export async function getProduits(): Promise<Produit[]> {
   const user: UserSession = await requireAuth()
 
   try {
-    const produits = db
-      .prepare(`
+    const produits = await databaseService.query<Produit>(`
       SELECT * FROM produits
       WHERE user_id = ?
       ORDER BY created_at DESC
-    `)
-      .all(user.id) as Produit[]
+    `, [user.id])
 
     return produits
   } catch (error: any) {
@@ -358,12 +337,10 @@ export async function addProduit(formData: FormData) {
     })
 
     // Récupérer le prix par gramme de la parcelle
-    const parcelle = db
-      .prepare(`
+    const parcelle = await databaseService.queryOne<{ prixParGramme: number }>(`
       SELECT prixParGramme FROM parcelles
       WHERE id = ? AND user_id = ?
-    `)
-      .get(validatedData.parcelleId, user.id) as { prixParGramme: number }
+    `, [validatedData.parcelleId, user.id])
 
     if (!parcelle) {
       return { success: false, message: "Parcelle introuvable" }
@@ -421,10 +398,10 @@ export async function addProduit(formData: FormData) {
       .join(", ")
     const values = Object.values(insertData)
 
-    db.prepare(`
+    await databaseService.execute(`
       INSERT INTO produits (${columns})
       VALUES (${placeholders})
-    `).run(...values)
+    `, values)
 
     revalidatePath("/produits")
     revalidatePath("/dashboard")
@@ -460,12 +437,10 @@ export async function updateProduit(id: string, formData: FormData) {
     })
 
     // Récupérer le prix par gramme de la parcelle
-    const parcelle = db
-      .prepare(`
+    const parcelle = await databaseService.queryOne<{ prixParGramme: number }>(`
       SELECT prixParGramme FROM parcelles
       WHERE id = ? AND user_id = ?
-    `)
-      .get(validatedData.parcelleId, user.id) as { prixParGramme: number }
+    `, [validatedData.parcelleId, user.id])
 
     if (!parcelle) {
       return { success: false, message: "Parcelle introuvable" }
@@ -528,11 +503,11 @@ export async function updateProduit(id: string, formData: FormData) {
       .join(", ")
     const values = [...Object.values(updateData), id, user.id]
 
-    db.prepare(`
+    await databaseService.execute(`
       UPDATE produits
       SET ${setClause}
       WHERE id = ? AND user_id = ?
-    `).run(...values)
+    `, values)
 
     revalidatePath("/produits")
     revalidatePath("/dashboard")
@@ -548,10 +523,10 @@ export async function deleteProduit(id: string) {
   const user: UserSession = await requireAuth()
 
   try {
-    db.prepare(`
+    await databaseService.execute(`
       DELETE FROM produits
       WHERE id = ? AND user_id = ?
-    `).run(id, user.id)
+    `, [id, user.id])
 
     revalidatePath("/produits")
     revalidatePath("/dashboard")
@@ -593,13 +568,11 @@ export async function getDashboardConfig(): Promise<DashboardConfig> {
   const user: UserSession = await requireAuth()
 
   try {
-    const config = db
-      .prepare(`
+    const config = await databaseService.queryOne<{ config: string }>(`
       SELECT config
       FROM dashboard_config
       WHERE user_id = ?
-    `)
-      .get(user.id) as { config: string }
+    `, [user.id])
 
     if (!config) {
       // Configuration par défaut
@@ -688,26 +661,24 @@ export async function updateDashboardConfig(config: DashboardConfig) { // Typage
     const configJson = JSON.stringify(config)
 
     // Vérifier si une configuration existe déjà
-    const existingConfig = db
-      .prepare(`
+    const existingConfig = await databaseService.queryOne<{ id: string }>(`
       SELECT id FROM dashboard_config
       WHERE user_id = ?
-    `)
-      .get(user.id)
+    `, [user.id])
 
     if (existingConfig) {
       // Mettre à jour la configuration existante
-      db.prepare(`
+      await databaseService.execute(`
         UPDATE dashboard_config
         SET config = ?, updated_at = ?
         WHERE user_id = ?
-      `).run(configJson, timestamp, user.id)
+      `, [configJson, timestamp, user.id])
     } else {
       // Créer une nouvelle configuration
-      db.prepare(`
+      await databaseService.execute(`
         INSERT INTO dashboard_config (id, user_id, config, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?)
-      `).run(generateId(), user.id, configJson, timestamp, timestamp)
+      `, [generateId(), user.id, configJson, timestamp, timestamp])
     }
 
     revalidatePath("/dashboard")
@@ -723,20 +694,16 @@ export async function getStatistiques() {
 
   try {
     // Récupérer les produits pour calculer les statistiques
-    const produits = db
-      .prepare(`
+    const produits = await databaseService.query<Produit>(`
       SELECT * FROM produits
       WHERE user_id = ?
-    `)
-      .all(user.id) as Produit[]
+    `, [user.id])
 
     // Récupérer les parcelles
-    const parcelles = db
-      .prepare(`
+    const parcelles = await databaseService.query<Parcelle>(`
       SELECT * FROM parcelles
       WHERE user_id = ?
-    `)
-      .all(user.id) as Parcelle[]
+    `, [user.id])
 
     // Calculer les statistiques
     const produitsVendus = produits.filter((p) => p.vendu).length

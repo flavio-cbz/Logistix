@@ -13,7 +13,7 @@ export default async function ProfilePage() {
 
   const initialData = {
     username: user.username,
-    bio: user.bio || "",
+    
     language: user.language || "fr",
     theme: user.theme || "system",
     avatar: user.avatar || "",

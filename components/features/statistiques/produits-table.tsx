@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { Produit } from "@/types"
+import type { Produit } from "@/types/database"
 
 interface ProduitsTableProps {
   produits: Produit[]

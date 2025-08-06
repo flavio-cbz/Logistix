@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import type { DashboardConfig as DashboardConfigType, DashboardCard } from "@/types"
+import type { DashboardConfig as DashboardConfigType, DashboardCard } from "@/types/features/dashboard"
 import { useStore } from "@/store/store"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -19,7 +19,7 @@ interface DashboardConfigProps {
   config: DashboardConfigType
 }
 
-export function DashboardConfig({ config }: DashboardConfigProps) {
+export default function DashboardConfig({ config }: DashboardConfigProps) {
   const [open, setOpen] = useState(false)
   const [cards, setCards] = useState<DashboardConfigType["cards"]>([])
   const [availableCards, setAvailableCards] = useState<DashboardCard[]>([])
@@ -34,7 +34,7 @@ export function DashboardConfig({ config }: DashboardConfigProps) {
       setCards([...config.cards])
       // Cartes disponibles mais non visibles
       const visibleCardIds = new Set(config.cards.map((card) => card.id))
-      const defaultCards: DashboardCard[] = [ // Explicitly cast to DashboardCard[]
+      const defaultCards: DashboardCard[] = [
         {
           id: "stats",
           title: "Statistiques principales",

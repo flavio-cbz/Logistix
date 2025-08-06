@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/services/auth';
-import { db } from '@/lib/services/db';
+import { databaseService } from '@/lib/services/database/db';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
     }
 
-    const produits = db.prepare('SELECT * FROM produits WHERE user_id = ?').all(user.id);
+    const produits = await databaseService.query('SELECT * FROM produits WHERE user_id = ?', [user.id]);
     return NextResponse.json(produits);
 }
 
@@ -68,12 +68,10 @@ export async function POST(req: Request) {
             ? (benefices / (prixArticle + prixLivraison)) * 100
             : null;
 
-        const stmt = db.prepare(`
+        await databaseService.execute(`
             INSERT INTO produits (id, user_id, parcelleId, commandeId, nom, details, prixArticle, prixArticleTTC, poids, prixLivraison, vendu, dateVente, tempsEnLigne, prixVente, plateforme, benefices, pourcentageBenefice, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        stmt.run(
+        `, [
             newId,
             user.id,
             parcelleId || null,
@@ -93,7 +91,7 @@ export async function POST(req: Request) {
             pourcentageBenefice,
             created_at,
             created_at
-        );
+        ]);
 
         const newProduit = { id: newId, ...validatedData, benefices, pourcentageBenefice, user_id: user.id, created_at, updated_at: created_at };
         return NextResponse.json({ success: true, produit: newProduit }, { status: 201 });

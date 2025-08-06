@@ -1,7 +1,15 @@
-import { db } from "@/lib/services/db";
-import { Logger } from "@/lib/utils/logger";
+import { databaseService } from "@/lib/services/database/db";
+// Simple logger disabled
+// import { Logger } from "@/lib/utils/logging/simple-logger";
 
-const logger = new Logger("app/api/v1/cache/cache-service");
+// Simple logger disabled
+const logger = { 
+  log: console.log, 
+  error: console.error, 
+  warn: console.warn,
+  info: console.log,
+  debug: console.log
+};
 
 interface CacheEntry {
   key: string;
@@ -11,20 +19,28 @@ interface CacheEntry {
 
 class CacheService {
   private tableName = "api_cache";
+  private initialized = false;
 
   constructor() {
-    this.initializeCacheTable();
+    // Initialization will be done lazily
   }
 
-  private initializeCacheTable() {
+  private async ensureInitialized() {
+    if (!this.initialized) {
+      await this.initializeCacheTable();
+      this.initialized = true;
+    }
+  }
+
+  private async initializeCacheTable() {
     try {
-      db.exec(`
+      await databaseService.execute(`
         CREATE TABLE IF NOT EXISTS ${this.tableName} (
           key TEXT PRIMARY KEY,
           value TEXT NOT NULL,
           expires_at INTEGER NOT NULL
-        );
-      `);
+        )
+      `, [], 'cache-init');
       logger.info(`Table de cache '${this.tableName}' créée ou existante.`);
     } catch (error) {
       logger.error(`Erreur lors de la création de la table de cache: ${error}`);
@@ -34,8 +50,13 @@ class CacheService {
 
   public async get<T>(key: string): Promise<T | null> {
     try {
-      const stmt = db.prepare(`SELECT value, expires_at FROM ${this.tableName} WHERE key = ?`);
-      const entry: CacheEntry | undefined = stmt.get(key) as CacheEntry | undefined;
+      await this.ensureInitialized();
+      
+      const entry = await databaseService.queryOne<CacheEntry>(
+        `SELECT value, expires_at FROM ${this.tableName} WHERE key = ?`,
+        [key],
+        'cache-get'
+      );
 
       if (!entry) {
         return null;
@@ -43,7 +64,7 @@ class CacheService {
 
       if (entry.expires_at < Date.now()) {
         // Cache expiré, le supprimer
-        this.delete(key);
+        await this.delete(key);
         return null;
       }
 
@@ -56,14 +77,16 @@ class CacheService {
 
   public async set<T>(key: string, value: T, ttlSeconds: number = 3600): Promise<void> {
     try {
+      await this.ensureInitialized();
+      
       const expires_at = Date.now() + ttlSeconds * 1000;
       const serializedValue = JSON.stringify(value);
 
-      const stmt = db.prepare(`
+      await databaseService.execute(`
         INSERT OR REPLACE INTO ${this.tableName} (key, value, expires_at)
         VALUES (?, ?, ?)
-      `);
-      stmt.run(key, serializedValue, expires_at);
+      `, [key, serializedValue, expires_at], 'cache-set');
+      
       logger.info(`Cache défini pour la clé '${key}', expiration dans ${ttlSeconds} secondes.`);
     } catch (error) {
       logger.error(`Erreur lors de la définition du cache pour la clé '${key}': ${error}`);
@@ -72,8 +95,14 @@ class CacheService {
 
   public async delete(key: string): Promise<void> {
     try {
-      const stmt = db.prepare(`DELETE FROM ${this.tableName} WHERE key = ?`);
-      stmt.run(key);
+      await this.ensureInitialized();
+      
+      await databaseService.execute(
+        `DELETE FROM ${this.tableName} WHERE key = ?`,
+        [key],
+        'cache-delete'
+      );
+      
       logger.info(`Cache supprimé pour la clé '${key}'.`);
     } catch (error) {
       logger.error(`Erreur lors de la suppression du cache pour la clé '${key}': ${error}`);
@@ -82,7 +111,14 @@ class CacheService {
 
   public async clear(): Promise<void> {
     try {
-      db.exec(`DELETE FROM ${this.tableName}`);
+      await this.ensureInitialized();
+      
+      await databaseService.execute(
+        `DELETE FROM ${this.tableName}`,
+        [],
+        'cache-clear'
+      );
+      
       logger.info("Cache vidé.");
     } catch (error) {
       logger.error(`Erreur lors du vidage du cache: ${error}`);

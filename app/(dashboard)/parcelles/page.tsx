@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ParcellesList } from "@/components/features/parcelles/parcelles-list"
+import ParcellesList from "@/components/features/parcelles/parcelles-list"
 import { useStore } from "@/store/store"
 import { motion } from "framer-motion"
 

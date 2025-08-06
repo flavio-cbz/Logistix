@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { db } from "@/lib/services/db"
+import { db } from "@/lib/services/database/db"
 import fs from "fs"
 import path from "path"
 

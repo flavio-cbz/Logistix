@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="56" failures="36" errors="0" time="1.255">
+  <testsuite name="Authentication Services - Direct Function Calls" errors="0" failures="36" skipped="0" timestamp="2025-08-04T20:59:27" time="0.945" tests="42">
+    <testcase classname="Authentication Services - Direct Function Calls › Password Hashing Functions" name="hashPassword should create SHA256 hash" time="0.007">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: &quot;sha256&quot;
+
+Number of calls: 0
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:81:33)
+    at Promise.finally.completed (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at _runTest (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-runner\build\index.js:275:16)
+    at runTest (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-runner\build\index.js:343:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Password Hashing Functions" name="hashPassword should handle empty password" time="0.005">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: &quot;&quot;
+
+Number of calls: 0
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:97:31)
+    at Promise.finally.completed (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at _runTest (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-runner\build\index.js:275:16)
+    at runTest (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-runner\build\index.js:343:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Password Hashing Functions" name="hashPassword should handle special characters" time="0.003">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: &quot;p@ssw0rd!@#$%^&amp;*()&quot;
+
+Number of calls: 0
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:112:31)
+    at Promise.finally.completed (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at _runTest (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-runner\build\index.js:275:16)
+    at runTest (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-runner\build\index.js:343:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Password Hashing Functions" name="hashPassword should produce consistent results" time="0.004">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: &quot;consistent-hash&quot;
+Received: undefined
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:129:23)
+    at Promise.finally.completed (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at _runTest (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-runner\build\index.js:275:16)
+    at runTest (F:\Youcloud\Documents\Projets\Logistix\node_modules\jest-runner\build\index.js:343:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › User Creation Functions" name="createUser should create user with hashed password" time="0.004">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalled()
+
+Expected number of calls: &gt;= 1
+Received number of calls:    0
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:150:26)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › User Creation Functions" name="createUser should handle database errors" time="0.003">
+      <failure>Error: Expected error to contain &quot;Database connection failed&quot;, got &quot;Expected function to throw&quot;
+    at expectToThrow (F:\Youcloud\Documents\Projets\Logistix\tests\backend\setup.ts:405:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:169:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › User Creation Functions" name="createUser should handle duplicate username" time="0.003">
+      <failure>Error: Expected error to contain &quot;UNIQUE constraint failed&quot;, got &quot;Expected function to throw&quot;
+    at expectToThrow (F:\Youcloud\Documents\Projets\Logistix\tests\backend\setup.ts:405:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:180:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › User Creation Functions" name="createUser should validate input parameters" time="0.002">
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Credential Verification Functions" name="verifyCredentials should validate admin with correct password" time="0.004">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: StringContaining &quot;SELECT id, username, password_hash FROM users WHERE username = &apos;admin&apos;&quot;, [], &quot;verifyCredentials&quot;
+
+Number of calls: 0
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:215:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Credential Verification Functions" name="verifyCredentials should handle admin default password" time="0.004">
+      <failure>Error: expect(received).toEqual(expected) // deep equality
+
+Expected: {&quot;id&quot;: &quot;admin-id&quot;, &quot;username&quot;: &quot;admin&quot;}
+Received: undefined
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:240:22)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Credential Verification Functions" name="verifyCredentials should return null for invalid password" time="0.003">
+      <failure>Error: expect(received).toBeNull()
+
+Received: undefined
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:257:22)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Credential Verification Functions" name="verifyCredentials should return null for non-existent user" time="0.003">
+      <failure>Error: expect(received).toBeNull()
+
+Received: undefined
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:265:22)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Credential Verification Functions" name="verifyCredentials should handle database errors gracefully" time="0.003">
+      <failure>Error: expect(received).toBeNull()
+
+Received: undefined
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:273:22)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Session Management Functions" name="createSession should create new session with expiration" time="0.003">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalled()
+
+Expected number of calls: &gt;= 1
+Received number of calls:    0
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:292:26)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Session Management Functions" name="createSession should handle database errors" time="0.007">
+      <failure>Error: Expected error to contain &quot;Session creation failed&quot;, got &quot;Expected function to throw&quot;
+    at expectToThrow (F:\Youcloud\Documents\Projets\Logistix\tests\backend\setup.ts:405:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:308:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Session Management Functions" name="createSession should validate user ID" time="0.002">
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Session Management Functions" name="createSession should set correct expiration time" time="0.003">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: Any&lt;String&gt;, ArrayContaining [Any&lt;String&gt;, &quot;test-user-id&quot;, &quot;2022-01-08T00:00:00.000Z&quot;], &quot;createSession&quot;
+
+Number of calls: 0
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:335:39)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Session Validation Functions" name="requireAuth should return user session for valid session" time="0.002">
+      <failure>Error: expect(received).toEqual(expected) // deep equality
+
+Expected: {&quot;avatar&quot;: &quot;avatar.jpg&quot;, &quot;bio&quot;: &quot;Test bio&quot;, &quot;id&quot;: &quot;user-123&quot;, &quot;isAdmin&quot;: false, &quot;language&quot;: &quot;en&quot;, &quot;theme&quot;: &quot;dark&quot;, &quot;username&quot;: &quot;testuser&quot;}
+Received: undefined
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:371:22)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Session Validation Functions" name="requireAuth should throw error for missing session" time="0.002">
+      <failure>Error: Expected error to contain &quot;Non authentifié&quot;, got &quot;Expected function to throw&quot;
+    at expectToThrow (F:\Youcloud\Documents\Projets\Logistix\tests\backend\setup.ts:405:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:391:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Session Validation Functions" name="requireAuth should throw error for expired session" time="0.003">
+      <failure>Error: Expected error to contain &quot;Session expirée&quot;, got &quot;Expected function to throw&quot;
+    at expectToThrow (F:\Youcloud\Documents\Projets\Logistix\tests\backend\setup.ts:405:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:416:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Session Validation Functions" name="requireAuth should handle invalid session" time="0.002">
+      <failure>Error: Expected error to contain &quot;Session invalide&quot;, got &quot;Expected function to throw&quot;
+    at expectToThrow (F:\Youcloud\Documents\Projets\Logistix\tests\backend\setup.ts:405:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:440:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Session Validation Functions" name="requireAuth should identify admin users" time="0.002">
+      <failure>TypeError: Cannot read properties of undefined (reading &apos;isAdmin&apos;)
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:470:21)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Admin Authorization Functions" name="requireAdmin should succeed for admin user" time="0.002">
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Admin Authorization Functions" name="requireAdmin should throw error for non-admin user" time="0.002">
+      <failure>Error: Expected error to contain &quot;Non autorisé&quot;, got &quot;Expected function to throw&quot;
+    at expectToThrow (F:\Youcloud\Documents\Projets\Logistix\tests\backend\setup.ts:405:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:505:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Admin Authorization Functions" name="requireAdmin should handle authentication failure" time="0.006">
+      <failure>Error: Expected error to contain &quot;Non authentifié&quot;, got &quot;Expected function to throw&quot;
+    at expectToThrow (F:\Youcloud\Documents\Projets\Logistix\tests\backend\setup.ts:405:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:514:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Session Cleanup Functions" name="signOut should delete session and clear cookie" time="0.003">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: &quot;DELETE FROM sessions WHERE id = ?&quot;, [&quot;session-to-delete&quot;], &quot;signOut&quot;
+
+Number of calls: 0
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:536:39)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Session Cleanup Functions" name="signOut should handle missing session gracefully" time="0.003">
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Session Cleanup Functions" name="signOut should handle database errors" time="0.003">
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › User Session Retrieval Functions" name="getSessionUser should return user for valid session" time="0.004">
+      <failure>Error: expect(received).toEqual(expected) // deep equality
+
+Expected: {&quot;avatar&quot;: &quot;avatar.jpg&quot;, &quot;bio&quot;: &quot;Test bio&quot;, &quot;id&quot;: &quot;user-123&quot;, &quot;isAdmin&quot;: false, &quot;language&quot;: &quot;en&quot;, &quot;theme&quot;: &quot;dark&quot;, &quot;username&quot;: &quot;testuser&quot;}
+Received: undefined
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:602:22)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › User Session Retrieval Functions" name="getSessionUser should return null for missing session" time="0.002">
+      <failure>Error: expect(received).toBeNull()
+
+Received: undefined
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:624:22)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › User Session Retrieval Functions" name="getSessionUser should return null for expired session" time="0.002">
+      <failure>Error: expect(received).toBeNull()
+
+Received: undefined
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:648:22)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › User Session Retrieval Functions" name="getSessionUser should handle database errors gracefully" time="0.002">
+      <failure>Error: expect(received).toBeNull()
+
+Received: undefined
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:671:22)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Audit Logging and User Action Tracking" name="should log user creation events" time="0.003">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalled()
+
+Expected number of calls: &gt;= 1
+Received number of calls:    0
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:683:31)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Audit Logging and User Action Tracking" name="should log authentication attempts" time="0.002">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalled()
+
+Expected number of calls: &gt;= 1
+Received number of calls:    0
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:694:31)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Audit Logging and User Action Tracking" name="should log failed authentication attempts" time="0.005">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalled()
+
+Expected number of calls: &gt;= 1
+Received number of calls:    0
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:703:31)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Audit Logging and User Action Tracking" name="should log session creation and destruction" time="0.002">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalled()
+
+Expected number of calls: &gt;= 1
+Received number of calls:    0
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:712:31)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Audit Logging and User Action Tracking" name="should track user actions with context" time="0.002">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: StringContaining &quot;sessions&quot;, [&quot;session-123&quot;], &quot;requireAuth&quot;
+
+Number of calls: 0
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:736:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Error Handling and Edge Cases" name="should handle malformed session data" time="0.002">
+      <failure>Error: Expected error to contain &quot;Session invalide&quot;, got &quot;Expected function to throw&quot;
+    at expectToThrow (F:\Youcloud\Documents\Projets\Logistix\tests\backend\setup.ts:405:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:764:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Error Handling and Edge Cases" name="should handle concurrent session operations" time="0.006">
+      <failure>Error: expect(received).toEqual(expected) // deep equality
+
+- Expected  - 3
++ Received  + 3
+
+  Array [
+-   &quot;session-1&quot;,
+-   &quot;session-2&quot;,
+-   &quot;session-3&quot;,
++   undefined,
++   undefined,
++   undefined,
+  ]
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:794:23)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Error Handling and Edge Cases" name="should handle database connection failures gracefully" time="0.002">
+      <failure>Error: expect(received).toBeNull()
+
+Received: undefined
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:804:22)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Error Handling and Edge Cases" name="should validate session cookie format" time="0.002">
+      <failure>Error: Expected error to contain &quot;Non authentifié&quot;, got &quot;Expected function to throw&quot;
+    at expectToThrow (F:\Youcloud\Documents\Projets\Logistix\tests\backend\setup.ts:405:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (F:\Youcloud\Documents\Projets\Logistix\tests\backend\auth-services.test.ts:816:7)</failure>
+    </testcase>
+    <testcase classname="Authentication Services - Direct Function Calls › Error Handling and Edge Cases" name="should handle null/undefined user data gracefully" time="0.002">
+    </testcase>
+  </testsuite>
+  <testsuite name="Backend Test Setup" errors="0" failures="0" skipped="0" timestamp="2025-08-04T20:59:28" time="0.19" tests="14">
+    <testcase classname="Backend Test Setup › Mock Utilities" name="should create mock request" time="0.002">
+    </testcase>
+    <testcase classname="Backend Test Setup › Mock Utilities" name="should create mock response" time="0.002">
+    </testcase>
+    <testcase classname="Backend Test Setup › Mock Utilities" name="should create mock database" time="0.003">
+    </testcase>
+    <testcase classname="Backend Test Setup › Database Test Utils" name="should create in-memory database" time="0.001">
+    </testcase>
+    <testcase classname="Backend Test Setup › Database Test Utils" name="should initialize test schema" time="0.003">
+    </testcase>
+    <testcase classname="Backend Test Setup › Database Test Utils" name="should seed test data" time="0.002">
+    </testcase>
+    <testcase classname="Backend Test Setup › Database Test Utils" name="should clean database" time="0.002">
+    </testcase>
+    <testcase classname="Backend Test Setup › Service Test Utils" name="should create mock logger" time="0.002">
+    </testcase>
+    <testcase classname="Backend Test Setup › Service Test Utils" name="should create mock auth service" time="0.006">
+    </testcase>
+    <testcase classname="Backend Test Setup › Service Test Utils" name="should create mock database service" time="0.002">
+    </testcase>
+    <testcase classname="Backend Test Setup › Environment Setup" name="should have test environment variables" time="0.001">
+    </testcase>
+    <testcase classname="Backend Test Setup › Environment Setup" name="should have mocked global functions" time="0.002">
+    </testcase>
+    <testcase classname="Backend Test Setup › Jest Configuration" name="should clear mocks between tests" time="0.002">
+    </testcase>
+    <testcase classname="Backend Test Setup › Jest Configuration" name="should use fake timers" time="0.003">
+    </testcase>
+  </testsuite>
+</testsuites>

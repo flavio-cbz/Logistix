@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from '@/lib/services/auth';
-import { db } from '@/lib/services/db';
+import { databaseService } from '@/lib/services/database/db';
 
 interface Produit {
   id: string;
@@ -224,8 +224,8 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const format = searchParams.get('format');
 
-    const produits = db.prepare('SELECT * FROM produits WHERE user_id = ?').all(user.id) as Produit[];
-    const parcelles = db.prepare('SELECT * FROM parcelles WHERE user_id = ?').all(user.id) as Parcelle[];
+    const produits = await databaseService.query<Produit>('SELECT * FROM produits WHERE user_id = ?', [user.id]);
+    const parcelles = await databaseService.query<Parcelle>('SELECT * FROM parcelles WHERE user_id = ?', [user.id]);
 
     const roiParProduit = calculerRoiParProduit(produits);
     const tempsMoyenVente = calculerTempsMoyenVente(produits);

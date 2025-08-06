@@ -17,28 +17,32 @@ import {
 } from "lucide-react"
 import { useEffect, useState } from "react"
 
-interface MarketData {
-  id: string
-  productName: string
-  currentPrice: number
-  minPrice: number
-  maxPrice: number
-  avgPrice: number
-  salesVolume: number
-  competitorCount: number
-  trend: 'up' | 'down' | 'stable'
-  trendPercentage: number
-  lastUpdated: string
-  recommendedPrice: number
-  marketShare: number
-  demandLevel: 'low' | 'medium' | 'high'
-}
+import { type VintedAnalysisResult } from "@/types/vinted-market-analysis"
 
 interface PriceRecommendationProps {
-  product: MarketData
+  analysis: VintedAnalysisResult
 }
 
-export function PriceRecommendation({ product }: PriceRecommendationProps) {
+// Adaptateur pour compatibilité avec l'ancien code
+const createProductAdapter = (analysis: VintedAnalysisResult) => ({
+  productName: 'Produit analysé',
+  priceMetrics: {
+    avgPrice: analysis.avgPrice,
+    minPrice: analysis.priceRange.min,
+    maxPrice: analysis.priceRange.max,
+  },
+  volumeMetrics: {
+    salesVolume: analysis.salesVolume,
+    competitorCount: Math.max(5, Math.floor(analysis.salesVolume / 10)),
+  }
+})
+
+interface PriceRecommendationProps {
+  analysis: VintedAnalysisResult
+}
+
+export default function PriceRecommendation({ analysis }: PriceRecommendationProps) {
+  const product = createProductAdapter(analysis)
   const [historicalRecommendedPrice, setHistoricalRecommendedPrice] = useState<number | null>(null);
 
   useEffect(() => {
@@ -63,7 +67,7 @@ export function PriceRecommendation({ product }: PriceRecommendationProps) {
 
   // Calcul des différentes stratégies de prix
   const calculatePricingStrategies = () => {
-    const basePrice = product.avgPrice
+    const basePrice = product.priceMetrics.avgPrice
     
     return {
       competitive: {
@@ -72,8 +76,8 @@ export function PriceRecommendation({ product }: PriceRecommendationProps) {
         pros: ["Volume de ventes élevé", "Pénétration rapide du marché", "Pression sur la concurrence"],
         cons: ["Marge réduite", "Guerre des prix possible", "Perception de qualité moindre"],
         risk: "low",
-        expectedVolume: product.salesVolume * 1.3,
-        expectedMargin: product.marketShare * 0.7 
+        expectedVolume: product.volumeMetrics.salesVolume * 1.3,
+        expectedMargin: 15 * 0.7 
       },
       premium: {
         price: basePrice * 1.15,
@@ -81,8 +85,8 @@ export function PriceRecommendation({ product }: PriceRecommendationProps) {
         pros: ["Marge élevée", "Image de qualité", "Clientèle fidèle"],
         cons: ["Volume plus faible", "Concurrence accrue", "Sensibilité au prix"],
         risk: "medium",
-        expectedVolume: product.salesVolume * 0.8,
-        expectedMargin: product.marketShare * 1.4 
+        expectedVolume: product.volumeMetrics.salesVolume * 0.8,
+        expectedMargin: 15 * 1.4 
       },
       optimal: {
         price: basePrice,
@@ -90,26 +94,26 @@ export function PriceRecommendation({ product }: PriceRecommendationProps) {
         pros: ["Équilibre volume/marge", "Positionnement stable", "Rentabilité assurée"],
         cons: ["Moins différenciant", "Suivi de marché nécessaire"],
         risk: "low",
-        expectedVolume: product.salesVolume,
-        expectedMargin: product.marketShare 
+        expectedVolume: product.volumeMetrics.salesVolume,
+        expectedMargin: 15 
       },
       dynamic: {
-        price: basePrice * (product.trend === 'up' ? 1.08 : 0.98),
+        price: basePrice * 1.02, // Default slight increase
         description: "Prix adaptatif selon les tendances du marché",
         pros: ["Réactivité au marché", "Optimisation continue", "Adaptation aux cycles"],
         cons: ["Complexité de gestion", "Confusion client possible"],
         risk: "medium",
-        expectedVolume: product.salesVolume * (product.trend === 'up' ? 0.9 : 1.1),
-        expectedMargin: product.marketShare * (product.trend === 'up' ? 1.2 : 0.9) 
+        expectedVolume: product.volumeMetrics.salesVolume * 1.0,
+        expectedMargin: 15 * 1.1 
       },
       historical: {
-        price: historicalRecommendedPrice !== null ? historicalRecommendedPrice : product.avgPrice,
+        price: historicalRecommendedPrice !== null ? historicalRecommendedPrice : product.priceMetrics.avgPrice,
         description: "Prix recommandé basé sur l'analyse des données historiques",
         pros: ["Basé sur des données réelles", "Prend en compte les performances passées", "Moins spéculatif"],
         cons: ["Dépend de la qualité des données historiques", "Peut ne pas refléter les changements récents du marché"],
         risk: "low",
-        expectedVolume: product.salesVolume, // Placeholder, could be refined with historical sales data
-        expectedMargin: product.marketShare // Placeholder, could be refined with historical margin data
+        expectedVolume: product.volumeMetrics.salesVolume, // Placeholder, could be refined with historical sales data
+        expectedMargin: 15 // Placeholder, could be refined with historical margin data
       }
     }
   }
@@ -118,7 +122,7 @@ export function PriceRecommendation({ product }: PriceRecommendationProps) {
 
   // Analyse de positionnement
   const getPositionAnalysis = (price: number) => {
-    const percentile = ((price - product.minPrice) / (product.maxPrice - product.minPrice)) * 100
+    const percentile = ((price - product.priceMetrics.minPrice) / (product.priceMetrics.maxPrice - product.priceMetrics.minPrice)) * 100
     
     if (percentile < 25) return { position: "Bas de gamme", color: "text-green-600", risk: "Faible" }
     if (percentile < 50) return { position: "Milieu de gamme", color: "text-blue-600", risk: "Faible" }
@@ -131,12 +135,7 @@ export function PriceRecommendation({ product }: PriceRecommendationProps) {
     if (historicalRecommendedPrice !== null) {
       return strategies.historical;
     }
-    if (product.demandLevel === 'high' && product.trend === 'up') {
-      return strategies.premium
-    }
-    if (product.demandLevel === 'low' || product.trend === 'down') {
-      return strategies.competitive
-    }
+    // Default to optimal strategy since we don't have demand/trend data
     return strategies.optimal
   }
 
@@ -274,7 +273,7 @@ export function PriceRecommendation({ product }: PriceRecommendationProps) {
                       {strategy.price.toFixed(2)} €
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {((strategy.price / product.avgPrice - 1) * 100).toFixed(1)}% vs marché
+                      {((strategy.price / product.priceMetrics.avgPrice - 1) * 100).toFixed(1)}% vs marché
                     </div>
                   </div>
                   
@@ -292,10 +291,10 @@ export function PriceRecommendation({ product }: PriceRecommendationProps) {
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs">
                       <span>Performance globale</span>
-                      <span>{Math.floor((strategy.expectedMargin / product.marketShare) * (strategy.expectedVolume / product.salesVolume) * 50)}%</span>
+                      <span>{Math.floor((strategy.expectedMargin / 15) * (strategy.expectedVolume / product.volumeMetrics.salesVolume) * 50)}%</span>
                     </div>
-                    <Progress 
-                      value={Math.floor((strategy.expectedMargin / product.marketShare) * (strategy.expectedVolume / product.salesVolume) * 50)} 
+                    <Progress
+                      value={Math.floor((strategy.expectedMargin / 15) * (strategy.expectedVolume / product.volumeMetrics.salesVolume) * 50)}
                       className="h-2"
                     />
                   </div>
@@ -308,32 +307,12 @@ export function PriceRecommendation({ product }: PriceRecommendationProps) {
 
       {/* Alertes et conseils */}
       <div className="space-y-4">
-        {product.trend === 'down' && (
-          <Alert>
-            <TrendingDown className="h-4 w-4" />
-            <AlertDescription>
-              Le marché est en baisse ({product.trendPercentage}%). Considérez une stratégie compétitive 
-              pour maintenir votre part de marché.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {product.competitorCount > 15 && (
+        {product.volumeMetrics.competitorCount > 15 && (
           <Alert>
             <Users className="h-4 w-4" />
             <AlertDescription>
-              Marché très concurrentiel ({product.competitorCount} concurrents). 
+              Marché très concurrentiel ({product.volumeMetrics.competitorCount} concurrents).
               La différenciation par la qualité ou le service peut être plus efficace que la guerre des prix.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {product.demandLevel === 'high' && (
-          <Alert>
-            <TrendingUp className="h-4 w-4" />
-            <AlertDescription>
-              Forte demande détectée. C'est le moment idéal pour optimiser vos marges 
-              avec une stratégie premium.
             </AlertDescription>
           </Alert>
         )}

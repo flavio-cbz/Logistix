@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSessionUser, hashPassword } from "@/lib/services/auth"
-import { db, getCurrentTimestamp } from "@/lib/services/db"
+import { db, getCurrentTimestamp } from "@/lib/services/database/db"
 import * as z from "zod"
 
 // Le schéma de validation corrigé avec superRefine pour une logique conditionnelle
@@ -9,7 +9,6 @@ const profileFormSchema = z
 		username: z.string().min(2, { message: "Le nom d'utilisateur doit faire au moins 2 caractères." }).max(30, { message: "Le nom d'utilisateur ne peut pas dépasser 30 caractères." }),
 		email: z.string().min(1, { message: "L'email est requis." }).email("Email invalide."),
 		password: z.string().optional(), // La validation de la longueur se fera dans superRefine
-		bio: z.string().optional(), // La validation de la longueur se fera dans superRefine
 		language: z.string({ required_error: "Veuillez sélectionner une langue." }),
 		theme: z.string({ required_error: "Veuillez sélectionner un thème." }),
 		avatar: z.string().url({ message: "Veuillez entrer une URL valide pour l'avatar." }).optional().or(z.literal("")),
@@ -24,28 +23,6 @@ const profileFormSchema = z
 				inclusive: true,
 				message: "Le mot de passe doit contenir au moins 4 caractères.",
 				path: ["password"],
-			})
-		}
-		// Valide la longueur de la bio uniquement si elle est fournie et non vide.
-		if (data.bio && data.bio.length > 0 && data.bio.length < 4) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.too_small,
-				minimum: 4,
-				type: "string",
-				inclusive: true,
-				message: "La biographie doit contenir au moins 4 caractères.",
-				path: ["bio"],
-			})
-		}
-		// Valide la longueur maximale de la bio
-		if (data.bio && data.bio.length > 160) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.too_big,
-				maximum: 160,
-				type: "string",
-				inclusive: true,
-				message: "La biographie ne peut pas dépasser 160 caractères.",
-				path: ["bio"],
 			})
 		}
 	})
@@ -67,7 +44,7 @@ export async function POST(request: Request) {
 			return NextResponse.json({ success: false, message: `Données invalides: ${errors}` }, { status: 400 })
 		}
 
-		const { username, email, bio, avatar, language, theme, password } = validation.data
+		const { username, email, avatar, language, theme, password } = validation.data
 
 		// 3. Vérifications d'unicité
 		if (username && username !== user.username) {
@@ -87,19 +64,19 @@ export async function POST(request: Request) {
 				db.prepare(
 					`
           UPDATE users
-          SET username = ?, email = ?, bio = ?, avatar = ?, language = ?, theme = ?, password_hash = ?, updated_at = ?
+          SET username = ?, email = ?, avatar = ?, language = ?, theme = ?, password_hash = ?, updated_at = ?
           WHERE id = ?
         `,
-				).run(username, email, bio || "", avatar || "", language, theme, passwordHash, timestamp, user.id)
+				).run(username, email, avatar || "", language, theme, passwordHash, timestamp, user.id)
 			} else {
 				// Mettre à jour sans changer le mot de passe
 				db.prepare(
 					`
           UPDATE users
-          SET username = ?, email = ?, bio = ?, avatar = ?, language = ?, theme = ?, updated_at = ?
+          SET username = ?, email = ?, avatar = ?, language = ?, theme = ?, updated_at = ?
           WHERE id = ?
         `,
-				).run(username, email, bio || "", avatar || "", language, theme, timestamp, user.id)
+				).run(username, email, avatar || "", language, theme, timestamp, user.id)
 			}
 
 			return NextResponse.json({

@@ -4,13 +4,11 @@ import json
 from datetime import datetime, timezone
 import numpy as np
 import logging
-from data_persistence import init_db, save_analysis, get_historical_analyses # Correction de l'importation
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialiser la base de données au démarrage du script
-init_db()
 
 def normalize_brand_name(brand_name: str) -> str:
     """Normalizes brand names to correct common typos."""

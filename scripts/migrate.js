@@ -103,6 +103,76 @@ CREATE TABLE IF NOT EXISTS dashboard_config (
 );
 `)
 
+// Création de la table vinted_sessions si elle n'existe pas
+db.exec(`
+CREATE TABLE IF NOT EXISTS vinted_sessions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL UNIQUE,
+    
+    -- Identifiants Vinted chiffrés
+    vinted_username_encrypted TEXT,
+    vinted_password_encrypted TEXT,
+    
+    -- Données de session
+    session_cookie TEXT,
+    session_expires_at TIMESTAMP,
+    
+    -- Métadonnées de gestion
+    status TEXT NOT NULL DEFAULT 'requires_configuration',
+    last_validated_at TIMESTAMP,
+    last_refreshed_at TIMESTAMP,
+    refresh_error_message TEXT,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`);
+
+// Création de la table market_analyses si elle n'existe pas
+db.exec(`
+CREATE TABLE IF NOT EXISTS market_analyses (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    product_name TEXT NOT NULL,
+    category_name TEXT,
+    catalog_id INTEGER,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'completed', 'failed')),
+    input TEXT,
+    result TEXT,
+    error TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`);
+
+// Création de la table historical_prices si elle n'existe pas
+db.exec(`
+CREATE TABLE IF NOT EXISTS historical_prices (
+    id TEXT PRIMARY KEY,
+    product_name TEXT NOT NULL,
+    date TIMESTAMP NOT NULL,
+    price REAL NOT NULL,
+    sales_volume INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+`);
+
+// Création de la table similar_sales si elle n'existe pas
+db.exec(`
+CREATE TABLE IF NOT EXISTS similar_sales (
+  id TEXT PRIMARY KEY,
+  query_hash TEXT NOT NULL,
+  raw_data TEXT NOT NULL,
+  parsed_data TEXT NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+`);
+
 // Vérifier si l'utilisateur admin existe déjà
 const adminUser = db.prepare(`SELECT id FROM users WHERE username = 'admin'`).get()
 

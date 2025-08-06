@@ -1,10 +1,9 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google" // Changer Geist par Inter
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { PerformanceMonitor } from "@/components/ui/performance-monitor"
 import "./globals.css"
 
 const inter = Inter({ // Changer geist par inter
@@ -15,11 +14,10 @@ const inter = Inter({ // Changer geist par inter
 
 // Mettre à jour le titre et la description
 export const metadata: Metadata = {
-  title: "Logistix - Gestion de logistique",
+  title: "Logistix",
   description: "Application de gestion de logistique pour le suivi des parcelles et produits",
   keywords: ["logistique", "gestion", "parcelles", "produits", "suivi"],
   authors: [{ name: "Logistix Team" }],
-  viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
   icons: {
     icon: [
@@ -38,6 +36,11 @@ export const metadata: Metadata = {
       sizes: "180x180",
     },
   },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 }
 
 export default function RootLayout({
@@ -62,7 +65,6 @@ export default function RootLayout({
           <AuthProvider>
             {children}
             <Toaster />
-            {!isProduction && <PerformanceMonitor />}
           </AuthProvider>
         </ThemeProvider>
       </body>
