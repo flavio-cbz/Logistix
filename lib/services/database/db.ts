@@ -8,7 +8,7 @@ import { DatabaseInitializationManagerImpl } from './initialization-manager';
 import { RequestType, RequestPriority } from './queue-manager';
 import { databaseLogger } from './database-logger';
 import { DatabaseServiceInstrumentation } from '../logging-instrumentation';
-import { PerformanceTimer, dbQueryLogger } from '@/lib/utils/logging';
+
 import type { PoolConfig } from '@/lib/types/database-pool';
 
 // Fallback logger that works in all environments (plus silencieux)
@@ -383,17 +383,17 @@ export const databaseService = DatabaseService.getInstance();
 
 // Export de compatibilité (deprecated)
 export const db = {
-  prepare: (sql: string) => {
+  prepare: (_sql: string) => {
     console.warn('Direct database access is deprecated. Use databaseService.query, execute, or transaction methods instead.');
     // Retourner un objet avec les méthodes attendues pour la compatibilité
     return {
-      all: (...params: any[]) => {
+      all: (..._params: any[]) => {
         throw new Error('Direct database access is deprecated. Use databaseService.query method instead.');
       },
-      get: (...params: any[]) => {
+      get: (..._params: any[]) => {
         throw new Error('Direct database access is deprecated. Use databaseService.queryOne method instead.');
       },
-      run: (...params: any[]) => {
+      run: (..._params: any[]) => {
         throw new Error('Direct database access is deprecated. Use databaseService.execute method instead.');
       }
     };

@@ -77,6 +77,7 @@ export async function createUser(username: string, password: string) {
   } catch (error) {
     authLogger.error('Failed to create user', error as Error, { username });
     timer.endWithError(error as Error, { username });
+    throw error;
   }
 }
 
@@ -124,7 +125,7 @@ export async function verifyCredentials(password: string) {
       }
     },
     { username: 'admin', password }
-  ).catch(error => {
+  ).catch(_error => {
     // Return null for authentication failures to maintain existing behavior
     return null;
   });
@@ -159,6 +160,7 @@ export async function createSession(userId: string) {
   } catch (error) {
     authLogger.error('Failed to create session', error as Error, { userId });
     timer.endWithError(error as Error, { userId });
+    throw error;
   }
 }
 

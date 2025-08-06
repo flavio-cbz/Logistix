@@ -72,7 +72,9 @@ function calculerHeatmapVentes(produits: Produit[]) {
       const dateVente = new Date(p.dateVente!);
       const dayOfWeek = dateVente.getDay();
       const hour = dateVente.getHours();
-      heatmapData[dayOfWeek][hour]++;
+      if (heatmapData[dayOfWeek]?.[hour] !== undefined) {
+  heatmapData[dayOfWeek][hour]++;
+}
     });
   
   return heatmapData.map((hours, day) => 
@@ -199,7 +201,8 @@ function calculerCourbeTendanceEtPrevisions(produits: Produit[]): { courbeTendan
     let valeur = ventesMensuelles[cle] || 0;
     
     if (i < 0) { // Mois futurs = prévisions
-        const lastKnownValue = courbeTendance.length > 0 ? courbeTendance[courbeTendance.length - 1].valeur : 0;
+        const lastItem = courbeTendance[courbeTendance.length - 1];
+        const lastKnownValue = lastItem ? lastItem.valeur : 0;
         valeur = lastKnownValue * (1 + (Math.random() - 0.5) * 0.2);
         previsionsVentes.push({ mois: nomMois, prevision: parseFloat(valeur.toFixed(2)) });
     }

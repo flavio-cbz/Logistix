@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useRef } from "react"
+import { useState, useRef } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -22,7 +22,7 @@ import {
   RefreshCw
 } from "lucide-react"
 import { type HistoricalDataViewProps, type MarketAnalysisHistoryItem } from "@/types/vinted-market-analysis"
-import { ToastAction } from "@/components/ui/toast"
+
 
 export default function HistoricalDataView({
   analyses,

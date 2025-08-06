@@ -5,12 +5,12 @@ import { useMarketAnalysis } from "../use-market-analysis"
 import type { MarketAnalysisTask } from "../use-market-analysis"
 
 // Mock de la fonction toast
-vi.mock("@/hooks/use-toast", () => ({
+vi.mock("../use-toast", () => ({
   toast: vi.fn(),
 }))
 
 // Import the mocked toast function
-import { toast } from "@/hooks/use-toast"
+import { toast } from "../use-toast"
 const mockToast = vi.mocked(toast)
 
 describe("useMarketAnalysis", () => {

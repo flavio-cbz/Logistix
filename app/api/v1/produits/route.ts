@@ -24,7 +24,7 @@ function getCurrentTimestamp() {
     return Math.floor(Date.now() / 1000);
 }
 
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
     const user = await getSessionUser();
     if (!user) {
         return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });

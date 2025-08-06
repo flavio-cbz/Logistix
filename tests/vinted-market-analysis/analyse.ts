@@ -215,6 +215,10 @@ async function main() {
         }
 
         logger.info(`2. Recherche de l'ID de marque suggéré pour "${productName}"...`);
+if (catalogId === undefined) {
+            logger.error("L'ID de catalogue n'a pas pu être déterminé. Arrêt du script.");
+            process.exit(1);
+        }
         const brandId = await getSuggestedBrandId(productName!, catalogId, headers);
         logger.info(`   -> ID de marque suggéré trouvé : ${brandId}`);
 

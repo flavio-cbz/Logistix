@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getSessionUser } from "@/lib/services/auth";
 import { db } from "@/lib/services/database/drizzle-client";
 import { marketAnalyses } from "@/lib/services/database/drizzle-schema";
-import { eq, sql, desc, and, like } from "drizzle-orm";
+import { eq, sql, and, like } from "drizzle-orm";
 import { ApiError, createApiErrorResponse } from "@/lib/utils/validation";
 import { logger } from "@/lib/utils/logging/logger";
 import { 
@@ -16,8 +16,7 @@ import { vintedApiMonitor } from "@/lib/services/performance-monitor";
 import { cacheManager } from "@/lib/services/cache-manager";
 import {
   MarketAnalysisRequestSchema,
-  VintedAnalysisResultSchema,
-  type MarketAnalysisRequest,
+  
   type VintedAnalysisResult
 } from "@/types/vinted-market-analysis";
 import { vintedSessions } from "@/lib/services/database/drizzle-schema";
@@ -152,6 +151,7 @@ export async function POST(req: NextRequest) {
           () => vintedMarketAnalysisService.analyzeProduct({
             productName,
             catalogId: finalCatalogId,
+            categoryName,
             token: sessionCookie
           }),
           {

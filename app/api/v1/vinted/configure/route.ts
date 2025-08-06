@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
  * GET /api/v1/vinted/configure
  * Récupère le statut de la configuration Vinted pour l'utilisateur.
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const user = await getSessionUser();
     if (!user) {
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
  * DELETE /api/v1/vinted/configure
  * Supprime la configuration Vinted pour un utilisateur.
  */
-export async function DELETE(req: NextRequest) {
+export async function DELETE(_req: NextRequest) {
     try {
         const user = await getSessionUser();
         if (!user) {
