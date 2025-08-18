@@ -1,305 +1,282 @@
-import winston, { format, transport, Logform } from 'winston';
-import 'winston-daily-rotate-file';
-import path from 'path';
-import fs from 'fs';
+/**
+ * Logger utility for the application
+ * Provides structured logging with different levels
+ */
 
-// Ensure logs directory exists
-const logsDir = path.join(process.cwd(), 'logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
+export enum LogLevel {
+  ERROR = 'error',
+  WARN = 'warn',
+  INFO = 'info',
+  DEBUG = 'debug'
 }
 
-// Définition des niveaux de log de Winston avec plus de granularité
-const logLevels = {
-  error: 0,
-  warn: 1,
-  info: 2,
-  http: 3,
-  verbose: 4,
-  debug: 5,
-  silly: 6
-};
+interface LogEntry {
+  level: LogLevel;
+  message: string;
+  timestamp: string;
+  context?: any;
+  error?: any;
+}
 
-// Définition des couleurs pour la console
-const logColors = {
-  error: 'red',
-  warn: 'yellow',
-  info: 'green',
-  http: 'magenta',
-  verbose: 'cyan',
-  debug: 'blue',
-  silly: 'grey'
-};
-
-// Ajout des couleurs à Winston
-winston.addColors(logColors);
-
-// Détermination du niveau de log en fonction de l'environnement
-const getLogLevel = (): string => {
-  if (process.env.LOG_LEVEL) {
-    return process.env.LOG_LEVEL;
-  }
-  return process.env.NODE_ENV === 'production' ? 'warn' : 'info';
-};
-
-const level = getLogLevel();
-
-// Format pour la console (plus condensé et informatif)
-const consoleFormat = format.combine(
-  format.colorize(),
-  format.timestamp({ format: 'HH:mm:ss.SSS' }),
-  format.printf(({ timestamp, level, message, context, requestId, userId, duration, ...meta }) => {
-    const contextStr = context ? `[${context}]` : '';
-    const requestIdStr = requestId ? `[${requestId}]` : '';
-    const userIdStr = userId ? `[user:${userId}]` : '';
-    const durationStr = duration ? `[${duration}ms]` : '';
-    
-    // Format metadata for console display
-    const metaStr = Object.keys(meta).length > 0 
-      ? ` ${JSON.stringify(meta, null, 0)}` 
-      : '';
-    
-    return `${timestamp} ${level}:${contextStr}${requestIdStr}${userIdStr}${durationStr} ${message}${metaStr}`;
-  })
-);
-
-// Custom formatter to add process info
-const addProcessInfo = format((info: Logform.TransformableInfo): Logform.TransformableInfo => {
-  info.hostname = process.env.HOSTNAME || 'localhost';
-  info.pid = process.pid;
-  info.memory = process.memoryUsage();
-  info.uptime = process.uptime();
-  return info;
-});
-
-// Custom filter format
-const filter = (predicate: (info: Logform.TransformableInfo) => boolean) => {
-  return format((info: Logform.TransformableInfo): Logform.TransformableInfo | boolean => {
-    if (predicate(info)) {
-      return info;
-    }
-    return false;
-  })();
-};
-
-
-// Format pour les fichiers avec plus de détails
-const fileFormat = format.combine(
-  format.timestamp(),
-  format.errors({ stack: true }),
-  format.splat(),
-  addProcessInfo(),
-  format.json()
-);
-
-// Performance format for performance logs
-const performanceFormat = format.combine(
-  filter(info => info.level === 'info' && info.operation !== undefined),
-  format.timestamp(),
-  addProcessInfo(),
-  format.json()
-);
-
-// Error format for error logs
-const errorFormat = format.combine(
-  format.timestamp(),
-  format.errors({ stack: true }),
-  addProcessInfo(),
-  format.json()
-);
-
-// HTTP format for http logs
-const httpFormat = format.combine(
-    filter(info => info.level === 'http'),
-    format.timestamp(),
-    addProcessInfo(),
-    format.json()
-);
-
-
-// Transports avec configuration avancée
-const transports: transport[] = [
-  // Console transport
-  new winston.transports.Console({
-    level,
-    format: consoleFormat,
-    handleExceptions: true,
-    handleRejections: true
-  }),
-  
-  // Application logs (general)
-  new winston.transports.DailyRotateFile({
-    level: 'info',
-    filename: path.join(logsDir, 'application-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    zippedArchive: true,
-    maxSize: '20m',
-    maxFiles: '30d',
-    format: fileFormat,
-    handleExceptions: true,
-    handleRejections: true
-  }),
-  
-  // Error logs (separate file for errors)
-  new winston.transports.DailyRotateFile({
-    level: 'error',
-    filename: path.join(logsDir, 'error-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    zippedArchive: true,
-    maxSize: '10m',
-    maxFiles: '30d',
-    format: errorFormat,
-    handleExceptions: true,
-    handleRejections: true
-  }),
-  
-  // Performance logs
-  new winston.transports.DailyRotateFile({
-    level: 'info',
-    filename: path.join(logsDir, 'performance-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    zippedArchive: true,
-    maxSize: '10m',
-    maxFiles: '14d',
-    format: performanceFormat,
-  }),
-  
-  // HTTP logs
-  new winston.transports.DailyRotateFile({
-    level: 'http',
-    filename: path.join(logsDir, 'http-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    zippedArchive: true,
-    maxSize: '10m',
-    maxFiles: '7d',
-    format: httpFormat,
-  })
-];
-
-// Création du logger principal
-const rootLogger = winston.createLogger({
-  levels: logLevels,
-  transports,
-  exitOnError: false,
-});
-
-/**
- * Interface pour notre logger personnalisé.
- * Cela permet de s'assurer que tous les loggers ont les mêmes méthodes.
- */
 export interface ILogger {
-  error(message: string, error?: Error | unknown, meta?: Record<string, any>): void;
-  warn(message: string, meta?: Record<string, any>): void;
-  info(message: string, meta?: Record<string, any>): void;
-  http(message: string, meta?: Record<string, any>): void;
-  verbose(message: string, meta?: Record<string, any>): void;
-  debug(message: string, meta?: Record<string, any>): void;
-  silly(message: string, meta?: Record<string, any>): void;
-  
-  // Performance logging methods
-  performance(operation: string, duration: number, meta?: Record<string, any>): void;
-  
-  // Request logging methods
-  request(method: string, url: string, statusCode: number, duration: number, meta?: Record<string, any>): void;
-  
-  // Database logging methods
-  database(query: string, duration: number, meta?: Record<string, any>): void;
-  
-  // User action logging
-  userAction(action: string, userId: string, meta?: Record<string, any>): void;
+  error(message: string, context?: unknown, error?: unknown): void;
+  warn(message: string, context?: unknown): void;
+  info(message: string, context?: unknown): void;
+  debug(message: string, context?: unknown): void;
+  // Extended optional methods used across the codebase. Use flexible signatures to avoid
+  // frequent type mismatches while preserving intent. Implementations should handle args.
+  http?: (...args: any[]) => void;
+  verbose?: (...args: any[]) => void;
+  silly?: (...args: any[]) => void;
+  performance?: (...args: any[]) => void;
+  request?: (...args: any[]) => void;
+  database?: (...args: any[]) => void;
+  userAction?: (...args: any[]) => void;
 }
 
-// Wrapper autour du logger Winston pour fournir une API plus simple et typée
-const createLoggerWrapper = (loggerInstance: winston.Logger): ILogger => ({
-  error: (message: string, error?: Error | unknown, meta?: Record<string, any>) => {
-    const logMeta = { ...meta };
-    if (error instanceof Error) {
-      // Winston gère l'objet Error et sa stack trace grâce à `format.errors({ stack: true })`
-      loggerInstance.error(message, { ...logMeta, error, stack: error.stack });
-    } else if (error) {
-      loggerInstance.error(message, { ...logMeta, error: String(error) });
-    } else {
-      loggerInstance.error(message, logMeta);
+// Utility to anonymize/mask sensitive data in logs
+function maskString(str: string): string {
+  if (!str) return str;
+
+  // Mask emails: keep first char of local part, mask rest, keep domain
+  str = str.replace(
+    /([a-zA-Z0-9._%+-]{1})([a-zA-Z0-9._%+-]*?)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
+    (_, first, _rest, domain) => `${first}***@${domain}`
+  );
+
+  // Mask JWTs (three base64url parts separated by .) - keep header, mask payload/signature
+  str = str.replace(
+    /\b([A-Za-z0-9-_]+\.)[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\b/g,
+    (match, header) => `${header}***.***`
+  );
+
+  // Mask long alphanumeric tokens (>= 20 chars) - keep first 6 and last 4
+  str = str.replace(
+    /\b([A-Za-z0-9-_]{20,})\b/g,
+    (m) => `${m.slice(0, 6)}***${m.slice(-4)}`
+  );
+
+  // Mask credit card numbers (keep last 4)
+  str = str.replace(
+    /\b(?:\d[ -]*){13,19}\b/g,
+    (m) => {
+      const digits = m.replace(/[^0-9]/g, '');
+      if (digits.length < 13) return m;
+      return `**** **** **** ${digits.slice(-4)}`;
     }
-  },
-  
-  warn: (message: string, meta?: Record<string, any>) => {
-    loggerInstance.warn(message, meta);
-  },
-  
-  info: (message: string, meta?: Record<string, any>) => {
-    loggerInstance.info(message, meta);
-  },
-  
-  http: (message: string, meta?: Record<string, any>) => {
-    loggerInstance.http(message, meta);
-  },
-  
-  verbose: (message: string, meta?: Record<string, any>) => {
-    loggerInstance.verbose(message, meta);
-  },
-  
-  debug: (message: string, meta?: Record<string, any>) => {
-    loggerInstance.debug(message, meta);
-  },
-  
-  silly: (message: string, meta?: Record<string, any>) => {
-    loggerInstance.silly(message, meta);
-  },
-  
-  performance: (operation: string, duration: number, meta?: Record<string, any>) => {
-    loggerInstance.info('Performance metric', {
-      operation,
-      duration,
-      type: 'performance',
-      ...meta
-    });
-  },
-  
-  request: (method: string, url: string, statusCode: number, duration: number, meta?: Record<string, any>) => {
-    loggerInstance.http('HTTP Request', {
-      method,
-      url,
-      statusCode,
-      duration,
-      type: 'http_request',
-      ...meta
-    });
-  },
-  
-  database: (query: string, duration: number, meta?: Record<string, any>) => {
-    loggerInstance.debug('Database Query', {
-      query: query.substring(0, 200) + (query.length > 200 ? '...' : ''), // Truncate long queries
-      duration,
-      type: 'database',
-      ...meta
-    });
-  },
-  
-  userAction: (action: string, userId: string, meta?: Record<string, any>) => {
-    loggerInstance.info('User Action', {
-      action,
-      userId,
-      type: 'user_action',
-      timestamp: new Date().toISOString(),
-      ...meta
-    });
+  );
+
+  return str;
+}
+
+function anonymizeValue(value: any, key?: string, seen = new WeakSet(), depth = 3): any {
+  if (value == null || depth <= 0) return value;
+
+  // Primitive types
+  if (typeof value === 'string') {
+    // Keys that indicate secrets
+    if (key && /password|pwd|secret|token|access[_-]?token|api[_-]?key|apikey|credential/i.test(key)) {
+      return '***';
+    }
+    return maskString(value);
   }
-});
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((v) => anonymizeValue(v, key, seen, depth - 1));
+  }
+
+  if (typeof value === 'object') {
+    if (seen.has(value)) {
+      return '[Circular]';
+    }
+    seen.add(value);
+    const out: Record<string, any> = {};
+    for (const k of Object.keys(value)) {
+      try {
+        const v = (value as any)[k];
+        if (v == null) {
+          out[k] = v;
+          continue;
+        }
+        if (/password|pwd|secret|token|access[_-]?token|api[_-]?key|apikey|credential/i.test(k)) {
+          out[k] = '***';
+          continue;
+        }
+        out[k] = anonymizeValue(v, k, seen, depth - 1);
+      } catch {
+        out[k] = '[Unserializable]';
+      }
+    }
+    seen.delete(value);
+    return out;
+  }
+
+  return value;
+}
+
+export function anonymize(objOrString: any): any {
+  return anonymizeValue(objOrString);
+}
+
+class Logger implements ILogger {
+  private isDevelopment = process.env.NODE_ENV === 'development';
+
+  private formatMessage(entry: LogEntry): string {
+    const { level, message, timestamp, context, error } = entry;
+    
+    let logMessage = `[${timestamp}] ${level.toUpperCase()}: ${message}`;
+    
+    if (context && Object.keys(context).length > 0) {
+      try {
+        logMessage += ` | Context: ${JSON.stringify(context)}`;
+      } catch {
+        logMessage += ` | Context: [Unserializable]`;
+      }
+    }
+    
+    if (error) {
+      const errMsg = typeof error === 'string' ? error : (error && (error as any).message) ? (error as any).message : String(error);
+      logMessage += ` | Error: ${errMsg}`;
+      if (this.isDevelopment && (error as any)?.stack) {
+        logMessage += `\nStack: ${(error as any).stack}`;
+      }
+    }
+    
+    return logMessage;
+  }
+
+  private log(level: LogLevel, message: string, context?: any, error?: any): void {
+    // Anonymize sensitive data before logging
+    const safeMessage = typeof message === 'string' ? anonymize(message) : message;
+    const safeContext = context ? anonymize(context) : context;
+    let safeError = error;
+    if (error && (error as any).message) {
+      const sanitizedError = new Error(anonymize((error as any).message));
+      if ((error as any).stack && this.isDevelopment) {
+        sanitizedError.stack = (error as any).stack;
+      }
+      safeError = sanitizedError;
+    } else if (error && typeof error === 'string') {
+      safeError = anonymize(error);
+    }
+
+    const entry: LogEntry = {
+      level,
+      message: safeMessage,
+      timestamp: new Date().toISOString(),
+      context: safeContext
+    };
+    if (safeError) {
+      (entry as LogEntry).error = safeError;
+    }
+
+    const formattedMessage = this.formatMessage(entry);
+
+    // In development, use console methods for better formatting
+    if (this.isDevelopment) {
+      switch (level) {
+        case LogLevel.ERROR:
+          console.error(formattedMessage);
+          break;
+        case LogLevel.WARN:
+          console.warn(formattedMessage);
+          break;
+        case LogLevel.INFO:
+          console.info(formattedMessage);
+          break;
+        case LogLevel.DEBUG:
+          console.debug(formattedMessage);
+          break;
+      }
+    } else {
+      // In production, use structured logging (could be extended to use winston, pino, etc.)
+    }
+  }
+
+  error(message: string, context?: any, error?: any): void {
+    this.log(LogLevel.ERROR, message, context, error);
+  }
+
+  warn(message: string, context?: any): void {
+    this.log(LogLevel.WARN, message, context);
+  }
+
+  info(message: string, context?: any): void {
+    this.log(LogLevel.INFO, message, context);
+  }
+
+  debug(message: string, context?: any): void {
+    this.log(LogLevel.DEBUG, message, context);
+  }
+
+  // Optional extended methods
+  http(message: string, context?: any): void {
+    this.log(LogLevel.INFO, message, { ...(context || {}), type: 'http' });
+  }
+
+  verbose(message: string, context?: any): void {
+    this.log(LogLevel.DEBUG, message, context);
+  }
+
+  silly(message: string, context?: any): void {
+    this.log(LogLevel.DEBUG, message, context);
+  }
+
+  performance(message: string, data?: any): void {
+    this.log(LogLevel.INFO, message, { performance: data });
+  }
+
+  request(...args: any[]): void {
+    // Accept variable args and format
+    this.log(LogLevel.INFO, String(args[0] ?? ''), { args: args.slice(1) });
+  }
+
+  database(message: string, duration?: number, meta?: any): void {
+    this.log(LogLevel.INFO, message, { duration, ...meta });
+  }
+
+  userAction(message: string, data?: any): void {
+    this.log(LogLevel.INFO, message, { action: data });
+  }
+}
+
+export const logger = new Logger();
 
 /**
- * Crée un logger avec un contexte spécifique.
- * Utilise les "child loggers" de Winston pour une meilleure performance.
- * @param context - Le nom du module ou du contexte pour ce logger.
- * @returns Une instance de ILogger avec le contexte défini.
+ * Creates a logger instance with a specific context/service name
  */
-export const getLogger = (context: string): ILogger => {
-  const childLogger = rootLogger.child({ context });
-  return createLoggerWrapper(childLogger);
-};
-
-/**
- * Logger global par défaut, sans contexte spécifique.
- * À utiliser pour les scripts simples ou les points d'entrée de l'application.
- */
-export const logger: ILogger = createLoggerWrapper(rootLogger);
+export function getLogger(serviceName: string): ILogger {
+  return {
+    error: (message: string, context?: unknown, error?: unknown) => {
+      logger.error(`[${serviceName}] ${message}`, context as any, error as any);
+    },
+    warn: (message: string, context?: unknown) => {
+      logger.warn(`[${serviceName}] ${message}`, context as any);
+    },
+    info: (message: string, context?: unknown) => {
+      logger.info(`[${serviceName}] ${message}`, context as any);
+    },
+    debug: (message: string, context?: unknown) => {
+      logger.debug(`[${serviceName}] ${message}`, context as any);
+    },
+    http: (message: string, context?: unknown) => {
+      if (logger.http) logger.http(`[${serviceName}] ${message}`, context);
+    },
+    performance: (message: string, data?: unknown) => {
+      if (logger.performance) logger.performance(message, data);
+    },
+    database: (message: string, duration?: number, meta?: unknown) => {
+      if (logger.database) logger.database(message, duration, meta);
+    },
+    request: (message: string, data?: unknown) => {
+      if (logger.request) logger.request(message, data);
+    },
+    userAction: (message: string, data?: unknown) => {
+      if (logger.userAction) logger.userAction(message, data);
+    }
+  };
+}

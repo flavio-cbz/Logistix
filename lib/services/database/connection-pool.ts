@@ -47,7 +47,6 @@ export interface PoolStatus {
 const logger = {
   info: (message: string, data?: any) => {
     if (process.env.NODE_ENV === 'development' || process.env.DB_DEBUG === 'true') {
-      console.log(`[ConnectionPool] ${message}`, data ? JSON.stringify(data) : '');
     }
   },
   warn: (message: string, data?: any) => {
@@ -58,7 +57,6 @@ const logger = {
   },
   debug: (message: string, data?: any) => {
     if (process.env.DB_DEBUG === 'true') {
-      console.debug(`[ConnectionPool] ${message}`, data ? JSON.stringify(data) : '');
     }
   },
 };
@@ -333,7 +331,6 @@ export class DatabaseConnectionPoolImpl implements DatabaseConnectionPool {
           reused: true
         });
         
-        logger.debug('Reusing existing connection', { connectionId, type, context });
         return connectionState.database;
       }
     }
@@ -443,10 +440,6 @@ export class DatabaseConnectionPoolImpl implements DatabaseConnectionPool {
         queueLength: this.queueManager.getQueueLength()
       });
       
-      logger.debug('Connection assigned to queued request', { 
-        connectionId: connectionState.id,
-        queueLength: this.queueManager.getQueueLength()
-      });
     } else {
       // Remettre dans le pool disponible
       this.availableConnections.push(connectionState.id);
@@ -457,9 +450,6 @@ export class DatabaseConnectionPoolImpl implements DatabaseConnectionPool {
         });
       }
       
-      logger.debug('Connection returned to pool', { 
-        connectionId: connectionState.id 
-      });
     }
 
     // Mettre à jour les statistiques de monitoring
@@ -562,10 +552,6 @@ export class DatabaseConnectionPoolImpl implements DatabaseConnectionPool {
         const transaction = connection.transaction(() => operation(connection));
         const transactionResult = transaction();
         
-        logger.debug('Transaction completed successfully', { 
-          connectionId: connectionState.id,
-          context
-        });
         
         return transactionResult;
       } catch (error) {
@@ -850,7 +836,6 @@ export class DatabaseConnectionPoolImpl implements DatabaseConnectionPool {
             idleTime: now.getTime() - state.lastUsed.getTime()
           });
           
-          logger.debug('Idle connection closed', { connectionId });
         } catch (error) {
           logger.error('Error closing idle connection', { connectionId, error });
           
@@ -920,7 +905,6 @@ export class DatabaseConnectionPoolImpl implements DatabaseConnectionPool {
               wasActive: state.isActive
             });
             
-            logger.debug('Connection closed', { connectionId });
           } catch (error) {
             logger.error('Error closing connection', { connectionId, error });
             

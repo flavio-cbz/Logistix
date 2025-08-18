@@ -1,4 +1,4 @@
-import { DatabaseService } from './db'
+import { databaseService } from './database/db'
 
 export interface SearchResult {
   id: string
@@ -40,13 +40,13 @@ export interface SearchAnalytics {
 
 export class SearchService {
   private static instance: SearchService
-  private databaseService: DatabaseService
+  private databaseService: typeof databaseService
   private searchHistory: Map<string, SearchHistory[]> = new Map()
   private searchCache: Map<string, { results: SearchResult[]; timestamp: number }> = new Map()
   private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
   private constructor() {
-    this.databaseService = DatabaseService.getInstance()
+    this.databaseService = databaseService
   }
 
   public static getInstance(): SearchService {

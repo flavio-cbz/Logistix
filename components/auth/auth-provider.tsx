@@ -32,6 +32,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Récupérer les informations de session depuis un cookie ou localStorage
         // Cette logique est maintenant gérée par notre propre système d'authentification
         const response = await fetch("/api/v1/auth/session")
+const contentType = response.headers.get("Content-Type") || "";
+if (!contentType.includes("application/json")) {
+  console.error("Réponse inattendue : le serveur n'a pas retourné du JSON.");
+  return;
+}
         if (response.ok) {
           const data = await response.json()
           if (data.user) {

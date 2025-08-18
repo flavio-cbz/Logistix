@@ -7,7 +7,6 @@ import { databaseLogger } from '@/lib/services/database/database-logger';
 const logger = {
   info: (message: string, data?: any) => {
     if (process.env.NODE_ENV === 'development' || process.env.DB_DEBUG === 'true') {
-      console.log(`[DB-Middleware] ${message}`, data ? JSON.stringify(data) : '');
     }
   },
   warn: (message: string, data?: any) => {
@@ -18,7 +17,6 @@ const logger = {
   },
   debug: (message: string, data?: any) => {
     if (process.env.DB_DEBUG === 'true') {
-      console.debug(`[DB-Middleware] ${message}`, data ? JSON.stringify(data) : '');
     }
   },
 };
@@ -121,13 +119,11 @@ export async function withDatabaseInitialization<T>(
   try {
     // Si l'initialisation est explicitement ignorée
     if (skipInitialization && !forceInitialization) {
-      logger.debug('Database initialization skipped by configuration');
       return await handler();
     }
 
     // Vérifier si l'initialisation est déjà terminée
     if (initManager.isInitialized() && !forceInitialization) {
-      logger.debug('Database already initialized, proceeding with handler');
       return await handler();
     }
 
@@ -206,7 +202,6 @@ export function createDatabaseInitializationMiddleware(
 
     // Vérifier si cette route nécessite l'initialisation de la base de données
     if (!requiresDatabaseInitialization(pathname) && !options.forceInitialization) {
-      logger.debug('Route does not require database initialization', { pathname });
       return await handler();
     }
 

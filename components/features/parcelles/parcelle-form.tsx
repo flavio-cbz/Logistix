@@ -14,9 +14,9 @@ import {
 } from "@/components/ui/dialog"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { AnimatedButton } from "@/components/ui/animated-button"
 import { Plus } from "lucide-react"
-import { useStore } from "@/store/store"
+import { useStore } from "@/lib/services/admin/store"
 import { useToast } from "@/components/ui/use-toast"
 import type { Parcelle } from "@/types/database"
 
@@ -121,10 +121,15 @@ export default function ParcelleForm({ editParcelle, onClose, className }: Parce
     <Dialog open={open || !!editParcelle} onOpenChange={handleOpenChange}>
       {!editParcelle && (
         <DialogTrigger asChild>
-          <Button className={className}>
+          <AnimatedButton 
+            className={className}
+            ripple={true}
+            haptic={true}
+            screenReaderDescription="Ouvrir le formulaire d'ajout de nouvelle parcelle"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Nouvelle Parcelle
-          </Button>
+          </AnimatedButton>
         </DialogTrigger>
       )}
       <DialogContent className="sm:max-w-[425px]">
@@ -190,9 +195,18 @@ export default function ParcelleForm({ editParcelle, onClose, className }: Parce
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
+            <AnimatedButton 
+              type="submit" 
+              className="w-full"
+              loading={form.formState.isSubmitting}
+              loadingText={editParcelle ? "Mise à jour..." : "Ajout..."}
+              success={form.formState.isSubmitSuccessful}
+              successText={editParcelle ? "Mis à jour !" : "Ajouté !"}
+              ripple={true}
+              haptic={true}
+            >
               {editParcelle ? "Mettre à jour" : "Ajouter"} la parcelle
-            </Button>
+            </AnimatedButton>
           </form>
         </Form>
       </DialogContent>

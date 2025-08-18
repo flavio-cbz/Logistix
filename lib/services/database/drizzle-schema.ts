@@ -2,6 +2,20 @@
 
 import { sqliteTable, text, integer, real, primaryKey, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
+// Table des utilisateurs
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password_hash: text("password_hash").notNull(),
+  email: text("email"),
+  bio: text("bio"),
+  avatar: text("avatar"),
+  language: text("language"),
+  theme: text("theme"),
+  ai_config: text("ai_config", { mode: 'json' }),
+  created_at: text("created_at"),
+  updated_at: text("updated_at"),
+});
 // Table des tâches d'analyse de marché (enhanced)
 export const marketAnalyses = sqliteTable("market_analyses", {
   id: text("id").primaryKey(),
@@ -103,4 +117,66 @@ export const vintedSessions = sqliteTable("vinted_sessions", {
     userIdx: uniqueIndex("idx_vinted_sessions_user_id").on(table.userId),
     // Index pour filtrer rapidement par statut (ex: pour les tâches cron)
     statusIdx: index("idx_vinted_sessions_status").on(table.status),
+}));
+
+// Table des préférences utilisateur pour l'IA
+export const userPreferences = sqliteTable("user_preferences", {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    objectives: text("objectives", { mode: 'json' }).notNull(), // Array<'profit' | 'volume' | 'speed' | 'market-share'>
+    riskTolerance: text("risk_tolerance", { enum: ["conservative", "moderate", "aggressive"] }).notNull(),
+    preferredInsightTypes: text("preferred_insight_types", { mode: 'json' }).notNull(), // Array<'trends' | 'opportunities' | 'risks' | 'competitive'>
+    notificationSettings: text("notification_settings", { mode: 'json' }).notNull(),
+    customFilters: text("custom_filters", { mode: 'json' }).notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+}, (table) => ({
+    // Contrainte d'unicité pour garantir une seule préférence par utilisateur
+    userIdx: uniqueIndex("idx_user_preferences_user_id").on(table.userId),
+}));
+
+// Table des actions utilisateur pour l'apprentissage IA
+export const userActions = sqliteTable("user_actions", {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    actionType: text("action_type", { 
+        enum: ["view_insight", "follow_recommendation", "ignore_recommendation", "export_analysis", "save_analysis", "share_analysis"] 
+    }).notNull(),
+    actionData: text("action_data", { mode: 'json' }).notNull(),
+    timestamp: text("timestamp").notNull(),
+    context: text("context", { mode: 'json' }),
+    createdAt: text("created_at").notNull(),
+}, (table) => ({
+    // Index pour les requêtes par utilisateur et timestamp
+    userTimestampIdx: index("idx_user_actions_user_timestamp").on(table.userId, table.timestamp),
+    // Index pour les requêtes par type d'action
+    actionTypeIdx: index("idx_user_actions_action_type").on(table.actionType),
+}));
+// Table des produits suivis (produits que les utilisateurs surveillent)
+export const trackedProducts = sqliteTable("tracked_products", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  productName: text("product_name").notNull(),
+  externalProductId: text("external_product_id"),
+  lastCheckedAt: text("last_checked_at"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at"),
+}, (table) => ({
+  // Index pour rechercher rapidement les produits suivis par utilisateur
+  userIdx: index("idx_tracked_products_user_id").on(table.userId),
+}));
+
+// Table des snapshots de tendances de marché
+export const marketTrends = sqliteTable("market_trends", {
+  id: text("id").primaryKey(),
+  trackedProductId: text("tracked_product_id").notNull(),
+  analysisId: text("analysis_id"),
+  snapshotDate: text("snapshot_date").notNull(),
+  avgPrice: real("avg_price"),
+  salesVolume: integer("sales_volume"),
+  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+}, (table) => ({
+  // Index pour requêtes par produit suivi et par date
+  trackedProductIdx: index("idx_market_trends_tracked_product").on(table.trackedProductId),
+  snapshotDateIdx: index("idx_market_trends_snapshot_date").on(table.snapshotDate),
 }));

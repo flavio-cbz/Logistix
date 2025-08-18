@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { DatabaseService } from '@/lib/services/db'
-import { validateSession } from '@/lib/middlewares/auth'
+import { databaseService } from '@/lib/services/database/db'
+import { validateSession } from '@/lib/services/auth'
+
 
 interface SearchResult {
   id: string
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const databaseService = DatabaseService.getInstance()
+    const db = databaseService
     const userId = sessionResult.user.id
     const offset = (page - 1) * limit
     const searchTerm = `%${query.toLowerCase()}%`
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
         LIMIT ? OFFSET ?
       `
       
-      const parcelles = await databaseService.query(parcelleQuery, [
+      const parcelles = await db.query(parcelleQuery, [
         userId, searchTerm, searchTerm, limit, offset
       ])
 
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest) {
         LIMIT ? OFFSET ?
       `
       
-      const produits = await databaseService.query(produitQuery, [
+      const produits = await db.query(produitQuery, [
         userId, searchTerm, limit, offset
       ])
 

@@ -2,24 +2,9 @@ import 'server-only';
 import { getExecutionContext, ExecutionContext } from '@/lib/middlewares/database-initialization';
 
 // Logger pour l'optimisation du build
-const logger = {
-  info: (message: string, data?: any) => {
-    if (process.env.NODE_ENV === 'development' || process.env.DB_DEBUG === 'true') {
-      console.log(`[Build-Optimization] ${message}`, data ? JSON.stringify(data) : '');
-    }
-  },
-  warn: (message: string, data?: any) => {
-    console.warn(`[Build-Optimization] ${message}`, data ? JSON.stringify(data) : '');
-  },
-  error: (message: string, data?: any) => {
-    console.error(`[Build-Optimization] ${message}`, data ? JSON.stringify(data) : '');
-  },
-  debug: (message: string, data?: any) => {
-    if (process.env.DB_DEBUG === 'true') {
-      console.debug(`[Build-Optimization] ${message}`, data ? JSON.stringify(data) : '');
-    }
-  },
-};
+import { getLogger } from '@/lib/utils/logging/simple-logger';
+
+const logger = getLogger('BuildOptimization');
 
 /**
  * Configuration pour l'optimisation du build
@@ -97,13 +82,11 @@ export function shouldOptimizeRouteForBuild(pathname: string): boolean {
   
   // Si on ignore les routes non-essentielles et que c'est une route non-essentielle
   if (config.skipNonEssentialRoutes && nonEssentialRoutes.some(route => pathname.startsWith(route))) {
-    logger.debug('Skipping non-essential route during build', { pathname });
     return false;
   }
   
   // Optimiser les routes essentielles
   if (essentialRoutes.some(route => pathname.startsWith(route))) {
-    logger.debug('Optimizing essential route for build', { pathname });
     return true;
   }
   

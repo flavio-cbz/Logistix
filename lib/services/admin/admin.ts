@@ -1,5 +1,5 @@
 import { databaseService, generateId, getCurrentTimestamp } from "@/lib/services/database/db"
-import { hashPassword } from "@/lib/services/auth/auth"
+import { hashPasswordSync } from "@/lib/utils/crypto"
 import fs from "fs"
 import path from "path"
 import { SimpleLogger as Logger } from "@/lib/utils/logging";
@@ -36,7 +36,7 @@ export async function initializeAdmin(): Promise<void> {
       // Créer l'utilisateur admin s'il n'existe pas
       const id = generateId()
       const timestamp = getCurrentTimestamp()
-      const passwordHash = hashPassword(getAdminPassword())
+      const passwordHash = hashPasswordSync(getAdminPassword())
 
       await databaseService.execute(
         `INSERT INTO users (id, username, email, password_hash, created_at, updated_at)
@@ -62,7 +62,7 @@ export async function isAdminUsingDefaultPassword(): Promise<boolean> {
       return false // L'utilisateur admin n'existe pas
     }
 
-    const defaultPasswordHash = hashPassword(DEFAULT_ADMIN_PASSWORD)
+    const defaultPasswordHash = hashPasswordSync(DEFAULT_ADMIN_PASSWORD)
     return adminUser.password_hash === defaultPasswordHash
   } catch (error) {
     logger.error(
@@ -135,7 +135,7 @@ export async function getUsers() {
 // Fonction pour réinitialiser le mot de passe d'un utilisateur
 export async function resetUserPassword(userId: string, newPassword: string): Promise<boolean> {
   try {
-    const passwordHash = hashPassword(newPassword)
+    const passwordHash = hashPasswordSync(newPassword)
     const timestamp = getCurrentTimestamp()
 
     await databaseService.execute(

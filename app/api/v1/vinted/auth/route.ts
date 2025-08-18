@@ -1,15 +1,15 @@
-// API d’authentification Vinted : POST pour stocker le cookie, GET pour valider/rafraîchir le token
+// API d'authentification Vinted : POST pour stocker le cookie, GET pour valider/rafraîchir le token
 
 import { NextRequest, NextResponse } from 'next/server';
-import { vintedCredentialService } from '@/lib/services/auth/vinted-credential-service';
 import { VintedAuthService } from '@/lib/services/auth/vinted-auth-service';
 import { databaseService } from '@/lib/services/database/db'; // Utiliser databaseService pour les requêtes brutes
 import { db } from '@/lib/services/database/drizzle-client';
 import { vintedSessions } from '@/lib/services/database/drizzle-schema';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
+import { getLogger } from '@/lib/utils/logging/simple-logger';
 
-// POST : stocke le cookie/token Vinted fourni par l’utilisateur
+// POST : stocke le cookie/token Vinted fourni par l'utilisateur
 export async function POST(req: NextRequest) {
   try {
     const { cookie } = await req.json();
@@ -27,9 +27,7 @@ export async function POST(req: NextRequest) {
     }
     const userId = adminUser.id;
 
-    // Chiffre et stocke le cookie en base (remplace l’existant)
-    const encrypted = await vintedCredentialService.encrypt(cookie);
-
+    // Stocke le cookie en clair en base (remplace l'existant)
     // Génère les champs obligatoires
     const now = new Date().toISOString();
     const uuid = crypto.randomUUID();
@@ -39,7 +37,7 @@ export async function POST(req: NextRequest) {
       .values({
         id: uuid,
         userId,
-        session_cookie: encrypted,
+        sessionCookie: cookie, // Stockage en clair
         status: 'active',
         createdAt: now,
         updatedAt: now,
@@ -47,7 +45,7 @@ export async function POST(req: NextRequest) {
       .onConflictDoUpdate({
         target: vintedSessions.userId,
         set: {
-          session_cookie: encrypted,
+          sessionCookie: cookie, // Stockage en clair
           status: 'active',
           updatedAt: now,
         },
@@ -55,21 +53,25 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('[VINTED AUTH POST] Erreur détaillée :', err);
-    return NextResponse.json({ error: 'Erreur lors de l’enregistrement du cookie.', details: err instanceof Error ? err.message : String(err) }, { status: 500 });
+    const logger = getLogger('VintedAuth');
+    logger.error('Erreur lors de l\'enregistrement du cookie Vinted', err);
+    return NextResponse.json({ 
+      error: 'Erreur lors de l\'enregistrement du cookie.', 
+      details: err instanceof Error ? err.message : String(err) 
+    }, { status: 500 });
   }
 }
 
-// GET : vérifie/rafraîchit le token et retourne l’état d’authentification
+// GET : vérifie/rafraîchit le token et retourne l'état d'authentification
 export async function GET() {
   try {
-    // Récupère le cookie chiffré en base
+    // Récupère le cookie en clair depuis la base
     const session = await db.select().from(vintedSessions).limit(1);
-    if (!session[0]?.session_cookie) {
+    if (!session[0]?.sessionCookie) {
       return NextResponse.json({ authenticated: false, error: 'Aucun cookie Vinted enregistré.' }, { status: 401 });
     }
     
-    const cookie = await vintedCredentialService.decrypt(session[0].session_cookie);
+    const cookie = session[0].sessionCookie; // Plus de déchiffrement
 
     // Vérifie la validité du token
     const authService = new VintedAuthService(cookie);
@@ -82,7 +84,7 @@ export async function GET() {
     }
     
 
-    // Extraction du token access_token_web pour l’exposer dans la réponse
+    // Extraction du token access_token_web pour l'exposer dans la réponse
     const accessToken = VintedAuthService.extractAccessTokenFromCookie(cookie);
     return NextResponse.json({
       authenticated: valid || !!tokens,

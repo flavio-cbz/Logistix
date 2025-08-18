@@ -169,7 +169,7 @@ async function metricsHandler(request: NextRequest): Promise<NextResponse> {
     const monitoringMetrics = analyzeLogData(monitoringLogs, 'monitoring');
 
     // Obtenir les statistiques actuelles
-    const poolStatus = databaseService.getPoolStatus();
+
     const memoryUsage = process.memoryUsage();
 
     // Créer les métriques de pool de connexions
@@ -183,7 +183,7 @@ async function metricsHandler(request: NextRequest): Promise<NextResponse> {
       activeConnections: monitoringMetrics.map(m => ({
         timestamp: m.timestamp,
         value: m.value,
-        metadata: m.metadata
+        metadata: m.metadata ?? {}
       })),
       queueLength: monitoringMetrics.map(m => ({
         timestamp: m.timestamp,
@@ -214,12 +214,12 @@ async function metricsHandler(request: NextRequest): Promise<NextResponse> {
       errorRate: errorMetrics.map(m => ({
         timestamp: m.timestamp,
         value: m.value,
-        metadata: m.metadata
+        metadata: m.metadata ?? {}
       })),
       lockEvents: lockMetrics.map(m => ({
         timestamp: m.timestamp,
         value: m.value,
-        metadata: m.metadata
+        metadata: m.metadata ?? {}
       })),
       throughput: [] as TimeSeriesMetric[] // Calculé par intervalles de temps
     };
@@ -289,7 +289,7 @@ async function metricsHandler(request: NextRequest): Promise<NextResponse> {
         parameters: {
           limit,
           timeRange,
-          requestedBy: user.username
+          requestedBy: user?.username ?? ''
         }
       }
     });

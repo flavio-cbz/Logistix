@@ -1,19 +1,18 @@
-import type { Metadata, Viewport } from "next"
+"use client";
 
-export const metadata: Metadata = {
-  title: "Analyse de Marché",
-  description: "Analysez les prix du marché, la concurrence et obtenez des recommandations de prix optimaux.",
-}
- 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-}
+import { useEffect } from "react";
+import { AccessibilityProvider } from "@/lib/contexts/accessibility-context";
+import { checkVintedTokenStatus } from "@/lib/services/market-analysis";
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function AnalyseMarcheLayout({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    // Vérifie le statut du token Vinted au chargement de la section d'analyse de marché.
+    checkVintedTokenStatus();
+  }, []);
+
   return (
-    <>
+    <AccessibilityProvider>
       {children}
-    </>
-  )
+    </AccessibilityProvider>
+  );
 }

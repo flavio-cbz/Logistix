@@ -1,0 +1,102 @@
+name: Production Monitoring
+
+on:
+  schedule:
+    # Run every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  PRODUCTION_URL: ${{ secrets.PRODUCTION_URL || 'https://logistix.example.com' }}
+
+jobs:
+  synthetic-tests:
+    name: Synthetic Production Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run synthetic tests
+        env:
+          BASE_URL: ${{ env.PRODUCTION_URL }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: |
+          npx playwright test --config=playwright.synthetic.config.ts
+
+      - name: Check API health
+        run: |
+          curl -f ${{ env.PRODUCTION_URL }}/api/v1/health || exit 1
+          curl -f ${{ env.PRODUCTION_URL }}/api/v1/status || exit 1
+
+      - name: Performance monitoring
+        run: |
+          npm run perf:audit -- --chrome-flags="--headless" --url=${{ env.PRODUCTION_URL }}
+
+      - name: Upload monitoring results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitoring-results-${{ github.run_number }}
+          path: |
+            playwright-report/
+            performance-report.html
+            test-results/
+
+      - name: Alert on failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: 'Production monitoring detected issues. Immediate attention required.'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  database-health:
+    name: Database Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run database health checks
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          node scripts/database-health-check.js
+
+      - name: Check backup status
+        run: |
+          node scripts/verify-backups.js
+
+      - name: Alert on database issues
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: 'Database health check failed. Database issues detected.'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

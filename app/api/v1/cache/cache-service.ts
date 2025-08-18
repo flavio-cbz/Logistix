@@ -2,14 +2,9 @@ import { databaseService } from "@/lib/services/database/db";
 // Simple logger disabled
 // import { Logger } from "@/lib/utils/logging/simple-logger";
 
-// Simple logger disabled
-const logger = { 
-  log: console.log, 
-  error: console.error, 
-  warn: console.warn,
-  info: console.log,
-  debug: console.log
-};
+import { getLogger } from '@/lib/utils/logging/simple-logger';
+
+const logger = getLogger('CacheService');
 
 interface CacheEntry {
   key: string;

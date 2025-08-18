@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { vintedSessionManager } from "@/lib/services/auth/vinted-session-manager"
 import { createNonDatabaseHandler } from "@/lib/utils/api-route-optimization"
+import { formatApiError } from "@/lib/utils/error-handler";
 import { checkDatabaseStatus } from "@/lib/middlewares/database-initialization"
 import { databaseService } from "@/lib/services/database/db"
 
-async function healthHandler(request: NextRequest): Promise<NextResponse> {
+async function healthHandler(): Promise<NextResponse> {
   const startTime = Date.now();
   
   try {
@@ -97,13 +98,16 @@ async function healthHandler(request: NextRequest): Promise<NextResponse> {
     const responseTime = Date.now() - startTime;
     
     return NextResponse.json(
-      {
-        status: "error",
-        error: "HEALTH_CHECK_FAILED",
-        message: error instanceof Error ? error.message : "Health check failed",
-        responseTime,
-        timestamp: new Date().toISOString(),
-      },
+      formatApiError(
+        error,
+        {
+          status: "error",
+          code: "HEALTH_CHECK_FAILED",
+          message: "Health check failed",
+          responseTime,
+          timestamp: new Date().toISOString()
+        }
+      ),
       { status: 500 }
     );
   }

@@ -40,7 +40,7 @@ export class MarketAnalysisErrorBoundary extends React.Component<
     }
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('[MarketAnalysisErrorBoundary] Erreur capturée:', error, errorInfo)
     
     if (this.props.onError) {
@@ -56,7 +56,7 @@ export class MarketAnalysisErrorBoundary extends React.Component<
     })
   }
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
         const FallbackComponent = this.props.fallback

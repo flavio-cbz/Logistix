@@ -42,7 +42,6 @@ export class SimpleLogger {
 
   debug(message: string, ...args: any[]): void {
     if (LOG_LEVEL >= LogLevel.DEBUG) {
-      console.debug(this.formatMessage('DEBUG', message, ...args))
     }
   }
 }

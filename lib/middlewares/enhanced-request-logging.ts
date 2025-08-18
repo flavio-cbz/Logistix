@@ -276,7 +276,6 @@ async function logRequestBody(request: NextRequest, logger: any): Promise<string
     
     // Skip logging for large payloads
     if (contentLength && contentLength > 10 * 1024) { // 10KB limit
-      logger.debug('Request body too large to log', { contentLength });
       return undefined;
     }
     
@@ -289,12 +288,9 @@ async function logRequestBody(request: NextRequest, logger: any): Promise<string
         try {
           const parsed = JSON.parse(body);
           const sanitized = sanitizeRequestBody(parsed);
-          logger.debug('Request body', { body: sanitized, contentType });
         } catch {
-          logger.debug('Request body (raw)', { body: body.substring(0, 500), contentType });
         }
       } else {
-        logger.debug('Request body', { body: body.substring(0, 500), contentType });
       }
       
       return body;
@@ -404,30 +400,45 @@ function logResponse(context: RequestContext, metrics: ResponseMetrics, logger: 
  * Log error response
  */
 function logError(context: RequestContext, metrics: ResponseMetrics, logger: any, timer: PerformanceTimer): void {
-  // Log to API request logger
-  apiRequestLogger.logError(
-    context.method,
-    context.pathname,
-    metrics.error!,
-    metrics.duration
-  );
-  
-  // End performance timer with error
-  timer.endWithError(metrics.error!, {
-    statusCode: metrics.statusCode,
-    ip: context.ip,
-    userAgent: context.userAgent
-  });
-  
+  // Ensure we have an Error object to avoid runtime issues
+  const err: Error = metrics.error ?? new Error('Unknown error');
+
+  // Log to API request logger (guarded)
+  try {
+    apiRequestLogger.logError(
+      context.method,
+      context.pathname,
+      err,
+      metrics.duration
+    );
+  } catch {
+    // swallow logger errors to avoid masking the original error
+  }
+
+  // End performance timer with error (guarded)
+  try {
+    timer.endWithError(err, {
+      statusCode: metrics.statusCode,
+      ip: context.ip,
+      userAgent: context.userAgent
+    });
+  } catch {
+    // ignore timer failures
+  }
+
   // Log error details
-  logger.error(`${context.method} ${context.pathname} - ERROR`, metrics.error!, {
-    statusCode: metrics.statusCode,
-    duration: metrics.duration,
-    requestId: context.requestId,
-    url: context.url,
-    ip: context.ip,
-    userAgent: context.userAgent
-  });
+  try {
+    logger.error(`${context.method} ${context.pathname} - ERROR`, err, {
+      statusCode: metrics.statusCode,
+      duration: metrics.duration,
+      requestId: context.requestId,
+      url: context.url,
+      ip: context.ip,
+      userAgent: context.userAgent
+    });
+  } catch {
+    // final fallback: do nothing if logging fails
+  }
 }
 
 /**
@@ -443,11 +454,6 @@ export function withDatabaseOperationLogging<T extends any[], R>(
     const logger = createRequestLogger(uuidv4());
 
     try {
-      logger.debug(`Starting database operation: ${serviceName}.${operation}`, {
-        service: serviceName,
-        operation,
-        argsCount: args.length
-      });
 
       const result = await fn(...args);
 
@@ -458,11 +464,6 @@ export function withDatabaseOperationLogging<T extends any[], R>(
         resultType: typeof result
       });
 
-      logger.debug(`Database operation completed: ${serviceName}.${operation}`, {
-        service: serviceName,
-        operation,
-        success: true
-      });
 
       return result;
     } catch (error) {
@@ -499,11 +500,6 @@ export function logServiceMethod<T extends any[], R>(
       const logger = createRequestLogger(uuidv4());
 
       try {
-        logger.debug(`Starting service method: ${serviceName}.${methodName}`, {
-          service: serviceName,
-          method: methodName,
-          argsCount: args.length
-        });
 
         const result = await originalMethod.apply(this, args);
 
@@ -514,11 +510,6 @@ export function logServiceMethod<T extends any[], R>(
           resultType: typeof result
         });
 
-        logger.debug(`Service method completed: ${serviceName}.${methodName}`, {
-          service: serviceName,
-          method: methodName,
-          success: true
-        });
 
         return result;
       } catch (error) {

@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { useStore } from "@/store/store"
+import { useStore } from "@/lib/services/admin/store"
 import { useToast } from "@/components/ui/use-toast"
 import { Download, Upload, Database } from "lucide-react"
 

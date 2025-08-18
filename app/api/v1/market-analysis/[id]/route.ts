@@ -11,7 +11,7 @@ import {
 } from "@/lib/utils/validation"
 
 // GET /api/v1/market-analysis/{task_id} : Statut et résultat d'une analyse
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     // Authentication check with detailed error handling
     const user = await getSessionUser()
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE /api/v1/market-analysis/{task_id} : Supprimer une analyse
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE({ params }: { params: { id: string } }) {
   try {
     // Authentication check with detailed error handling
     const user = await getSessionUser()

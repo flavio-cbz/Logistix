@@ -21,7 +21,7 @@ export default function DebugPage() {
       const data = await response.json()
       setSessionData(data)
     } catch (error) {
-      console.error("Erreur lors de la récupération des données de session:", error)
+      setSessionData({ error: "Erreur lors de la récupération des données de session" })
     } finally {
       setLoading((prev) => ({ ...prev, session: false }))
     }
@@ -34,7 +34,7 @@ export default function DebugPage() {
       const data = await response.json()
       setDatabaseData(data)
     } catch (error) {
-      console.error("Erreur lors de la récupération des données de base de données:", error)
+      setDatabaseData({ error: "Erreur lors de la récupération des données de base de données" })
     } finally {
       setLoading((prev) => ({ ...prev, database: false }))
     }
@@ -47,7 +47,7 @@ export default function DebugPage() {
       const data = await response.json()
       setCookiesData(data)
     } catch (error) {
-      console.error("Erreur lors de la récupération des données de cookies:", error)
+      setCookiesData({ error: "Erreur lors de la récupération des données de cookies" })
     } finally {
       setLoading((prev) => ({ ...prev, cookies: false }))
     }

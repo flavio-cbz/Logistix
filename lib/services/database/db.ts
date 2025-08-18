@@ -2,7 +2,7 @@ import 'server-only';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { randomUUID, createHash } from 'crypto';
+import { randomUUID } from 'crypto';
 import { DatabaseConnectionPoolImpl } from './connection-pool';
 import { DatabaseInitializationManagerImpl } from './initialization-manager';
 import { RequestType, RequestPriority } from './queue-manager';
@@ -16,7 +16,6 @@ const logger = {
   info: (message: string, ...args: any[]) => {
     // Seulement les messages importants en développement
     if (typeof console !== 'undefined' && process.env.NODE_ENV === 'production') {
-      console.log(`[DB] ${message}`, ...args);
     }
   },
   warn: (message: string, ...args: any[]) => {
@@ -32,7 +31,6 @@ const logger = {
   debug: (message: string, ...args: any[]) => {
     // Complètement silencieux en développement
     if (typeof console !== 'undefined' && process.env.NODE_ENV === 'production') {
-      console.debug(`[DB] ${message}`, ...args);
     }
   },
 };
@@ -288,7 +286,7 @@ class DatabaseService {
    * @deprecated Utiliser les méthodes query, execute, transaction à la place
    */
   public get db(): Database.Database {
-    logger.warn('Direct database access is deprecated. Use query, execute, or transaction methods instead.');
+    logger.warn('Direct database access is deprecated. Use databaseService.query, execute, or transaction methods instead.');
     throw new Error('Direct database access is not available with connection pool. Use query, execute, or transaction methods.');
   }
 }
@@ -359,14 +357,14 @@ export function generateId(): string {
 }
 
 /**
- * Hache un mot de passe en utilisant SHA-256.
- * NOTE : Pour une sécurité accrue, envisagez d'utiliser bcrypt ou scrypt avec un salt.
+ * Hache un mot de passe en utilisant bcrypt via la fonction centralisée.
  * @param password - Le mot de passe à hacher.
  * @returns {string} Le hash du mot de passe.
  */
+import { hashPasswordSync } from '../../utils/crypto';
 export function hashPassword(password: string): string {
     
-    return createHash('sha256').update(password).digest('hex');
+    return hashPasswordSync(password);
 }
 
 

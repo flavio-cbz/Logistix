@@ -19,7 +19,7 @@ import { Parcelle } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { PencilIcon, Trash2Icon, CopyIcon } from "lucide-react";
 import { useDuplicateEntity } from "@/lib/utils/duplication";
-import { useStore } from "@/store/store"; // Correction: chemin vers le store
+import { useStore } from "@/lib/services/admin/store";
 import { useState } from "react";
 import {
   Dialog,
@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import ParcelleForm from "@/components/features/parcelles/parcelle-form"; // Correction: import par défaut
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface ParcellesTableProps {
   parcelles: Parcelle[];
@@ -38,13 +39,14 @@ export function ParcellesTable({ parcelles }: ParcellesTableProps) {
   const { duplicateEntity } = useDuplicateEntity<Parcelle>();
   const [editingParcelle, setEditingParcelle] = useState<Parcelle | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleDuplicate = (parcelle: Parcelle) => {
     duplicateEntity({
       entity: parcelle,
       transform: (p) => ({
         ...p,
-        numero: `${p.numero}-copie`, // Exemple: ajouter "-copie" au numéro
+        numero: `${p.numero ?? ""}-copie`, // Exemple: ajouter "-copie" au numéro
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }),
@@ -58,10 +60,9 @@ export function ParcellesTable({ parcelles }: ParcellesTableProps) {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cette parcelle ?")) {
-      await deleteParcelle(id);
-    }
+  const handleDeleteConfirm = async (id: string) => {
+    await deleteParcelle(id);
+    setDeleteId(null);
   };
 
   const handleFormClose = () => {
@@ -100,12 +101,12 @@ export function ParcellesTable({ parcelles }: ParcellesTableProps) {
               parcelles.map((parcelle) => (
                 <TableRow key={parcelle.id}>
                   <TableCell className="font-medium">
-                    {parcelle.numero}
+                    {parcelle.numero ?? ""}
                   </TableCell>
-                  <TableCell>{parcelle.transporteur}</TableCell>
-                  <TableCell>{parcelle.poids}</TableCell>
-                  <TableCell>{parcelle.prixAchat.toFixed(2)}</TableCell>
-                  <TableCell>{parcelle.prixParGramme.toFixed(2)}</TableCell>
+                  <TableCell>{parcelle.transporteur ?? "N/A"}</TableCell>
+                  <TableCell>{parcelle.poids ?? 0}</TableCell>
+                  <TableCell>{(parcelle.prixAchat ?? 0).toFixed(2)}</TableCell>
+                  <TableCell>{(parcelle.prixParGramme ?? 0).toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
@@ -126,7 +127,7 @@ export function ParcellesTable({ parcelles }: ParcellesTableProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(parcelle.id)}
+                      onClick={() => setDeleteId(parcelle.id)}
                     >
                       <Trash2Icon className="h-4 w-4" />
                     </Button>
@@ -153,6 +154,14 @@ export function ParcellesTable({ parcelles }: ParcellesTableProps) {
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={() => setDeleteId(null)}
+        onConfirm={() => deleteId && handleDeleteConfirm(deleteId)}
+        title="Supprimer la parcelle"
+        description="Êtes-vous sûr de vouloir supprimer cette parcelle ? Cette action est irréversible."
+      />
     </Card>
   );
 }

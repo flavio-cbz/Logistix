@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { AnimatedButton } from "@/components/ui/animated-button"
 import { Loader2, LogOut, User } from "lucide-react"
 import Link from "next/link"
 import {
@@ -59,21 +59,34 @@ export function AuthButton({ user, loading = false }: AuthButtonProps) {
 
   if (loading) {
     return (
-      <Button variant="ghost" size="sm" disabled>
+      <AnimatedButton variant="ghost" size="sm" disabled loading={true}>
         <Loader2 className="h-4 w-4 animate-spin" />
-      </Button>
+      </AnimatedButton>
     )
   }
 
   if (!user) {
     return (
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" asChild>
+        <AnimatedButton 
+          variant="ghost" 
+          size="sm" 
+          asChild
+          ripple={true}
+          haptic={true}
+          screenReaderDescription="Aller à la page de connexion"
+        >
           <Link href="/login">Se connecter</Link>
-        </Button>
-        <Button size="sm" asChild>
+        </AnimatedButton>
+        <AnimatedButton 
+          size="sm" 
+          asChild
+          ripple={true}
+          haptic={true}
+          screenReaderDescription="Aller à la page d'inscription"
+        >
           <Link href="/signup">S'inscrire</Link>
-        </Button>
+        </AnimatedButton>
       </div>
     )
   }
@@ -81,10 +94,17 @@ export function AuthButton({ user, loading = false }: AuthButtonProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="flex items-center gap-2">
+        <AnimatedButton 
+          variant="ghost" 
+          size="sm" 
+          className="flex items-center gap-2"
+          ripple={true}
+          haptic={true}
+          screenReaderDescription="Ouvrir le menu utilisateur"
+        >
           <User className="h-4 w-4" />
           <span className="hidden md:inline">{user.username}</span>
-        </Button>
+        </AnimatedButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Mon compte</DropdownMenuLabel>

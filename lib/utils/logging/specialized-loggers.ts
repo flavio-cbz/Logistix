@@ -60,7 +60,6 @@ export function createRequestLogger(requestId: string, userId?: string): ILogger
       logger.verbose(message, { ...meta, requestId, userId });
     },
     debug: (message: string, meta?: Record<string, any>) => {
-      logger.debug(message, { ...meta, requestId, userId });
     },
     silly: (message: string, meta?: Record<string, any>) => {
       logger.silly(message, { ...meta, requestId, userId });

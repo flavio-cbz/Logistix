@@ -1,10 +1,10 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
-import { motion } from "framer-motion"
-import { DollarSign, Package, TrendingUp, Users, FileText, FileSpreadsheet } from "lucide-react" // Import des icônes
+import { Suspense, useEffect, useState, useMemo } from "react"
+import { motion, useReducedMotion } from "framer-motion"
+import { DollarSign, Package, TrendingUp, Users, FileText, FileSpreadsheet } from "lucide-react"
 import { CardStats } from "@/components/ui/card-stats"
-import { useStore } from "@/store/store"
+import { useStore } from "@/lib/services/admin/store"
 import { ProduitsTable } from "../../../components/features/statistiques/produits-table"
 import { ParcellesTable } from "../../../components/features/statistiques/parcelles-table"
 import { RoiTable } from "@/components/features/statistiques/roi-table"
@@ -13,11 +13,11 @@ import { HeatmapChart } from "@/components/features/statistiques/heatmap-chart"
 import { PlateformesRentabiliteTable } from "@/components/features/statistiques/plateformes-rentabilite-table"
 import { RadarChart } from "@/components/features/statistiques/radar-chart"
 import { TendancesSaisonnieresTable } from "@/components/features/statistiques/tendances-saisonnieres-table"
-import { TrendChart } from "@/components/features/statistiques/trend-chart"
+import dynamic from "next/dynamic"
+const TrendChart = dynamic(() => import("@/components/features/statistiques/trend-chart").then(mod => mod.TrendChart), { ssr: false })
 import { PrevisionsVentesTable } from "@/components/features/statistiques/previsions-ventes-table"
-import { Button } from "@/components/ui/button" // Import du composant Button
+import { Button } from "@/components/ui/button"
 
-// Composant de chargement amélioré
 function LoadingComponent() {
   return (
     <div className="h-[300px] w-full flex items-center justify-center">
@@ -29,26 +29,62 @@ function LoadingComponent() {
   )
 }
 
+type AnimatedItemProps = {
+  children: React.ReactNode
+  delay?: number
+}
+
+const fadeUpVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+}
+
+function AnimatedItem({ children, delay = 0 }: AnimatedItemProps) {
+  const reduce = useReducedMotion()
+  if (reduce) return <div>{children}</div>
+
+  return (
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={fadeUpVariants}
+      transition={{ duration: 0.5, delay }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 export default function StatistiquesPage() {
   const { parcelles, produits, initializeStore } = useStore()
   const [advancedStats, setAdvancedStats] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true)
+      setError(null)
       try {
         await initializeStore()
         
         const response = await fetch("/api/v1/statistiques")
         if (!response.ok) {
-          throw new Error("Erreur lors de la récupération des statistiques avancées")
+          if (response.status === 401) {
+            window.location.href = "/login"
+            return
+          }
+          const errorData = await response.json().catch(() => ({}))
+          const message = errorData?.message || "Erreur lors de la récupération des statistiques avancées"
+          setError(message)
+          return
         }
         const data = await response.json()
         setAdvancedStats(data)
 
-      } catch (error) {
-        console.error(error)
+      } catch (err: any) {
+        console.error(err)
+        setError(err?.message || "Erreur inattendue lors du chargement des statistiques")
       } finally {
         setIsLoading(false)
       }
@@ -81,7 +117,7 @@ export default function StatistiquesPage() {
     }
   };
 
-  if (isLoading || !advancedStats) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <motion.div
@@ -101,10 +137,32 @@ export default function StatistiquesPage() {
     )
   }
 
-  const produitsVendusData = produits
-    .filter((p) => p.vendu && p.prixVente && p.benefices)
-    .sort((a, b) => (b.benefices || 0) - (a.benefices || 0))
-    .slice(0, 5)
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <div className="text-center">
+          <p className="text-red-500 mb-2">Erreur : {error}</p>
+          <Button onClick={() => { setError(null); setIsLoading(true); (async ()=>{ await initializeStore(); setIsLoading(false) })(); }} variant="outline">Réessayer</Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!advancedStats) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <p className="text-muted-foreground">Aucune statistique disponible.</p>
+      </div>
+    )
+  }
+
+  const produitsVendusData = useMemo(() => {
+    if (!Array.isArray(produits)) return []
+    return produits
+      .filter((p) => p?.vendu && p?.prixVente != null && p?.benefices != null)
+      .sort((a, b) => (b.benefices || 0) - (a.benefices || 0))
+      .slice(0, 5)
+  }, [produits])
 
   return (
     <div className="space-y-6">
@@ -210,18 +268,17 @@ export default function StatistiquesPage() {
          <PrevisionsVentesTable data={advancedStats.previsionsVentes} />
       </motion.div>
 
-      {/* Tables existantes */}
       <div className="grid gap-4 md:grid-cols-2">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.0 }}>
+        <AnimatedItem delay={1.0}>
           <Suspense fallback={<LoadingComponent />}>
             <ProduitsTable produits={produitsVendusData} />
           </Suspense>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.1 }}>
+        </AnimatedItem>
+        <AnimatedItem delay={1.1}>
           <Suspense fallback={<LoadingComponent />}>
-            <ParcellesTable parcelles={parcelles} />
+            <ParcellesTable parcelles={Array.isArray(parcelles) ? parcelles : []} />
           </Suspense>
-        </motion.div>
+        </AnimatedItem>
       </div>
     </div>
   )

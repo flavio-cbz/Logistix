@@ -1,0 +1,3180 @@
+{
+  "timestamp": "2025-08-17T21:08:20.237Z",
+  "modifiedFiles": [
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\(dashboard)\\profile\\page.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\admin\\ai-cache\\clear\\route.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\admin\\ai-cache-stats\\route.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\ai-models\\route.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\auth\\login\\route.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\database\\health-check\\route.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\database\\metrics\\route.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\database\\monitoring\\route.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\database\\pool-status\\route.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\health\\route.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\metadata\\route.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\parcelles\\route.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\vinted\\category-filters\\route.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\vinted\\test-token\\route.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\login\\page.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\chunks\\5705.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\chunks\\6747.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\chunks\\6792.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\chunks\\9221.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\chunks\\9276.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\chunks\\9968.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\132-00c792c5e7554a96.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\862-dab3c8631e51955c.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\app\\(dashboard)\\analyse-marche\\layout-bd59546392421ecd.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\app\\(dashboard)\\dashboard\\page-61d9347ae9e9873c.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\app\\(dashboard)\\profile\\page-f72dd738b9785126.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\app\\login\\page-0ba49aff1ecddf0b.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\vendors-9881f86c79b67399.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\app\\api\\ai-models\\route.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\auth\\login-form.tsx",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\auth\\profile-form.tsx",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\charts\\chart-showcase.tsx",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\features\\admin\\data-explorer.tsx",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\features\\profile\\ai-monitoring-dashboard.tsx",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\config\\database-pool.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\database-initialization.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\enhanced-request-logging.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\request-logging.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\actions.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\admin\\store.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-fallback-service.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-insights-cache.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-metrics-collector.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-quality-assessor.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\memory-cache.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\cache-manager.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\connection-pool.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\database-logger.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\db.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\enhanced-database-service.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\enhanced-query-logging.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\error-handler.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\initialization-manager.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\queue-manager.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\retry-manager.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\logging-instrumentation.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\market-analysis\\similar-sales-service.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\scheduler\\cron-scheduler.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-token.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\error-handler.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\session-manager.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\test-controller-validation.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\validation-monitor.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\api-route-optimization.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\build-optimization.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\logging\\logger.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\logging\\simple-logger.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\logging\\specialized-loggers.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\audit-slow-queries.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\init-synonyms.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\sync-metadata.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\deep_iterative_analyze.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\iterative_analyze.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\backup.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\create-admin-user.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\migrate.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\restore.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\remove-debug-logs.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\update-inventory-batch12.js",
+    "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\update-inventory.js"
+  ],
+  "examples": [
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\(dashboard)\\profile\\page.js",
+      "snippet": "Defaulting to \\`null\\`.`));let d=k(a,c)?a:null,f=N(d)?l(d,c):void 0;return(0,n.jsx)(g,{scope:o,value:d,max:c,children:(0,n.jsx)(v.WV.div,{\"aria-valuemax\":c,\"aria-valuemin\":0,\"aria-valuenow\":N(d)?d:voi"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\admin\\ai-cache\\clear\\route.js",
+      "snippet": "      `,[JSON.stringify(e)])}catch(e){throw console.error(\"Erreur lors de la sauvegarde des param\\xe8tres AI:\",e),Error(\"Impossible de sauvegarder les param\\xe8tres\")}}notifyListeners(){this.listeners"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\admin\\ai-cache-stats\\route.js",
+      "snippet": "      `,[JSON.stringify(e)])}catch(e){throw console.error(\"Erreur lors de la sauvegarde des param\\xe8tres AI:\",e),Error(\"Impossible de sauvegarder les param\\xe8tres\")}}notifyListeners(){this.listeners"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\ai-models\\route.js",
+      "snippet": "\"use strict\";(()=>{var e={};e.id=5090,e.ids=[5090],e.modules={20399:e=>{e.exports=require(\"next/dist/compiled/next-server/app-page.runtime.prod.js\")},30517:e=>{e.exports=require(\"next/dist/compiled/ne"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\auth\\login\\route.js",
+      "snippet": "\"use strict\";(()=>{var e={};e.id=2485,e.ids=[2485,4084],e.modules={67096:e=>{e.exports=require(\"bcrypt\")},85890:e=>{e.exports=require(\"better-sqlite3\")},72934:e=>{e.exports=require(\"next/dist/client/c"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\database\\health-check\\route.js",
+      "snippet": "\"use strict\";(()=>{var e={};e.id=6979,e.ids=[6979],e.modules={67096:e=>{e.exports=require(\"bcrypt\")},85890:e=>{e.exports=require(\"better-sqlite3\")},20399:e=>{e.exports=require(\"next/dist/compiled/next"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\database\\metrics\\route.js",
+      "snippet": "\"use strict\";(()=>{var e={};e.id=7880,e.ids=[7880],e.modules={67096:e=>{e.exports=require(\"bcrypt\")},85890:e=>{e.exports=require(\"better-sqlite3\")},72934:e=>{e.exports=require(\"next/dist/client/compon"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\database\\monitoring\\route.js",
+      "snippet": "\"use strict\";(()=>{var e={};e.id=5193,e.ids=[5193,4084],e.modules={67096:e=>{e.exports=require(\"bcrypt\")},85890:e=>{e.exports=require(\"better-sqlite3\")},72934:e=>{e.exports=require(\"next/dist/client/c"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\database\\pool-status\\route.js",
+      "snippet": "\"use strict\";(()=>{var e={};e.id=176,e.ids=[176,4084],e.modules={67096:e=>{e.exports=require(\"bcrypt\")},85890:e=>{e.exports=require(\"better-sqlite3\")},72934:e=>{e.exports=require(\"next/dist/client/com"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\health\\route.js",
+      "snippet": "\"use strict\";(()=>{var e={};e.id=7833,e.ids=[7833,1518],e.modules={67096:e=>{e.exports=require(\"bcrypt\")},85890:e=>{e.exports=require(\"better-sqlite3\")},20399:e=>{e.exports=require(\"next/dist/compiled"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\metadata\\route.js",
+      "snippet": "\"use strict\";(()=>{var e={};e.id=1045,e.ids=[1045],e.modules={67096:e=>{e.exports=require(\"bcrypt\")},85890:e=>{e.exports=require(\"better-sqlite3\")},72934:e=>{e.exports=require(\"next/dist/client/compon"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\parcelles\\route.js",
+      "snippet": "        `,[s.numero,s.transporteur,s.prixAchat,s.poids,a,i,e,r,t.id],\"update_parcelle\");if(0===u.changes)return o.NextResponse.json({success:!1,message:\"Parcelle non trouv\\xe9e ou non autoris\\xe9e\"},{"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\vinted\\category-filters\\route.js",
+      "snippet": "Stack: ${s.stack}`)),i}log(e,t,r,a){let s=\"string\"==typeof t?o(t):t,i=r?o(r):r,n=a;if(a&&a.message){let e=Error(o(a.message));a.stack&&this.isDevelopment&&(e.stack=a.stack),n=e}let l={level:e,message:"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\api\\v1\\vinted\\test-token\\route.js",
+      "snippet": "Stack: ${o.stack}`)),a}log(e,t,r,s){let o=\"string\"==typeof t?n(t):t,a=r?n(r):r,i=s;if(s&&s.message){let e=Error(n(s.message));s.stack&&this.isDevelopment&&(e.stack=s.stack),i=e}let u={level:e,message:"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\app\\login\\page.js",
+      "snippet": "(()=>{var e={};e.id=2626,e.ids=[2626],e.modules={72934:e=>{\"use strict\";e.exports=require(\"next/dist/client/components/action-async-storage.external.js\")},54580:e=>{\"use strict\";e.exports=require(\"nex"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\chunks\\5705.js",
+      "snippet": "\"use strict\";exports.id=5705,exports.ids=[5705],exports.modules={20569:(e,t,i)=>{i.d(t,{t:()=>eT});var s=i(85890),r=i(19326);class n{static [r.Q]=\"ConsoleLogWriter\";write(e){console.log(e)}}class a{st"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\chunks\\6747.js",
+      "snippet": "\"use strict\";exports.id=6747,exports.ids=[6747],exports.modules={67626:(e,t,i)=>{i.d(t,{j:()=>a});var r=i(84770);class n{constructor(e){this.connectionLogs=[],this.lockLogs=[],this.errorLogs=[],this.m"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\chunks\\6792.js",
+      "snippet": "exports.id=6792,exports.ids=[6792],exports.modules={96896:e=>{e.exports={style:{fontFamily:\"'__Inter_e8ce0c', '__Inter_Fallback_e8ce0c'\",fontStyle:\"normal\"},className:\"__className_e8ce0c\"}},76557:(e,t"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\chunks\\9221.js",
+      "snippet": "\"use strict\";exports.id=9221,exports.ids=[9221],exports.modules={8664:(e,t,a)=>{a.d(t,{w:()=>p});var r=a(10326),i=a(17577),s=a(34214),o=a(79360),n=a(95548),d=a(75290),l=a(32933),c=a(63775);let u=(0,o."
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\chunks\\9276.js",
+      "snippet": "exports.id=9276,exports.ids=[9276],exports.modules={57165:(e,t,r)=>{\"use strict\";r.r(t),r.d(t,{DiagConsoleLogger:()=>D,DiagLogLevel:()=>n,INVALID_SPANID:()=>ed,INVALID_SPAN_CONTEXT:()=>ef,INVALID_TRAC"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\server\\chunks\\9968.js",
+      "snippet": "\"use strict\";exports.id=9968,exports.ids=[9968],exports.modules={73030:(e,s,r)=>{r.d(s,{ProfileForm:()=>_});var t=r(10326),a=r(17577),n=r(74064),i=r(74723),l=r(770),o=r(90772),d=r(55632),u=r(54432),c="
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\132-00c792c5e7554a96.js",
+      "snippet": "\"use strict\";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[132],{35132:function(e,r,t){t.d(r,{ProfileForm:function(){return S}});var s=t(57437),a=t(2265),n=t(13590),l=t(29501),i=t(67119),o="
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\862-dab3c8631e51955c.js",
+      "snippet": "\"use strict\";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[862],{26110:function(e,t,a){a.d(t,{$N:function(){return m},Be:function(){return g},Vq:function(){return d},cZ:function(){return p}"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\app\\(dashboard)\\analyse-marche\\layout-bd59546392421ecd.js",
+      "snippet": "(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[251],{84840:function(e,t,i){Promise.resolve().then(i.bind(i,31556))},31556:function(e,t,i){\"use strict\";i.r(t),i.d(t,{default:function(){return"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\app\\(dashboard)\\dashboard\\page-61d9347ae9e9873c.js",
+      "snippet": "(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[903],{21464:function(e,t,i){Promise.resolve().then(i.bind(i,42866))},42866:function(e,t,i){\"use strict\";i.r(t),i.d(t,{default:function(){return"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\app\\(dashboard)\\profile\\page-f72dd738b9785126.js",
+      "snippet": "(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[688],{50241:function(e,s,t){Promise.resolve().then(t.bind(t,44238))},44238:function(e,s,t){\"use strict\";t.d(s,{ProfileClientWrapper:function(){"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\app\\login\\page-0ba49aff1ecddf0b.js",
+      "snippet": "(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[626],{6725:function(e,t,s){Promise.resolve().then(s.bind(s,35325)),Promise.resolve().then(s.bind(s,82688))},35325:function(e,t,s){\"use strict\";"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\.next\\static\\chunks\\vendors-9881f86c79b67399.js",
+      "snippet": "(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[216],{84878:function(e,t){\"use strict\";function n(){return\"\"}Object.defineProperty(t,\"__esModule\",{value:!0}),Object.defineProperty(t,\"getDeplo"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\app\\api\\ai-models\\route.ts",
+      "snippet": "    console.log(\"Fetching models from:\", normalizedEndpoint + \"models\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\app\\api\\ai-models\\route.ts",
+      "snippet": "    console.log(\"Received data:\", data)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\auth\\login-form.tsx",
+      "snippet": "      console.log(\"Tentative de connexion avec:\", {\\n        username,\\n        password: password ? \"***\" : \"non défini\",\\n      })"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\auth\\login-form.tsx",
+      "snippet": "      console.log(\"Résultat de la connexion:\", result)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\auth\\profile-form.tsx",
+      "snippet": "      console.log(\"Envoi des données de profil:\", { ...data, password: data.password ? \"***\" : undefined, avatar: avatarUrl })"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\auth\\profile-form.tsx",
+      "snippet": "      console.log(\"Réponse reçue:\", result)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\charts\\chart-showcase.tsx",
+      "snippet": "              console.log('Point cliqué:', point, index)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\charts\\chart-showcase.tsx",
+      "snippet": "              console.log('Intervalle cliqué:', bin)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\charts\\chart-showcase.tsx",
+      "snippet": "              console.log('Point de changement cliqué:', changePoint)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\charts\\chart-showcase.tsx",
+      "snippet": "              console.log('Comparaison sélectionnée:', comparison)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\features\\admin\\data-explorer.tsx",
+      "snippet": "      console.log(`Données chargées pour ${activeTable}:`, data)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\features\\profile\\ai-monitoring-dashboard.tsx",
+      "snippet": "                console.log('Clear cache requested')"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\components\\features\\profile\\ai-monitoring-dashboard.tsx",
+      "snippet": "                console.log('Export metrics requested')"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\config\\database-pool.ts",
+      "snippet": "    console.log('[DatabasePool] Configuration:', {\\n      environment: isBuild ? 'build' : (isProduction ? 'production' : 'development'),\\n      maxConnections: config.maxConnections,\\n      connectionTi"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\database-initialization.ts",
+      "snippet": "      console.log(`[DB-Middleware] ${message}`, data ? JSON.stringify(data) : '');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\database-initialization.ts",
+      "snippet": "      console.debug(`[DB-Middleware] ${message}`, data ? JSON.stringify(data) : '');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\database-initialization.ts",
+      "snippet": "      logger.debug('Database initialization skipped by configuration');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\database-initialization.ts",
+      "snippet": "      logger.debug('Database already initialized, proceeding with handler');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\database-initialization.ts",
+      "snippet": "      logger.debug('Route does not require database initialization', { pathname });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\enhanced-request-logging.ts",
+      "snippet": "      logger.debug('Request body too large to log', { contentLength });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\enhanced-request-logging.ts",
+      "snippet": "          logger.debug('Request body', { body: sanitized, contentType });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\enhanced-request-logging.ts",
+      "snippet": "          logger.debug('Request body (raw)', { body: body.substring(0, 500), contentType });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\enhanced-request-logging.ts",
+      "snippet": "        logger.debug('Request body', { body: body.substring(0, 500), contentType });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\enhanced-request-logging.ts",
+      "snippet": "      logger.debug(`Starting database operation: ${serviceName}.${operation}`, {\\n        service: serviceName,\\n        operation,\\n        argsCount: args.length\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\enhanced-request-logging.ts",
+      "snippet": "      logger.debug(`Database operation completed: ${serviceName}.${operation}`, {\\n        service: serviceName,\\n        operation,\\n        success: true\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\enhanced-request-logging.ts",
+      "snippet": "        logger.debug(`Starting service method: ${serviceName}.${methodName}`, {\\n          service: serviceName,\\n          method: methodName,\\n          argsCount: args.length\\n        });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\enhanced-request-logging.ts",
+      "snippet": "        logger.debug(`Service method completed: ${serviceName}.${methodName}`, {\\n          service: serviceName,\\n          method: methodName,\\n          success: true\\n        });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\request-logging.ts",
+      "snippet": "      logger.debug(`Starting database operation: ${operation}`, {\\n        operation,\\n        args: args.length\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\middlewares\\request-logging.ts",
+      "snippet": "      logger.debug(`Starting ${serviceName} operation: ${operationName}`, {\\n        service: serviceName,\\n        operation: operationName,\\n        args: args.length\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\actions.ts",
+      "snippet": "  console.log(\"Données reçues pour l'inscription:\", { username, password: \"***\" })"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\actions.ts",
+      "snippet": "    console.log(\"Données validées avec succès\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\actions.ts",
+      "snippet": "    console.log(\"Utilisateur créé avec succès:\", user.id)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\actions.ts",
+      "snippet": "    console.log(\"Session créée avec succès\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\actions.ts",
+      "snippet": "  console.log(\"Action signIn appelée.\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\actions.ts",
+      "snippet": "      console.log(\"Identifiants invalides\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\actions.ts",
+      "snippet": "    console.log(\"Utilisateur authentifié, création de session pour:\", user.id)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\actions.ts",
+      "snippet": "      console.log(\\n        \"Sessions existantes supprimées pour l'utilisateur:\",\\n        user.id,\\n        \"Nombre de sessions supprimées:\",\\n        result.changes,\\n      )"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\actions.ts",
+      "snippet": "      console.log(\"Session créée dans la base de données:\", sessionId)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\admin\\store.ts",
+      "snippet": "        console.log(\"DEBUG: Nouveau produit avant ajout au store:\", newProduit);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-fallback-service.ts",
+      "snippet": "      logger.debug('[AIFallback] Insights de base générés', {\\n        findingsCount: insights.keyFindings.length,\\n        confidence: insights.confidence,\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-fallback-service.ts",
+      "snippet": "      logger.debug('[AIFallback] Recommandations de base générées', {\\n        pricingCount: recommendations.pricing.length,\\n        opportunitiesCount: recommendations.opportunities.length,\\n        co"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-fallback-service.ts",
+      "snippet": "      logger.debug('[AIFallback] Prédictions de base générées', {\\n        predictionsCount: prediction.predictions.length,\\n        scenariosCount: prediction.scenarios.length,\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-fallback-service.ts",
+      "snippet": "      logger.debug('[AIFallback] Anomalies de base détectées', {\\n        totalAnomalies: anomalies.length,\\n        priceAnomalies: priceAnomalies.length,\\n        volumeAnomalies: volumeAnomalies.lengt"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-fallback-service.ts",
+      "snippet": "        logger.debug('[AIFallback] Rapport avancé généré avec succès');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-fallback-service.ts",
+      "snippet": "        logger.debug('[AIFallback] Rapport simple généré avec succès');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-fallback-service.ts",
+      "snippet": "      logger.debug(`[AIFallback] Tentative d'opération principale: ${operationName}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-fallback-service.ts",
+      "snippet": "      logger.debug(`[AIFallback] Opération principale réussie: ${operationName}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-fallback-service.ts",
+      "snippet": "          logger.debug(`[AIFallback] Fallback réussi pour: ${operationName}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-insights-cache.ts",
+      "snippet": "      logger.debug('[AIInsightsCache] Insights mis en cache', {\\n        cacheKey,\\n        ttl: cacheTTL,\\n        insightsCount: insights.keyFindings?.length || 0,\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-insights-cache.ts",
+      "snippet": "        logger.debug('[AIInsightsCache] Configuration changée, invalidation du cache');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-insights-cache.ts",
+      "snippet": "      logger.debug('[AIInsightsCache] Insights récupérés du cache', {\\n        cacheKey,\\n        age: Date.now() - cached.timestamp,\\n        insightsCount: cached.insights.keyFindings?.length || 0,\\n   "
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-insights-cache.ts",
+      "snippet": "      logger.debug('[AIInsightsCache] Recommandations mises en cache', {\\n        cacheKey,\\n        ttl: cacheTTL,\\n        recommendationsCount: recommendations.pricing?.length || 0,\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-insights-cache.ts",
+      "snippet": "      logger.debug('[AIInsightsCache] Prédictions de tendances mises en cache', {\\n        cacheKey,\\n        ttl: cacheTTL,\\n        predictionsCount: predictions.predictions?.length || 0,\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-insights-cache.ts",
+      "snippet": "      logger.debug('[AIInsightsCache] Détections d\\'anomalies mises en cache', {\\n        cacheKey,\\n        ttl: cacheTTL,\\n        anomaliesCount: anomalies.length,\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-insights-cache.ts",
+      "snippet": "      logger.debug('[AIInsightsCache] Insights invalidés', { cacheKey });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-insights-cache.ts",
+      "snippet": "      logger.debug('[AIInsightsCache] Recommandations invalidées', { cacheKey });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-insights-cache.ts",
+      "snippet": "      logger.debug('[AIInsightsCache] Prédictions de tendances invalidées', { cacheKey });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-insights-cache.ts",
+      "snippet": "      logger.debug('[AIInsightsCache] Détections d\\'anomalies invalidées', { cacheKey });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-metrics-collector.ts",
+      "snippet": "      logger.debug('[AIMetrics] Performance metrics recorded', {\\n        requestId: metrics.requestId,\\n        analysisType: metrics.analysisType,\\n        processingTime: metrics.processingTime,\\n     "
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-metrics-collector.ts",
+      "snippet": "      logger.debug('[AIMetrics] Quality metrics recorded', {\\n        requestId: metrics.requestId,\\n        analysisType: metrics.analysisType,\\n        insightCount: metrics.insightCount,\\n        avera"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-metrics-collector.ts",
+      "snippet": "      logger.debug('[AIMetrics] Cost metrics recorded', {\\n        requestId: metrics.requestId,\\n        analysisType: metrics.analysisType,\\n        tokensUsed: metrics.tokensUsed,\\n        estimatedCos"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-quality-assessor.ts",
+      "snippet": "      logger.debug('[AIQuality] Insights quality assessed', {\\n        requestId,\\n        dataQualityScore: qualityMetrics.dataQualityScore,\\n        averageConfidence: qualityMetrics.averageConfidence,"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-quality-assessor.ts",
+      "snippet": "      logger.debug('[AIQuality] Recommendations quality assessed', {\\n        requestId,\\n        dataQualityScore: qualityMetrics.dataQualityScore,\\n        averageConfidence: qualityMetrics.averageConf"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-quality-assessor.ts",
+      "snippet": "      logger.debug('[AIQuality] Trend predictions quality assessed', {\\n        requestId,\\n        dataQualityScore: qualityMetrics.dataQualityScore,\\n        averageConfidence: qualityMetrics.averageCo"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\ai-quality-assessor.ts",
+      "snippet": "      logger.debug('[AIQuality] Anomaly detection quality assessed', {\\n        requestId,\\n        dataQualityScore: qualityMetrics.dataQualityScore,\\n        averageConfidence: qualityMetrics.averageCo"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\memory-cache.ts",
+      "snippet": "      console.log(`Cache cleanup: ${cleaned} entrées expirées supprimées`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\memory-cache.ts",
+      "snippet": "      console.log(`Cache LRU eviction: suppression de la clé ${oldestKey}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\ai\\memory-cache.ts",
+      "snippet": "      console.log(`Migration du cache: ${migrated} entrées migrées`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\cache-manager.ts",
+      "snippet": "            logger.debug(`[CacheManager] Cache miss pour la clé: ${cacheKey}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\cache-manager.ts",
+      "snippet": "            logger.debug(`[CacheManager] Cache expiré pour la clé: ${cacheKey}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\cache-manager.ts",
+      "snippet": "        logger.debug(`[CacheManager] Cache hit pour la clé: ${cacheKey}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\cache-manager.ts",
+      "snippet": "        logger.debug(`[CacheManager] Données mises en cache`, {\\n            cacheKey,\\n            operationId,\\n            ttl: `${ttl}ms`,\\n        });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\cache-manager.ts",
+      "snippet": "            logger.debug(`[CacheManager] Entrée supprimée du cache: ${cacheKey}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\connection-pool.ts",
+      "snippet": "      console.log(`[ConnectionPool] ${message}`, data ? JSON.stringify(data) : '');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\connection-pool.ts",
+      "snippet": "      console.debug(`[ConnectionPool] ${message}`, data ? JSON.stringify(data) : '');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\connection-pool.ts",
+      "snippet": "        logger.debug('Reusing existing connection', { connectionId, type, context });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\connection-pool.ts",
+      "snippet": "      logger.debug('Connection assigned to queued request', { \\n        connectionId: connectionState.id,\\n        queueLength: this.queueManager.getQueueLength()\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\connection-pool.ts",
+      "snippet": "      logger.debug('Connection returned to pool', { \\n        connectionId: connectionState.id \\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\connection-pool.ts",
+      "snippet": "        logger.debug('Transaction completed successfully', { \\n          connectionId: connectionState.id,\\n          context\\n        });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\connection-pool.ts",
+      "snippet": "          logger.debug('Idle connection closed', { connectionId });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\connection-pool.ts",
+      "snippet": "            logger.debug('Connection closed', { connectionId });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\database-logger.ts",
+      "snippet": "          console.debug(logMessage, logData);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\database-logger.ts",
+      "snippet": "        console.log(logMessage, logData);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\db.ts",
+      "snippet": "      console.log(`[DB] ${message}`, ...args);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\db.ts",
+      "snippet": "      console.debug(`[DB] ${message}`, ...args);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\enhanced-database-service.ts",
+      "snippet": "      console.log(`[EnhancedDB] ${message}`, data ? JSON.stringify(data) : '');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\enhanced-database-service.ts",
+      "snippet": "      console.debug(`[EnhancedDB] ${message}`, data ? JSON.stringify(data) : '');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\enhanced-database-service.ts",
+      "snippet": "        logger.debug('Query executed', { sql, params, resultCount: result.length, context });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\enhanced-database-service.ts",
+      "snippet": "        logger.debug('QueryOne executed', { sql, params, hasResult: !!result, context });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\enhanced-database-service.ts",
+      "snippet": "        logger.debug('Execute completed', { \\n          sql, \\n          params, \\n          changes: result.changes, \\n          lastInsertRowid: result.lastInsertRowid,\\n          context \\n        });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\enhanced-database-service.ts",
+      "snippet": "        logger.debug('Batch execute completed', { \\n          queryCount: queries.length, \\n          totalChanges: results.reduce((sum, r) => sum + r.changes, 0),\\n          context \\n        });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\enhanced-database-service.ts",
+      "snippet": "      logger.debug('Health check completed', { isHealthy });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\enhanced-query-logging.ts",
+      "snippet": "    logger.debug(`Starting database query: ${context.operation}`, {\\n      operation: context.operation,\\n      query: sanitizedQuery,\\n      paramCount: params.length,\\n      context: context.context,\\n  "
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\enhanced-query-logging.ts",
+      "snippet": "    logger.debug(`Database query completed: ${context.operation}`, {\\n      operation: context.operation,\\n      duration: metrics.duration,\\n      rowsReturned: metrics.rowsReturned,\\n      success: true"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\error-handler.ts",
+      "snippet": "        console.debug(`[ErrorHandler] ${msg}`, data ? JSON.stringify(data) : '');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\error-handler.ts",
+      "snippet": "    this.logger.debug('Error analyzed', {\\n      type: errorType,\\n      category: strategy.category,\\n      strategy: strategy.strategy,\\n      isRetryable: strategy.isRetryable,\\n      isCritical: strate"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\initialization-manager.ts",
+      "snippet": "      logger.debug('Database file does not exist');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\initialization-manager.ts",
+      "snippet": "      logger.debug('Schema existence check', { \\n        tablesFound: tables.length, \\n        hasRequiredTables \\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\initialization-manager.ts",
+      "snippet": "    logger.debug('Database PRAGMA configuration applied');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\initialization-manager.ts",
+      "snippet": "      logger.debug('Database already initialized');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\initialization-manager.ts",
+      "snippet": "      logger.debug('Initialization already in progress, waiting...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\initialization-manager.ts",
+      "snippet": "    logger.debug('Performing database initialization', { initializationId });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\initialization-manager.ts",
+      "snippet": "      logger.debug('Database initialization completed', { initializationId });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\initialization-manager.ts",
+      "snippet": "      logger.debug('Waiting for initialization to complete...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\queue-manager.ts",
+      "snippet": "          logger.debug(msg, data);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\queue-manager.ts",
+      "snippet": "      this.logger.debug('Request enqueued', {\\n        id: request.id,\\n        type,\\n        priority,\\n        queueLength: this.queue.length,\\n        context,\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\queue-manager.ts",
+      "snippet": "      this.logger.debug('Request dequeued', {\\n        id: request.id,\\n        type: request.type,\\n        priority: request.priority,\\n        waitTime,\\n        remainingInQueue: this.queue.length,\\n   "
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\queue-manager.ts",
+      "snippet": "    this.logger.debug('All requests cancelled', {\\n      cancelledCount: requestsToCancel.length,\\n      reason,\\n    });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\queue-manager.ts",
+      "snippet": "    this.logger.debug('Queue manager shutdown completed');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\retry-manager.ts",
+      "snippet": "          logger.debug(msg, data);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\retry-manager.ts",
+      "snippet": "        this.logger.debug(`Executing ${context}`, { \\n          attempt, \\n          maxAttempts: this.config.maxAttempts,\\n          errorCategory: errorCategory || 'none'\\n        });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\retry-manager.ts",
+      "snippet": "          this.logger.debug(`${context} succeeded after retry`, { \\n            attempt, \\n            totalTime,\\n            errorCategory,\\n            recoveredFromError: lastError?.message\\n          "
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\retry-manager.ts",
+      "snippet": "        this.logger.debug(`${context} failed on attempt ${attempt}`, { \\n          error: lastError.message,\\n          code: (lastError as any).code,\\n          category: errorCategory,\\n          attemp"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\retry-manager.ts",
+      "snippet": "        this.logger.debug(`Retrying ${context} in ${delay}ms`, { \\n          attempt: attempt + 1,\\n          delay,\\n          category: errorCategory,\\n          maxAttempts: maxAttemptsForCategory,\\n   "
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\retry-manager.ts",
+      "snippet": "    this.logger.debug('Retry configuration updated', this.config);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\retry-manager.ts",
+      "snippet": "          logger.debug(msg, data);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\retry-manager.ts",
+      "snippet": "          this.logger.debug('Circuit breaker transitioning to HALF_OPEN', {\\n            timeSinceLastFailure: now - this.lastFailureTime,\\n            recoveryTimeout: this.recoveryTimeout\\n          })"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\retry-manager.ts",
+      "snippet": "      this.logger.debug('Success recorded in HALF_OPEN state', {\\n        halfOpenSuccesses: this.halfOpenSuccesses,\\n        successThreshold: this.successThreshold\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\retry-manager.ts",
+      "snippet": "        this.logger.debug('Circuit breaker transitioned to CLOSED after recovery');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\retry-manager.ts",
+      "snippet": "    this.logger.debug('Failure recorded', {\\n      failures: this.failures,\\n      consecutiveFailures: this.consecutiveFailures,\\n      errorCategory,\\n      state: this.state\\n    });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\database\\retry-manager.ts",
+      "snippet": "    this.logger.debug('Circuit breaker reset');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('=== Validation simple d\\'une catégorie ===');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Catégorie valide:', validResult);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Catégorie invalide:', invalidResult);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('\\n=== Validation avec contexte produit ===');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log(`Validation pour \"${productName}\":`, result);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Suggestions:', result.suggestions.map(cat => cat.name));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('\\n=== Génération de suggestions alternatives ===');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Suggestions pour \"Femmes\":', level1Suggestions.map(cat => cat.name));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Suggestions pour \"Vêtements\":', level2Suggestions.map(cat => cat.name));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('\\n=== Messages d\\'erreur explicites ===');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "    console.log(`${testCase.name}: ${message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('\\n=== Actions correctives ===');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Actions correctives pour \"Femmes\" avec produit \"robe noire\":');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Action principale:', actions.primaryAction);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Actions secondaires:', actions.secondaryActions);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Suggestions:', actions.suggestions.map(cat => cat.name));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('\\n=== Validation par lot ===');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Résumé de la validation par lot:', batchResult.summary);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Catégories valides:', batchResult.valid.map(r => r.category?.name));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Catégories invalides:', batchResult.invalid.map(r => r.category?.name || 'Inconnue'));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('\\n=== Vérification de compatibilité API ===');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "    console.log(`Catégorie ${categoryId}:`, {\\n      compatible: compatibility.compatible,\\n      reason: compatibility.reason,\\n      alternativesCount: compatibility.alternatives.length\\n    });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('\\n=== Statistiques du service ===');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Statistiques:', stats);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('=== EXEMPLE COMPLET D\\'UTILISATION ===\\n');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log(`Scénario: Analyse de \"${productName}\" avec catégorie sélectionnée: ${selectedCategoryId}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('\\n1. Validation initiale:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Valide:', validation.isValid);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "  console.log('Message:', validation.message);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "    console.log('\\n2. Actions correctives:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "    console.log('Action principale:', actions.primaryAction);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "    console.log('\\n3. Suggestions de catégories valides:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "      console.log(`${index + 1}. ${suggestion.name} (ID: ${suggestion.id})`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "    console.log(`\\n4. Validation de la suggestion \"${actions.suggestions[0].name}\":`, finalValidation.isValid);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\examples\\category-validation-usage.ts",
+      "snippet": "    console.log('5. Compatibilité API:', apiCheck.compatible);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\logging-instrumentation.ts",
+      "snippet": "      logger.debug(`${serviceName} operation started: ${operationName}`, {\\n        service: serviceName,\\n        operation: operationName,\\n        argsCount: args.length\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\logging-instrumentation.ts",
+      "snippet": "        logger.debug(`${serviceName} operation completed: ${operationName}`, {\\n          service: serviceName,\\n          operation: operationName,\\n          duration\\n        });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\market-analysis\\similar-sales-service.ts",
+      "snippet": "  console.log('[VINTED-API] URL utilisée pour analyse :', url.toString());"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\scheduler\\cron-scheduler.ts",
+      "snippet": "    console.log('⚠️ Scheduler désactivé - fonctionnalité d\\'analyse de marché temporairement indisponible');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\scheduler\\cron-scheduler.ts",
+      "snippet": "      console.log('🛑 Scheduler arrêté');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\scheduler\\cron-scheduler.ts",
+      "snippet": "      console.log(`📊 ${tasks.length} utilisateur(s) à synchroniser`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\scheduler\\cron-scheduler.ts",
+      "snippet": "    console.log(`⚠️ Synchronisation désactivée pour ${task.userId}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "  console.log('🧪 Validating Database Integrity Checker Implementation\\n');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "    console.log('1. Testing Module Import...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "      console.log(`   ✅ Module import: PASS`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "      console.log(`   ✅ Class export: ${DatabaseIntegrityChecker ? 'PASS' : 'FAIL'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "      console.log(`   ❌ Module import: FAIL - ${error instanceof Error ? error.message : 'Unknown error'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "    console.log('\\n2. Testing Type Definitions...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "      console.log(`   ✅ Types module import: PASS`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "        console.log(`   ✅ ${typeName} type: PASS (available in types module)`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "      console.log(`   ❌ Type imports: FAIL - ${error instanceof Error ? error.message : 'Unknown error'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "    console.log('\\n3. Testing Index Export...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "      console.log(`   ✅ Index export: ${hasDbIntegrityChecker ? 'PASS' : 'FAIL'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "      console.log(`   ❌ Index export: FAIL - ${error instanceof Error ? error.message : 'Unknown error'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "    console.log('\\n4. Testing Requirements Coverage...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "      console.log(`   ✅ Requirement ${req}: PASS - ${description}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "    console.log('\\n5. Testing File Structure...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "      console.log(`   ${exists ? '✅' : '❌'} ${file}: ${exists ? 'PASS' : 'FAIL'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "    console.log('\\n✅ Database Integrity Checker Validation Completed Successfully');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "    console.log('\\n📋 Summary:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "    console.log('   - Module imports correctly');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "    console.log('   - All required types defined');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "    console.log('   - Exported from validation index');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "    console.log('   - All requirements (3.1-3.4) covered');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "    console.log('   - Test file created');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\database-integrity-validation.ts",
+      "snippet": "    console.log('   - Proper file structure');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "  console.log('🧪 Validating Debug Logger Implementation\\n');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('1. Testing Module Import...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "      console.log(`   ✅ Module import: PASS`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "      console.log(`   ✅ Class export: ${DebugLogger ? 'PASS' : 'FAIL'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "      console.log(`   ✅ Singleton export: ${debugLogger ? 'PASS' : 'FAIL'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "      console.log(`   ❌ Module import: FAIL - ${error instanceof Error ? error.message : 'Unknown error'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('\\n2. Testing Type Definitions...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "      console.log(`   ✅ Types module import: PASS`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "        console.log(`   ✅ ${typeName} type: PASS (available in types module)`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "      console.log(`   ❌ Type imports: FAIL - ${error instanceof Error ? error.message : 'Unknown error'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('\\n3. Testing Index Export...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "      console.log(`   ✅ DebugLogger class export: ${hasDebugLogger ? 'PASS' : 'FAIL'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "      console.log(`   ✅ debugLogger instance export: ${hasDebugLoggerInstance ? 'PASS' : 'FAIL'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "      console.log(`   ❌ Index export: FAIL - ${error instanceof Error ? error.message : 'Unknown error'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('\\n4. Testing Requirements Coverage...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "      console.log(`   ✅ Requirement ${req}: PASS - ${description}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('\\n5. Testing Core Functionality...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "      console.log(`   ✅ ${feature}: PASS`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('\\n6. Testing File Structure...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "      console.log(`   ${exists ? '✅' : '❌'} ${file}: ${exists ? 'PASS' : 'FAIL'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('\\n✅ Debug Logger Validation Completed Successfully');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('\\n📋 Summary:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('   - Module imports correctly');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('   - All required types defined');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('   - Exported from validation index');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('   - All requirements (4.2-4.5) covered');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('   - Comprehensive test file created');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('   - Proper file structure');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('   - Singleton pattern implemented');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('   - Debug mode management');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('   - Full payload logging capabilities');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('   - Comprehensive error handling');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-logger-validation.ts",
+      "snippet": "    console.log('   - Debug report generation');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-token.ts",
+      "snippet": "  logger.debug(`Raw token length: ${rawToken.length}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-token.ts",
+      "snippet": "  logger.debug(`Clean token length: ${token.length}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-token.ts",
+      "snippet": "  logger.debug(`Token parts: ${token.split('.').length}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-token.ts",
+      "snippet": "  logger.debug(`First 50 chars: ${token.substring(0, 50)}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-token.ts",
+      "snippet": "  logger.debug(`Last 50 chars: ${token.substring(token.length - 50)}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-token.ts",
+      "snippet": "        logger.debug(`Header length: ${parts[0]?.length || 0}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-token.ts",
+      "snippet": "        logger.debug(`Payload length: ${parts[1]?.length || 0}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-token.ts",
+      "snippet": "        logger.debug(`Signature length: ${parts[2]?.length || 0}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\debug-token.ts",
+      "snippet": "        logger.debug(`Parsed payload: ${JSON.stringify(parsed, null, 2)}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\error-handler.ts",
+      "snippet": "        logger.debug(`Attempt ${attempt}/${maxAttempts} for operation: ${operationName}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\session-manager.ts",
+      "snippet": "  info: (msg: string, data?: any) => console.log(`[SessionManager] ${msg}`, data || ''),"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\session-manager.ts",
+      "snippet": "  debug: (msg: string, data?: any) => console.debug(`[SessionManager] ${msg}`, data || '')"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\test-controller-validation.js",
+      "snippet": "console.log('🚀 Starting TestController Validation...\\n');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\test-controller-validation.js",
+      "snippet": "  console.log('✅ TestController file exists:', exists);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\test-controller-validation.js",
+      "snippet": "    console.log('📋 Code structure validation:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\test-controller-validation.js",
+      "snippet": "      console.log(`  ${found ? '✅' : '❌'} ${check.name}: ${found ? 'Found' : 'Missing'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\test-controller-validation.js",
+      "snippet": "    console.log(`\\n📊 File statistics:`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\test-controller-validation.js",
+      "snippet": "    console.log(`  - Lines of code: ${lineCount}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\test-controller-validation.js",
+      "snippet": "    console.log(`  - File size: ${(content.length / 1024).toFixed(2)} KB`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\test-controller-validation.js",
+      "snippet": "    console.log(`\\n🔍 Method implementation check:`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\test-controller-validation.js",
+      "snippet": "      console.log(`  ${found ? '✅' : '❌'} ${method}: ${found ? 'Implemented' : 'Missing'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\test-controller-validation.js",
+      "snippet": "    console.log(`\\n🛡️ Error handling patterns:`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\test-controller-validation.js",
+      "snippet": "      console.log(`  ${count > 0 ? '✅' : '❌'} ${pattern}: ${count} occurrences`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\test-controller-validation.js",
+      "snippet": "    console.log('\\n🎉 TestController validation completed successfully!');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\validation-monitor.ts",
+      "snippet": "  info: (msg: string, data?: any) => console.log(`[ValidationMonitor] ${msg}`, data || ''),"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\services\\validation\\validation-monitor.ts",
+      "snippet": "  debug: (msg: string, data?: any) => console.debug(`[ValidationMonitor] ${msg}`, data || '')"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\api-route-optimization.ts",
+      "snippet": "      logger.debug('Processing GET request', {\\n        pathname,\\n        requiresDatabase,\\n        context\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\api-route-optimization.ts",
+      "snippet": "        logger.debug('GET request completed', {\\n          pathname,\\n          executionTime: `${executionTime}ms`,\\n          status: response.status\\n        });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\api-route-optimization.ts",
+      "snippet": "      logger.debug('Processing POST request', {\\n        pathname,\\n        requiresDatabase,\\n        context\\n      });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\api-route-optimization.ts",
+      "snippet": "        logger.debug('POST request completed', {\\n          pathname,\\n          executionTime: `${executionTime}ms`,\\n          status: response.status\\n        });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\build-optimization.ts",
+      "snippet": "    logger.debug('Skipping non-essential route during build', { pathname });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\build-optimization.ts",
+      "snippet": "    logger.debug('Optimizing essential route for build', { pathname });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\logging\\logger.ts",
+      "snippet": "          console.debug(formattedMessage);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\logging\\logger.ts",
+      "snippet": "      console.log(JSON.stringify(entry));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\logging\\logger.ts",
+      "snippet": "      logger.debug(`[${serviceName}] ${message}`, context);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\logging\\simple-logger.ts",
+      "snippet": "      console.debug(this.formatMessage('DEBUG', message, ...args))"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\lib\\utils\\logging\\specialized-loggers.ts",
+      "snippet": "      logger.debug(message, { ...meta, requestId, userId });"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\audit-slow-queries.ts",
+      "snippet": "  console.log(\"=== Requêtes SQL lentes (>1000ms) ===\");"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\audit-slow-queries.ts",
+      "snippet": "    console.log(\\n      `#${i + 1} | ${log.duration}ms | ${log.query} | params: ${JSON.stringify(log.params)}`\\n    );"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\audit-slow-queries.ts",
+      "snippet": "  console.log(\"\\n=== Requêtes SQL lentes fréquentes (plus de 3 fois) ===\");"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\audit-slow-queries.ts",
+      "snippet": "      console.log(\\n        `[${v.count}x] Durée totale: ${v.totalDuration}ms | Moyenne: ${(v.totalDuration / v.count).toFixed(1)}ms\\n${query}\\nExemple params: ${JSON.stringify(v.example.params)}\\n`\\n  "
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\init-synonyms.js",
+      "snippet": "  console.log('Synonymes insérés avec succès.');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\sync-metadata.js",
+      "snippet": "    console.log(`🔄 Synchronisation pour ${user.username} (${user.user_id})`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\sync-metadata.js",
+      "snippet": "      console.log(`⚠️  Pas de token Vinted pour ${user.username}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\sync-metadata.js",
+      "snippet": "      console.log(`✅ Synchronisation terminée pour ${user.username}: ${total} éléments`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\sync-metadata.js",
+      "snippet": "    console.log('🚀 Démarrage de la synchronisation des métadonnées Vinted');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\sync-metadata.js",
+      "snippet": "    console.log(`📅 ${new Date().toISOString()}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\sync-metadata.js",
+      "snippet": "      console.log('ℹ️  Aucun utilisateur à synchroniser');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\sync-metadata.js",
+      "snippet": "    console.log(`👥 ${users.length} utilisateur(s) à synchroniser`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\sync-metadata.js",
+      "snippet": "    console.log(`📊 Résultat: ${successCount} succès, ${errorCount} erreurs`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\sync-metadata.js",
+      "snippet": "    console.log('🏁 Synchronisation terminée');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\sync-metadata.js",
+      "snippet": "    console.log(`🎯 Synchronisation spécifique pour l'utilisateur ${userId}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\cron\\sync-metadata.js",
+      "snippet": "      console.log('❌ Utilisateur non trouvé ou synchronisation désactivée');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\deep_iterative_analyze.js",
+      "snippet": "    console.log('DONE',batch);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "  console.log('🔧 Initialisation de la session Vinted en base de données\\n');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log('⚠️  Utilisation de la session par défaut');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log('💡 Pour utiliser une vraie session, définissez VINTED_SESSION dans .env');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log('✅ Session personnalisée trouvée');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "    console.log(`   Session: ${vintedSession.length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "    console.log('\\n📋 Vérification des sessions existantes...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "    console.log(`   Sessions trouvées: ${existingSessions.length}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log(`   ${index + 1}. ID: ${session.id}, User: ${session.userId}, Status: ${session.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log(`      Cookie présent: ${session.session_cookie ? 'Oui' : 'Non'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log(`      Dernière validation: ${session.lastValidatedAt || 'Jamais'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log('\\n❌ Utilisateur admin non trouvé');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log('💡 Utilisez: npm run vinted:create-admin pour créer l\\'utilisateur admin');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log('\\n🔄 Mise à jour de la session admin existante...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log('✅ Session admin mise à jour avec succès');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log('\\n➕ Création d\\'une nouvelle session admin...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log('✅ Nouvelle session admin créée avec succès');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log(`   ID de session: ${sessionId}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "    console.log('\\n✅ Vérification finale...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log('✅ Session admin configurée correctement');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log(`   ID: ${adminSession.id}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log(`   Status: ${adminSession.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log(`   Cookie: ${adminSession.sessionCookie.length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log('✅ Stockage en clair réussi');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "      console.log('❌ Problème avec la session admin');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "    console.log('\\n🎯 RÉSULTAT');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "    console.log('='.repeat(40));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "    console.log('✅ Session Vinted initialisée avec succès !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "    console.log('✅ Vous pouvez maintenant tester avec:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "    console.log('   npm run test:token-real');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "    console.log('   npm run test:vinted-api');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "    console.log(`❌ Erreur: ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\init-vinted-session.ts",
+      "snippet": "    console.log('🔧 Vérifiez la configuration et les permissions de la base de données');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "    console.log('🔄 RAFRAÎCHISSEMENT DU TOKEN EXPIRÉ DEPUIS LA BASE DE DONNÉES');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "    console.log('='.repeat(70));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "    console.log(`Démarré le: ${new Date().toLocaleString('fr-FR')}\\n`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log('📋 1. Récupération des sessions depuis la base de données...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log(`   Sessions trouvées: ${sessions.length}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log('❌ Aucune session trouvée en base de données');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log('💡 Utilisez: npm run init:vinted-session pour créer une session');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`\\n   Session ${index + 1}:`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`     ID: ${session.id}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`     User ID: ${session.userId}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`     Status: ${session.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`     Cookie présent: ${session.session_cookie ? 'Oui' : 'Non'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`     Dernière validation: ${session.lastValidatedAt || 'Jamais'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`     Créé le: ${session.createdAt}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`     Mis à jour le: ${session.updatedAt}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`     Erreur: ${session.refreshErrorMessage}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log('\\n❌ Aucune session utilisable trouvée');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log('\\n❌ La session sélectionnée n\\'a pas de cookie');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log('💡 Utilisez: npm run init:vinted-session pour initialiser le cookie');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log(`\\n✅ Session sélectionnée: ${targetSession.id}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log(`   Status actuel: ${targetSession.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log('\\n🔓 2. Déchiffrement du cookie...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`✅ Cookie déchiffré avec succès`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`   Longueur: ${decryptedCookie.length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`   Aperçu: ${decryptedCookie.substring(0, 100)}...`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`❌ Erreur de déchiffrement: ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log('🔧 Vérifiez VINTED_CREDENTIALS_SECRET dans le .env');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log('\\n🔍 3. Analyse du cookie déchiffré...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log(`   access_token_web: ${hasAccessToken ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log(`   refresh_token_web: ${hasRefreshToken ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log(`   _vinted_fr_session: ${hasSession ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log('\\n❌ Cookie incomplet - tokens manquants');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log('💡 Le cookie doit contenir access_token_web et refresh_token_web');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log('\\n🎯 4. Extraction des tokens...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log(`   Access token: ${accessToken ? accessToken.length + ' caractères' : 'Non trouvé'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log(`   Refresh token: ${refreshToken ? refreshToken.length + ' caractères' : 'Non trouvé'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`   Access token début: ${accessToken.substring(0, 50)}...`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`   Refresh token début: ${refreshToken.substring(0, 50)}...`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log('\\n✅ 5. Validation du token actuel...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log(`   Token valide: ${validation.valid ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log(`   Statut HTTP: ${validation.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log(`   Réponse complète:`, {\\n            valid: validation.valid,\\n            status: validation.status,\\n            hasBody: !!validation.body,\\n            bodyKeys: validation.body "
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log('✅ Le token est encore valide !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`   Utilisateur: ${validation.body.user.login || 'N/A'} (ID: ${validation.body.user.id})`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log('✅ Statut mis à jour en base de données');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log('\\n🔄 6. Tentative de rafraîchissement du token expiré...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('🎉 TOKEN RAFRAÎCHI AVEC SUCCÈS !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`   Nouveau access token: ${newTokens.accessToken.length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`   Nouveau refresh token: ${newTokens.refreshToken.length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`   Access token début: ${newTokens.accessToken.substring(0, 50)}...`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`   Refresh token début: ${newTokens.refreshToken.substring(0, 50)}...`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('\\n🔧 7. Construction du nouveau cookie...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`✅ Nouveau cookie construit (${newCookie.length} caractères)`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('\\n✅ 8. Validation du nouveau token...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`   Nouveau token valide: ${newValidation.valid ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`   Statut HTTP: ${newValidation.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                    console.log(`   Utilisateur: ${newValidation.body.user.login || 'N/A'} (ID: ${newValidation.body.user.id})`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('\\n🌐 9. Test d\\'accès à l\\'API Vinted avec le nouveau token...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                        console.log(`\\n   🔗 Test: ${endpoint.name}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                            console.log(`   ✅ ${endpoint.name}: Succès (${response.status})`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                            console.log(`      Données reçues: ${JSON.stringify(response.data).length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                                console.log(`      Utilisateur: ${response.data.user.login || 'N/A'} (ID: ${response.data.user.id})`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                            console.log(`   ❌ ${endpoint.name}: Échec (${response.status})`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                        console.log(`   ❌ ${endpoint.name}: Erreur - ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('\\n💾 10. Sauvegarde du nouveau token en base de données...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                    console.log('✅ Nouveau token sauvegardé et chiffré en base de données');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                    console.log(`   Session ID: ${targetSession.id}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                    console.log(`   Nouveau statut: active`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                    console.log(`   Dernière validation: ${now}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                    console.log(`❌ Erreur de sauvegarde: ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('\\n🎯 RÉSUMÉ FINAL');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('='.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('🎉 RAFRAÎCHISSEMENT RÉUSSI !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`✅ Token expiré récupéré depuis la base de données`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`✅ Nouveau token obtenu via l'API Vinted`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`✅ Validation du nouveau token: ${newValidation.valid ? 'Succès' : 'Échec'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`✅ Tests API: ${apiSuccessCount}/${testEndpoints.length} réussis`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log(`✅ Nouveau token sauvegardé en base de données`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('🚀 Le système de renouvellement automatique fonctionne parfaitement !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('⏰ Les tokens seront automatiquement rafraîchis toutes les 30 minutes');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('❌ ÉCHEC DU RAFRAÎCHISSEMENT');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('   Aucun nouveau token reçu de l\\'API Vinted');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('   Causes possibles:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('   - Refresh token également expiré');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('   - Problème de connectivité');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "                console.log('   - Changement dans l\\'API Vinted');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "            console.log(`❌ ERREUR LORS DU RAFRAÎCHISSEMENT: ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log(`❌ ERREUR GÉNÉRALE: ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\refresh-vinted-token.ts",
+      "snippet": "        console.log('🔧 Vérifiez la configuration et la connectivité');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "  console.log('🔄 TEST DE RAFRAÎCHISSEMENT AVEC SESSION DE LA BASE DE DONNÉES');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "  console.log('='.repeat(70));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "  console.log(`Démarré le: ${new Date().toLocaleString('fr-FR')}\\n`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('📋 1. Récupération de la session depuis la base de données...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "      console.log('❌ Aucune session trouvée en base de données');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "      console.log('💡 Utilisez: npm run vinted:init-session pour créer une session');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`✅ Session trouvée`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`   ID: ${session.id}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`   User ID: ${session.userId}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`   Status: ${session.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`   Cookie présent: ${session.sessionCookie ? 'Oui' : 'Non'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "      console.log('❌ Aucun cookie dans la session');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`   Cookie longueur: ${session.sessionCookie.length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('\\n🔍 2. Analyse du cookie...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "      console.log(`✅ Cookie décodé (${decodedCookie.length} caractères)`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "      console.log('ℹ️  Cookie non encodé URL');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`   access_token_web: ${hasAccessToken ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`   refresh_token_web: ${hasRefreshToken ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`   _vinted_fr_session: ${hasSession ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "      console.log('\\n⚠️  Le cookie ne contient pas les tokens HTTP standards');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "      console.log('   Il s\\'agit probablement d\\'une session Rails chiffrée');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "      console.log('\\n🧪 Test direct avec la session...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "        console.log(`   Réponse API: ${response.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "          console.log('✅ Accès API réussi avec la session !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "            console.log(`   Utilisateur: ${data.user.login || 'N/A'} (ID: ${data.user.id})`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "          console.log('❌ Accès API échoué');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "        console.log(`❌ Erreur API: ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('\\n🔧 3. Test avec VintedAuthService...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`   Access token: ${accessToken ? accessToken.length + ' caractères' : 'Non trouvé'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`   Refresh token: ${refreshToken ? refreshToken.length + ' caractères' : 'Non trouvé'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('\\n✅ 4. Validation du token...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`   Token valide: ${validation.valid ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`   Statut HTTP: ${validation.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "      console.log(`   Utilisateur: ${validation.body.user.login || 'N/A'} (ID: ${validation.body.user.id})`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "      console.log('\\n🔄 5. Test de rafraîchissement...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "        console.log('✅ Token rafraîchi avec succès !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "        console.log(`   Nouveau access token: ${newTokens.accessToken.length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "        console.log(`   Nouveau refresh token: ${newTokens.refreshToken.length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "        console.log('✅ Nouveau token sauvegardé en base de données');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "        console.log('❌ Impossible de rafraîchir le token');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('\\n📊 6. Test du VintedSessionManager...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`   Résultat: ${refreshResult.success ? '✅ Succès' : '❌ Échec'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "      console.log(`   Erreur: ${refreshResult.error}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "      console.log('   ✅ Nouveaux tokens obtenus via le gestionnaire');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('\\n🎯 RÉSUMÉ FINAL');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('='.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('✅ Session récupérée depuis la base de données');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('✅ Cookie analysé et testé');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('✅ VintedAuthService testé');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('✅ VintedSessionManager testé');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('🚀 LE SYSTÈME DE RAFRAÎCHISSEMENT FONCTIONNE !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('✅ Les tokens peuvent être rafraîchis automatiquement');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('✅ Le stockage en base de données fonctionne sans chiffrement');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log(`❌ ERREUR GÉNÉRALE: ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-db-session-refresh.ts",
+      "snippet": "    console.log('🔧 Stack:', error.stack?.split('\\n').slice(0, 3).join('\\n'));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "    console.log('🚀 Test avec une session cookie HTTP Vinted\\n');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('📝 Cookie de test:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log(`   Longueur: ${REAL_VINTED_COOKIE.length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log(`   Aperçu: ${REAL_VINTED_COOKIE.substring(0, 100)}...`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('\\n🔍 Analyse de la structure du cookie:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log(`   access_token_web: ${hasAccessToken ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log(`   refresh_token_web: ${hasRefreshToken ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log(`   _vinted_fr_session: ${hasSession ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "            console.log('\\n❌ Cookie incomplet, impossible de continuer');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('\\n🔧 Initialisation de VintedAuthService...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('\\n🔍 Extraction des tokens...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log(`   Access token: ${accessToken ? '✅ ' + accessToken.length + ' caractères' : '❌ Non trouvé'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log(`   Refresh token: ${refreshToken ? '✅ ' + refreshToken.length + ' caractères' : '❌ Non trouvé'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "            console.log(`   Access token début: ${accessToken.substring(0, 50)}...`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "            console.log(`   Refresh token début: ${refreshToken.substring(0, 50)}...`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('\\n✅ Validation du token...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log(`   Token valide: ${validation.valid ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log(`   Statut HTTP: ${validation.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "            console.log(`   Utilisateur: ${validation.body.user.login} (ID: ${validation.body.user.id})`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "            console.log('   ℹ️  Token expiré (normal pour un token d\\'exemple)');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('\\n🔄 Test de rafraîchissement...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "            console.log('✅ Token rafraîchi avec succès !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "            console.log(`   Nouveau access token: ${newTokens.accessToken.length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "            console.log(`   Nouveau refresh token: ${newTokens.refreshToken.length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "            console.log(`   Nouveau token valide: ${newValidation.valid ? '✅' : '❌'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "            console.log('❌ Impossible de rafraîchir le token (normal avec un token d\\'exemple)');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('\\n🌐 Test direct de l\\'API Vinted...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "                console.log(`   ${endpoint}: ${response.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "                    console.log(`      ✅ Succès - ${JSON.stringify(response.data).length} caractères de données`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "                    console.log(`      ❌ Échec - ${response.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "                console.log(`   ${endpoint}: ❌ Erreur - ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('\\n🎯 RÉSUMÉ');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('='.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('✅ Test de structure du système terminé');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('✅ VintedAuthService fonctionne correctement');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('✅ Extraction des tokens opérationnelle');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('✅ Système de rafraîchissement implémenté');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('📋 POUR TESTER AVEC UN VRAI TOKEN:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('   1. Connectez-vous sur vinted.fr');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('   2. Ouvrez les outils de développement (F12)');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('   3. Allez dans Application > Cookies > vinted.fr');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('   4. Copiez tous les cookies dans un format \"name=value; name2=value2\"');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('   5. Remplacez REAL_VINTED_COOKIE dans ce script');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log('   6. Relancez le test');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\test-vinted-session.ts",
+      "snippet": "        console.log(`❌ Erreur générale: ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('🔍 VÉRIFICATION DE L\\'INTÉGRATION DU SYSTÈME DE RAFRAÎCHISSEMENT AUTOMATIQUE');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('='.repeat(80));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log(`Vérification effectuée le: ${new Date().toLocaleString('fr-FR')}\\n`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('📁 1. FICHIERS SYSTÈME ESSENTIELS');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log(`   ${status} ${filePath}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log(`      ${description}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('\\n⚙️  2. CONFIGURATION');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log(`   ${status} ${key}: ${value || 'NON CONFIGURÉ'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('\\n🔍 3. CONTENU DES FICHIERS CRITIQUES');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log(`   ${hasSchedulerInit ? '✅' : '❌'} instrumentation.ts contient l'initialisation des schedulers`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log(`   ${hasConfigImport ? '✅' : '❌'} Scheduler utilise la configuration interne`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log(`   ${hasIntervalLogic ? '✅' : '❌'} Scheduler utilise l'intervalle configurable`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log(`   ${hasRefreshLogic ? '✅' : '❌'} Scheduler contient la logique de rafraîchissement`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('\\n🔗 4. INTÉGRATION DANS L\\'APPLICATION');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log(`   ${nextConfigExists ? '✅' : '⚠️'} Configuration Next.js présente`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log(`   ${hasSchedulerDir ? '✅' : '❌'} Dossier scheduler présent`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log(`   ${hasAuthDir ? '✅' : '❌'} Dossier auth présent`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log(`   ${hasApiDir ? '✅' : '❌'} Dossier API Vinted présent`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('\\n📦 5. TEST D\\'IMPORTATION DES MODULES');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('   ✅ TokenRefreshScheduler importé avec succès');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log(`      État actuel: ${tokenRefreshScheduler.isActive ? 'Actif' : 'Inactif'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log(`   ❌ Erreur d'importation TokenRefreshScheduler: ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('   ✅ VintedSessionManager importé avec succès');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log(`   ❌ Erreur d'importation VintedSessionManager: ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('\\n🛠️  6. SCRIPTS DE MAINTENANCE');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log(`   ${exists ? '✅' : '⚠️'} ${script}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('\\n🎯 7. RÉSUMÉ DE L\\'INTÉGRATION');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('🎉 INTÉGRATION COMPLÈTE ET FONCTIONNELLE !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('✅ Tous les fichiers système sont présents');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('✅ Configuration correcte');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('✅ Modules importables sans erreur');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('✅ Initialisation automatique configurée');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('🚀 LE SYSTÈME DE RAFRAÎCHISSEMENT AUTOMATIQUE EST INTÉGRÉ !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('📋 FONCTIONNEMENT:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('   1. Au démarrage de l\\'application Next.js');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('   2. instrumentation.ts initialise automatiquement les schedulers');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('   3. TokenRefreshScheduler démarre et vérifie les tokens toutes les 30 minutes');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('   4. Les tokens expirés sont automatiquement rafraîchis');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('   5. Les nouveaux tokens sont sauvegardés en base de données');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('🔧 CONTRÔLE:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('   • API: GET/POST /api/v1/vinted/scheduler');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('   • Logs: Surveillance via les logs de l\\'application');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('   • Configuration: Variables d\\'environnement .env');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('⚠️  INTÉGRATION INCOMPLÈTE');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('❌ Certains éléments critiques sont manquants');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('🔧 Consultez les points marqués ❌ ci-dessus');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('📋 ACTIONS REQUISES:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('   1. Corriger les éléments manquants');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('   2. Vérifier la configuration .env');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "    console.log('   3. Relancer cette vérification');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('\\n' + '='.repeat(80));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log(`✅ Vérification terminée - Statut: ${allChecksPass ? 'SUCCÈS' : 'ATTENTION REQUISE'}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\verify-vinted-integration.ts",
+      "snippet": "  console.log('='.repeat(80));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('📊 RAPPORT FINAL - SYSTÈME DE RENOUVELLEMENT AUTOMATIQUE DES TOKENS VINTED');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('='.repeat(80));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log(`Généré le: ${new Date().toLocaleString('fr-FR')}\\n`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('🔧 1. CONFIGURATION');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log(`   ${key.padEnd(25)}: ${status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('\\n📁 2. FICHIERS SYSTÈME');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log(`   ${exists ? '✅' : '❌'} ${file.padEnd(50)} ${exists ? `(${size}b)` : ''}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('\\n🧪 3. SCRIPTS DE TEST ET DIAGNOSTIC');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log(`   ${exists ? '✅' : '❌'} ${script}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('\\n✅ 4. FONCTIONNALITÉS TESTÉES ET VALIDÉES');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log(`   ✅ ${feature}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('\\n🏗️  5. ARCHITECTURE DU SYSTÈME');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log(`\\n   ┌─────────────────────────────────────────────────────────────┐\\n   │                    APPLICATION NEXT.JS                      │\\n   │                                              "
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('\\n🔄 6. FLUX DE FONCTIONNEMENT');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log(`\\n   1. 🚀 Démarrage de l'application Next.js\\n      └─ instrumentation.ts initialise les schedulers\\n   \\n   2. ⏰ Scheduler démarre automatiquement\\n      └─ Intervalle: ${config.intervalMi"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('\\n💻 7. COMMANDES DISPONIBLES');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log(`   ${cmd.padEnd(40)} - ${desc}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('\\n🌐 8. API ENDPOINTS');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log(`   ${method.padEnd(6)} ${path.padEnd(35)} - ${desc}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('\\n🎯 9. STATUT GLOBAL DU SYSTÈME');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('🎉 SYSTÈME COMPLÈTEMENT OPÉRATIONNEL !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('✅ Configuration complète et valide');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('✅ Tous les fichiers système présents');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('✅ Scheduler configuré et prêt');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('✅ Tests et diagnostics disponibles');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('✅ API de contrôle fonctionnelle');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('✅ Documentation complète');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('🚀 LE RENOUVELLEMENT AUTOMATIQUE DES TOKENS VINTED EST ACTIF !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log(`⏰ Vérification automatique toutes les ${config.intervalMinutes} minutes`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('🔄 Rafraîchissement automatique des tokens expirés');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('💾 Sauvegarde sécurisée en base de données');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('⚠️  SYSTÈME PARTIELLEMENT CONFIGURÉ');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "      console.log('❌ Configuration incomplète');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "      console.log('❌ Fichiers système manquants');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('🔧 Consultez les sections ci-dessus pour identifier les problèmes');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('\\n📋 10. PROCHAINES ÉTAPES RECOMMANDÉES');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('-'.repeat(50));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('1. 🚀 Démarrer l\\'application: npm run dev');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('2. 📊 Surveiller les logs pour confirmer le démarrage du scheduler');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('3. 🧪 Tester l\\'API: GET /api/v1/vinted/scheduler');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('4. 🔍 Vérifier le statut des sessions en base de données');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('5. 📈 Monitorer les rafraîchissements automatiques');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('1. 🔧 Compléter la configuration manquante');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('2. 📁 Vérifier la présence de tous les fichiers');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('3. 🧪 Relancer le diagnostic: node scripts/diagnostic-token-system.js');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "    console.log('4. 🚀 Redémarrer une fois les problèmes résolus');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('\\n' + '='.repeat(80));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('📄 Rapport généré avec succès !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('📚 Documentation complète: docs/vinted-token-auto-refresh.md');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\development\\vinted-system-report.ts",
+      "snippet": "  console.log('='.repeat(80));"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\iterative_analyze.js",
+      "snippet": "    console.log('DONE', batch);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "    console.log(`📦 Rotated log file: ${path.basename(filePath)}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "  console.log('🔄 Checking logs for rotation...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "    console.log('📁 Logs directory not found, creating...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "    console.log(`✅ Rotated ${rotatedCount} log files`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "    console.log('✅ No logs need rotation');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "  console.log('⚙️  Log Rotation Configuration:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "  console.log(`   📅 Max age: ${LOG_CONFIG.maxAge} days`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "  console.log(`   📏 Max size: ${(LOG_CONFIG.maxSize / 1024 / 1024).toFixed(1)}MB`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "  console.log(`   📁 Log directory: ${LOG_CONFIG.logDir}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "  console.log(`   📝 Log types: ${LOG_CONFIG.logTypes.join(', ')}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "  console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "  console.log('💡 To enable automatic log rotation:');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "  console.log('   1. Add to crontab: 0 2 * * * node /path/to/scripts/log-rotation-config.js');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "  console.log('   2. Or run manually: npm run logs:rotate');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\log-rotation-config.js",
+      "snippet": "  console.log('   3. For cleanup: npm run logs:cleanup');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\backup.js",
+      "snippet": "  console.log(\"Démarrage de la sauvegarde...\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\backup.js",
+      "snippet": "    console.log(\"Aucune donnée à sauvegarder. Création du répertoire de données...\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\backup.js",
+      "snippet": "    console.log(\"Aucun fichier de données trouvé.\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\backup.js",
+      "snippet": "  console.log(`Sauvegarde terminée: ${backupFile}`)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\backup.js",
+      "snippet": "  console.log(`Version compressée créée: ${gzipFile}`)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\create-admin-user.ts",
+      "snippet": "  console.log('👤 Création de l\\'utilisateur admin...\\n');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\create-admin-user.ts",
+      "snippet": "      console.log('✅ Utilisateur admin déjà existant');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\create-admin-user.ts",
+      "snippet": "      console.log(`   ID: ${existingAdmin.id}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\create-admin-user.ts",
+      "snippet": "      console.log(`   Username: ${existingAdmin.username}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\create-admin-user.ts",
+      "snippet": "      console.log(`   Email: ${existingAdmin.email}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\create-admin-user.ts",
+      "snippet": "    console.log('✅ Utilisateur admin créé avec succès');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\create-admin-user.ts",
+      "snippet": "    console.log(`   ID: ${adminId}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\create-admin-user.ts",
+      "snippet": "    console.log(`   Username: admin`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\create-admin-user.ts",
+      "snippet": "    console.log(`   Email: admin@logistix.local`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\create-admin-user.ts",
+      "snippet": "    console.log(`❌ Erreur: ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\migrate.js",
+      "snippet": "console.log(\"Exécution des migrations...\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\migrate.js",
+      "snippet": "  console.log(\"Création de l'utilisateur administrateur...\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\migrate.js",
+      "snippet": "  console.log(\"Utilisateur administrateur créé avec succès\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\migrate.js",
+      "snippet": "  console.log(\"Nom d'utilisateur: admin\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\migrate.js",
+      "snippet": "  console.log(\"Mot de passe: admin123\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\migrate.js",
+      "snippet": "console.log(\"Migrations terminées avec succès.\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\restore.js",
+      "snippet": "console.log(\"Fichiers de sauvegarde disponibles:\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\restore.js",
+      "snippet": "  console.log(`${index + 1}. ${file}`)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\restore.js",
+      "snippet": "        console.log(\"Restauration annulée.\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\restore.js",
+      "snippet": "        console.log(\"Démarrage de la restauration...\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\restore.js",
+      "snippet": "          console.log(`Fichier restauré: ${filePath}`)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\restore.js",
+      "snippet": "        console.log(\"Restauration terminée avec succès.\")"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+      "snippet": "  console.log(\"Création du dossier data...\");"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+      "snippet": "  console.log(\"Les permissions du dossier data sont correctes.\");"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+      "snippet": "console.log(\"Initialisation de la base de données...\");"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+      "snippet": "  console.log(\"Vérification et création de la table 'market_analyses'...\");"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+      "snippet": "  console.log(\"Table 'market_analyses' prête.\");"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+      "snippet": "          console.log(`La colonne '${col}' n'existe pas, ajout en cours...`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+      "snippet": "          console.log(`Colonne '${col}' ajoutée avec succès.`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+      "snippet": "  console.log(\"Vérification et création des tables pour les analyses avancées...\");"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+      "snippet": "  console.log(\"Tables 'tracked_products' et 'market_trends' prêtes.\");"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+      "snippet": "    console.log(\"L'utilisateur admin requis n'existe pas, création...\");"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+      "snippet": "    console.log(\"Utilisateur admin spécifique créé avec succès.\");"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+      "snippet": "    console.log(\"L'utilisateur admin spécifique existe déjà.\");"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\production\\setup-db.js",
+      "snippet": "console.log(\"Configuration de la base de données terminée.\");"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\remove-debug-logs.js",
+      "snippet": " * - console.log(...)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\remove-debug-logs.js",
+      "snippet": " * - console.debug(...)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\remove-debug-logs.js",
+      "snippet": " * - console.dir(...)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\remove-debug-logs.js",
+      "snippet": " * - <anything>logger.debug(...)"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\remove-debug-logs.js",
+      "snippet": "  /\\b[A-Za-z0-9_]*logger\\.debug\\s*\\(/,              // somethinglogger.debug(\\n  /\\bdebugLogger\\.[A-Za-z0-9_]+\\s*\\(/               // debugLogger.someMethod(\\n];\\n\\nconst PRODUCTION_ANNOTATION = '// PRODU"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "  console.log('🎯 Test final de validation de l\\'intégration Vinted\\n');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "  console.log('📝 1. Test d\\'extraction des tokens...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('✅ Extraction des tokens : RÉUSSIE');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log(`   Access token: ${accessToken.length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log(`   Refresh token: ${refreshToken.length} caractères`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('❌ Extraction des tokens : ÉCHOUÉE');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "  console.log('\\n🔐 2. Test de chiffrement/déchiffrement...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log('✅ Chiffrement/déchiffrement : RÉUSSI');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log('❌ Chiffrement/déchiffrement : ÉCHOUÉ');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log(`❌ Chiffrement/déchiffrement : ERREUR - ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "  console.log('\\n🔍 3. Test de validation du token...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log('✅ Validation du token : RÉUSSIE');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log(`   Réponse reçue avec ${response.data.length} utilisateurs`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log('   Le token est valide et fonctionnel !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log('⚠️  Validation du token : Réponse inattendue');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log(`   Status: ${response.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log(`❌ Validation du token : ERREUR - ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log(`   Status: ${error.response.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "  console.log('\\n📊 4. Test d\\'endpoint d\\'analyse...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log('✅ Endpoint d\\'analyse : ACCESSIBLE');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log('   Les endpoints Vinted sont accessibles avec ce token');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log(`⚠️  Endpoint d\\'analyse : Status ${response.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log(`❌ Endpoint d\\'analyse : ERREUR - ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log(`   Status: ${error.response.status}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "  console.log('\\n🔄 5. Test de renouvellement du token...');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log('✅ Renouvellement du token : RÉUSSI');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log(`   Nouveau access token: ${newTokens.accessToken.substring(0, 50)}...`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log(`   Nouveau refresh token: ${newTokens.refreshToken.substring(0, 50)}...`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "      console.log('⚠️  Renouvellement du token : Pas nécessaire (token encore valide)');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log(`❌ Renouvellement du token : ERREUR - ${error.message}`);"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "  console.log('\\n🎉 RÉSUMÉ FINAL\\n');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('✨ TOUS LES TESTS CRITIQUES SONT PASSÉS !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('🎯 VALIDATION COMPLÈTE DE L\\'INTÉGRATION VINTED :');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('   ✅ Extraction des tokens depuis cookie');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('   ✅ Chiffrement sécurisé des credentials');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('   ✅ Token valide et fonctionnel');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('   ✅ Accès aux endpoints Vinted');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('   ✅ Logique de renouvellement implémentée');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('🚀 L\\'IMPLÉMENTATION EST COMPLÈTE ET FONCTIONNELLE !');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('📋 Prochaines étapes :');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('   1. Utilisez l\\'interface /analyse-marche');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('   2. Configurez votre cookie Vinted dans le profil');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('   3. Lancez vos analyses de marché');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('   4. Le système gère automatiquement le renouvellement');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('⚠️  Certains tests ont échoué, mais l\\'architecture est solide');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('   Les problèmes sont probablement liés à l\\'expiration du token');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\testing\\final-validation-test.ts",
+      "snippet": "    console.log('   ou aux endpoints spécifiques testés.');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\update-inventory-batch12.js",
+      "snippet": "    console.log('UPDATED');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\update-inventory-batch12.js",
+      "snippet": "  console.log('NO_CHANGE');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\update-inventory.js",
+      "snippet": "    console.log('UPDATED');"
+    },
+    {
+      "file": "F:\\Youcloud\\Documents\\Projets\\Logistix\\scripts\\update-inventory.js",
+      "snippet": "  console.log('NO_CHANGE');"
+    }
+  ],
+  "errors": []
+}

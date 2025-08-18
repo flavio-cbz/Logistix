@@ -3,14 +3,14 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { AnimatedButton } from "@/components/ui/animated-button"
 import { Input } from "@/components/ui/input"
 import ParcelleForm from "@/components/features/parcelles/parcelle-form"
 import { Copy, Edit, Trash2 } from "lucide-react"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import type { Parcelle } from "@/types/database"
 import { useToast } from "@/components/ui/use-toast"
-import { useStore } from "@/store/store"
+import { useStore } from "@/lib/services/admin/store"
 import { useDuplicateEntity } from "@/lib/utils/duplication" // Import du hook de duplication
 
 interface ParcellesListProps {
@@ -108,15 +108,36 @@ export default function ParcellesList({ initialParcelles = [], onDelete }: Parce
                   <TableCell>{parcelle.prixTotal.toFixed(2)} €</TableCell>
                   <TableCell>{parcelle.prixParGramme.toFixed(3)} €</TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button variant="ghost" size="icon" onClick={() => setEditParcelle(parcelle)}>
+                    <AnimatedButton 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setEditParcelle(parcelle)}
+                      ripple={true}
+                      haptic={true}
+                      screenReaderDescription="Modifier la parcelle"
+                    >
                       <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDuplicate(parcelle)}>
+                    </AnimatedButton>
+                    <AnimatedButton 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleDuplicate(parcelle)}
+                      ripple={true}
+                      haptic={true}
+                      screenReaderDescription="Dupliquer la parcelle"
+                    >
                       <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setDeleteId(parcelle.id)}>
+                    </AnimatedButton>
+                    <AnimatedButton 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setDeleteId(parcelle.id)}
+                      ripple={true}
+                      haptic={true}
+                      screenReaderDescription="Supprimer la parcelle"
+                    >
                       <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </AnimatedButton>
                   </TableCell>
                 </motion.tr>
               ))}

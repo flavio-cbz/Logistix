@@ -1,3 +1,5 @@
+> **ℹ️ Ce guide a été consolidé. Pour les instructions essentielles, voir le [README.md](../README.md). Ce fichier détaille les procédures avancées de déploiement et d’infrastructure.**
+
 # Guide de Déploiement - LogistiX
 
 Ce guide détaille les différentes méthodes de déploiement de l'application LogistiX en production.

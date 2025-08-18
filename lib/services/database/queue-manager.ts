@@ -72,19 +72,22 @@ export class QueueManager {
   private waitTimes: number[] = [];
   private cleanupInterval?: NodeJS.Timeout;
 
-  private logger = {
-    debug: (msg: string, data?: any) => {
-      if (process.env.DB_DEBUG === 'true') {
-        console.debug(`[QueueManager] ${msg}`, data ? JSON.stringify(data) : '');
-      }
-    },
-    warn: (msg: string, data?: any) => {
-      console.warn(`[QueueManager] ${msg}`, data ? JSON.stringify(data) : '');
-    },
-    error: (msg: string, data?: any) => {
-      console.error(`[QueueManager] ${msg}`, data ? JSON.stringify(data) : '');
-    },
-  };
+  private logger = (() => {
+    const { getLogger } = require('@/lib/utils/logging/simple-logger');
+    const logger = getLogger('QueueManager');
+    return {
+      debug: (msg: string, data?: any) => {
+        if (process.env.DB_DEBUG === 'true') {
+        }
+      },
+      warn: (msg: string, data?: any) => {
+        logger.warn(msg, data);
+      },
+      error: (msg: string, data?: any) => {
+        logger.error(msg, data);
+      },
+    };
+  })();
 
   constructor() {
     // Démarrer le nettoyage périodique des requêtes expirées
@@ -121,13 +124,6 @@ export class QueueManager {
       this.stats.requestsByType[type]++;
       this.stats.requestsByPriority[priority]++;
 
-      this.logger.debug('Request enqueued', {
-        id: request.id,
-        type,
-        priority,
-        queueLength: this.queue.length,
-        context,
-      });
 
       // Configurer le timeout
       setTimeout(() => {
@@ -149,13 +145,6 @@ export class QueueManager {
       const waitTime = Date.now() - request.timestamp.getTime();
       this.updateWaitTimeStats(waitTime);
 
-      this.logger.debug('Request dequeued', {
-        id: request.id,
-        type: request.type,
-        priority: request.priority,
-        waitTime,
-        remainingInQueue: this.queue.length,
-      });
     }
 
     return request;
@@ -196,10 +185,6 @@ export class QueueManager {
       request.reject(new Error(reason));
     }
 
-    this.logger.debug('All requests cancelled', {
-      cancelledCount: requestsToCancel.length,
-      reason,
-    });
   }
 
   /**
@@ -347,6 +332,5 @@ export class QueueManager {
     
     this.cancelAllRequests('Queue manager shutdown');
     
-    this.logger.debug('Queue manager shutdown completed');
   }
 }

@@ -12,7 +12,7 @@ async function loadSentry() {
       // Import dynamique pour éviter les warnings webpack
       Sentry = await import('@sentry/node');
     } catch (error) {
-      console.warn('Failed to load Sentry:', error);
+      // Sentry loading failed - will continue without it
     }
   }
   return Sentry;
@@ -21,7 +21,7 @@ async function loadSentry() {
 async function initSentry() {
   // Ne charger Sentry qu'en production ou si explicitement configuré
   if (process.env.NODE_ENV === 'development' && !process.env.SENTRY_DSN) {
-    console.log('Sentry skipped in development mode');
+    // Sentry skipped in development mode
     return;
   }
 
@@ -61,10 +61,6 @@ async function initSentry() {
             });
           },
 
-          // Désactiver l'auto-instrumentation pour éviter les conflits
-          autoInstrumentMiddleware: false,
-          autoInstrumentServerFunctions: false,
-
           // Configuration des transports pour éviter les warnings
           beforeSend(event) {
             // Filtrer les erreurs liées à require-in-the-middle
@@ -83,13 +79,13 @@ async function initSentry() {
           }
         });
 
-        console.log('Sentry initialized successfully');
+        // Sentry initialized successfully
       } catch (error) {
-        console.error('Failed to initialize Sentry:', error);
+        // Failed to initialize Sentry - will continue without it
       }
     }
   } else {
-    console.warn('SENTRY_DSN is not set, Sentry will not be initialized.');
+    // SENTRY_DSN is not set, Sentry will not be initialized
   }
 }
 

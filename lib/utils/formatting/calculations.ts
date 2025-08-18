@@ -6,12 +6,18 @@ import type { Parcelle, Produit } from "@/types/database"
  * @returns Un objet contenant les bénéfices et le pourcentage de bénéfice.
  */
 export function calculerBenefices(produit: Partial<Produit>) {
-  if (!produit.vendu || !produit.prixVente || !produit.prixArticle || !produit.prixLivraison) {
+  if (!produit.vendu || produit.prixVente == null || produit.prixArticle == null || produit.prixLivraison == null) {
     return { benefices: 0, pourcentageBenefice: 0 }
   }
 
   const coutTotal = produit.prixArticle + produit.prixLivraison
   const benefices = produit.prixVente - coutTotal
+
+  // Garde contre la division par zéro si le coût total est 0
+  if (coutTotal === 0) {
+    return { benefices, pourcentageBenefice: 0 }
+  }
+
   const pourcentageBenefice = (benefices / coutTotal) * 100
 
   return { benefices, pourcentageBenefice }

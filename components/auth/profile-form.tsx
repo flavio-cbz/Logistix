@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -44,37 +44,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState(initialData.avatar || "")
-  const [vintedTokenStatus, setVintedTokenStatus] = useState<{
-    configured: boolean
-    valid: boolean
-    lastValidated?: string
-    token?: string
-  }>({
-    configured: false,
-    valid: false,
-  })
-
-  // Charger le statut du token Vinted au montage du composant
-  useEffect(() => {
-    const loadVintedTokenStatus = async () => {
-      try {
-        const response = await fetch('/api/v1/market-analysis/token')
-        if (response.ok) {
-          const data = await response.json()
-          setVintedTokenStatus({
-            configured: data.configured || false,
-            valid: data.valid || false,
-            lastValidated: data.lastValidated,
-            token: data.token, // Pour l'affichage masqué
-          })
-        }
-      } catch (error) {
-        console.error('Erreur lors du chargement du statut Vinted:', error)
-      }
-    }
-
-    loadVintedTokenStatus()
-  }, [])
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -84,7 +53,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   async function onSubmit(data: ProfileFormValues) {
     setLoading(true)
     try {
-      console.log("Envoi des données de profil:", { ...data, password: data.password ? "***" : undefined, avatar: avatarUrl })
 
       const response = await fetch("/api/profile/update", {
         method: "POST",
@@ -100,7 +68,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       }
 
       const result = await response.json()
-      console.log("Réponse reçue:", result)
 
       if (result.success) {
         toast({
@@ -159,12 +126,8 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       </Card>
 
       {/* Configuration Vinted */}
-      <VintedTokenConfig
-        initialToken={vintedTokenStatus.token || ""}
-        isConfigured={vintedTokenStatus.configured}
-        isValid={vintedTokenStatus.valid}
-        lastValidated={vintedTokenStatus.lastValidated}
-      />
+      <VintedTokenConfig />
+      
       <Card>
         <CardHeader>
           <CardTitle>Informations personnelles</CardTitle>
@@ -179,7 +142,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                   <FormItem>
                     <FormLabel>Nom d'utilisateur</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} autoComplete="username" />
                     </FormControl>
                     <FormDescription>C'est votre nom public. Il peut être votre vrai nom ou un pseudonyme.</FormDescription>
                     <FormMessage />
@@ -193,7 +156,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                   <FormItem>
                     <FormLabel>Mot de passe (optionnel)</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Laissez vide pour ne pas modifier" {...field} />
+                      <Input type="password" autoComplete="new-password" placeholder="Laissez vide pour ne pas modifier" {...field} />
                     </FormControl>
                     <FormDescription>
                       Laissez ce champ vide si vous ne souhaitez pas changer votre mot de passe.

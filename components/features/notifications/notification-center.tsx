@@ -8,7 +8,7 @@ import { Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useStore } from "@/store/store"
+import { useStore } from "@/lib/services/admin/store"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 export function NotificationCenter() {

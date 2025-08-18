@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Checkbox } from "@/components/ui/checkbox"
 import { 
   History, 
   Search, 
@@ -19,7 +20,8 @@ import {
   Euro,
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Eye
 } from "lucide-react"
 import { type HistoricalDataViewProps, type MarketAnalysisHistoryItem } from "@/types/vinted-market-analysis"
 
@@ -29,8 +31,16 @@ export default function HistoricalDataView({
   onLoadMore,
   hasMore,
   isLoading = false,
-  onReload
-}: HistoricalDataViewProps & { onReload?: () => void }) {
+  onReload,
+  onRowClick,
+  onToggleCompare,
+  selectedForComparison = []
+}: HistoricalDataViewProps & { 
+  onReload?: () => void; 
+  onRowClick?: (analysis: MarketAnalysisHistoryItem) => void;
+  onToggleCompare?: (analysisId: string) => void;
+  selectedForComparison?: string[];
+}) {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [pendingDeletions, setPendingDeletions] = useState<string[]>([])
@@ -46,7 +56,8 @@ export default function HistoricalDataView({
     setPendingDeletions(prev => prev.filter(pendingId => pendingId !== id))
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
     setPendingDeletions(prev => [...prev, id])
 
     const timer = setTimeout(async () => {
@@ -112,24 +123,6 @@ export default function HistoricalDataView({
     }
   }
 
-  const getTrendIcon = (current: number, previous?: number) => {
-    if (!previous) return <Minus className="h-4 w-4 text-muted-foreground" />
-    
-    if (current > previous) {
-      return <TrendingUp className="h-4 w-4 text-green-600" />
-    } else if (current < previous) {
-      return <TrendingDown className="h-4 w-4 text-red-600" />
-    } else {
-      return <Minus className="h-4 w-4 text-muted-foreground" />
-    }
-  }
-
-  const calculateTrendPercentage = (current: number, previous?: number) => {
-    if (!previous || previous === 0) return null
-    const change = ((current - previous) / previous) * 100
-    return change.toFixed(1)
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -138,18 +131,10 @@ export default function HistoricalDataView({
           Historique des analyses
         </CardTitle>
         <CardDescription>
-          Consultez vos analyses précédentes et suivez l'évolution des prix
+          Consultez, supprimez ou comparez vos analyses précédentes.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Animation CSS globale */}
-        <style jsx global>{`
-          @keyframes progressBar {
-            from { width: 0%; }
-            to { width: 100%; }
-          }
-        `}</style>
-        {/* Filtres et recherche */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -178,187 +163,54 @@ export default function HistoricalDataView({
           </div>
         </div>
 
-        {/* Statistiques rapides */}
-        {analyses.length > 0 && (
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <Calendar className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">{analyses.length}</p>
-                <p className="text-xs text-muted-foreground">Analyses totales</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <ShoppingCart className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">
-                  {analyses.filter(a => a.status === 'completed').length}
-                </p>
-                <p className="text-xs text-muted-foreground">Analyses réussies</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <Euro className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">
-                  {formatPrice(
-                    analyses
-                      .filter(a => a.status === 'completed')
-                      .reduce((sum, a) => sum + a.avgPrice, 0) / 
-                    Math.max(analyses.filter(a => a.status === 'completed').length, 1)
-                  )}
-                </p>
-                <p className="text-xs text-muted-foreground">Prix moyen global</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Table des analyses */}
         {filteredAnalyses.length === 0 ? (
           <div className="text-center py-8">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">
-              {searchTerm || statusFilter !== "all" 
-                ? "Aucun résultat trouvé" 
-                : "Aucune analyse disponible"
-              }
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              {searchTerm || statusFilter !== "all"
-                ? "Essayez de modifier vos critères de recherche"
-                : "Commencez par créer votre première analyse de marché"
-              }
-            </p>
-            {(searchTerm || statusFilter !== "all") && (
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSearchTerm("")
-                  setStatusFilter("all")
-                }}
-              >
-                Réinitialiser les filtres
-              </Button>
-            )}
+            <p>Aucune analyse trouvée.</p>
           </div>
         ) : (
           <div className="border rounded-lg">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[40px]"></TableHead>
                   <TableHead>Produit</TableHead>
                   <TableHead>Statut</TableHead>
-                  <TableHead>Volume</TableHead>
                   <TableHead>Prix moyen</TableHead>
-                  <TableHead>Tendance</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAnalyses.map((analysis, index) => {
-                  const previousAnalysis = filteredAnalyses[index + 1]
-                  const trendPercentage = calculateTrendPercentage(
-                    analysis.avgPrice,
-                    previousAnalysis?.avgPrice
-                  )
-                
-                  const isPending = pendingDeletions.includes(analysis.id)
-                
+                {filteredAnalyses.map((analysis) => {
+                  const isPending = pendingDeletions.includes(analysis.id);
+                  const isSelected = selectedForComparison.includes(analysis.id);
                   return (
                     <TableRow
                       key={analysis.id}
-                      className={`cursor-pointer hover:bg-muted/50 transition-all duration-500 ${
-                        isPending ? "opacity-50 relative" : ""
-                      }`}
+                      onClick={() => onRowClick && onRowClick(analysis)}
+                      className={`transition-all duration-300 ${
+                        isPending ? "opacity-50" : "cursor-pointer hover:bg-muted/50"
+                      } ${isSelected ? "bg-blue-100 hover:bg-blue-200" : ""}`}
                     >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => onToggleCompare && onToggleCompare(analysis.id)}
+                          disabled={isPending}
+                        />
+                      </TableCell>
                       <TableCell>
-                        <div>
                           <p className="font-medium">{analysis.productName}</p>
-                          {analysis.error && (
-                            <p className="text-xs text-red-600 mt-1">{analysis.error}</p>
-                          )}
+                          {analysis.error && <p className="text-xs text-red-600 mt-1">{analysis.error}</p>}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(analysis.status)}</TableCell>
+                      <TableCell>{formatPrice(analysis.avgPrice)}</TableCell>
+                      <TableCell>{formatDate(analysis.createdAt)}</TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => onRowClick && onRowClick(analysis)}><Eye className="h-4 w-4" /></Button>
+                          {!isPending && <Button variant="destructive" size="sm" onClick={(e) => handleDelete(e, analysis.id)}>Supprimer</Button>}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(analysis.status)}
-                      </TableCell>
-                      <TableCell>
-                        {analysis.status === 'completed' ? (
-                          <div className="flex items-center gap-1">
-                            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                            {analysis.salesVolume}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {analysis.status === 'completed' ? (
-                          <div className="flex items-center gap-1">
-                            <Euro className="h-4 w-4 text-muted-foreground" />
-                            {formatPrice(analysis.avgPrice)}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {analysis.status === 'completed' ? (
-                          <div className="flex items-center gap-1">
-                            {getTrendIcon(analysis.avgPrice, previousAnalysis?.avgPrice)}
-                            {trendPercentage && (
-                              <span className={`text-xs ${
-                                parseFloat(trendPercentage) > 0
-                                  ? 'text-green-600'
-                                  : parseFloat(trendPercentage) < 0
-                                    ? 'text-red-600'
-                                    : 'text-muted-foreground'
-                              }`}>
-                                {parseFloat(trendPercentage) > 0 ? '+' : ''}{trendPercentage}%
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{formatDate(analysis.createdAt)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {!analysis.id.startsWith("temp-") && !isPending && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDelete(analysis.id)}
-                          >
-                            Supprimer
-                          </Button>
-                        )}
-                        {isPending && (
-                          <div className="flex items-center gap-2">
-                            <div className="relative w-20 h-2 bg-muted rounded overflow-hidden mr-2">
-                              <div
-                                className="absolute left-0 top-0 h-2 bg-red-400 animate-progress"
-                                style={{
-                                  animation: "progressBar 5s linear forwards"
-                                }}
-                              />
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleUndo(analysis.id)}
-                            >
-                              Annuler
-                            </Button>
-                          </div>
-                        )}
                       </TableCell>
                     </TableRow>
                   )
@@ -368,37 +220,7 @@ export default function HistoricalDataView({
           </div>
         )}
 
-        {/* Bouton charger plus */}
-        {hasMore && filteredAnalyses.length > 0 && (
-          <div className="flex justify-center pt-4">
-            <Button
-              variant="outline"
-              onClick={onLoadMore}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Chargement...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Charger plus d'analyses
-                </>
-              )}
-            </Button>
-          </div>
-        )}
-
-        {/* Message si pas plus de données */}
-        {!hasMore && filteredAnalyses.length > 0 && (
-          <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground">
-              Toutes les analyses ont été chargées
-            </p>
-          </div>
-        )}
+        {hasMore && <div className="flex justify-center pt-4"><Button variant="outline" onClick={onLoadMore} disabled={isLoading}>Charger plus</Button></div>}
       </CardContent>
     </Card>
   )

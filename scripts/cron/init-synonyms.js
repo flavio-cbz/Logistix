@@ -30,7 +30,6 @@ function insertSynonyms() {
   for (const s of synonyms) {
     stmt.run(uuidv4(), s.entity_type, s.canonical_id, s.synonym, s.language);
   }
-  console.log('Synonymes insérés avec succès.');
 }
 
 insertSynonyms();

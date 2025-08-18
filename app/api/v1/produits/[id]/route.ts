@@ -137,7 +137,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
         
         const info = await databaseService.execute('DELETE FROM produits WHERE id = ? AND user_id = ?', [id, user.id]);
 
-        if (info.changes === 0) {
+        if ((info?.changes ?? 0) === 0) {
             return NextResponse.json({ success: false, message: 'Produit non trouvé ou non autorisé' }, { status: 404 });
         }
 

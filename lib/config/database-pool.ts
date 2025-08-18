@@ -105,13 +105,5 @@ export function logPoolConfig(config: PoolConfig): void {
   const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
   
   if (!isProduction || process.env.DB_DEBUG === 'true') {
-    console.log('[DatabasePool] Configuration:', {
-      environment: isBuild ? 'build' : (isProduction ? 'production' : 'development'),
-      maxConnections: config.maxConnections,
-      connectionTimeout: `${config.connectionTimeout}ms`,
-      idleTimeout: `${config.idleTimeout}ms`,
-      retryAttempts: config.retryAttempts,
-      retryDelay: `${config.retryDelay}ms`,
-    });
   }
 }

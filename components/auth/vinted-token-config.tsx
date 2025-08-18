@@ -1,339 +1,237 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
+import React, { useReducer, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { useToast } from "@/components/ui/use-toast"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, CheckCircle, XCircle, Save, AlertCircle, Trash2, Beaker } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Loader2, CheckCircle, AlertCircle, Trash2 } from "lucide-react"
 
-const vintedSessionSchema = z.object({
-  sessionToken: z.string().min(1, "Le cookie ou token Vinted est requis."),
-})
-
-type VintedSessionFormValues = z.infer<typeof vintedSessionSchema>
-
-interface VintedConfigStatus {
-  status: 'active' | 'expired' | 'error' | 'requires_configuration';
-  lastRefreshedAt?: string;
-  refreshErrorMessage?: string;
+type State = {
+  status: "idle" | "loading" | "success" | "error"
+  token: string
+  error: string | null
 }
 
-export function VintedTokenConfig({
-  initialToken = "",
-  isConfigured = false,
-  isValid = false,
-  lastValidated
-}: {
-  initialToken?: string
-  isConfigured?: boolean
-  isValid?: boolean
-  lastValidated?: string
-}) {
-  const { toast } = useToast()
-  const [isSaving, setIsSaving] = useState(false)
-  const [isTesting, setIsTesting] = useState(false)
-  const [configStatus, setConfigStatus] = useState<VintedConfigStatus | null>(null)
-  const [isFetchingStatus, setIsFetchingStatus] = useState(true);
+type Action =
+  | { type: "FETCH_START" }
+  | { type: "FETCH_SUCCESS"; token: string }
+  | { type: "FETCH_ERROR"; error: string }
+  | { type: "SUBMIT_START" }
+  | { type: "SUBMIT_SUCCESS"; token: string }
+  | { type: "SUBMIT_ERROR"; error: string }
+  | { type: "REMOVE_START" }
+  | { type: "REMOVE_SUCCESS" }
+  | { type: "REMOVE_ERROR"; error: string }
 
-  const form = useForm<VintedSessionFormValues>({
-    resolver: zodResolver(vintedSessionSchema),
-    defaultValues: {
-      sessionToken: "",
-    },
-  })
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "FETCH_START":
+      return { ...state, status: "loading", error: null }
+    case "FETCH_SUCCESS":
+      return { ...state, status: "success", token: action.token, error: null }
+    case "FETCH_ERROR":
+      return { ...state, status: "error", token: "", error: action.error }
+    case "SUBMIT_START":
+      return { ...state, status: "loading", error: null }
+    case "SUBMIT_SUCCESS":
+      return { ...state, status: "success", token: action.token, error: null }
+    case "SUBMIT_ERROR":
+      return { ...state, status: "error", token: "", error: action.error }
+    case "REMOVE_START":
+      return { ...state, status: "loading", error: null }
+    case "REMOVE_SUCCESS":
+      return { ...state, status: "idle", token: "", error: null }
+    case "REMOVE_ERROR":
+      return { ...state, status: "error", error: action.error }
+    default:
+      return state
+  }
+}
+
+export default function VintedTokenConfig() {
+  const [state, dispatch] = useReducer(reducer, { status: "idle", token: "", error: null })
+  const [validation, setValidation] = useState<{ status: "idle" | "loading" | "success" | "error"; message: string }>({ status: "idle", message: "" })
 
   useEffect(() => {
-    const fetchStatus = async () => {
-      setIsFetchingStatus(true);
-      try {
-        const response = await fetch("/api/v1/vinted/configure");
-        const data: VintedConfigStatus = await response.json();
-        setConfigStatus(data);
-      } catch (error) {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Impossible de récupérer le statut de la configuration Vinted.",
-        });
-      } finally {
-        setIsFetchingStatus(false);
-      }
-    };
-    fetchStatus();
-  }, [toast]);
-
-  const handleTestToken = async () => {
-    const sessionToken = form.getValues("sessionToken");
-    if (!sessionToken) {
-      toast({
-        variant: "destructive",
-        title: "Champ requis",
-        description: "Veuillez saisir un token avant de le tester.",
-      });
-      return;
-    }
-
-    console.log("Début du test du token...");
-    setIsTesting(true);
-    try {
-      console.log("Appel de l'API /api/v1/vinted/test-token");
-      const response = await fetch("/api/v1/vinted/test-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionToken }),
-      });
-
-      const result = await response.json();
-      console.log("Réponse de l'API:", result);
-
-      if (response.ok && result.isValid) {
-        console.log("Affichage du toast de succès");
-        toast({
-          title: "Token valide",
-          description: "Le token a été testé avec succès.",
-        });
-      } else {
-        console.log("Affichage du toast d'erreur (token invalide)");
-        toast({
-          variant: "destructive",
-          title: "Token invalide",
-          description: result.message || "Le token est invalide ou a expiré.",
-        });
-      }
-    } catch (error) {
-      console.error("Erreur lors de l'appel API:", error);
-      console.log("Affichage du toast d'erreur (exception)");
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Une erreur est survenue lors du test du token.",
-      });
-    } finally {
-      console.log("Fin du test du token.");
-      setIsTesting(false);
-    }
-  };
-
-  const onSubmit = async (data: VintedSessionFormValues) => {
-    setIsSaving(true)
-
-    try {
-      const response = await fetch("/api/v1/vinted/configure", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionToken: data.sessionToken }),
+    dispatch({ type: "FETCH_START" })
+    fetch("/api/v1/vinted/token-info", { credentials: "include" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Impossible de charger la configuration.")
+        const data = await res.json()
+        if (data.configured && data.token) {
+          dispatch({ type: "FETCH_SUCCESS", token: data.token })
+        } else {
+          dispatch({ type: "FETCH_SUCCESS", token: "" })
+        }
       })
-
-      const result = await response.json()
-
-      if (response.ok) {
-        toast({
-          title: "Configuration enregistrée",
-          description: "Votre cookie/token Vinted a été enregistré et une session a été créée.",
-        })
-        window.location.reload()
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Erreur de configuration",
-          description: result.error || "Impossible d'enregistrer le cookie/token. Vérifiez-le et réessayez.",
-        })
-      }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Une erreur est survenue lors de l'enregistrement.",
+      .catch((err) => {
+        dispatch({ type: "FETCH_ERROR", error: err.message })
       })
-    } finally {
-      setIsSaving(false)
-    }
-  }
+  }, [])
 
-  const handleRemoveConfig = async () => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer la configuration Vinted ? Cette action est irréversible.")) {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const token = formData.get("token") as string
+    if (!token) {
+      dispatch({ type: "SUBMIT_ERROR", error: "Le token est requis." })
       return
     }
-
-    setIsLoading(true)
-
+    dispatch({ type: "SUBMIT_START" })
+    setValidation({ status: "idle", message: "" })
     try {
-      const response = await fetch("/api/v1/vinted/configure", {
-        method: "DELETE",
+      const res = await fetch("/api/v1/vinted/token-info", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
       })
-
-      if (response.ok) {
-        toast({
-          title: "Configuration supprimée",
-          description: "La configuration Vinted a été supprimée avec succès.",
+      const data = await res.json()
+      if (res.ok && data.configured) {
+        dispatch({ type: "SUBMIT_SUCCESS", token })
+        // Validation du token via la nouvelle route
+        setValidation({ status: "loading", message: "" })
+        const testRes = await fetch("/api/v1/vinted/test-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
         })
-        window.location.reload()
+        const testData = await testRes.json()
+        if (testRes.ok && testData.valid) {
+          setValidation({ status: "success", message: "Token Vinted valide. Authentification réussie !" })
+        } else {
+          setValidation({ status: "error", message: testData.error || "Token Vinted invalide ou expiré." })
+        }
       } else {
-        const result = await response.json()
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: result.message || "Impossible de supprimer la configuration.",
-        })
+        dispatch({ type: "SUBMIT_ERROR", error: data.error || "Erreur lors de la sauvegarde." })
       }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la suppression.",
-      })
-    } finally {
-      setIsSaving(false)
+    } catch (err: any) {
+      dispatch({ type: "SUBMIT_ERROR", error: err.message })
     }
   }
 
-  const computedIsConfigured = configStatus?.status && configStatus.status !== 'requires_configuration';
-  const computedIsValid = configStatus?.status === 'active';
+  const handleRemove = async () => {
+    if (!window.confirm("Supprimer la configuration Vinted ?")) return
+    dispatch({ type: "REMOVE_START" })
+    try {
+      const res = await fetch("/api/v1/vinted/token-info", {
+        method: "DELETE",
+        credentials: "include",
+      })
+      if (res.ok) {
+        dispatch({ type: "REMOVE_SUCCESS" })
+        setValidation({ status: "idle", message: "" })
+      } else {
+        const data = await res.json()
+        dispatch({ type: "REMOVE_ERROR", error: data.error || "Erreur lors de la suppression." })
+      }
+    } catch (err: any) {
+      dispatch({ type: "REMOVE_ERROR", error: err.message })
+    }
+  }
+
+  // UI rendering
+  if (state.status === "loading") {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (state.status === "error") {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 gap-2">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{state.error}</AlertDescription>
+        </Alert>
+        <Button onClick={() => window.location.reload()}>Réessayer</Button>
+      </div>
+    )
+  }
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              Configuration Vinted
-              {computedIsConfigured && (
-                <Badge variant={computedIsValid ? "default" : "destructive"}>
-                  {computedIsValid ? "Active" : "Erreur"}
-                </Badge>
-              )}
-            </CardTitle>
-            <CardDescription>
-              Collez votre cookie ou token Vinted pour activer l'analyse de marché.
-            </CardDescription>
-          </div>
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          Configuration du Token Vinted
+          <Badge variant={state.token ? "default" : "destructive"}>
+            {state.token ? "Configuré" : "Non configuré"}
+          </Badge>
+        </CardTitle>
+        <CardDescription>
+          Configurez votre token d’authentification pour accéder aux données Vinted.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Votre cookie ou token Vinted est chiffré avant d'être stocké et n'est utilisé que pour rafraîchir automatiquement votre session.
-          </AlertDescription>
-        </Alert>
-
-        {isFetchingStatus ? (
-            <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-        ) : computedIsConfigured ? (
+        {state.token ? (
           <div className="p-4 border rounded-lg bg-muted/50 space-y-3">
             <div className="flex items-center gap-2">
-              {computedIsValid ? (
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              ) : (
-                <XCircle className="h-5 w-5 text-red-600" />
-              )}
-              <span className="font-medium">
-                {computedIsValid ? "Configuration active" : `Erreur de session`}
-              </span>
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="font-medium">Configuration active</span>
             </div>
-            {configStatus?.lastRefreshedAt && (
-              <p className="text-sm text-muted-foreground">
-                Dernier rafraîchissement : {new Date(configStatus.lastRefreshedAt).toLocaleString("fr-FR")}
-              </p>
-            )}
-            {configStatus?.status === 'error' && configStatus.refreshErrorMessage && (
-                <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                        <p className="font-bold">Dernière erreur :</p>
-                        <p className="text-xs">{configStatus.refreshErrorMessage}</p>
-                    </AlertDescription>
-                </Alert>
-            )}
-            <p className="text-sm text-muted-foreground">Pour modifier votre cookie/token, veuillez soumettre le formulaire ci-dessous à nouveau.</p>
+            <p className="text-sm text-muted-foreground">
+              Pour modifier votre token, soumettez le formulaire ci-dessous à nouveau.
+            </p>
           </div>
-        ) : null}
-
-        {configStatus?.status === 'expired' && (
-            <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                    Votre token Vinted a expiré. Veuillez en fournir un nouveau pour continuer à utiliser l'analyse de marché.
-                </AlertDescription>
-            </Alert>
+        ) : (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Aucun token Vinted configuré. Veuillez en fournir un.
+            </AlertDescription>
+          </Alert>
         )}
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="sessionToken"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cookie ou token Vinted</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Collez ici la valeur du cookie _vinted_fr_session ou access_token_web"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Rendez-vous sur Vinted, connectez-vous, puis copiez la valeur du cookie <b>_vinted_fr_session</b> ou <b>access_token_web</b> depuis les outils de développement de votre navigateur.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        {/* Message de validation du token */}
+        {validation.status === "loading" && (
+          <Alert variant="default" className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <AlertDescription>Vérification du token en cours...</AlertDescription>
+          </Alert>
+        )}
+        {validation.status === "success" && (
+          <Alert variant="success" className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription>{validation.message}</AlertDescription>
+          </Alert>
+        )}
+        {validation.status === "error" && (
+          <Alert variant="destructive" className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{validation.message}</AlertDescription>
+          </Alert>
+        )}
 
-            <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={isSaving || isTesting}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enregistrement...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    {computedIsConfigured ? "Mettre à jour" : "Enregistrer"}
-                  </>
-                )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            name="token"
+            placeholder="Collez ici la valeur du cookie _vinted_fr_session ou access_token_web"
+            defaultValue=""
+            disabled={validation.status === "loading"}
+          />
+          <div className="flex gap-2">
+            <Button type="submit" disabled={validation.status === "loading"}>
+              {state.token ? "Mettre à jour" : "Enregistrer"}
+            </Button>
+            {state.token && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleRemove}
+                disabled={validation.status === "loading"}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Supprimer
               </Button>
-
-              <Button type="button" variant="outline" onClick={handleTestToken} disabled={isSaving || isTesting}>
-                {isTesting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Test en cours...
-                  </>
-                ) : (
-                  <>
-                    <Beaker className="mr-2 h-4 w-4" />
-                    Tester le token
-                  </>
-                )}
-              </Button>
-
-              {computedIsConfigured && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleRemoveConfig}
-                  disabled={isSaving || isTesting}
-                  className="ml-auto"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Supprimer
-                </Button>
-              )}
-            </div>
-          </form>
-        </Form>
+            )}
+          </div>
+        </form>
       </CardContent>
     </Card>
   )
 }
+export { VintedTokenConfig };

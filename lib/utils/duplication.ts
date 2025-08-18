@@ -24,9 +24,9 @@ export function useDuplicateEntity<T extends { id: string }>() {
           ...(transform ? transform(entity) : {}),
         };
         addFunction(duplicatedEntity);
-        // console.log(`Duplication de ${entityName} réussie avec le nouvel ID: ${newId}`);
+        // Duplication successful
       } catch (err) {
-        // console.error(`Erreur lors de la duplication de ${entityName}:`, err);
+        // Duplication failed
         setError(`Échec de la duplication de ${entityName}.`);
       } finally {
         setIsDuplicating(false);

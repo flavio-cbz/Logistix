@@ -1,22 +1,31 @@
 import { db } from '@/lib/services/database/drizzle-client';
 import { vintedSessions } from '@/lib/services/database/drizzle-schema';
 import { eq } from 'drizzle-orm';
-import { vintedCredentialService } from './vinted-credential-service';
 import axios from 'axios';
 import { logger } from '@/lib/utils/logging/logger';
+import { getVintedConfig } from '@/lib/config/vinted-config';
+import { encryptSecret, decryptSecret } from '@/lib/utils/crypto';
 
-const VINTED_API_BASE = 'https://www.vinted.fr/api/v2';
-const SUGGESTIONS_URL = `${VINTED_API_BASE}/items/suggestions`;
+// Configuration centralisée via vinted-config.ts
 
 export const vintedSessionManager = {
   async getSessionCookie(userId: string): Promise<string | null> {
     const session = await db.query.vintedSessions.findFirst({
       where: eq(vintedSessions.userId, userId),
     });
-    return session?.sessionCookie || null;
+    if (!session?.sessionCookie) return null;
+    try {
+      const decrypted = decryptSecret(session.sessionCookie);
+      return decrypted;
+    } catch (err: any) {
+      logger.error(`[VintedSessionManager] Erreur lors du déchiffrement du cookie pour ${userId}:`, err);
+      // Marquer la session comme nécessitant une reconfiguration
+      await db.update(vintedSessions).set({ status: 'requires_configuration', refreshErrorMessage: 'Impossible de déchiffrer la session' }).where(eq(vintedSessions.userId, userId));
+      return null;
+    }
   },
 
-  async refreshSession(userId: string): Promise<void> {
+  async refreshSession(userId: string): Promise<{ success: boolean; error?: string; tokens?: any }> {
     const session = await db.query.vintedSessions.findFirst({
       where: eq(vintedSessions.userId, userId),
     });
@@ -24,12 +33,20 @@ export const vintedSessionManager = {
     if (!session || !session.sessionCookie) {
       logger.warn(`[VintedSessionManager] Aucune session à rafraîchir pour l'utilisateur ${userId}`);
       await db.update(vintedSessions).set({ status: 'requires_configuration', refreshErrorMessage: 'Session non trouvée' }).where(eq(vintedSessions.userId, userId));
-      return;
+      return { success: false, error: 'Session non trouvée' };
     }
 
     try {
-      const decryptedCookie = await vintedCredentialService.decrypt(session.sessionCookie);
-      const isValid = await this.isTokenValid(decryptedCookie);
+      let cookie: string;
+      try {
+        cookie = decryptSecret(session.sessionCookie);
+      } catch (err: any) {
+        logger.error(`[VintedSessionManager] Erreur de déchiffrement du cookie pour ${userId}:`, err);
+        await db.update(vintedSessions).set({ status: 'requires_configuration', refreshErrorMessage: 'Impossible de déchiffrer la session' }).where(eq(vintedSessions.userId, userId));
+        return { success: false, error: 'Impossible de déchiffrer la session' };
+      }
+
+      const isValid = await this.isTokenValid(cookie);
       const now = new Date().toISOString();
 
       if (isValid) {
@@ -39,12 +56,40 @@ export const vintedSessionManager = {
           refreshErrorMessage: null,
         }).where(eq(vintedSessions.userId, userId));
         logger.info(`[VintedSessionManager] Session validée pour l'utilisateur ${userId}`);
+        return { success: true };
       } else {
-        await db.update(vintedSessions).set({
-          status: 'expired',
-          refreshErrorMessage: 'Le token est invalide ou a expiré.',
-        }).where(eq(vintedSessions.userId, userId));
-        logger.warn(`[VintedSessionManager] Session expirée pour l'utilisateur ${userId}`);
+        // Tenter un refresh automatique du token
+        logger.info(`[VintedSessionManager] Token expiré, tentative de refresh pour l'utilisateur ${userId}`);
+        
+        const { VintedAuthService } = await import('./vinted-auth-service');
+        const authService = new VintedAuthService(cookie);
+        const newTokens = await authService.refreshAccessToken();
+        
+        if (newTokens && newTokens.accessToken && newTokens.refreshToken) {
+          // Construire le nouveau cookie avec les nouveaux tokens
+          const newCookie = cookie
+            .replace(/access_token_web=[^;]+/, `access_token_web=${newTokens.accessToken}`)
+            .replace(/refresh_token_web=[^;]+/, `refresh_token_web=${newTokens.refreshToken}`);
+          
+          // Sauvegarder le nouveau cookie chiffré
+          const encrypted = encryptSecret(newCookie);
+          await db.update(vintedSessions).set({
+            sessionCookie: encrypted,
+            status: 'active',
+            lastValidatedAt: now,
+            refreshErrorMessage: null,
+          }).where(eq(vintedSessions.userId, userId));
+          
+          logger.info(`[VintedSessionManager] Token rafraîchi avec succès pour l'utilisateur ${userId}`);
+          return { success: true, tokens: newTokens };
+        } else {
+          await db.update(vintedSessions).set({
+            status: 'expired',
+            refreshErrorMessage: 'Impossible de rafraîchir le token.',
+          }).where(eq(vintedSessions.userId, userId));
+          logger.warn(`[VintedSessionManager] Impossible de rafraîchir le token pour l'utilisateur ${userId}`);
+          return { success: false, error: 'Impossible de rafraîchir le token' };
+        }
       }
     } catch (error: any) {
       logger.error(`[VintedSessionManager] Erreur lors du rafraîchissement de la session pour ${userId}:`, error);
@@ -52,6 +97,7 @@ export const vintedSessionManager = {
         status: 'error',
         refreshErrorMessage: error.message,
       }).where(eq(vintedSessions.userId, userId));
+      return { success: false, error: error.message };
     }
   },
 
@@ -64,15 +110,16 @@ export const vintedSessionManager = {
     // Note : On ne peut pas instancier VintedAuthService directement ici pour éviter les dépendances circulaires.
     // Nous réimplémentons donc une logique de validation simple et directe.
     try {
+      const config = getVintedConfig();
       const headers = {
         'Cookie': cookieString, // Utilisation directe de la chaîne de cookie complète
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': config.headers.userAgent,
+        'Accept': config.headers.accept,
+        'X-Requested-With': config.headers.xRequestedWith,
       };
       
       // Utilisons un endpoint connu pour fonctionner et qui est protégé.
-      const response = await axios.get('https://www.vinted.fr/api/v2/users/current', { headers, timeout: 10000 });
+      const response = await axios.get(config.apiEndpoints.userCurrent, { headers, timeout: 10000 });
 
       // Un statut 200 avec des données utilisateur valides confirme la validité.
       return response.status === 200 && response.data?.user?.id;

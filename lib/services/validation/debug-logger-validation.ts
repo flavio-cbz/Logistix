@@ -6,23 +6,16 @@
  */
 
 function validateDebugLogger() {
-  console.log('🧪 Validating Debug Logger Implementation\n');
 
   try {
     // Test 1: Module import
-    console.log('1. Testing Module Import...');
     try {
       const { DebugLogger, debugLogger } = require('./debug-logger');
-      console.log(`   ✅ Module import: PASS`);
-      console.log(`   ✅ Class export: ${DebugLogger ? 'PASS' : 'FAIL'}`);
-      console.log(`   ✅ Singleton export: ${debugLogger ? 'PASS' : 'FAIL'}`);
     } catch (error) {
-      console.log(`   ❌ Module import: FAIL - ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
     }
 
     // Test 2: Type definitions
-    console.log('\n2. Testing Type Definitions...');
     try {
       const types = require('./types');
       const requiredTypes = [
@@ -33,29 +26,21 @@ function validateDebugLogger() {
         'ErrorLog'
       ];
 
-      console.log(`   ✅ Types module import: PASS`);
       requiredTypes.forEach(typeName => {
-        console.log(`   ✅ ${typeName} type: PASS (available in types module)`);
       });
 
     } catch (error) {
-      console.log(`   ❌ Type imports: FAIL - ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     // Test 3: Index export
-    console.log('\n3. Testing Index Export...');
     try {
       const validationIndex = require('./index');
       const hasDebugLogger = 'DebugLogger' in validationIndex;
       const hasDebugLoggerInstance = 'debugLogger' in validationIndex;
-      console.log(`   ✅ DebugLogger class export: ${hasDebugLogger ? 'PASS' : 'FAIL'}`);
-      console.log(`   ✅ debugLogger instance export: ${hasDebugLoggerInstance ? 'PASS' : 'FAIL'}`);
     } catch (error) {
-      console.log(`   ❌ Index export: FAIL - ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     // Test 4: Requirements coverage
-    console.log('\n4. Testing Requirements Coverage...');
     
     const requirements = {
       '4.2': 'Debug mode activation - enableDebugMode method',
@@ -65,11 +50,9 @@ function validateDebugLogger() {
     };
 
     Object.entries(requirements).forEach(([req, description]) => {
-      console.log(`   ✅ Requirement ${req}: PASS - ${description}`);
     });
 
     // Test 5: Core functionality validation
-    console.log('\n5. Testing Core Functionality...');
     
     const coreFeatures = [
       'Singleton pattern implementation',
@@ -87,11 +70,9 @@ function validateDebugLogger() {
     ];
 
     coreFeatures.forEach(feature => {
-      console.log(`   ✅ ${feature}: PASS`);
     });
 
     // Test 6: File structure validation
-    console.log('\n6. Testing File Structure...');
     const fs = require('fs');
     const path = require('path');
     
@@ -105,22 +86,8 @@ function validateDebugLogger() {
     requiredFiles.forEach(file => {
       const filePath = path.join(__dirname, file);
       const exists = fs.existsSync(filePath);
-      console.log(`   ${exists ? '✅' : '❌'} ${file}: ${exists ? 'PASS' : 'FAIL'}`);
     });
 
-    console.log('\n✅ Debug Logger Validation Completed Successfully');
-    console.log('\n📋 Summary:');
-    console.log('   - Module imports correctly');
-    console.log('   - All required types defined');
-    console.log('   - Exported from validation index');
-    console.log('   - All requirements (4.2-4.5) covered');
-    console.log('   - Comprehensive test file created');
-    console.log('   - Proper file structure');
-    console.log('   - Singleton pattern implemented');
-    console.log('   - Debug mode management');
-    console.log('   - Full payload logging capabilities');
-    console.log('   - Comprehensive error handling');
-    console.log('   - Debug report generation');
 
     return true;
 

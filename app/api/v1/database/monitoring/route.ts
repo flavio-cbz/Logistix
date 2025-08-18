@@ -4,6 +4,7 @@ import { databaseService } from "@/lib/services/database/db";
 import { checkDatabaseStatus, getExecutionContext } from "@/lib/middlewares/database-initialization";
 import { getApiOptimizationStats, getRecentPerformanceMetrics } from "@/lib/utils/api-route-optimization";
 import { createNonDatabaseHandler } from "@/lib/utils/api-route-optimization";
+import { formatApiError } from "@/lib/utils/error-handler";
 
 interface PerformanceMetrics {
   connectionPool: {
@@ -38,7 +39,6 @@ async function calculatePerformanceMetrics(): Promise<PerformanceMetrics> {
     (poolStatus.activeConnections / poolStatus.totalConnections) * 100 : 0;
 
   // Obtenir les métriques de performance récentes
-  const recentLogs = databaseService.getRecentLogs('monitoring', 100);
   const connectionLogs = databaseService.getRecentLogs('connections', 100);
   const errorLogs = databaseService.getRecentLogs('errors', 50);
   const lockLogs = databaseService.getRecentLogs('locks', 50);
@@ -86,7 +86,7 @@ async function calculatePerformanceMetrics(): Promise<PerformanceMetrics> {
   };
 }
 
-async function monitoringHandler(request: NextRequest): Promise<NextResponse> {
+async function monitoringHandler(): Promise<NextResponse> {
   const startTime = Date.now();
   
   try {
@@ -192,33 +192,40 @@ async function monitoringHandler(request: NextRequest): Promise<NextResponse> {
       // Si erreur lors de la récupération des stats détaillées, 
       // retourner au moins les informations de base
       console.error("Error fetching detailed monitoring data:", error);
-      
+
       const responseTime = Date.now() - startTime;
-      
+
       return NextResponse.json({
         ...basicInfo,
         execution: {
           ...basicInfo.execution,
           responseTime
         },
-        error: "Partial monitoring data available",
-        message: "Some monitoring features are temporarily unavailable",
-        errorDetails: error instanceof Error ? error.message : 'Unknown error'
+        ...formatApiError(
+          error,
+          { message: "Some monitoring features are temporarily unavailable" }
+        )
       });
     }
 
   } catch (error) {
     console.error("Error in database monitoring endpoint:", error);
-    
+
     const responseTime = Date.now() - startTime;
-    
-    return NextResponse.json({
-      error: "Monitoring endpoint failed",
-      message: "Unable to retrieve monitoring data",
-      timestamp: new Date().toISOString(),
-      responseTime,
-      errorDetails: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        ...formatApiError(
+          error,
+          {
+            message: "Unable to retrieve monitoring data",
+            timestamp: new Date().toISOString(),
+            responseTime
+          }
+        )
+      },
+      { status: 500 }
+    );
   }
 }
 

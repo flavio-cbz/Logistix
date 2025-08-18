@@ -122,17 +122,20 @@ export class RetryManager {
       },
     };
 
+    // Import proper logger at the top of the file
+    const { getLogger } = require('@/lib/utils/logging/simple-logger');
+    const logger = getLogger('RetryManager');
+    
     this.logger = {
       debug: (msg: string, data?: any) => {
         if (process.env.DB_DEBUG === 'true') {
-          console.debug(`[RetryManager] ${msg}`, data ? JSON.stringify(data) : '');
         }
       },
       warn: (msg: string, data?: any) => {
-        console.warn(`[RetryManager] ${msg}`, data ? JSON.stringify(data) : '');
+        logger.warn(msg, data);
       },
       error: (msg: string, data?: any) => {
-        console.error(`[RetryManager] ${msg}`, data ? JSON.stringify(data) : '');
+        logger.error(msg, data);
       },
     };
   }
@@ -275,23 +278,12 @@ export class RetryManager {
       attempts = attempt;
       
       try {
-        this.logger.debug(`Executing ${context}`, { 
-          attempt, 
-          maxAttempts: this.config.maxAttempts,
-          errorCategory: errorCategory || 'none'
-        });
 
         const result = await operation();
         
         const totalTime = Date.now() - startTime;
         
         if (attempt > 1) {
-          this.logger.debug(`${context} succeeded after retry`, { 
-            attempt, 
-            totalTime,
-            errorCategory,
-            recoveredFromError: lastError?.message
-          });
         }
 
         return {
@@ -305,13 +297,6 @@ export class RetryManager {
         lastError = error as Error;
         errorCategory = this.categorizeError(lastError);
         
-        this.logger.debug(`${context} failed on attempt ${attempt}`, { 
-          error: lastError.message,
-          code: (lastError as any).code,
-          category: errorCategory,
-          attempt,
-          context
-        });
 
         // Vérifier si l'erreur est retryable selon sa catégorie
         if (!this.isRetryableError(lastError)) {
@@ -341,13 +326,6 @@ export class RetryManager {
 
         // Calculer et attendre le délai selon la catégorie d'erreur
         const delay = this.calculateDelay(attempt, errorCategory);
-        this.logger.debug(`Retrying ${context} in ${delay}ms`, { 
-          attempt: attempt + 1,
-          delay,
-          category: errorCategory,
-          maxAttempts: maxAttemptsForCategory,
-          context
-        });
         
         await this.sleep(delay);
       }
@@ -368,7 +346,6 @@ export class RetryManager {
    */
   updateConfig(newConfig: Partial<RetryConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    this.logger.debug('Retry configuration updated', this.config);
   }
 
   /**
@@ -392,19 +369,22 @@ export class CircuitBreaker {
   private failuresByCategory: Map<ErrorCategory, number> = new Map();
   private criticalErrorCount = 0;
   
-  private logger = {
-    debug: (msg: string, data?: any) => {
-      if (process.env.DB_DEBUG === 'true') {
-        console.debug(`[CircuitBreaker] ${msg}`, data ? JSON.stringify(data) : '');
-      }
-    },
-    warn: (msg: string, data?: any) => {
-      console.warn(`[CircuitBreaker] ${msg}`, data ? JSON.stringify(data) : '');
-    },
-    error: (msg: string, data?: any) => {
-      console.error(`[CircuitBreaker] ${msg}`, data ? JSON.stringify(data) : '');
-    },
-  };
+  private logger = (() => {
+    const { getLogger } = require('@/lib/utils/logging/simple-logger');
+    const logger = getLogger('CircuitBreaker');
+    return {
+      debug: (msg: string, data?: any) => {
+        if (process.env.DB_DEBUG === 'true') {
+        }
+      },
+      warn: (msg: string, data?: any) => {
+        logger.warn(msg, data);
+      },
+      error: (msg: string, data?: any) => {
+        logger.error(msg, data);
+      },
+    };
+  })();
   
   constructor(
     private failureThreshold: number = 5,
@@ -432,10 +412,6 @@ export class CircuitBreaker {
         if (now - this.lastFailureTime >= this.recoveryTimeout) {
           this.state = 'HALF_OPEN';
           this.halfOpenSuccesses = 0;
-          this.logger.debug('Circuit breaker transitioning to HALF_OPEN', {
-            timeSinceLastFailure: now - this.lastFailureTime,
-            recoveryTimeout: this.recoveryTimeout
-          });
           return true;
         }
         return false;
@@ -457,10 +433,6 @@ export class CircuitBreaker {
 
     if (this.state === 'HALF_OPEN') {
       this.halfOpenSuccesses++;
-      this.logger.debug('Success recorded in HALF_OPEN state', {
-        halfOpenSuccesses: this.halfOpenSuccesses,
-        successThreshold: this.successThreshold
-      });
 
       if (this.halfOpenSuccesses >= this.successThreshold) {
         this.state = 'CLOSED';
@@ -470,7 +442,6 @@ export class CircuitBreaker {
         Object.values(ErrorCategory).forEach(category => {
           this.failuresByCategory.set(category, 0);
         });
-        this.logger.debug('Circuit breaker transitioned to CLOSED after recovery');
       }
     } else if (this.state === 'CLOSED') {
       // Réduire progressivement le compteur d'échecs lors des succès
@@ -512,12 +483,6 @@ export class CircuitBreaker {
       }
     }
 
-    this.logger.debug('Failure recorded', {
-      failures: this.failures,
-      consecutiveFailures: this.consecutiveFailures,
-      errorCategory,
-      state: this.state
-    });
 
     // Ouvrir le circuit si le seuil est atteint
     if (this.failures >= this.failureThreshold || this.consecutiveFailures >= this.failureThreshold) {
@@ -586,7 +551,6 @@ export class CircuitBreaker {
     Object.values(ErrorCategory).forEach(category => {
       this.failuresByCategory.set(category, 0);
     });
-    this.logger.debug('Circuit breaker reset');
   }
 
   /**

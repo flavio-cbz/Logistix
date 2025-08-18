@@ -72,7 +72,7 @@ interface StoreState {
   // Parcelles
   addParcelle: (parcelle: Omit<Parcelle, "id" | "createdAt" | "updatedAt" | "prixParGramme">) => void
   updateParcelle: (id: string, data: Partial<Parcelle>) => void
-  deleteParcelle: (id: string) => void
+  deleteParcelle: (id: string) => Promise<void>
 
   // Produits
   addProduit: (
@@ -182,14 +182,14 @@ export const useStore = create<StoreState>()(
         get().syncWithDatabase()
       },
 
-      deleteParcelle: (id) => {
+      deleteParcelle: async (id) => {
         set((state) => ({
           parcelles: state.parcelles.filter((p) => p.id !== id),
         }))
         get().addNotification("success", `La parcelle a été supprimée avec succès.`)
 
         // Synchroniser avec la base de données
-        get().syncWithDatabase()
+        await get().syncWithDatabase()
       },
 
       // Produits
@@ -220,7 +220,6 @@ export const useStore = create<StoreState>()(
           updatedAt: new Date().toISOString(),
         }
         
-        console.log("DEBUG: Nouveau produit avant ajout au store:", newProduit);
         set((state) => ({ produits: [...state.produits, newProduit] }))
         get().addNotification("success", `Le produit ${produit.nom} a été ajouté avec succès.`)
 
@@ -369,39 +368,56 @@ export const useStore = create<StoreState>()(
 
       // Améliorer la synchronisation avec la base de données
       syncWithDatabase: async () => {
-        try {
-          const { parcelles, produits } = get()
-
-          // Envoyer les données au serveur
-          const response = await fetch("/api/v1/data/sync", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ parcelles, produits }),
-            // Ajouter un timeout pour éviter les blocages
-            signal: AbortSignal.timeout(10000),
-          })
-
-          if (!response.ok) {
-            throw new Error(`Erreur HTTP: ${response.status}`)
-          }
-
-          const result = await response.json()
-
-          if (!result.success) {
-            throw new Error(result.message)
-          }
-
-          // Ajouter une notification de succès
-          get().addNotification("success", "Données synchronisées avec le serveur")
-          return true
-        } catch (error) {
-          logger.error("Erreur lors de la synchronisation avec la base de données:", error)
-          // Ajouter une notification d'erreur
-          get().addNotification("error", "Échec de la synchronisation avec le serveur")
-          return false
+        // Empêcher les synchronisations concurrentes en utilisant un verrou interne (_syncInProgress)
+        const storeAny: any = get() as any
+        if (storeAny._syncInProgress) {
+          logger.info("Synchronisation déjà en cours, attente de la première requête")
+          return storeAny._syncPromise || false
         }
+        storeAny._syncInProgress = true
+
+        const syncPromise = (async () => {
+          try {
+            const { parcelles, produits } = get()
+
+            // Envoyer les données au serveur
+            const response = await fetch("/api/v1/data/sync", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ parcelles, produits }),
+              // Timeout pour éviter les blocages
+              signal: AbortSignal.timeout(10000),
+            })
+
+            if (!response.ok) {
+              throw new Error(`Erreur HTTP: ${response.status}`)
+            }
+
+            const result = await response.json()
+
+            if (!result.success) {
+              throw new Error(result.message)
+            }
+
+            // Ajouter une notification de succès
+            get().addNotification("success", "Données synchronisées avec le serveur")
+            return true
+          } catch (error) {
+            logger.error("Erreur lors de la synchronisation avec la base de données:", error)
+            // Ajouter une notification d'erreur
+            get().addNotification("error", "Échec de la synchronisation avec le serveur")
+            return false
+          } finally {
+            // Libérer le verrou et supprimer la promesse interne
+            storeAny._syncInProgress = false
+            try { delete storeAny._syncPromise } catch { /* ignore */ }
+          }
+        })()
+
+        storeAny._syncPromise = syncPromise
+        return syncPromise
       },
 
       loadFromDatabase: async (returnData = false) => {

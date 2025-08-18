@@ -1,16 +1,15 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Inter } from "next/font/google" // Changer Geist par Inter
+// Removed external Google font import to avoid network fetch during dev
+import { AccessibilityProvider } from "@/lib/contexts/accessibility-context";
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { LiveRegionProvider } from "@/components/ui/live-region"
 import "./globals.css"
 
-const inter = Inter({ // Changer geist par inter
-  subsets: ["latin"],
-  display: "swap", // Optimize font loading
-  preload: true,
-})
+// Use system font stack (Tailwind's font-sans) to avoid remote font requests
+const systemFontClass = "font-sans"
 
 // Mettre à jour le titre et la description
 export const metadata: Metadata = {
@@ -48,22 +47,23 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const _isProduction = process.env.NODE_ENV === 'production'
-  
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Preload critical resources */}
+        {/* Removed preconnect to Google Fonts to avoid external network fetch during dev */}
+        {/* Preload critical image */}
         <link rel="preload" href="/icon.png" as="image" type="image/png" />
       </head>
-      <body className={inter.className}> {/* Changer geist.className par inter.className */}
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <body className={systemFontClass} suppressHydrationWarning>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
-            {children}
+            <AccessibilityProvider>
+              <LiveRegionProvider>
+                  {children}
+              </LiveRegionProvider>
+            </AccessibilityProvider>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>

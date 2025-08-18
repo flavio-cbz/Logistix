@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { AnimatedButton } from "@/components/ui/animated-button"
 import { Input } from "@/components/ui/input"
 import ProduitForm from "@/components/features/produits/produit-form"
 import { Copy, Edit, Trash2, DollarSign } from "lucide-react"
@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog"
 import VenteForm from "@/components/features/produits/vente-form"
 import type { Produit } from "@/types/database"
 import { useToast } from "@/components/ui/use-toast"
-import { useStore } from "@/store/store"
+import { useStore } from "@/lib/services/admin/store"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useDuplicateEntity } from "@/lib/utils/duplication" // Import du hook de duplication
 
@@ -149,14 +149,17 @@ export default function ProduitsList({ initialProduits = [] }: ProduitsListProps
                     {produit.vendu ? (
                       <div className="flex items-center">
                         {produit.prixVente ? `${produit.prixVente.toFixed(2)} €` : "-"}
-                        <Button
+                        <AnimatedButton
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 ml-1"
                           onClick={() => setEditProduit(produit)}
+                          ripple={true}
+                          haptic={true}
+                          screenReaderDescription="Modifier le prix de vente"
                         >
                           <DollarSign className="h-3 w-3" />
-                        </Button>
+                        </AnimatedButton>
                       </div>
                     ) : (
                       "-"
@@ -172,15 +175,36 @@ export default function ProduitsList({ initialProduits = [] }: ProduitsListProps
                     )}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button variant="ghost" size="icon" onClick={() => setEditProduit(produit)}>
+                    <AnimatedButton 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setEditProduit(produit)}
+                      ripple={true}
+                      haptic={true}
+                      screenReaderDescription="Modifier le produit"
+                    >
                       <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDuplicate(produit)}>
+                    </AnimatedButton>
+                    <AnimatedButton 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleDuplicate(produit)}
+                      ripple={true}
+                      haptic={true}
+                      screenReaderDescription="Dupliquer le produit"
+                    >
                       <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setDeleteId(produit.id)}>
+                    </AnimatedButton>
+                    <AnimatedButton 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setDeleteId(produit.id)}
+                      ripple={true}
+                      haptic={true}
+                      screenReaderDescription="Supprimer le produit"
+                    >
                       <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </AnimatedButton>
                   </TableCell>
                 </motion.tr>
               ))}

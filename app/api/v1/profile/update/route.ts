@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { getSessionUser, hashPassword } from "@/lib/services/auth"
+import { getSessionUser } from "@/lib/services/auth"
+import { hashPasswordSync } from "@/lib/utils/crypto"
 import { db, getCurrentTimestamp } from "@/lib/services/database/db"
 import * as z from "zod"
 
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
 		try {
 			if (password && password.length > 0) {
 				// Mettre à jour avec le nouveau mot de passe
-				const passwordHash = hashPassword(password)
+				const passwordHash = hashPasswordSync(password)
 				db.prepare(
 					`
           UPDATE users

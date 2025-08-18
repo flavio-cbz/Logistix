@@ -1,3 +1,5 @@
+> **ℹ️ Ce guide a été consolidé. Pour les règles essentielles et le workflow, voir le [README.md](../README.md). Ce fichier détaille les conventions et processus de contribution avancés.**
+
 # Guide de Contribution
 
 Bienvenue dans le projet ! Nous sommes ravis que vous souhaitiez y contribuer. Ce document a pour but de formaliser nos pratiques de collaboration pour garantir la qualité et la cohérence de notre travail.

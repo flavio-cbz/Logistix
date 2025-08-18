@@ -4,14 +4,46 @@ import { getSessionUser } from "@/lib/services/auth"
 // Simple logger disabled
 // import { Logger } from "@/lib/utils/logging/simple-logger"
 
-// Simple logger disabled
-const logger = { 
-  log: console.log, 
-  error: console.error, 
-  warn: console.warn,
-  info: console.log,
-  debug: console.log
-};
+import { getLogger } from '@/lib/utils/logging/simple-logger';
+import { z } from "zod";
+
+const logger = getLogger('DataSync');
+
+const ParcelleSchema = z.object({
+  id: z.string().optional(),
+  numero: z.union([z.string(), z.number()]).optional(),
+  transporteur: z.string().nullable().optional(),
+  poids: z.number().optional(),
+  prixTotal: z.number().optional(),
+  prixParGramme: z.number().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+}).strict();
+
+const ProduitSchema = z.object({
+  id: z.string().optional(),
+  parcelleId: z.string().nullable().optional(),
+  commandeId: z.string().nullable().optional(),
+  nom: z.string().optional(),
+  details: z.string().nullable().optional(),
+  prixArticle: z.number().optional(),
+  poids: z.number().optional(),
+  prixLivraison: z.number().optional(),
+  vendu: z.boolean().optional(),
+  dateVente: z.string().nullable().optional(),
+  tempsEnLigne: z.number().nullable().optional(),
+  prixVente: z.number().nullable().optional(),
+  plateforme: z.string().nullable().optional(),
+  benefices: z.number().nullable().optional(),
+  pourcentageBenefice: z.number().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+}).strict();
+
+const SyncPayloadSchema = z.object({
+  parcelles: z.array(ParcelleSchema),
+  produits: z.array(ProduitSchema),
+}).strict();
 
 export async function POST(request: Request) {
   try {
@@ -22,14 +54,23 @@ export async function POST(request: Request) {
     }
     logger.info(`Synchronisation demandée par l'utilisateur: ${user.id}`)
 
-    // Récupérer les données du corps de la requête
-    const { parcelles, produits } = await request.json()
-    logger.info(`Données reçues: ${parcelles.length} parcelles, ${produits.length} produits`)
-
-    // Validation des données
-    if (!Array.isArray(parcelles) || !Array.isArray(produits)) {
-      return NextResponse.json({ success: false, message: "Format de données invalide" }, { status: 400 })
+    // Récupérer et valider les données du corps de la requête
+    const body = await request.json()
+    const parsed = SyncPayloadSchema.safeParse(body)
+    if (!parsed.success) {
+      logger.warn('Validation du payload échouée', { issues: parsed.error.errors })
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Payload invalide",
+          details: parsed.error.errors,
+        },
+        { status: 400 },
+      )
     }
+
+    const { parcelles, produits } = parsed.data
+    logger.info(`Données reçues: ${parcelles.length} parcelles, ${produits.length} produits`)
 
     await databaseService.transaction((db) => {
       logger.info("Début de la transaction de synchronisation")

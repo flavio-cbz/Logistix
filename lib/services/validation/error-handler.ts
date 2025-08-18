@@ -205,7 +205,7 @@ export class ErrorHandler {
       severity,
       message: errorMessage,
       originalError: error,
-      context,
+      context: context || {},
       timestamp,
       recoveryStrategy,
       retryable,
@@ -250,7 +250,6 @@ export class ErrorHandler {
       attemptsUsed = attempt;
       
       try {
-        logger.debug(`Attempt ${attempt}/${maxAttempts} for operation: ${operationName}`);
         
         const result = await operation();
         

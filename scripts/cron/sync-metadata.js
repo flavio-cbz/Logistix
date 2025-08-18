@@ -117,11 +117,9 @@ class CronSyncService {
    * Effectue la synchronisation pour un utilisateur
    */
   async syncUser(user) {
-    console.log(`🔄 Synchronisation pour ${user.username} (${user.user_id})`);
     
     const token = this.getUserToken(user.user_id);
     if (!token) {
-      console.log(`⚠️  Pas de token Vinted pour ${user.username}`);
       return false;
     }
 
@@ -149,7 +147,6 @@ class CronSyncService {
       this.updateSyncLog(logId, 'success', total);
       this.updateLastSync(user.user_id);
       
-      console.log(`✅ Synchronisation terminée pour ${user.username}: ${total} éléments`);
       return true;
       
     } catch (error) {
@@ -163,17 +160,13 @@ class CronSyncService {
    * Exécute la synchronisation pour tous les utilisateurs
    */
   async run() {
-    console.log('🚀 Démarrage de la synchronisation des métadonnées Vinted');
-    console.log(`📅 ${new Date().toISOString()}`);
     
     const users = this.getUsersToSync();
     
     if (users.length === 0) {
-      console.log('ℹ️  Aucun utilisateur à synchroniser');
       return;
     }
 
-    console.log(`👥 ${users.length} utilisateur(s) à synchroniser`);
     
     let successCount = 0;
     let errorCount = 0;
@@ -195,8 +188,6 @@ class CronSyncService {
       }
     }
 
-    console.log(`📊 Résultat: ${successCount} succès, ${errorCount} erreurs`);
-    console.log('🏁 Synchronisation terminée');
   }
 }
 
@@ -211,7 +202,6 @@ async function main() {
   
   if (userId) {
     // Synchronisation d'un utilisateur spécifique
-    console.log(`🎯 Synchronisation spécifique pour l'utilisateur ${userId}`);
     
     const user = syncService.db.prepare(`
       SELECT u.id as user_id, u.username, uss.frequency, uss.sync_time, uss.last_sync, uss.is_enabled
@@ -223,7 +213,6 @@ async function main() {
     if (user && user.is_enabled) {
       await syncService.syncUser(user);
     } else {
-      console.log('❌ Utilisateur non trouvé ou synchronisation désactivée');
     }
   } else {
     // Synchronisation batch

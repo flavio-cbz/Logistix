@@ -8,14 +8,9 @@ import { ErrorHandler, FallbackConfig, RecoveryResult, ErrorCategory } from './e
 // Simple logger disabled
 // import { getLogger } from '@/lib/utils/simple-logger.js';
 
-// Simple logger disabled
-const logger = { 
-  trace: console.log, 
-  error: console.error, 
-  warn: console.warn,
-  debug: console.log,
-  info: console.log
-};
+import { getLogger } from '@/lib/utils/logging/simple-logger';
+
+const logger = getLogger('ErrorRecovery');
 
 /**
  * Decorator for automatic error handling and recovery

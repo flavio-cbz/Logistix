@@ -3,12 +3,10 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, LogIn } from "lucide-react"
-import Link from "next/link"
 import { useToast } from "@/components/ui/use-toast"
 import { motion } from "framer-motion"
 
@@ -21,7 +19,6 @@ export default function LoginForm() {
     password?: string
     general?: string
   }>({})
-  const router = useRouter()
   const { toast } = useToast()
 
   // Effet pour rediriger après un login réussi
@@ -34,6 +31,9 @@ export default function LoginForm() {
 
       return () => clearTimeout(timer)
     }
+
+    // Retour explicite pour assurer que tous les chemins retournent une valeur (utile pour le lint/TS)
+    return undefined
   }, [loginSuccess])
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -46,10 +46,6 @@ export default function LoginForm() {
       const username = formElement.username.value
       const password = formElement.password.value
 
-      console.log("Tentative de connexion avec:", {
-        username,
-        password: password ? "***" : "non défini",
-      })
 
       // Utiliser fetch pour appeler l'API de connexion
       const response = await fetch("/api/v1/auth/login", {
@@ -61,7 +57,6 @@ export default function LoginForm() {
       })
 
       const result = await response.json()
-      console.log("Résultat de la connexion:", result)
 
       if (result.success) {
         toast({

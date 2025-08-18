@@ -10,24 +10,9 @@ import {
 import { databaseService } from '@/lib/services/database/db';
 
 // Logger pour l'optimisation des routes API
-const logger = {
-  info: (message: string, data?: any) => {
-    if (process.env.NODE_ENV === 'development' || process.env.DB_DEBUG === 'true') {
-      console.log(`[API-Optimization] ${message}`, data ? JSON.stringify(data) : '');
-    }
-  },
-  warn: (message: string, data?: any) => {
-    console.warn(`[API-Optimization] ${message}`, data ? JSON.stringify(data) : '');
-  },
-  error: (message: string, data?: any) => {
-    console.error(`[API-Optimization] ${message}`, data ? JSON.stringify(data) : '');
-  },
-  debug: (message: string, data?: any) => {
-    if (process.env.DB_DEBUG === 'true') {
-      console.debug(`[API-Optimization] ${message}`, data ? JSON.stringify(data) : '');
-    }
-  },
-};
+import { getLogger } from '@/lib/utils/logging/simple-logger';
+
+const logger = getLogger('APIOptimization');
 
 /**
  * Configuration pour l'optimisation des routes API
@@ -98,11 +83,6 @@ export function optimizedApiGet(
     } = config;
 
     try {
-      logger.debug('Processing GET request', {
-        pathname,
-        requiresDatabase,
-        context
-      });
 
       // Vérification de santé de la base de données si nécessaire
       if (requiresDatabase && enableHealthCheck && !skipInitializationCheck) {
@@ -144,11 +124,6 @@ export function optimizedApiGet(
           timestamp: new Date().toISOString()
         });
 
-        logger.debug('GET request completed', {
-          pathname,
-          executionTime: `${executionTime}ms`,
-          status: response.status
-        });
       }
 
       return response;
@@ -201,11 +176,6 @@ export function optimizedApiPost(
     } = config;
 
     try {
-      logger.debug('Processing POST request', {
-        pathname,
-        requiresDatabase,
-        context
-      });
 
       // Vérification de santé de la base de données si nécessaire
       if (requiresDatabase && enableHealthCheck && !skipInitializationCheck) {
@@ -241,11 +211,6 @@ export function optimizedApiPost(
           timestamp: new Date().toISOString()
         });
 
-        logger.debug('POST request completed', {
-          pathname,
-          executionTime: `${executionTime}ms`,
-          status: response.status
-        });
       }
 
       return response;

@@ -3,13 +3,12 @@
  * Comprehensive logging for all database operations with performance metrics
  */
 
-import Database from 'better-sqlite3';
 import { 
   databaseLogger, 
   dbQueryLogger, 
   PerformanceTimer,
   createRequestLogger 
-} from '@/lib/utils/logging';
+} from '../../utils/logging';
 import { auditLogger } from '../audit-logger';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -50,6 +49,8 @@ interface QueryExecutionLog {
 export class EnhancedDatabaseQueryLogger {
   private static instance: EnhancedDatabaseQueryLogger;
   private activeTransactions = new Map<string, TransactionContext>();
+  private recentQueryLogs: QueryExecutionLog[] = [];
+  private readonly maxRecentQueryLogs = 200;
 
   public static getInstance(): EnhancedDatabaseQueryLogger {
     if (!EnhancedDatabaseQueryLogger.instance) {
@@ -76,14 +77,6 @@ export class EnhancedDatabaseQueryLogger {
     const sanitizedParams = this.sanitizeParams(params);
 
     // Log query start
-    logger.debug(`Starting database query: ${context.operation}`, {
-      operation: context.operation,
-      query: sanitizedQuery,
-      paramCount: params.length,
-      context: context.context,
-      userId: context.userId,
-      sessionId: context.sessionId
-    });
 
     try {
       // Execute the query
@@ -108,31 +101,43 @@ export class EnhancedDatabaseQueryLogger {
       this.logQuerySuccess(query, sanitizedParams, metrics, context, logger);
 
       // Log to database query logger
-      dbQueryLogger.logQuery(sanitizedQuery, sanitizedParams, duration, {
-        operation: context.operation,
-        userId: context.userId,
-        sessionId: context.sessionId,
-        requestId,
-        ...context.metadata
-      });
+     dbQueryLogger.logQuery(sanitizedQuery, sanitizedParams, duration, {
+       operation: context.operation,
+       userId: context.userId,
+       sessionId: context.sessionId,
+       requestId,
+       ...context.metadata
+     });
 
-      // Log slow queries
-      if (duration > 1000) {
-        await this.logSlowQuery(query, sanitizedParams, metrics, context);
-      }
+     // Ajout au stockage mémoire des requêtes récentes
+     this.recentQueryLogs.push({
+       query: sanitizedQuery,
+       params: sanitizedParams,
+       duration,
+       success: true,
+       timestamp: new Date()
+     });
+     if (this.recentQueryLogs.length > this.maxRecentQueryLogs) {
+       this.recentQueryLogs.shift();
+     }
 
-      // Add to transaction log if in transaction
-      if (context.metadata?.transactionId) {
-        this.addQueryToTransaction(context.metadata.transactionId, {
-          query: sanitizedQuery,
-          params: sanitizedParams,
-          duration,
-          success: true,
-          timestamp: new Date()
-        });
-      }
+     // Log slow queries
+     if (duration > 1000) {
+       await this.logSlowQuery(query, sanitizedParams, metrics, context);
+     }
 
-      return result;
+     // Add to transaction log si en transaction
+     if (context.metadata?.transactionId && typeof this.addQueryToTransaction === "function") {
+       this.addQueryToTransaction(context.metadata.transactionId, {
+         query: sanitizedQuery,
+         params: sanitizedParams,
+         duration,
+         success: true,
+         timestamp: new Date()
+       });
+     }
+
+     return result;
 
     } catch (error) {
       const duration = Date.now() - timer['startTime'];
@@ -154,8 +159,8 @@ export class EnhancedDatabaseQueryLogger {
         query: sanitizedQuery
       });
 
-      // Add to transaction log if in transaction
-      if (context.metadata?.transactionId) {
+      // Add to transaction log si en transaction
+      if (context.metadata?.transactionId && typeof this.addQueryToTransaction === "function") {
         this.addQueryToTransaction(context.metadata.transactionId, {
           query: sanitizedQuery,
           params: sanitizedParams,
@@ -250,10 +255,11 @@ export class EnhancedDatabaseQueryLogger {
               success: true
             }
           },
-          {
-            sessionId: context.sessionId,
-            requestId
-          }
+          Object.assign(
+            {},
+            context.sessionId ? { sessionId: context.sessionId } : {},
+            { requestId }
+          )
         );
       }
 
@@ -301,10 +307,11 @@ export class EnhancedDatabaseQueryLogger {
             }
           },
           error as Error,
-          {
-            sessionId: context.sessionId,
-            requestId
-          }
+          Object.assign(
+            {},
+            context.sessionId ? { sessionId: context.sessionId } : {},
+            { requestId }
+          )
         );
       }
 
@@ -343,7 +350,9 @@ export class EnhancedDatabaseQueryLogger {
     }
 
     // Log to database query logger
-    dbQueryLogger.logConnection(event, metadata);
+    if (event === "connect" || event === "disconnect" || event === "error") {
+      dbQueryLogger.logConnection(event, metadata);
+    }
   }
 
   /**
@@ -387,7 +396,7 @@ export class EnhancedDatabaseQueryLogger {
   private sanitizeParams(params: any[]): any[] {
     if (!params || params.length === 0) return [];
     
-    return params.map((param, index) => {
+    return params.map((param) => {
       if (typeof param === 'string' && param.length > 100) {
         return `${param.substring(0, 100)}... [truncated]`;
       }
@@ -399,20 +408,12 @@ export class EnhancedDatabaseQueryLogger {
    * Log successful query execution
    */
   private logQuerySuccess(
-    query: string,
-    params: any[],
+    _query: string,
+    _params: any[],
     metrics: QueryMetrics,
     context: QueryContext,
     logger: any
   ): void {
-    logger.debug(`Database query completed: ${context.operation}`, {
-      operation: context.operation,
-      duration: metrics.duration,
-      rowsReturned: metrics.rowsReturned,
-      success: true,
-      userId: context.userId,
-      sessionId: context.sessionId
-    });
   }
 
   /**
@@ -467,17 +468,28 @@ export class EnhancedDatabaseQueryLogger {
             paramCount: params.length
           }
         },
-        {
-          userId: context.userId,
-          sessionId: context.sessionId,
-          requestId: context.requestId
-        }
+        Object.assign(
+          {},
+          context.userId ? { userId: context.userId } : {},
+          context.sessionId ? { sessionId: context.sessionId } : {},
+          context.requestId ? { requestId: context.requestId } : {}
+        )
       );
     }
   }
 
   /**
-   * Add query to transaction log
+   * Retourne les logs de requêtes SQL récentes, avec filtrage optionnel par durée minimale.
+   */
+  public getRecentQueryLogs(limit: number = 50, minDuration: number = 0): QueryExecutionLog[] {
+    const filtered = minDuration > 0
+      ? this.recentQueryLogs.filter(log => log.duration >= minDuration)
+      : this.recentQueryLogs;
+    return filtered.slice(-limit);
+  }
+
+  /**
+   * Ajoute une requête au log de transaction.
    */
   private addQueryToTransaction(transactionId: string, queryLog: QueryExecutionLog): void {
     const transaction = this.activeTransactions.get(transactionId);
@@ -486,6 +498,4 @@ export class EnhancedDatabaseQueryLogger {
     }
   }
 }
-
-// Export singleton instance
 export const enhancedDbQueryLogger = EnhancedDatabaseQueryLogger.getInstance();

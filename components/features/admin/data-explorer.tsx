@@ -56,7 +56,6 @@ export function DataExplorer({ tables, onFetchData, onUpdateRecord, onDeleteReco
     setError(null)
     try {
       const data = await onFetchData(activeTable)
-      console.log(`Données chargées pour ${activeTable}:`, data)
       setTableData(Array.isArray(data) ? data : [])
       // Réinitialiser les filtres et la sélection
       setFilters([])

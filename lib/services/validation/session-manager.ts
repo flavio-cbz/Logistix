@@ -11,10 +11,9 @@ import { MonitoringState, ValidationMonitor } from './validation-monitor';
 
 // Mock logger since logger is disabled
 const logger = {
-  info: (msg: string, data?: any) => console.log(`[SessionManager] ${msg}`, data || ''),
   error: (msg: string, data?: any) => console.error(`[SessionManager] ${msg}`, data || ''),
   warn: (msg: string, data?: any) => console.warn(`[SessionManager] ${msg}`, data || ''),
-  debug: (msg: string, data?: any) => console.debug(`[SessionManager] ${msg}`, data || '')
+info: (msg: string, data?: any) => console.info(`[SessionManager] ${msg}`, data || ''),
 };
 
 export interface ValidationSession {
@@ -272,8 +271,8 @@ export class ValidationSessionManager {
       const sorted = sessions.sort((a, b) => 
         new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
       );
-      stats.oldestSession = sorted[0].startTime;
-      stats.newestSession = sorted[sorted.length - 1].startTime;
+      stats.oldestSession = sorted[0]?.startTime;
+      stats.newestSession = sorted[sorted.length - 1]?.startTime;
     }
 
     return stats;

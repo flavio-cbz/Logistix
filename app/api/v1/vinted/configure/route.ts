@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { vintedCredentialService } from '@/lib/services/auth/vinted-credential-service';
 import { vintedSessionManager } from '@/lib/services/auth/vinted-session-manager';
 import { v4 as uuidv4 } from 'uuid';
+import { getLogger } from '@/lib/utils/logging/simple-logger';
 
 /**
  * GET /api/v1/vinted/configure
@@ -74,7 +75,8 @@ export async function POST(req: NextRequest) {
       // Si le rafraîchissement échoue, cela signifie que le token est probablement invalide.
       // On ne considère pas cela comme une erreur fatale de la configuration,
       // mais on logue l'erreur pour le débogage.
-      console.error(`[VINTED_CONFIGURE] Le rafraîchissement initial a échoué pour l'utilisateur ${user.id}, mais la session a été enregistrée.`, refreshError);
+      const logger = getLogger('VintedConfigure');
+      logger.warn(`Le rafraîchissement initial a échoué pour l'utilisateur ${user.id}, mais la session a été enregistrée`, refreshError);
       // On peut choisir de retourner un succès partiel ou un avertissement au client si nécessaire.
       // Pour l'instant, on considère que l'enregistrement est un succès.
     }

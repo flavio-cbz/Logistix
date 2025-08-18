@@ -8,7 +8,6 @@ import { RequestType, RequestPriority } from './queue-manager';
 const logger = {
   info: (message: string, data?: any) => {
     if (process.env.NODE_ENV === 'development' || process.env.DB_DEBUG === 'true') {
-      console.log(`[EnhancedDB] ${message}`, data ? JSON.stringify(data) : '');
     }
   },
   warn: (message: string, data?: any) => {
@@ -19,7 +18,6 @@ const logger = {
   },
   debug: (message: string, data?: any) => {
     if (process.env.DB_DEBUG === 'true') {
-      console.debug(`[EnhancedDB] ${message}`, data ? JSON.stringify(data) : '');
     }
   },
 };
@@ -74,7 +72,6 @@ export class EnhancedDatabaseService {
       (db: Database.Database) => {
         const stmt = db.prepare(sql);
         const result = params ? stmt.all(...params) : stmt.all();
-        logger.debug('Query executed', { sql, params, resultCount: result.length, context });
         return result as T[];
       },
       RequestType.READ,
@@ -97,7 +94,6 @@ export class EnhancedDatabaseService {
       (db: Database.Database) => {
         const stmt = db.prepare(sql);
         const result = params ? stmt.get(...params) : stmt.get();
-        logger.debug('QueryOne executed', { sql, params, hasResult: !!result, context });
         return (result as T) || null;
       },
       RequestType.READ,
@@ -120,13 +116,6 @@ export class EnhancedDatabaseService {
       (db: Database.Database) => {
         const stmt = db.prepare(sql);
         const result = params ? stmt.run(...params) : stmt.run();
-        logger.debug('Execute completed', { 
-          sql, 
-          params, 
-          changes: result.changes, 
-          lastInsertRowid: result.lastInsertRowid,
-          context 
-        });
         return {
           changes: result.changes,
           lastInsertRowid: Number(result.lastInsertRowid)
@@ -175,11 +164,6 @@ export class EnhancedDatabaseService {
           });
         }
         
-        logger.debug('Batch execute completed', { 
-          queryCount: queries.length, 
-          totalChanges: results.reduce((sum, r) => sum + r.changes, 0),
-          context 
-        });
         
         return results;
       },
@@ -201,7 +185,6 @@ export class EnhancedDatabaseService {
       );
       
       const isHealthy = result?.result === 1;
-      logger.debug('Health check completed', { isHealthy });
       
       return isHealthy;
     } catch (error) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { DatabaseService } from '@/lib/services/db'
-import { validateSession } from '@/lib/middlewares/auth'
+import { databaseService } from '@/lib/services/database/db'
+import { validateSession } from '@/lib/services/auth'
+
 
 interface Suggestion {
   text: string
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const databaseService = DatabaseService.getInstance()
+    const db = databaseService
     const userId = sessionResult.user.id
     const searchTerm = `${query.toLowerCase()}%`
 
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
       LIMIT ?
     `
     
-    const parcelleSuggestions = await databaseService.query(parcelleQuery, [
+    const parcelleSuggestions = await db.query(parcelleQuery, [
       userId, searchTerm, limit
     ])
 
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       LIMIT ?
     `
     
-    const produitSuggestions = await databaseService.query(produitQuery, [
+    const produitSuggestions = await db.query(produitQuery, [
       userId, searchTerm, limit
     ])
 

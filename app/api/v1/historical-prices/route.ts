@@ -77,7 +77,7 @@ export async function GET(request: Request) {
       totalSalesVolume += data.sales_volume;
     }
 
-    const recommendedPrice = totalSalesVolume > 0 ? (totalWeightedPrice / totalSalesVolume) : historicalData[0].price;
+    const recommendedPrice = totalSalesVolume > 0 ? (totalWeightedPrice / totalSalesVolume) : (historicalData[0]?.price || 0);
     const responseData = { recommendedPrice: parseFloat(recommendedPrice.toFixed(2)) };
 
     return NextResponse.json(responseData);

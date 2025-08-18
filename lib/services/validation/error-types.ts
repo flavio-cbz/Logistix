@@ -14,7 +14,7 @@ export class AppError extends Error {
     super(message);
     this.name = this.constructor.name;
     this.context = context;
-    this.originalError = originalError;
+    this.originalError = originalError || undefined;
     Error.captureStackTrace(this, this.constructor);
   }
 }
@@ -31,7 +31,7 @@ export class ApiError extends AppError {
   constructor(message: string, statusCode?: number, context?: any, originalError?: Error) {
     super(message, context, originalError);
     this.name = 'ApiError';
-    this.statusCode = statusCode;
+    this.statusCode = statusCode || undefined;
   }
 }
 

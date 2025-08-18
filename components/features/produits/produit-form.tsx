@@ -3,13 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Button } from "@/components/ui/button"
+import { AnimatedButton } from "@/components/ui/animated-button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { useStore } from "@/store/store"
+import { useStore } from "@/lib/services/admin/store"
 import { useEffect, useState } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import type { Produit } from "@/types/database"
@@ -165,9 +165,15 @@ export default function ProduitForm({ className, editProduit = null, onClose }: 
 
   return (
     <>
-      <Button onClick={() => setOpen(true)} className={className}>
+      <AnimatedButton 
+        onClick={() => setOpen(true)} 
+        className={className}
+        ripple={true}
+        haptic={true}
+        screenReaderDescription={editProduit ? "Ouvrir le formulaire de modification du produit" : "Ouvrir le formulaire d'ajout de produit"}
+      >
         {editProduit ? "Modifier le produit" : "Ajouter un produit"}
-      </Button>
+      </AnimatedButton>
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -381,9 +387,18 @@ export default function ProduitForm({ className, editProduit = null, onClose }: 
                 </>
               )}
 
-              <Button type="submit" className="w-full">
+              <AnimatedButton 
+                type="submit" 
+                className="w-full"
+                loading={form.formState.isSubmitting}
+                loadingText={editProduit ? "Mise à jour..." : "Ajout..."}
+                success={form.formState.isSubmitSuccessful}
+                successText={editProduit ? "Mis à jour !" : "Ajouté !"}
+                ripple={true}
+                haptic={true}
+              >
                 {editProduit ? "Mettre à jour" : "Ajouter"}
-              </Button>
+              </AnimatedButton>
             </form>
           </Form>
         </DialogContent>

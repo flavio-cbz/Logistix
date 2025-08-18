@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/services/auth";
 import { databaseService } from "@/lib/services/database/db";
 import { createNonDatabaseHandler } from "@/lib/utils/api-route-optimization";
+import { formatApiError } from "@/lib/utils/error-handler";
 
 interface PoolHealthMetrics {
   status: 'healthy' | 'warning' | 'critical';
@@ -76,7 +77,7 @@ function calculatePoolHealth(poolStatus: any, activeConnections: any): PoolHealt
   return { status, score: Math.max(0, score), issues, recommendations };
 }
 
-async function poolStatusHandler(request: NextRequest): Promise<NextResponse> {
+async function poolStatusHandler(): Promise<NextResponse> {
   const startTime = Date.now();
   
   try {
@@ -163,16 +164,22 @@ async function poolStatusHandler(request: NextRequest): Promise<NextResponse> {
 
   } catch (error) {
     console.error("Error in pool status endpoint:", error);
-    
+
     const responseTime = Date.now() - startTime;
-    
-    return NextResponse.json({
-      error: "Pool status check failed",
-      message: "Unable to retrieve pool status",
-      timestamp: new Date().toISOString(),
-      responseTime,
-      errorDetails: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        ...formatApiError(
+          error,
+          {
+            message: "Unable to retrieve pool status",
+            timestamp: new Date().toISOString(),
+            responseTime
+          }
+        )
+      },
+      { status: 500 }
+    );
   }
 }
 

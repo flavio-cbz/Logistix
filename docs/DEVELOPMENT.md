@@ -1,3 +1,5 @@
+> **ℹ️ Ce guide a été consolidé. Pour une vue d’ensemble et les instructions essentielles, voir le [README.md](../README.md). Ce fichier détaille les aspects avancés du développement.**
+
 # Guide de Développement - LogistiX
 
 Ce guide fournit toutes les informations nécessaires pour développer et contribuer au projet LogistiX.

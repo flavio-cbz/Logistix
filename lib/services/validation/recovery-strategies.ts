@@ -7,13 +7,9 @@
 // import { getLogger } from '@/lib/utils/simple-logger.js';
 import { ApiError, AppError, TimeoutError, categorizeError, ErrorCategory } from './error-types';
 
-// Mock logger since getLogger is disabled
-const logger = {
-  info: (msg: string) => console.log(`[RecoveryStrategies] ${msg}`),
-  error: (msg: string) => console.error(`[RecoveryStrategies] ${msg}`),
-  warn: (msg: string) => console.warn(`[RecoveryStrategies] ${msg}`),
-  debug: (msg: string) => console.debug(`[RecoveryStrategies] ${msg}`)
-};
+import { getLogger } from '@/lib/utils/logging/simple-logger';
+
+const logger = getLogger('RecoveryStrategies');
 
 /**
  * Configuration for the retry mechanism.

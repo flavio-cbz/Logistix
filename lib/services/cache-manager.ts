@@ -56,17 +56,14 @@ class CacheManager {
         const entry = this.cache.get(cacheKey);
 
         if (!entry) {
-            logger.debug(`[CacheManager] Cache miss pour la clé: ${cacheKey}`);
             return null;
         }
 
         if (this.isExpired(entry)) {
             this.cache.delete(cacheKey);
-            logger.debug(`[CacheManager] Cache expiré pour la clé: ${cacheKey}`);
             return null;
         }
 
-        logger.debug(`[CacheManager] Cache hit pour la clé: ${cacheKey}`);
         return entry.data as T;
     }
 
@@ -87,11 +84,6 @@ class CacheManager {
             ttl,
         });
 
-        logger.debug(`[CacheManager] Données mises en cache`, {
-            cacheKey,
-            operationId,
-            ttl: `${ttl}ms`,
-        });
 
         // Nettoyer périodiquement le cache
         if (this.cache.size % 10 === 0) {
@@ -107,7 +99,6 @@ class CacheManager {
         const deleted = this.cache.delete(cacheKey);
 
         if (deleted) {
-            logger.debug(`[CacheManager] Entrée supprimée du cache: ${cacheKey}`);
         }
 
         return deleted;

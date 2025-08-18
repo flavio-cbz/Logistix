@@ -1,42 +1,65 @@
 import type React from "react"
-import { MainNav } from "@/components/main-nav"
+import { SimpleSidebar } from "@/components/layout/simple-sidebar"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { AppHeader } from "@/components/layout/app-header"
+import { ResponsiveHeader } from "@/components/layout/responsive-header"
 import { NotificationList } from "@/components/features/notifications/notification-list"
 import { AuthButton } from "@/components/auth/auth-button"
-import { getSessionUser } from "@/lib/services/auth"
-import { redirect } from "next/navigation"
+import { SkipLinks } from "@/components/accessibility/skip-links"
+import { KeyboardShortcuts } from "@/components/accessibility/keyboard-shortcuts"
+import { FocusIndicator } from "@/components/accessibility/focus-management"
+import { AccessibilityLayout } from "@/components/layout/accessibility-layout"
 
-// Améliorons la gestion de l'authentification dans le layout du dashboard
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const user = await getSessionUser()
-  console.log("DashboardLayout - Utilisateur:", user ? user.username : "non authentifié")
-
-  if (!user) {
-    console.log("DashboardLayout - Redirection vers /login")
-    redirect("/login")
-  }
-
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="border-b">
-        <div className="flex h-16 items-center px-4">
-          <MainNav />
-          <div className="ml-auto flex items-center space-x-4">
-            <AuthButton user={user} />
-            <ThemeToggle />
+    <AccessibilityLayout>
+      <>
+        <FocusIndicator />
+        
+        <SkipLinks />
+        
+        <div className="min-h-screen flex">
+          <SimpleSidebar />
+          
+          <div className="flex-1 flex flex-col">
+            <header 
+              id="main-header"
+              role="banner"
+              aria-label="En-tête de page"
+              className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm"
+            >
+              <div className="flex h-16 items-center px-4 lg:px-6">
+                <div className="md:hidden w-12" />
+                <div className="ml-auto flex items-center space-x-3">
+                  <KeyboardShortcuts />
+                  <AuthButton user={null as any} />
+                  <ThemeToggle />
+                </div>
+              </div>
+            </header>
+            
+            <main 
+              id="main-content"
+              role="main"
+              aria-label="Contenu principal"
+              className="flex-1 overflow-auto"
+              tabIndex={-1}
+            >
+              <div className="container mx-auto px-4 md:px-6 lg:px-8">
+                <ResponsiveHeader className="border-b pb-4 mb-6 lg:border-b-0 lg:pb-0 lg:mb-8" />
+                
+                <div className="pb-8">
+                  {children}
+                </div>
+              </div>
+            </main>
           </div>
+          <NotificationList />
         </div>
-      </header>
-      <main className="flex-1 p-4 md:p-6">
-        <AppHeader />
-        {children}
-      </main>
-      <NotificationList />
-    </div>
+      </>
+    </AccessibilityLayout>
   )
 }

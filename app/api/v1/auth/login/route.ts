@@ -10,35 +10,27 @@ const loginSchema = z.object({
 });
 
 async function loginHandler(request: NextRequest): Promise<NextResponse> {
-  const requestId = request.headers.get('x-request-id') || 'unknown';
+
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
   const userAgent = request.headers.get('user-agent') || undefined;
-  const timestamp = new Date();
+
 
   try {
     const body = await request.json();
     const validatedData = loginSchema.parse(body);
 
-    const user = await verifyCredentials(validatedData.password);
+    // Use identifier + password for authentication
+    const user = await verifyCredentials(validatedData.identifier, validatedData.password);
 
     if (!user) {
       // Log failed login attempt
       await logAuthenticationEvent(
         'login_failed',
+        'unknown',
         {
-          userId: 'unknown',
-          requestId,
           ip,
-          userAgent,
-          timestamp
-        },
-        {
-          reason: 'Invalid credentials',
-          method: 'password',
-          provider: 'local',
-          metadata: {
-            identifier: validatedData.identifier
-          }
+          ...(userAgent && { userAgent }),
+          reason: 'Invalid credentials'
         }
       );
 
@@ -53,20 +45,11 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
     // Log successful login
     await logAuthenticationEvent(
       'login',
+      user.id,
       {
-        userId: user.id,
-        sessionId,
-        requestId,
         ip,
-        userAgent,
-        timestamp
-      },
-      {
-        method: 'password',
-        provider: 'local',
-        metadata: {
-          identifier: validatedData.identifier
-        }
+        ...(userAgent && { userAgent }),
+        sessionId
       }
     );
 
@@ -88,17 +71,11 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
     // Log authentication error
     await logAuthenticationEvent(
       'login_failed',
+      'unknown',
       {
-        userId: 'unknown',
-        requestId,
         ip,
-        userAgent,
-        timestamp
-      },
-      {
-        reason: (error as Error).message,
-        method: 'password',
-        provider: 'local'
+        ...(userAgent && { userAgent }),
+        reason: (error as Error).message
       }
     );
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { useStore } from "@/store/store"
+import { useStore } from "@/lib/services/admin/store"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from "lucide-react"
 import { Button } from "@/components/ui/button"

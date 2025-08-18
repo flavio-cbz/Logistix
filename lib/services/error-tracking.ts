@@ -394,7 +394,7 @@ class ErrorTrackingService {
     context: ErrorContext,
     errorId: string
   ): Promise<void> {
-    this.logger.warn(`Security error detected: ${error.name}`, undefined, {
+    this.logger.warn(`Security error detected: ${error.name}`, {
       errorId,
       errorDetails: error,
       context,

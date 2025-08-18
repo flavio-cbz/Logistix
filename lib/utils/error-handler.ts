@@ -275,4 +275,34 @@ export const useErrorHandler = () => {
   };
 };
 
+/**
+ * Formate une erreur pour les réponses API standardisées.
+ * @param error Erreur à formater (Error, string, ou tout objet)
+ * @param details Informations additionnelles optionnelles
+ * @returns { error: string, code?: string, details?: any }
+ */
+export function formatApiError(
+  error: unknown,
+  details?: any
+): { error: string; code?: string; details?: any } {
+  if (error instanceof Error) {
+    // Si l'erreur a déjà un code, on le récupère
+    // @ts-ignore
+    const code = error.code || error.name;
+    return {
+      error: error.message,
+      code,
+      ...(details ? { details } : {})
+    };
+  }
+  if (typeof error === 'string') {
+    return { error, ...(details ? { details } : {}) };
+  }
+  // Pour les objets ou autres types
+  return {
+    error: 'Erreur inconnue',
+    details: error
+  };
+}
+
 export default ErrorHandler;

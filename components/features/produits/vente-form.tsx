@@ -5,8 +5,8 @@ import * as z from "zod"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { useStore } from "@/store/store"
+import { AnimatedButton } from "@/components/ui/animated-button"
+import { useStore } from "@/lib/services/admin/store"
 import { useToast } from "@/components/ui/use-toast"
 import { useEffect } from "react"
 
@@ -164,9 +164,18 @@ export default function VenteForm({ produitId, open, onClose }: VenteFormProps) 
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
+            <AnimatedButton 
+              type="submit" 
+              className="w-full"
+              loading={form.formState.isSubmitting}
+              loadingText="Enregistrement..."
+              success={form.formState.isSubmitSuccessful}
+              successText="Vente enregistrée !"
+              ripple={true}
+              haptic={true}
+            >
               Enregistrer la vente
-            </Button>
+            </AnimatedButton>
           </form>
         </Form>
       </DialogContent>

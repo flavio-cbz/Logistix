@@ -3,10 +3,9 @@
 
 // Mock logger since logger is disabled
 const logger = {
-  info: (msg: string, data?: any) => console.log(`[ValidationMonitor] ${msg}`, data || ''),
   error: (msg: string, data?: any) => console.error(`[ValidationMonitor] ${msg}`, data || ''),
   warn: (msg: string, data?: any) => console.warn(`[ValidationMonitor] ${msg}`, data || ''),
-  debug: (msg: string, data?: any) => console.debug(`[ValidationMonitor] ${msg}`, data || '')
+  info: (msg: string, data?: any) => console.info(`[ValidationMonitor] ${msg}`, data || ''),
 };
 
 /**
@@ -141,7 +140,7 @@ export class ValidationMonitor {
   public logError(message: string, details?: Record<string, any>): void {
     const error: ValidationError = {
       message,
-      details,
+      details: details || {},
       timestamp: new Date().toISOString(),
     };
     this.state.errors.push(error);

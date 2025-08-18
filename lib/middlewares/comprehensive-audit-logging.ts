@@ -233,34 +233,22 @@ export function withAuthenticationAuditLogging<T extends any[]>(
           
           await logAuthenticationEvent(
             'login',
+            userId,
             {
-              userId,
-              sessionId,
-              requestId: context.requestId,
               ip: context.ip,
               userAgent: context.userAgent,
-              timestamp: context.timestamp
-            },
-            {
-              method: 'password',
-              provider: 'local'
+              sessionId
             }
           );
         } else {
           // Failed login
           await logAuthenticationEvent(
             'login_failed',
+            'unknown',
             {
-              userId: 'unknown',
-              requestId: context.requestId,
               ip: context.ip,
               userAgent: context.userAgent,
-              timestamp: context.timestamp
-            },
-            {
-              reason: responseData.message || 'Invalid credentials',
-              method: 'password',
-              provider: 'local'
+              reason: responseData.message || 'Invalid credentials'
             }
           );
         }
@@ -274,13 +262,11 @@ export function withAuthenticationAuditLogging<T extends any[]>(
         if (userId) {
           await logAuthenticationEvent(
             'logout',
+            userId,
             {
-              userId,
-              sessionId,
-              requestId: context.requestId,
               ip: context.ip,
               userAgent: context.userAgent,
-              timestamp: context.timestamp
+              sessionId
             }
           );
         }
@@ -291,17 +277,11 @@ export function withAuthenticationAuditLogging<T extends any[]>(
       // Log authentication error
       await logAuthenticationEvent(
         'login_failed',
+        'unknown',
         {
-          userId: 'unknown',
-          requestId: context.requestId,
           ip: context.ip,
           userAgent: context.userAgent,
-          timestamp: context.timestamp
-        },
-        {
-          reason: (error as Error).message,
-          method: 'password',
-          provider: 'local'
+          reason: (error as Error).message
         }
       );
 
@@ -341,57 +321,69 @@ export function withDataAccessAuditLogging<T extends any[]>(
     // Extract resource ID from URL if available
     const resourceId = extractResourceIdFromUrl(request.nextUrl.pathname);
 
-    try {
-      // Get request body for create/update operations
-      let requestBody;
-      if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
-        try {
-          requestBody = await request.clone().json();
-        } catch {
-          // Not JSON or empty body
-        }
+    // Prepare request body if applicable
+    let requestBody: any = undefined;
+    if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
+      try {
+        requestBody = await request.clone().json();
+      } catch {
+        // Not JSON or empty body - ignore
       }
+    }
 
+    try {
       const response = await handler(request, ...args);
       
-      // Get response data for logging
-      let responseData;
+      // Get response data for logging if JSON
+      let responseData: any = undefined;
       try {
         responseData = await response.clone().json();
       } catch {
-        // Not JSON response
+        // Not JSON response - ignore
       }
 
-      // Log data access event
+      // Log successful data access event
       await logDataAccessEvent(
-        context,
+        context.userId,
         operation,
         resourceType,
         resourceId,
         {
-          fields: requestBody ? Object.keys(requestBody) : undefined,
-          newValues: operation === 'create' || operation === 'update' ? requestBody : undefined,
-          metadata: {
-            statusCode: response.status,
-            responseHasData: !!responseData,
-            requestSize: getRequestSize(request),
-            responseSize: getResponseSize(response)
+          ip: context.ip,
+          userAgent: context.userAgent,
+          sessionId: context.sessionId,
+          requestId: context.requestId,
+          details: {
+            fields: requestBody ? Object.keys(requestBody) : undefined,
+            newValues: (operation === 'create' || operation === 'update') ? requestBody : undefined,
+            metadata: {
+              statusCode: response.status,
+              responseHasData: !!responseData,
+              requestSize: getRequestSize(request),
+              responseSize: getResponseSize(response)
+            }
           }
         }
       );
 
       return response;
     } catch (error) {
-      // Log failed data access
+      // Log failed data access event
       await logDataAccessEvent(
-        context,
+        context.userId,
         operation,
         resourceType,
         resourceId,
         {
-          metadata: {
-            error: (error as Error).message,
-            failed: true
+          ip: context.ip,
+          userAgent: context.userAgent,
+          sessionId: context.sessionId,
+          requestId: context.requestId,
+          details: {
+            metadata: {
+              error: (error as Error).message,
+              failed: true
+            }
           }
         }
       );

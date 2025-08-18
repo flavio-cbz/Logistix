@@ -6,7 +6,8 @@
   "scripts": {
     "sync": "node sync-metadata.js",
     "sync:user": "node sync-metadata.js",
-    "test": "node test-sync.js"
+    "test": "node test-sync.js",
+    "sync:trends": "node sync-market-trends.js"
   },
   "dependencies": {
     "better-sqlite3": "^9.6.0"

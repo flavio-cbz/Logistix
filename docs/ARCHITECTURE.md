@@ -1,3 +1,5 @@
+> **ℹ️ Ce guide a été consolidé. Pour une vue synthétique de la structure, voir le [README.md](../README.md). Ce fichier détaille l’architecture technique complète.**
+
 # Architecture Documentation
 
 This document describes the overall architecture of the LogistiX application.

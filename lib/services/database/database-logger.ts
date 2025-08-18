@@ -125,11 +125,9 @@ export class DatabaseLogger {
     switch (level) {
       case 'debug':
         if (process.env.DB_DEBUG === 'true') {
-          console.debug(logMessage, logData);
         }
         break;
       case 'info':
-        console.log(logMessage, logData);
         break;
       case 'warn':
         console.warn(logMessage, logData);

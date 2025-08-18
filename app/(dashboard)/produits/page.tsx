@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import ProduitsList from "@/components/features/produits/produits-list"
-import { useStore } from "@/store/store"
+import { useStore } from "@/lib/services/admin/store"
 import { motion } from "framer-motion"
 
 export default function ProduitsPage() {

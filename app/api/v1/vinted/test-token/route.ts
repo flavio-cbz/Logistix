@@ -1,29 +1,42 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { vintedSessionManager } from '@/lib/services/auth/vinted-session-manager';
-import { logger } from '@/lib/utils/logging/logger';
+// API route pour tester la validité du token Vinted
 
-/**
- * POST /api/v1/vinted/test-token
- * Teste la validité d'un token Vinted sans l'enregistrer.
- */
+import { NextRequest, NextResponse } from 'next/server';
+import { VintedAuthService } from '@/lib/services/auth/vinted-auth-service';
+
+import { getLogger } from '@/lib/utils/logging/logger';
+
+const logger = getLogger('vinted-token-test');
 export async function POST(req: NextRequest) {
   try {
-    const { sessionToken } = await req.json();
-    if (!sessionToken) {
-      return NextResponse.json({ message: 'Le cookie/token Vinted est requis.' }, { status: 400 });
+    const { token } = await req.json();
+logger.info('Début de la validation du token Vinted.', { token });
+
+    if (!token || typeof token !== 'string') {
+      return NextResponse.json(
+        { valid: false, error: "Token Vinted manquant ou invalide." },
+        { status: 400 }
+      );
     }
 
-    // On utilise une méthode de test qui ne dépend pas d'un utilisateur enregistré
-    const isValid = await vintedSessionManager.isTokenValid(sessionToken);
+    const authService = new VintedAuthService(token);
+    const result = await authService.validateAccessToken();
+logger.info('Résultat de la validation du token Vinted.', { result });
 
-    if (isValid) {
-      return NextResponse.json({ isValid: true, message: 'Le token est valide.' });
+    if (result.valid) {
+      return NextResponse.json(
+        { valid: true, status: result.status, user: result.body },
+        { status: 200 }
+      );
     } else {
-      return NextResponse.json({ isValid: false, message: 'Le token est invalide ou a expiré.' });
+      return NextResponse.json(
+        { valid: false, error: result.error || "Token Vinted invalide ou expiré.", status: result.status },
+        { status: result.status === 401 ? 401 : 400 }
+      );
     }
-
-  } catch (error: any) {
-    logger.error('[VINTED_TEST_TOKEN] Erreur lors du test du token:', error);
-    return NextResponse.json({ isValid: false, message: 'Erreur lors de la vérification du token.', error: error.message }, { status: 500 });
+  } catch (err: any) {
+    return NextResponse.json(
+      { valid: false, error: err?.message || "Erreur interne lors de la validation du token." },
+      { status: 500 }
+    );
   }
 }

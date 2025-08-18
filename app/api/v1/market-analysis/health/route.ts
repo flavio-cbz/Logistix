@@ -1,11 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/services/auth";
 import { ApiError, createApiErrorResponse } from "@/lib/utils/validation";
-import { vintedApiMonitor } from "@/lib/services/performance-monitor";
 import { cacheManager } from "@/lib/services/cache-manager";
 
 // GET /api/v1/market-analysis/health : Obtenir l'état de santé du système d'analyse
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const user = await getSessionUser();
     if (!user) {

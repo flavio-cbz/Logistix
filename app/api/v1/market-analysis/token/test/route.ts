@@ -4,7 +4,7 @@ import { ApiError, createApiErrorResponse } from "@/lib/utils/validation";
 import { logger } from "@/lib/utils/logging/logger";
 import { z } from "zod";
 import axios from "axios";
-import { SuggestionsResponseSchema } from "@/lib/services/vinted-market-analysis";
+import { SuggestionsResponseSchema } from "@/lib/validations/vinted-market-analysis-schemas";
 
 // --- Schémas de validation ---
 const TokenTestSchema = z.object({

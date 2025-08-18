@@ -2,27 +2,14 @@ import 'server-only';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { randomUUID, createHash } from 'crypto';
+import { randomUUID } from 'crypto';
+import { hashPasswordSync } from '../../utils/crypto';
+import bcrypt from 'bcrypt';
 
 // Logger optimisé pour l'initialisation
-const logger = {
-  info: (message: string, data?: any) => {
-    if (process.env.NODE_ENV === 'development' || process.env.DB_DEBUG === 'true') {
-      console.log(`[InitManager] ${message}`, data ? JSON.stringify(data) : '');
-    }
-  },
-  warn: (message: string, data?: any) => {
-    console.warn(`[InitManager] ${message}`, data ? JSON.stringify(data) : '');
-  },
-  error: (message: string, data?: any) => {
-    console.error(`[InitManager] ${message}`, data ? JSON.stringify(data) : '');
-  },
-  debug: (message: string, data?: any) => {
-    if (process.env.DB_DEBUG === 'true') {
-      console.debug(`[InitManager] ${message}`, data ? JSON.stringify(data) : '');
-    }
-  },
-};
+import { getLogger } from '@/lib/utils/logging/simple-logger';
+
+const logger = getLogger('InitManager');
 
 // État d'initialisation
 export enum InitializationState {
@@ -88,7 +75,6 @@ export class DatabaseInitializationManagerImpl implements DatabaseInitialization
    */
   private async checkSchemaExists(): Promise<boolean> {
     if (!fs.existsSync(this.dbPath)) {
-      logger.debug('Database file does not exist');
       return false;
     }
 
@@ -104,10 +90,6 @@ export class DatabaseInitializationManagerImpl implements DatabaseInitialization
       db.close();
       
       const hasRequiredTables = tables.length >= 4;
-      logger.debug('Schema existence check', { 
-        tablesFound: tables.length, 
-        hasRequiredTables 
-      });
       
       return hasRequiredTables;
     } catch (error) {
@@ -138,7 +120,6 @@ export class DatabaseInitializationManagerImpl implements DatabaseInitialization
     db.pragma('temp_store = memory');
     db.pragma('mmap_size = 268435456'); // 256MB
     db.pragma('busy_timeout = 30000'); // 30s timeout pour les verrous
-    logger.debug('Database PRAGMA configuration applied');
   }
 
   /**
@@ -311,7 +292,7 @@ export class DatabaseInitializationManagerImpl implements DatabaseInitialization
     if (userCount.count === 0) {
       logger.info('No users found, creating default administrator...');
       
-      const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+      const adminPassword = process.env.ADMIN_DEFAULT_PASSWORD || process.env.ADMIN_PASSWORD || 'admin123';
       
       const insert = db.prepare(
         'INSERT INTO users (id, username, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
@@ -337,13 +318,11 @@ export class DatabaseInitializationManagerImpl implements DatabaseInitialization
   public async initialize(): Promise<void> {
     // Si déjà initialisé, retourner immédiatement
     if (this.initializationState === InitializationState.COMPLETED) {
-      logger.debug('Database already initialized');
       return;
     }
 
     // Si une initialisation est en cours, attendre sa completion
     if (this.initializationState === InitializationState.IN_PROGRESS) {
-      logger.debug('Initialization already in progress, waiting...');
       return this.waitForInitialization();
     }
 
@@ -358,6 +337,14 @@ export class DatabaseInitializationManagerImpl implements DatabaseInitialization
     // Vérifier si le schéma existe déjà
     if (await this.checkSchemaExists()) {
       logger.info('Database schema already exists, marking as initialized');
+
+      // Avant de quitter, vérifier et migrer le mot de passe admin legacy si nécessaire
+      try {
+        await this.rotateLegacyAdminIfNeeded();
+      } catch (err) {
+        logger.warn('Error during legacy admin rotation check', { error: err });
+      }
+
       this.initializationState = InitializationState.COMPLETED;
       return;
     }
@@ -389,7 +376,6 @@ export class DatabaseInitializationManagerImpl implements DatabaseInitialization
    * Effectue l'initialisation réelle de la base de données
    */
   private async performInitialization(initializationId: string): Promise<void> {
-    logger.debug('Performing database initialization', { initializationId });
 
     // S'assurer que le répertoire existe
     this.ensureDataDirectory();
@@ -401,7 +387,6 @@ export class DatabaseInitializationManagerImpl implements DatabaseInitialization
       this.configureDatabase(db);
       this.initializeSchema(db);
       
-      logger.debug('Database initialization completed', { initializationId });
     } finally {
       db.close();
     }
@@ -420,7 +405,6 @@ export class DatabaseInitializationManagerImpl implements DatabaseInitialization
     }
 
     if (this.initializationPromise) {
-      logger.debug('Waiting for initialization to complete...');
       await this.initializationPromise;
     }
 
@@ -459,10 +443,46 @@ export class DatabaseInitializationManagerImpl implements DatabaseInitialization
   }
 
   /**
+   * Rotate legacy admin password (SHA-256) to bcrypt using ADMIN_DEFAULT_PASSWORD if provided.
+   * This runs during initialization checks and is safe to call multiple times.
+   */
+  private async rotateLegacyAdminIfNeeded(): Promise<void> {
+    try {
+      const adminDefault = process.env.ADMIN_DEFAULT_PASSWORD || process.env.ADMIN_PASSWORD || null;
+      if (!adminDefault) {
+        // Nothing to do without a provided default password
+        return;
+      }
+
+      const db = new Database(this.dbPath);
+      try {
+        const adminRow = db.prepare("SELECT id, password_hash FROM users WHERE username = ?").get('admin') as { id?: string; password_hash?: string } | undefined;
+        if (!adminRow || !adminRow.password_hash) return;
+
+        // Detect SHA-256 hex (64 hex chars)
+        const isSha256Hex = /^[a-f0-9]{64}$/i.test(adminRow.password_hash);
+        if (!isSha256Hex) return;
+
+        const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS) || 12;
+        const newHash = bcrypt.hashSync(adminDefault, saltRounds);
+
+        db.prepare("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?")
+          .run(newHash, this.getCurrentTimestamp(), adminRow.id);
+
+        logger.info('Legacy admin password rotated to bcrypt using ADMIN_DEFAULT_PASSWORD');
+      } finally {
+        db.close();
+      }
+    } catch (err) {
+      logger.warn('Error rotating legacy admin password', { error: err });
+    }
+  }
+
+  /**
    * Hache un mot de passe en utilisant SHA-256
    */
   private hashPassword(password: string): string {
-    return createHash('sha256').update(password).digest('hex');
+    return hashPasswordSync(password);
   }
 
   /**

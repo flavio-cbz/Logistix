@@ -1,3 +1,5 @@
+> **ℹ️ Ce guide a été consolidé. Pour une vue d’ensemble rapide, voir le [README.md](../README.md). Ce fichier détaille la stratégie et les outils de test avancés.**
+
 # Guide de Test - LogistiX
 
 Ce guide détaille la stratégie de test complète de l'application LogistiX.

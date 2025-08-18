@@ -3,6 +3,7 @@ import { getSessionUser } from '@/lib/services/auth';
 import { databaseService } from '@/lib/services/database/db';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
+import { formatApiError } from '@/lib/utils/error-handler';
 
 const productSchema = z.object({
   nom: z.string(),
@@ -97,9 +98,14 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, produit: newProduit }, { status: 201 });
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return NextResponse.json({ success: false, message: 'Erreur de validation', errors: error.errors }, { status: 400 });
+            return NextResponse.json(
+                formatApiError(error, { message: 'Erreur de validation', errors: error.errors }),
+                { status: 400 }
+            );
         }
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        return NextResponse.json({ success: false, message: 'Erreur lors de la création du produit', error: errorMessage }, { status: 500 });
+        return NextResponse.json(
+            formatApiError(error, { message: 'Erreur lors de la création du produit' }),
+            { status: 500 }
+        );
     }
 }

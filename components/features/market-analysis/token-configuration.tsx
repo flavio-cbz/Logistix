@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -24,6 +24,7 @@ import {
   ExternalLink,
   Shield
 } from "lucide-react"
+import { useMarketAnalysisStore } from "@/lib/store"
 
 const TokenConfigurationSchema = z.object({
   cookie: z.string().min(10, "Le cookie doit contenir au moins 10 caractères"),
@@ -40,11 +41,9 @@ export default function TokenConfiguration({ onTokenConfigured }: TokenConfigura
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [showCookie, setShowCookie] = useState(false)
-  const [tokenStatus, setTokenStatus] = useState<{
-    configured: boolean
-    valid: boolean
-    message?: string
-  } | null>(null)
+  const [tokenExpiration, setTokenExpiration] = useState<Date | null>(null)
+
+  const { tokenConfigured, setTokenConfigured } = useMarketAnalysisStore()
 
   const form = useForm<TokenConfigurationForm>({
     resolver: zodResolver(TokenConfigurationSchema),
@@ -66,6 +65,7 @@ export default function TokenConfiguration({ onTokenConfigured }: TokenConfigura
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ cookie: data.cookie }),
+credentials: 'include',
       })
 
       const result = await response.json()
@@ -77,10 +77,8 @@ export default function TokenConfiguration({ onTokenConfigured }: TokenConfigura
       setSuccess('Cookie configuré avec succès !')
       form.reset()
       
-      // Vérifier le statut après configuration
       await checkTokenStatus()
       
-      // Notifier le parent
       if (onTokenConfigured) {
         onTokenConfigured()
       }
@@ -95,16 +93,38 @@ export default function TokenConfiguration({ onTokenConfigured }: TokenConfigura
   const checkTokenStatus = async () => {
     try {
       const baseUrl = typeof window !== 'undefined' ? '' : 'http://localhost:3000'
-      const response = await fetch(`${baseUrl}/api/v1/vinted/auth`)
+      const response = await fetch(`${baseUrl}/api/v1/vinted/auth`, { credentials: 'include' })
+const contentType = response.headers.get("Content-Type") || "";
+if (!contentType.includes("application/json")) {
+  setTokenConfigured(false);
+  setTokenExpiration(null);
+  console.error("Réponse inattendue : le serveur n'a pas retourné du JSON.");
+  return;
+}
       const data = await response.json()
-      // Mapping du statut selon la nouvelle API
-      setTokenStatus({
-        configured: !!data.tokens,
-        valid: !!data.authenticated,
-        message: !data.authenticated ? (data.error || "Le cookie est invalide ou expiré") : undefined,
-      })
+      
+      const isValid = !!data.authenticated
+      setTokenConfigured(isValid)
+
+      if (isValid) {
+        const expRes = await fetch(`${baseUrl}/api/v1/vinted/token-info`, { credentials: 'include' })
+        if (expRes.ok) {
+          const expData = await expRes.json()
+          if (expData.expiration) {
+            setTokenExpiration(new Date(expData.expiration))
+          } else {
+            setTokenExpiration(null)
+          }
+        } else {
+          setTokenExpiration(null)
+        }
+      } else {
+        setTokenExpiration(null)
+      }
     } catch (error) {
       console.error('Erreur lors de la vérification du cookie:', error)
+      setTokenConfigured(false)
+      setTokenExpiration(null)
     }
   }
 
@@ -118,11 +138,12 @@ export default function TokenConfiguration({ onTokenConfigured }: TokenConfigura
       const baseUrl = typeof window !== 'undefined' ? '' : 'http://localhost:3000'
       const response = await fetch(`${baseUrl}/api/v1/vinted/auth`, {
         method: 'DELETE',
+credentials: 'include',
       })
 
       if (response.ok) {
         setSuccess('Cookie supprimé avec succès')
-        setTokenStatus(null)
+        setTokenConfigured(false)
       } else {
         throw new Error('Erreur lors de la suppression du cookie')
       }
@@ -137,15 +158,13 @@ export default function TokenConfiguration({ onTokenConfigured }: TokenConfigura
     navigator.clipboard.writeText(text)
   }
 
-  // Vérifier le statut au chargement
-  useState(() => {
+  useEffect(() => {
     checkTokenStatus()
-  })
+  }, [])
 
   return (
     <div className="space-y-6">
-      {/* Statut actuel du token */}
-      {tokenStatus && (
+      {tokenConfigured !== null && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -156,7 +175,7 @@ export default function TokenConfiguration({ onTokenConfigured }: TokenConfigura
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                {tokenStatus.configured && tokenStatus.valid ? (
+                {tokenConfigured ? (
                   <>
                     <CheckCircle className="h-5 w-5 text-green-600" />
                     <div>
@@ -164,32 +183,27 @@ export default function TokenConfiguration({ onTokenConfigured }: TokenConfigura
                       <p className="text-sm text-muted-foreground">
                         Prêt pour les analyses de marché
                       </p>
-                    </div>
-                  </>
-                ) : tokenStatus.configured && !tokenStatus.valid ? (
-                  <>
-                    <XCircle className="h-5 w-5 text-red-600" />
-                    <div>
-                      <p className="font-medium text-red-600">Token configuré mais invalide</p>
-                      <p className="text-sm text-muted-foreground">
-                        {tokenStatus.message || 'Le token a peut-être expiré'}
-                      </p>
+                      {tokenExpiration && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Expiration du token : {tokenExpiration.toLocaleString('fr-FR')}
+                        </p>
+                      )}
                     </div>
                   </>
                 ) : (
                   <>
-                    <AlertCircle className="h-5 w-5 text-orange-600" />
+                    <XCircle className="h-5 w-5 text-red-600" />
                     <div>
-                      <p className="font-medium text-orange-600">Aucun token configuré</p>
+                      <p className="font-medium text-red-600">Token invalide ou non configuré</p>
                       <p className="text-sm text-muted-foreground">
-                        Configuration requise pour utiliser l'analyse de marché
+                        Veuillez configurer un token valide pour continuer.
                       </p>
                     </div>
                   </>
                 )}
               </div>
               
-              {tokenStatus.configured && (
+              {tokenConfigured !== null && (
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -203,14 +217,16 @@ export default function TokenConfiguration({ onTokenConfigured }: TokenConfigura
                       'Vérifier'
                     )}
                   </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleDeleteToken}
-                    disabled={isLoading}
-                  >
-                    Supprimer
-                  </Button>
+                  {tokenConfigured && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDeleteToken}
+                      disabled={isLoading}
+                    >
+                      Supprimer
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

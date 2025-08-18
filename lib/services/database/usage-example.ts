@@ -20,7 +20,6 @@ export async function exampleApiRoute() {
     
     return { success: true, data: users };
   } catch (error) {
-    console.error('API route error:', error);
     return { success: false, error: 'Database error' };
   }
 }
@@ -39,7 +38,6 @@ export async function exampleWaitForInit() {
     
     return { success: true, soldCount: result?.count || 0 };
   } catch (error) {
-    console.error('Wait for init error:', error);
     return { success: false, error: 'Initialization failed' };
   }
 }
@@ -105,7 +103,6 @@ export async function exampleTransaction() {
     
     return { success: true, data: result };
   } catch (error) {
-    console.error('Transaction error:', error);
     return { success: false, error: 'Transaction failed' };
   }
 }
@@ -138,7 +135,6 @@ export async function exampleBatchOperations() {
       details: results 
     };
   } catch (error) {
-    console.error('Batch operations error:', error);
     return { success: false, error: 'Batch operation failed' };
   }
 }
@@ -155,7 +151,6 @@ export async function exampleHealthCheck() {
       stats
     };
   } catch (error) {
-    console.error('Health check error:', error);
     return {
       healthy: false,
       timestamp: new Date().toISOString(),
@@ -169,7 +164,7 @@ export async function exampleBuildTimeUsage() {
   try {
     // Pendant le build, vérifier si l'initialisation est nécessaire
     if (!initializationManager.isInitialized()) {
-      console.log('Database not initialized during build, initializing...');
+      // Database not initialized during build, initializing...
       await initializationManager.initialize();
     }
     
@@ -182,7 +177,6 @@ export async function exampleBuildTimeUsage() {
     
     return data;
   } catch (error) {
-    console.error('Build time usage error:', error);
     // En cas d'erreur pendant le build, retourner des données par défaut
     return [];
   }
@@ -197,8 +191,8 @@ export async function exampleTestCleanup() {
     // Fermer toutes les connexions
     await enhancedDb.shutdown();
     
-    console.log('Test cleanup completed');
+    // Test cleanup completed
   } catch (error) {
-    console.error('Test cleanup error:', error);
+    // Test cleanup error - continuing
   }
 }

@@ -9,7 +9,7 @@ import { z } from "zod";
 import { withEnhancedRequestLogging } from "@/lib/middlewares/enhanced-request-logging";
 import { serviceInstrumentation } from "@/lib/services/comprehensive-service-instrumentation";
 import { auditLogger } from "@/lib/services/audit-logger";
-import { authLogger, createRequestLogger } from "@/lib/utils/logging";
+import { createRequestLogger } from "@/lib/utils/logging";
 
 const loginSchema = z.object({
   identifier: z.string(),
@@ -60,7 +60,7 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
     // Verify credentials with comprehensive instrumentation
     const user = await serviceInstrumentation.instrumentAuthOperation(
       'verifyCredentials',
-      () => verifyCredentials(validatedData.password),
+      () => verifyCredentials(validatedData.identifier, validatedData.password),
       validatedData.identifier,
       {
         requestId,
@@ -218,7 +218,8 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
     }
 
     // Log unexpected error
-    logger.error("Unexpected error in login API", error as Error, {
+    logger.error("Unexpected error in login API", {
+      error: error as Error,
       ip: clientIP,
       userAgent,
       endpoint: '/api/v1/auth/login'

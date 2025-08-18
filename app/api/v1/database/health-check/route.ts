@@ -330,7 +330,7 @@ function calculateOverallHealth(components: HealthCheckResult[]): {
   return { status, score };
 }
 
-async function healthCheckHandler(request: NextRequest): Promise<NextResponse> {
+async function healthCheckHandler(): Promise<NextResponse> {
   const overallStartTime = Date.now();
   
   try {

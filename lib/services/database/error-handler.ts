@@ -174,7 +174,6 @@ export class DatabaseErrorHandler {
   private logger = {
     debug: (msg: string, data?: any) => {
       if (process.env.DB_DEBUG === 'true') {
-        console.debug(`[ErrorHandler] ${msg}`, data ? JSON.stringify(data) : '');
       }
     },
     warn: (msg: string, data?: any) => {
@@ -221,14 +220,6 @@ export class DatabaseErrorHandler {
       timestamp: new Date(),
     };
 
-    this.logger.debug('Error analyzed', {
-      type: errorType,
-      category: strategy.category,
-      strategy: strategy.strategy,
-      isRetryable: strategy.isRetryable,
-      isCritical: strategy.isCritical,
-      context,
-    });
 
     return errorInfo;
   }

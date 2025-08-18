@@ -35,10 +35,10 @@ export class ValidationReporter {
       deletionTest: this.validationData.deletionTest,
       databaseIntegrity: this.validationData.databaseIntegrity,
       recommendations,
-      debugInfo: this.validationData.debugInfo,
+      debugInfo: this.validationData.debugInfo || undefined,
     };
 
-    return this.report;
+    return this.report!;
   }
 
   public exportReport(format: 'json' | 'string' = 'json'): string {

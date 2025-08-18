@@ -400,7 +400,7 @@ class UserActionLoggerService {
       {
         operation,
         resource,
-        hasResourceId: !!resourceId
+        hasResourceId: (!!resourceId).toString()
       },
       {
         userId: context.userId,

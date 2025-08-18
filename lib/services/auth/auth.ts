@@ -1,10 +1,11 @@
 import { databaseService, generateId, getCurrentTimestamp } from "@/lib/services/database/db"
 import { cookies } from "next/headers"
-import crypto from "crypto"
+import { NextRequest } from "next/server"
 import { SimpleLogger as Logger } from "@/lib/utils/logging";
 import { AuthServiceInstrumentation } from "../logging-instrumentation";
 import { authLogger, PerformanceTimer } from "@/lib/utils/logging";
 import { getAdminPassword, isAdminUsingDefaultPassword } from "@/lib/services/admin"
+import { hashPassword as bcryptHashPassword, comparePassword as bcryptComparePassword } from "@/lib/utils/crypto";
 
 const logger = new Logger("lib/auth")
 
@@ -17,6 +18,7 @@ interface User {
   avatar?: string
   language?: string
   theme?: string
+  ai_config?: string // Ajout du champ ai_config
 }
 
 interface Session {
@@ -28,6 +30,7 @@ interface Session {
   avatar?: string
   language?: string
   theme?: string
+  ai_config?: string // Ajout du champ ai_config
 }
 
 export interface UserSession {
@@ -37,12 +40,8 @@ export interface UserSession {
   avatar?: string
   language?: string
   theme?: string
+  aiConfig?: { endpoint: string, apiKey: string, model: string } // Ajout du champ aiConfig
   isAdmin: boolean
-}
-
-// Fonction pour hacher un mot de passe
-export function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password).digest("hex")
 }
 
 // Fonction pour créer un utilisateur
@@ -53,7 +52,7 @@ export async function createUser(username: string, password: string) {
   
   try {
     const id = generateId()
-    const passwordHash = hashPassword(password)
+    const passwordHash = await bcryptHashPassword(password)
     const timestamp = getCurrentTimestamp()
 
     await databaseService.execute(
@@ -75,56 +74,42 @@ export async function createUser(username: string, password: string) {
     
     return result;
   } catch (error) {
-    authLogger.error('Failed to create user', error as Error, { username });
+    authLogger.error('Failed to create user', error as Error);
     timer.endWithError(error as Error, { username });
     throw error;
   }
 }
 
-// Fonction pour vérifier les identifiants
-export async function verifyCredentials(password: string) {
+// Fonction pour vérifier les identifiants — maintenant par username + password
+export async function verifyCredentials(username: string, password: string) {
   return AuthServiceInstrumentation.instrumentLogin(
     async () => {
+      // Récupérer l'utilisateur par nom d'utilisateur fourni
       const user = await databaseService.queryOne<User>(
-        `SELECT id, username, password_hash FROM users WHERE username = 'admin'`,
-        [],
+        `SELECT id, username, password_hash FROM users WHERE username = ?`,
+        [username],
         'verifyCredentials'
       )
 
       if (!user) {
-        logger.warn(`Tentative de connexion échouée pour l'utilisateur admin (utilisateur non trouvé)`)
+        logger.warn(`Tentative de connexion échouée pour l'utilisateur ${username} (utilisateur non trouvé)`)
         throw new Error('User not found')
       }
 
-      // Vérification du mot de passe
-      const passwordHash = hashPassword(password)
-
-      // Si l'utilisateur est admin et qu'il utilise le mot de passe par défaut, on autorise la connexion
-      // C'est pour le premier login de l'admin avec le mot de passe par défaut
-      if (
-        user.username === "admin" &&
-        (await isAdminUsingDefaultPassword()) &&
-        password === getAdminPassword()
-      ) {
-        logger.info(`Connexion réussie pour l'utilisateur admin avec mot de passe par défaut`)
-        return {
-          id: user.id,
-          username: user.username,
-        }
-      }
-
-      if (user.password_hash !== passwordHash) {
-        logger.warn(`Tentative de connexion échouée pour l'utilisateur admin (mot de passe incorrect)`)
+      // Vérification sécurisée avec bcrypt
+      const passwordMatches = await bcryptComparePassword(password, user.password_hash)
+      if (!passwordMatches) {
+        logger.warn(`Tentative de connexion échouée pour l'utilisateur ${username} (mot de passe incorrect)`)
         throw new Error('Invalid password')
       }
 
-      logger.info(`Connexion réussie pour l'utilisateur admin`)
+      logger.info(`Connexion réussie pour l'utilisateur ${username}`)
       return {
         id: user.id,
         username: user.username,
       }
     },
-    { username: 'admin', password }
+    { username, password }
   ).catch(_error => {
     // Return null for authentication failures to maintain existing behavior
     return null;
@@ -158,7 +143,7 @@ export async function createSession(userId: string) {
     
     return sessionId;
   } catch (error) {
-    authLogger.error('Failed to create session', error as Error, { userId });
+    authLogger.error('Failed to create session', error as Error);
     timer.endWithError(error as Error, { userId });
     throw error;
   }
@@ -190,7 +175,7 @@ export async function signOut() {
       
       authLogger.info('User signed out successfully', { sessionId });
     } catch (error) {
-      authLogger.error('Failed to sign out user', error as Error, { sessionId });
+      authLogger.error('Failed to sign out user', error as Error);
       timer.endWithError(error as Error, { sessionId });
     }
   } else {
@@ -210,7 +195,7 @@ export async function requireAuth(): Promise<UserSession> {
     }
 
     const session = await databaseService.queryOne<Session>(
-      `SELECT s.id as session_id, s.user_id, s.expires_at, u.username FROM sessions s
+      `SELECT s.id as session_id, s.user_id, s.expires_at, u.username, u.ai_config FROM sessions s
        JOIN users u ON s.user_id = u.id
        WHERE s.id = ?`,
       [sessionId],
@@ -246,11 +231,8 @@ export async function requireAuth(): Promise<UserSession> {
     return {
       id: session.user_id,
       username: session.username,
-      
-      
-      
-      
       isAdmin: session.username === "admin",
+      aiConfig: session.ai_config ? JSON.parse(session.ai_config) : undefined,
     }
   } catch (error) {
     // Re-throw known authentication errors
@@ -277,6 +259,33 @@ export async function requireAdmin() {
   }
 }
 
+// Fonction pour valider une session depuis une requête NextRequest
+export async function validateSession(request: NextRequest): Promise<{ success: boolean; user: UserSession | null; message?: string }> {
+  try {
+    const user = await getSessionUser();
+    
+    if (!user) {
+      return {
+        success: false,
+        user: null,
+        message: 'Non authentifié'
+      };
+    }
+    
+    return {
+      success: true,
+      user
+    };
+  } catch (error) {
+    logger.error("Erreur lors de la validation de la session:", error);
+    return {
+      success: false,
+      user: null,
+      message: 'Erreur de validation de session'
+    };
+  }
+}
+
 // Modifier la fonction getSessionUser pour vérifier l'expiration de la session
 export async function getSessionUser(): Promise<UserSession | null> {
   try {
@@ -288,7 +297,7 @@ export async function getSessionUser(): Promise<UserSession | null> {
     }
 
     const session = await databaseService.queryOne<Session>(
-      `SELECT s.id as session_id, s.user_id, s.expires_at, u.username FROM sessions s
+      `SELECT s.id as session_id, s.user_id, s.expires_at, u.username, u.ai_config FROM sessions s
        JOIN users u ON s.user_id = u.id
        WHERE s.id = ?`,
       [sessionId],
@@ -326,11 +335,8 @@ export async function getSessionUser(): Promise<UserSession | null> {
     return {
       id: session.user_id,
       username: session.username,
-      
-      
-      
-      
       isAdmin: session.username === "admin",
+      aiConfig: session.ai_config ? JSON.parse(session.ai_config) : undefined,
     }
   } catch (error) {
     logger.error("Erreur lors de la récupération de l'utilisateur de la session:", error)

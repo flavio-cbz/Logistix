@@ -1,5 +1,6 @@
 // Service d’authentification Vinted basé sur axios
 import axios from 'axios';
+import { getVintedConfig } from '@/lib/config/vinted-config';
 
 export interface VintedTokens {
   accessToken: string;
@@ -19,7 +20,7 @@ export class VintedAuthService {
    */
   public static extractAccessTokenFromCookie(cookie: string): string | null {
     const match = cookie.match(/access_token_web=([^;]+)/);
-    return match ? match[1] : null;
+    return match ? (match[1] ?? null) : null;
   }
 
   /**
@@ -27,7 +28,7 @@ export class VintedAuthService {
    */
   public static extractRefreshTokenFromCookie(cookie: string): string | null {
     const match = cookie.match(/refresh_token_web=([^;]+)/);
-    return match ? match[1] : null;
+    return match ? (match[1] ?? null) : null;
   }
 
   /**
@@ -44,12 +45,13 @@ export class VintedAuthService {
     }
 
     try {
-      const response = await axios.get('https://www.vinted.fr/api/v2/users/', {
+      const config = getVintedConfig();
+      const response = await axios.get(config.apiEndpoints.userCurrent, {
         headers: {
           'Cookie': cookieHeader,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
+          'User-Agent': config.headers.userAgent,
+          'Accept': config.headers.accept,
+          'X-Requested-With': config.headers.xRequestedWith,
         },
         validateStatus: () => true, // Ne pas jeter d'erreur pour les status non-2xx
       });
@@ -80,11 +82,12 @@ export class VintedAuthService {
    */
   public async refreshAccessToken(): Promise<VintedTokens | null> {
     try {
-      const response = await axios.post('https://www.vinted.fr/session-refresh', {}, {
+      const config = getVintedConfig();
+      const response = await axios.post(config.apiEndpoints.sessionRefresh, {}, {
         headers: {
           'Cookie': this.cookie,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/json',
+          'User-Agent': config.headers.userAgent,
+          'Accept': config.headers.accept,
         },
       });
 

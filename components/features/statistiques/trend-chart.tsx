@@ -55,8 +55,8 @@ export function TrendChart({ data }: TrendChartProps) {
               <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)"} />
               <XAxis dataKey="mois" stroke={theme === 'dark' ? "#fff" : "#000"} />
               <YAxis stroke={theme === 'dark' ? "#fff" : "#000"} />
-              <Tooltip 
-                contentStyle={{ 
+              <Tooltip
+                contentStyle={{
                   backgroundColor: theme === 'dark' ? '#333' : '#fff',
                   borderColor: theme === 'dark' ? '#555' : '#ccc'
                 }}
@@ -70,16 +70,16 @@ export function TrendChart({ data }: TrendChartProps) {
 
               {/* Zone de prévision */}
               {predictionStartIndex > 0 && (
-                <ReferenceArea 
-                  x1={data[predictionStartIndex].mois} 
-                  x2={data[data.length - 1].mois} 
-                  strokeOpacity={0.3} 
-                  fill="#ccc" 
-                  label={{ 
-                    value: "Prévision", 
-                    position: "top", 
-                    fill: theme === 'dark' ? "#fff" : "#000" 
-                  }} 
+                <ReferenceArea
+                  x1={data[predictionStartIndex].mois}
+                  x2={data[data.length - 1].mois}
+                  strokeOpacity={0.3}
+                  fill="#ccc"
+                  label={{
+                    value: "Prévision",
+                    position: "top",
+                    fill: theme === 'dark' ? "#fff" : "#000"
+                  }}
                 />
               )}
             </LineChart>

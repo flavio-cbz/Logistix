@@ -30,6 +30,9 @@ async function postHandler(request: NextRequest): Promise<NextResponse> {
     try {
         const prixTotal = parseFloat(prixAchat);
         const poidsFloat = parseFloat(poids);
+        if (isNaN(poidsFloat) || poidsFloat === 0) {
+            return NextResponse.json({ success: false, message: 'Poids invalide ou égal à zéro' }, { status: 400 });
+        }
         const prixParGramme = prixTotal / poidsFloat;
          
         const id = uuidv4();
@@ -76,7 +79,11 @@ async function putHandler(request: NextRequest): Promise<NextResponse> {
     try {
         const updated_at = new Date().toISOString();
         const prixTotal = parseFloat(data.prixAchat);
-        const prixParGramme = prixTotal / parseFloat(data.poids);
+        const poidsFloat = parseFloat(data.poids);
+        if (isNaN(poidsFloat) || poidsFloat === 0) {
+            return NextResponse.json({ success: false, message: 'Poids invalide ou égal à zéro' }, { status: 400 });
+        }
+        const prixParGramme = prixTotal / poidsFloat;
 
         const result = await databaseService.execute(`
             UPDATE parcelles

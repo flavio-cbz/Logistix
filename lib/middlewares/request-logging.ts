@@ -167,10 +167,6 @@ export function withDatabaseLogging<T extends any[], R>(
     const logger = createRequestLogger(uuidv4());
 
     try {
-      logger.debug(`Starting database operation: ${operation}`, {
-        operation,
-        args: args.length
-      });
 
       const result = await fn(...args);
       const duration = Date.now() - startTime;
@@ -208,11 +204,6 @@ export function withServiceLogging<T extends any[], R>(
     const logger = createRequestLogger(uuidv4());
 
     try {
-      logger.debug(`Starting ${serviceName} operation: ${operationName}`, {
-        service: serviceName,
-        operation: operationName,
-        args: args.length
-      });
 
       const result = await fn(...args);
       const duration = Date.now() - startTime;

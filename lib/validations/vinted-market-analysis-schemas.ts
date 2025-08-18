@@ -4,14 +4,14 @@ import { z } from 'zod';
  * Schéma récursif Catalog avec annotation de type explicite pour éviter le type 'any'.
  */
 type CatalogType = {
-    id: number;
-    title: string;
-    catalogs: CatalogType[];
+    id?: number;
+    title?: string;
+    catalogs?: CatalogType[];
 };
 export const CatalogSchema: z.ZodType<CatalogType> = z.object({
     id: z.number(),
     title: z.string(),
-    catalogs: z.array(z.lazy(() => CatalogSchema)).default([]),
+    catalogs: z.array(z.lazy(() => CatalogSchema)),
 });
 
 export const SoldItemSchema = z.object({
