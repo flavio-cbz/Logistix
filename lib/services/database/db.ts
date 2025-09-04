@@ -1,38 +1,37 @@
 import 'server-only';
 import Database from 'better-sqlite3';
+import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'; // Importez BetterSQLite3Database directement
 import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
-import { DatabaseConnectionPoolImpl } from './connection-pool';
+import { SQLiteConnectionPool } from './connection-pool';
 import { DatabaseInitializationManagerImpl } from './initialization-manager';
 import { RequestType, RequestPriority } from './queue-manager';
 import { databaseLogger } from './database-logger';
-import { DatabaseServiceInstrumentation } from '../logging-instrumentation';
-
-import type { PoolConfig } from '@/lib/types/database-pool';
 
 // Fallback logger that works in all environments (plus silencieux)
 const logger = {
-  info: (message: string, ...args: any[]) => {
-    // Seulement les messages importants en développement
-    if (typeof console !== 'undefined' && process.env.NODE_ENV === 'production') {
-    }
-  },
-  warn: (message: string, ...args: any[]) => {
-    if (typeof console !== 'undefined') {
-      console.warn(`[DB] ${message}`, ...args);
-    }
-  },
-  error: (message: string, ...args: any[]) => {
-    if (typeof console !== 'undefined') {
-      console.error(`[DB] ${message}`, ...args);
-    }
-  },
-  debug: (message: string, ...args: any[]) => {
-    // Complètement silencieux en développement
-    if (typeof console !== 'undefined' && process.env.NODE_ENV === 'production') {
-    }
-  },
+   info: (_message: string, ...args: any[]) => {
+     // Log important messages when not in production, or when DB_DEBUG enabled
+     if (typeof console !== 'undefined' && (((process.env as any)['NODE_ENV'] !== 'production') || (process.env as any)['DB_DEBUG'] === 'true')) {
+       console.info(`[DB] ${_message}`, ...args);
+     }
+   },
+   warn: (_message: string, ...args: any[]) => {
+     if (typeof console !== 'undefined') {
+       console.warn(`[DB] ${_message}`, ...args);
+     }
+   },
+   error: (_message: string, ...args: any[]) => {
+     if (typeof console !== 'undefined') {
+       console.error(`[DB] ${_message}`, ...args);
+     }
+   },
+   debug: (_message: string, ...args: any[]) => {
+     if (typeof console !== 'undefined' && (process.env as any)['DB_DEBUG'] === 'true') {
+       console.debug(`[DB] ${_message}`, ...args);
+     }
+   },
 };
 
 /**
@@ -41,15 +40,12 @@ const logger = {
  */
 class DatabaseService {
   private static instance: DatabaseService;
-  private connectionPool: DatabaseConnectionPoolImpl;
+  private connectionPool: SQLiteConnectionPool;
   private initializationManager: DatabaseInitializationManagerImpl;
   private isInitialized = false;
 
-  private constructor(poolConfig?: Partial<PoolConfig>) {
-    // Initialiser le pool de connexions
-    this.connectionPool = DatabaseConnectionPoolImpl.getInstance(poolConfig);
-    
-    // Initialiser le gestionnaire d'initialisation
+  private constructor() {
+    this.connectionPool = SQLiteConnectionPool.getInstance();
     this.initializationManager = DatabaseInitializationManagerImpl.getInstance();
     
     logger.info('DatabaseService initialized with connection pool');
@@ -58,9 +54,9 @@ class DatabaseService {
   /**
    * Récupère l'instance unique de DatabaseService.
    */
-  public static getInstance(poolConfig?: Partial<PoolConfig>): DatabaseService {
+  public static getInstance(): DatabaseService {
     if (!DatabaseService.instance) {
-      DatabaseService.instance = new DatabaseService(poolConfig);
+      DatabaseService.instance = new DatabaseService();
     }
     return DatabaseService.instance;
   }
@@ -70,14 +66,12 @@ class DatabaseService {
    */
   private async ensureInitialized(): Promise<void> {
     if (!this.isInitialized) {
-      // Vérifier si l'initialisation est déjà en cours ou terminée
       if (this.initializationManager.isInitialized()) {
         this.isInitialized = true;
         logger.info('Database already initialized by initialization manager');
         return;
       }
 
-      // Attendre l'initialisation si elle est en cours
       if (this.initializationManager.getInitializationState() === 'in_progress') {
         logger.info('Database initialization in progress, waiting...');
         await this.initializationManager.waitForInitialization();
@@ -85,7 +79,6 @@ class DatabaseService {
         return;
       }
 
-      // Initialiser la base de données
       await this.initializationManager.initialize();
       this.isInitialized = true;
       logger.info('Database initialization completed');
@@ -102,19 +95,15 @@ class DatabaseService {
   ): Promise<T[]> {
     await this.ensureInitialized();
     
-    return DatabaseServiceInstrumentation.instrumentQuery(
-      context || 'query',
-      () => this.connectionPool.executeWithConnection(
-        (db) => {
-          const stmt = db.prepare(sql);
+    return this.connectionPool.executeWithConnection(
+        (db: BetterSQLite3Database) => { // Type 'db' explicitement
+          const stmt = (db as any).client.prepare(sql); // Accéder au client better-sqlite3
           return stmt.all(...params) as T[];
         },
         RequestType.READ,
         RequestPriority.NORMAL,
         context || 'query'
-      ),
-      sql
-    );
+      );
   }
 
   /**
@@ -127,19 +116,15 @@ class DatabaseService {
   ): Promise<T | null> {
     await this.ensureInitialized();
     
-    return DatabaseServiceInstrumentation.instrumentQuery(
-      context || 'queryOne',
-      () => this.connectionPool.executeWithConnection(
-        (db) => {
-          const stmt = db.prepare(sql);
+    return this.connectionPool.executeWithConnection(
+        (db: BetterSQLite3Database) => { // Type 'db' explicitement
+          const stmt = (db as any).client.prepare(sql); // Accéder au client better-sqlite3
           return stmt.get(...params) as T | undefined || null;
         },
         RequestType.READ,
         RequestPriority.NORMAL,
         context || 'queryOne'
-      ),
-      sql
-    );
+      );
   }
 
   /**
@@ -152,44 +137,37 @@ class DatabaseService {
   ): Promise<Database.RunResult> {
     await this.ensureInitialized();
     
-    return DatabaseServiceInstrumentation.instrumentQuery(
-      context || 'execute',
-      () => this.connectionPool.executeWithConnection(
-        (db) => {
-          const stmt = db.prepare(sql);
+    return this.connectionPool.executeWithConnection(
+        (db: BetterSQLite3Database) => { // Type 'db' explicitement
+          const stmt = (db as any).client.prepare(sql); // Accéder au client better-sqlite3
           return stmt.run(...params);
         },
         RequestType.WRITE,
         RequestPriority.NORMAL,
         context || 'execute'
-      ),
-      sql
-    );
+      );
   }
 
   /**
    * Exécute plusieurs requêtes dans une transaction
    */
   public async transaction<T>(
-    operations: (db: Database.Database) => T,
+    operations: (db: BetterSQLite3Database) => T, // Type 'db' explicitement
     context?: string
   ): Promise<T> {
     await this.ensureInitialized();
     
-    return DatabaseServiceInstrumentation.instrumentTransaction(
-      context || 'transaction',
-      () => this.connectionPool.executeTransaction(
+    return this.connectionPool.executeTransaction(
         operations,
         context || 'transaction'
-      )
-    );
+      );
   }
 
   /**
    * Exécute une opération avec une connexion spécifique (pour compatibilité)
    */
   public async executeWithConnection<T>(
-    operation: (db: Database.Database) => T,
+    operation: (db: BetterSQLite3Database) => T, // Type 'db' explicitement
     type: RequestType = RequestType.READ,
     priority: RequestPriority = RequestPriority.NORMAL,
     context?: string
@@ -296,7 +274,7 @@ class DatabaseService {
  * Destiné uniquement à l'environnement de développement.
  */
 export async function resetDatabase(): Promise<boolean> {
-  if (process.env.NODE_ENV === 'production') {
+  if ((process.env as any)['NODE_ENV'] === 'production') {
     logger.warn('Tentative de réinitialisation de la base de données en production. Opération annulée.');
     return false;
   }
@@ -322,8 +300,6 @@ export async function resetDatabase(): Promise<boolean> {
           fs.unlinkSync(file);
           logger.info(`Fichier ${file} supprimé.`);
         } catch (err: any) {
-          // Si le fichier est occupé (EBUSY), on ignore l'erreur.
-          // Il sera probablement supprimé au prochain redémarrage.
           if (err.code !== 'EBUSY') throw err;
           logger.warn(`Impossible de supprimer ${file} (occupé).`);
         }
@@ -332,7 +308,7 @@ export async function resetDatabase(): Promise<boolean> {
 
     // Réinitialiser les instances pour forcer la recréation
     (DatabaseService as any).instance = null;
-    (DatabaseConnectionPoolImpl as any).instance = null;
+    (SQLiteConnectionPool as any).instance = null;
     (DatabaseInitializationManagerImpl as any).instance = null;
     
     // Créer une nouvelle instance qui réinitialisera la base de données
@@ -357,18 +333,6 @@ export function generateId(): string {
 }
 
 /**
- * Hache un mot de passe en utilisant bcrypt via la fonction centralisée.
- * @param password - Le mot de passe à hacher.
- * @returns {string} Le hash du mot de passe.
- */
-import { hashPasswordSync } from '../../utils/crypto';
-export function hashPassword(password: string): string {
-    
-    return hashPasswordSync(password);
-}
-
-
-/**
  * Récupère l'horodatage actuel au format ISO 8601.
  * @returns {string} L'horodatage actuel.
  */
@@ -383,7 +347,6 @@ export const databaseService = DatabaseService.getInstance();
 export const db = {
   prepare: (_sql: string) => {
     console.warn('Direct database access is deprecated. Use databaseService.query, execute, or transaction methods instead.');
-    // Retourner un objet avec les méthodes attendues pour la compatibilité
     return {
       all: (..._params: any[]) => {
         throw new Error('Direct database access is deprecated. Use databaseService.query method instead.');

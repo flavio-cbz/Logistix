@@ -34,10 +34,10 @@ export function TendancesSaisonnieresTable({ data }: TendancesSaisonnieresTableP
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data && data.map((item, index) => (
+            {data && data.map((_item, index) => (
               <TableRow key={index}>
-                <TableCell>{item.periode}</TableCell>
-                <TableCell className="text-right">{item.ventes.toFixed(2)} €</TableCell>
+                <TableCell>{_item.periode}</TableCell>
+                <TableCell className="text-right">{_item.ventes.toFixed(2)} €</TableCell>
               </TableRow>
             ))}
           </TableBody>

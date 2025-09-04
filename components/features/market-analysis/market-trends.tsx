@@ -1,18 +1,20 @@
 "use client"
 
+import { useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area } from "recharts"
-import { Badge } from "@/components/ui/badge"
-import { TrendingUp, TrendingDown, Calendar, BarChart3 } from "lucide-react"
-import { type VintedAnalysisResult, type MarketAnalysisHistoryItem } from "@/types/vinted-market-analysis"
+import { TrendingUp, Calendar, BarChart3 } from "lucide-react"
+import type { VintedAnalysisResult } from '@/types/vinted-market-analysis'
+// import { useTheme } from "next-themes" // Supprimé car non utilisé
 
 interface MarketTrendsProps {
-  currentAnalysis: VintedAnalysisResult
-  historicalData?: MarketAnalysisHistoryItem[]
+  currentAnalysis: VintedAnalysisResult;
 }
 
-export default function MarketTrends({ currentAnalysis, historicalData = [] }: MarketTrendsProps) {
-  // Génération de données de tendances historiques
+export default function MarketTrends({ currentAnalysis }: MarketTrendsProps) {
+  // const { theme } = useTheme() // Supprimé car non utilisé
+
+  // Génération de données historiques basées sur les vraies données
   const generateTrendData = () => {
     const data = []
     const basePrice = currentAnalysis.avgPrice
@@ -72,16 +74,16 @@ export default function MarketTrends({ currentAnalysis, historicalData = [] }: M
     return data
   }
 
-  const trendData = generateTrendData()
-  const predictions = generatePredictions()
+  const trendData = useMemo(() => generateTrendData(), [currentAnalysis]);
+  const predictions = useMemo(() => generatePredictions(), [currentAnalysis]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-background border rounded-lg p-3 shadow-md">
           <p className="font-medium">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} style={{ color: entry.color }}>
+          {payload.map((entry: any, _index: number) => (
+            <p key={_index} style={{ color: entry.color }}>
               {entry.name}: {
                 entry.name === 'Prix' ? `${entry.value} €` :
                 entry.name === 'Confiance' ? `${entry.value}%` :
@@ -102,10 +104,10 @@ export default function MarketTrends({ currentAnalysis, historicalData = [] }: M
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tendance Prix</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
+            <TrendingUp className="h-4 w-4 text-[hsl(var(--success-foreground))]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-[hsl(var(--success-foreground))]">
               +5.0%
             </div>
             <p className="text-xs text-muted-foreground">

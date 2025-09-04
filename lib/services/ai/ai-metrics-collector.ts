@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../../utils/error-utils';
 import { logger } from '@/lib/utils/logging/universal-logger';
 import { marketAnalysisConfig } from './market-analysis-config';
 
@@ -18,6 +19,7 @@ export interface AIPerformanceMetrics {
   cacheHit: boolean;
   modelVersion?: string;
   provider?: string;
+  timestamp: number; // Added timestamp
 }
 
 /**
@@ -46,7 +48,7 @@ export interface AICostMetrics {
   estimatedCost: number;
   provider: string;
   modelVersion: string;
-  userId?: string;
+  userId?: string | undefined;
   requestId: string;
 }
 
@@ -80,7 +82,7 @@ export class AIMetricsCollector {
   private costMetrics: AICostMetrics[] = [];
   private readonly MAX_METRICS_HISTORY = 10000; // Limite pour éviter la surcharge mémoire
   private readonly CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 heure
-  private cleanupTimer?: NodeJS.Timeout;
+  private cleanupTimer: NodeJS.Timeout | undefined;
 
   private constructor() {
     this.startCleanupTimer();
@@ -96,12 +98,12 @@ export class AIMetricsCollector {
   /**
    * Enregistre les métriques de performance pour une requête IA
    */
-  recordPerformanceMetrics(metrics: AIPerformanceMetrics): void {
+  recordPerformanceMetrics(metrics: Omit<AIPerformanceMetrics, 'timestamp'>): void { // Changed type to Omit
     try {
       this.performanceMetrics.push({
         ...metrics,
         timestamp: Date.now(),
-      } as any);
+      });
 
       // Nettoyer si nécessaire
       if (this.performanceMetrics.length > this.MAX_METRICS_HISTORY) {
@@ -111,10 +113,10 @@ export class AIMetricsCollector {
       // Logger les métriques importantes
 
       // Alerter si les performances sont dégradées
-      this.checkPerformanceAlerts(metrics);
+      this.checkPerformanceAlerts(metrics as AIPerformanceMetrics); // Cast to AIPerformanceMetrics
     } catch (error) {
       logger.error('[AIMetrics] Error recording performance metrics', {
-        error: error.message,
+        error: getErrorMessage(error),
         requestId: metrics.requestId,
       });
     }
@@ -126,7 +128,6 @@ export class AIMetricsCollector {
   recordQualityMetrics(metrics: AIQualityMetrics): void {
     try {
       this.qualityMetrics.push(metrics);
-
       // Nettoyer si nécessaire
       if (this.qualityMetrics.length > this.MAX_METRICS_HISTORY) {
         this.qualityMetrics = this.qualityMetrics.slice(-this.MAX_METRICS_HISTORY * 0.8);
@@ -137,7 +138,7 @@ export class AIMetricsCollector {
       this.checkQualityAlerts(metrics);
     } catch (error) {
       logger.error('[AIMetrics] Error recording quality metrics', {
-        error: error.message,
+        error: getErrorMessage(error),
         requestId: metrics.requestId,
       });
     }
@@ -149,7 +150,6 @@ export class AIMetricsCollector {
   recordCostMetrics(metrics: AICostMetrics): void {
     try {
       this.costMetrics.push(metrics);
-
       // Nettoyer si nécessaire
       if (this.costMetrics.length > this.MAX_METRICS_HISTORY) {
         this.costMetrics = this.costMetrics.slice(-this.MAX_METRICS_HISTORY * 0.8);
@@ -160,7 +160,7 @@ export class AIMetricsCollector {
       this.checkCostAlerts(metrics);
     } catch (error) {
       logger.error('[AIMetrics] Error recording cost metrics', {
-        error: error.message,
+        error: getErrorMessage(error),
         requestId: metrics.requestId,
       });
     }
@@ -189,7 +189,7 @@ export class AIMetricsCollector {
       m => m.timestamp >= actualStartTime && m.timestamp <= actualEndTime
     );
 
-    // Calculer les agrégations
+    // Calcule les agrégations
     const totalRequests = periodMetrics.length;
     const successfulRequests = periodMetrics.filter(m => m.success).length;
     const failedRequests = totalRequests - successfulRequests;
@@ -215,19 +215,19 @@ export class AIMetricsCollector {
     periodMetrics
       .filter(m => !m.success && m.errorType)
       .forEach(m => {
-        errorsByType[m.errorType!] = (errorsByType[m.errorType!] || 0) + 1;
+        errorsByType[m.errorType ?? 'unknown_error'] = (errorsByType[m.errorType ?? 'unknown_error'] || 0) + 1; // Used nullish coalescing
       });
 
     // Grouper les requêtes par type
     const requestsByType: Record<string, number> = {};
     periodMetrics.forEach(m => {
-      requestsByType[m.analysisType] = (requestsByType[m.analysisType] || 0) + 1;
+      requestsByType[m.analysisType ?? 'unknown_type'] = (requestsByType[m.analysisType ?? 'unknown_type'] || 0) + 1; // Used nullish coalescing
     });
 
     // Grouper les coûts par fournisseur
     const costByProvider: Record<string, number> = {};
     periodCostMetrics.forEach(m => {
-      costByProvider[m.provider] = (costByProvider[m.provider] || 0) + m.estimatedCost;
+      costByProvider[m.provider ?? 'unknown_provider'] = (costByProvider[m.provider ?? 'unknown_provider'] || 0) + m.estimatedCost; // Used nullish coalescing
     });
 
     return {
@@ -304,7 +304,7 @@ export class AIMetricsCollector {
       logger.warn('[AIMetrics] Performance alert: High processing time', {
         requestId: metrics.requestId,
         processingTime: metrics.processingTime,
-        threshold: config.maxProcessingTime * 0.8,
+        _threshold: config.maxProcessingTime * 0.8,
         analysisType: metrics.analysisType,
       });
     }
@@ -366,7 +366,7 @@ export class AIMetricsCollector {
       logger.warn('[AIMetrics] Cost alert: High cost per analysis', {
         requestId: metrics.requestId,
         estimatedCost: metrics.estimatedCost,
-        threshold: config.costLimits.maxCostPerAnalysis * 0.8,
+        _threshold: config.costLimits.maxCostPerAnalysis * 0.8,
         analysisType: metrics.analysisType,
       });
     }
@@ -409,7 +409,7 @@ export class AIMetricsCollector {
     const initialQualityCount = this.qualityMetrics.length;
     const initialCostCount = this.costMetrics.length;
 
-    this.performanceMetrics = this.performanceMetrics.filter(m => m.startTime > cutoffTime);
+    this.performanceMetrics = this.performanceMetrics.filter(m => m.timestamp > cutoffTime); // Changed startTime to timestamp
     this.qualityMetrics = this.qualityMetrics.filter(m => m.timestamp > cutoffTime);
     this.costMetrics = this.costMetrics.filter(m => m.timestamp > cutoffTime);
 

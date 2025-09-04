@@ -1,6 +1,6 @@
 import { userPreferencesService } from './user-preferences';
 import { aiLearningService } from './ai-learning';
-import { UserAction, UserPreferences } from '../../types/user-preferences';
+import type { UserAction, UserPreferences } from '../../types/user-preferences';
 
 /**
  * Service d'intégration qui coordonne les préférences utilisateur et l'apprentissage IA

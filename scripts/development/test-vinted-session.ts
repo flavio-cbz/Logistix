@@ -21,7 +21,7 @@ async function testWithRealSession() {
         // 1. Vérifier la structure du cookie
         const hasAccessToken = REAL_VINTED_COOKIE.includes('access_token_web=');
         const hasRefreshToken = REAL_VINTED_COOKIE.includes('refresh_token_web=');
-        const hasSession = REAL_VINTED_COOKIE.includes('_vinted_fr_session=');
+        // const hasSession = REAL_VINTED_COOKIE.includes('_vinted_fr_session=');
 
 
         if (!hasAccessToken || !hasRefreshToken) {
@@ -60,7 +60,7 @@ async function testWithRealSession() {
                 .replace(/refresh_token_web=[^;]+/, `refresh_token_web=${newTokens.refreshToken}`);
 
             const newAuthService = new VintedAuthService(newCookie);
-            const newValidation = await newAuthService.validateAccessToken();
+            await newAuthService.validateAccessToken();
 
         } else {
         }

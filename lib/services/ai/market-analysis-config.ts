@@ -115,20 +115,20 @@ export class MarketAnalysisConfigService {
     this.config = validated;
   }
 
-  public validateDataQuality(data: any[]): { valid: boolean; issues: string[] } {
+  public validateDataQuality(_data: any[]): { valid: boolean; issues: string[] } {
     const issues: string[] = [];
     const { minSampleSize, maxAge, requiredFields } = this.config.dataQuality;
 
     // Vérifier la taille de l'échantillon
-    if (data.length < minSampleSize) {
-      issues.push(`Échantillon trop petit: ${data.length} < ${minSampleSize}`);
+    if (_data.length < minSampleSize) { // Correction: data en _data
+      issues.push(`Échantillon trop petit: ${_data.length} < ${minSampleSize}`); // Correction: data en _data
     }
 
     // Vérifier les champs requis
-    if (data.length > 0) {
-      const firstItem = data[0];
+    if (_data.length > 0) { // Correction: data en _data
+      const firstItem = _data[0]!; // Correction: data en _data
       for (const field of requiredFields) {
-        if (!(field in firstItem) || firstItem[field] == null) {
+        if (!(field in firstItem) || (firstItem as any)[field] == null) {
           issues.push(`Champ requis manquant: ${field}`);
         }
       }
@@ -137,13 +137,13 @@ export class MarketAnalysisConfigService {
     // Vérifier l'âge des données
     const now = new Date();
     const maxAgeMs = maxAge * 24 * 60 * 60 * 1000;
-    const oldItems = data.filter(item => {
-      const itemDate = new Date(item.date || item.created_at || item.sold_at);
+    const oldItems = _data.filter(_item => { // Correction: data en _data
+      const itemDate = new Date(_item.date || _item.created_at || _item.sold_at); // Correction: item en _item
       return (now.getTime() - itemDate.getTime()) > maxAgeMs;
     });
 
-    if (oldItems.length > data.length * 0.5) {
-      issues.push(`Trop de données anciennes: ${oldItems.length}/${data.length}`);
+    if (oldItems.length > _data.length * 0.5) { // Correction: data en _data
+      issues.push(`Trop de données anciennes: ${oldItems.length}/${_data.length}`); // Correction: data en _data
     }
 
     return {
@@ -153,7 +153,7 @@ export class MarketAnalysisConfigService {
   }
 
   public shouldEnableFeature(feature: keyof MarketAnalysisConfig): boolean {
-    const featureConfig = this.config[feature];
+    const featureConfig = this.config[feature]!;
     return typeof featureConfig === 'object' && 'enabled' in featureConfig 
       ? featureConfig.enabled 
       : true;

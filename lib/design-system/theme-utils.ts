@@ -16,7 +16,7 @@ export function getLuminance(color: string): number {
   })
 
   // Calculer la luminance relative
-  return 0.2126 * sRGB[0] + 0.7152 * sRGB[1] + 0.0722 * sRGB[2]
+  return 0.2126 * sRGB[0]! + 0.7152 * sRGB[1]! + 0.0722 * sRGB[2]!
 }
 
 // Fonction pour calculer le ratio de contraste entre deux couleurs
@@ -44,7 +44,7 @@ export function isAccessibleContrast(
     AAA: { normal: 7, large: 4.5 }
   }
   
-  return ratio >= requirements[level][size]
+  return ratio >= requirements[level]![size]
 }
 
 // Générer une couleur avec un contraste suffisant
@@ -146,7 +146,7 @@ export function hslToHex({ h, s, l }: { h: number; s: number; l: number }): stri
 // Générer une palette de couleurs accessible
 export function generateAccessiblePalette(
   baseColor: string,
-  backgroundColor: string = '#ffffff'
+  backgroundColor: string = 'hsl(var(--background))'
 ): Record<string, string> {
   const palette: Record<string, string> = {}
   const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
@@ -163,9 +163,9 @@ export function generateAccessiblePalette(
     
     // Vérifier l'accessibilité et ajuster si nécessaire
     if (shade === 500 || shade === 600 || shade === 700) {
-      palette[shade] = generateAccessibleColor(color, backgroundColor)
+      palette[String(shade)] = generateAccessibleColor(color, backgroundColor)
     } else {
-      palette[shade] = color
+      palette[String(shade)] = color
     }
   })
   
@@ -191,10 +191,10 @@ export function validateThemeAccessibility(tokens: DesignTokens): {
 
   // Vérifier les ratios de contraste des couleurs principales
   const colorCombinations = [
-    { fg: tokens.colors.primary[500], bg: '#ffffff', name: 'Primary on white' },
-    { fg: tokens.colors.primary[600], bg: '#ffffff', name: 'Primary 600 on white' },
-    { fg: tokens.colors.secondary[500], bg: '#ffffff', name: 'Secondary on white' },
-    { fg: tokens.colors.neutral[900], bg: '#ffffff', name: 'Text on white' },
+    { fg: tokens.colors.primary[500]!, bg: 'hsl(var(--background))', name: 'Primary on background' },
+    { fg: tokens.colors.primary[600]!, bg: 'hsl(var(--background))', name: 'Primary 600 on background' },
+    { fg: tokens.colors.secondary[500]!, bg: 'hsl(var(--background))', name: 'Secondary on background' },
+    { fg: tokens.colors.neutral[900]!, bg: 'hsl(var(--background))', name: 'Text on background' },
   ]
 
   colorCombinations.forEach(({ fg, bg, name }) => {
@@ -320,7 +320,7 @@ export function generateAccessibilityReport(tokens: DesignTokens): string {
 // Utilitaire pour créer des variantes de couleur accessibles
 export function createAccessibleColorVariants(
   baseColor: string,
-  backgrounds: string[] = ['#ffffff', '#000000']
+  backgrounds: string[] = ['hsl(var(--background))', 'hsl(var(--foreground))']
 ): Record<string, string> {
   const variants: Record<string, string> = {}
   

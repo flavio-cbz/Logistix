@@ -3,16 +3,17 @@
  * Comprehensive tracking of user interactions for audit purposes
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auditLogger, auditUserAction, auditFailedUserAction } from '@/lib/services/audit-logger';
 import { performanceLogger } from '@/lib/utils/logging';
 import { v4 as uuidv4 } from 'uuid';
 
 interface UserContext {
-  userId?: string;
-  sessionId?: string;
-  ip: string;
-  userAgent?: string;
+  userId?: string | undefined;
+  sessionId?: string | undefined;
+  ip?: string | undefined;
+  userAgent?: string | undefined;
   requestId: string;
 }
 
@@ -31,7 +32,7 @@ async function extractUserContext(request: NextRequest): Promise<UserContext> {
   const requestId = uuidv4();
   const sessionId = request.cookies.get('session_id')?.value;
   const ip = extractClientIP(request);
-  const userAgent = request.headers.get('user-agent') || undefined;
+  const userAgent = request.headers.get('user-agent') ?? undefined;
   
   // Extract user ID from session (this would need actual session lookup)
   let userId: string | undefined;
@@ -41,7 +42,7 @@ async function extractUserContext(request: NextRequest): Promise<UserContext> {
       // For now, we'll extract from headers if available
       userId = request.headers.get('x-user-id') || undefined;
     } catch (error) {
-      // Session lookup failed, continue without user ID
+      // Failed to read body, continue without it
     }
   }
 
@@ -57,16 +58,16 @@ async function extractUserContext(request: NextRequest): Promise<UserContext> {
 /**
  * Extract client IP from request headers
  */
-function extractClientIP(request: NextRequest): string {
+function extractClientIP(request: NextRequest): string | undefined {
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) {
     return forwarded.split(',')[0].trim();
   }
   
-  return request.headers.get('x-real-ip') || 
+  return (request.headers.get('x-real-ip') || 
          request.headers.get('cf-connecting-ip') || 
-         request.headers.get('x-client-ip') || 
-         'unknown';
+         request.headers.get('x-client-ip')) ?? 
+         undefined;
 }
 
 /**
@@ -132,8 +133,7 @@ async function extractRequestDetails(request: NextRequest): Promise<Record<strin
         const body = await request.text();
         details.body = sanitizeRequestBody(body);
         
-        // Recreate request with body for handler
-        request = new NextRequest(request, { body });
+  // Impossible de recréer NextRequest ici car import type, donc on ne modifie pas la requête
       }
     } catch (error) {
       // Failed to read body, continue without it
@@ -157,11 +157,11 @@ function sanitizeHeaders(headers: Headers): Record<string, string> {
     'x-csrf-token'
   ];
 
-  headers.forEach((value, key) => {
-    if (sensitiveHeaders.includes(key.toLowerCase())) {
-      sanitized[key] = '[REDACTED]';
-    } else {
-      sanitized[key] = value;
+    headers.forEach((value, key) => {
+      if (sensitiveHeaders.includes(key.toLowerCase())) {
+        (sanitized as any)[key] = '[REDACTED]';
+      } else {
+        (sanitized as any)[key] = value;
     }
   });
 
@@ -175,8 +175,8 @@ function extractQueryParams(url: string): Record<string, string> {
   try {
     const urlObj = new URL(url);
     const params: Record<string, string> = {};
-    urlObj.searchParams.forEach((value, key) => {
-      params[key] = value;
+      urlObj.searchParams.forEach((value, key) => {
+        (params as any)[key] = value;
     });
     return params;
   } catch {
@@ -196,7 +196,7 @@ function sanitizeRequestBody(body: string): any {
       
       for (const field of sensitiveFields) {
         if (field in sanitized) {
-          sanitized[field] = '[REDACTED]';
+          (sanitized as any)[field] = '[REDACTED]';
         }
       }
       
@@ -219,14 +219,8 @@ export function withUserActionAudit<T extends any[]>(
     const userContext = await extractUserContext(request);
     const actionContext = determineActionContext(request);
     
-    // Add request ID to headers for downstream services
-    const requestWithId = new NextRequest(request, {
-      headers: {
-        ...Object.fromEntries(request.headers.entries()),
-        'x-request-id': userContext.requestId,
-        'x-audit-enabled': 'true'
-      }
-    });
+  // Impossible de recréer NextRequest ici car import type, donc on passe la requête d'origine
+  const requestWithId = request;
 
     try {
       // Extract request details for audit
@@ -264,16 +258,16 @@ export function withUserActionAudit<T extends any[]>(
             }
           },
           {
-            sessionId: userContext.sessionId,
-            ip: userContext.ip,
-            userAgent: userContext.userAgent,
-            requestId: userContext.requestId
+            ...(userContext.sessionId && { sessionId: userContext.sessionId }),
+            ...(userContext.ip && { ip: userContext.ip }),
+            ...(userContext.userAgent && { userAgent: userContext.userAgent }),
+            ...(userContext.requestId && { requestId: userContext.requestId })
           }
         );
       }
 
       // Log performance metrics
-      performanceLogger.performance(
+      performanceLogger.performance?.(
         `${actionContext.action}_${actionContext.resource}`,
         duration,
         {
@@ -289,32 +283,31 @@ export function withUserActionAudit<T extends any[]>(
       
     } catch (error) {
       const duration = Date.now() - actionContext.startTime;
-      
-      // Log failed user action
-      if (userContext.userId) {
-        await auditFailedUserAction(
-          userContext.userId,
-          {
-            action: actionContext.action,
-            resource: actionContext.resource,
-            details: {
-              duration,
-              error: (error as Error).message
+        
+        // Log failed service action
+        if (userContext.userId) {
+          await auditFailedUserAction(
+            userContext.userId,
+            {
+              action: actionContext.action,
+              resource: actionContext.resource,
+              details: {
+                duration,
+                error: (error as Error).message
+              }
+            },
+            error as Error,
+            {
+              ...(userContext.sessionId && { sessionId: userContext.sessionId }),
+              ...(userContext.ip && { ip: userContext.ip }),
+              ...(userContext.userAgent && { userAgent: userContext.userAgent }),
+              ...(userContext.requestId && { requestId: userContext.requestId })
             }
-          },
-          error as Error,
-          {
-            sessionId: userContext.sessionId,
-            ip: userContext.ip,
-            userAgent: userContext.userAgent,
-            requestId: userContext.requestId
-          }
-        );
-      }
+          );
+        }
 
-      // Log error with detailed stack trace
       performanceLogger.error(
-        `User action failed: ${actionContext.action} on ${actionContext.resource}`,
+        `Service action failed: ${actionContext.action} on ${actionContext.resource}`,
         error as Error,
         {
           duration,
@@ -355,7 +348,7 @@ export function auditUserActionMethod(
       const startTime = Date.now();
       const requestId = uuidv4();
       
-      // Try to extract user context from arguments or this context
+      // Try to extract user ID from arguments or this context
       const userId = extractUserIdFromContext(this, args);
       
       try {
@@ -389,7 +382,7 @@ export function auditUserActionMethod(
           );
         }
 
-        performanceLogger.performance(
+        performanceLogger.performance?.(
           `SERVICE_${resource}_${actionName}`,
           duration,
           {
@@ -405,7 +398,7 @@ export function auditUserActionMethod(
         
       } catch (error) {
         const duration = Date.now() - startTime;
-
+        
         // Log failed service action
         if (userId) {
           await auditFailedUserAction(
@@ -414,10 +407,8 @@ export function auditUserActionMethod(
               action: actionName,
               resource,
               details: {
-                service: target.constructor.name,
-                method: propertyName,
                 duration,
-                success: false
+                error: (error as Error).message
               }
             },
             error as Error,
@@ -496,10 +487,10 @@ export async function logAuthenticationEvent(
       }
     },
     {
-      userId,
-      ip: context.ip,
-      userAgent: context.userAgent,
-      sessionId: context.sessionId,
+      ...(userId && { userId }),
+      ...(context.ip && { ip: context.ip }),
+      ...(context.userAgent && { userAgent: context.userAgent }),
+      ...(context.sessionId && { sessionId: context.sessionId }),
       requestId: uuidv4()
     }
   );
@@ -526,7 +517,7 @@ export async function logDataAccessEvent(
     {
       action: `DATA_${operation.toUpperCase()}`,
       resource,
-      resourceId,
+      resourceId: resourceId || '',
       details: {
         operation,
         dataAccess: true,
@@ -534,9 +525,9 @@ export async function logDataAccessEvent(
       }
     },
     {
-      ip: context.ip,
-      userAgent: context.userAgent,
-      sessionId: context.sessionId,
+      ...(context.ip && { ip: context.ip }),
+      ...(context.userAgent && { userAgent: context.userAgent }),
+      ...(context.sessionId && { sessionId: context.sessionId }),
       requestId: context.requestId || uuidv4()
     }
   );

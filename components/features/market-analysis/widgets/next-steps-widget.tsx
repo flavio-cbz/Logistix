@@ -60,13 +60,13 @@ export default function NextStepsWidget({ analysis }: NextStepsWidgetProps) {
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Actions possibles</h4>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={handleExport}>
+              <Button variant="outline" size="sm" onClick={handleExport!}>
                 Exporter les données
               </Button>
-              <Button variant="outline" size="sm" onClick={handleScheduleFollowUp}>
+              <Button variant="outline" size="sm" onClick={handleScheduleFollowUp!}>
                 Programmer un suivi
               </Button>
-              <Button variant="outline" size="sm" onClick={handleAnalyzeVariant}>
+              <Button variant="outline" size="sm" onClick={handleAnalyzeVariant!}>
                 Analyser une variante
               </Button>
             </div>

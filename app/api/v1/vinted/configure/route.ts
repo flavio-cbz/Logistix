@@ -3,10 +3,12 @@ import { getSessionUser } from '@/lib/services/auth/auth';
 import { db } from '@/lib/services/database/drizzle-client';
 import { vintedSessions } from '@/lib/services/database/drizzle-schema';
 import { eq } from 'drizzle-orm';
-import { vintedCredentialService } from '@/lib/services/auth/vinted-credential-service';
+import { vintedSessionCipherService } from '@/lib/services/auth/vinted-session-cipher-service';
 import { vintedSessionManager } from '@/lib/services/auth/vinted-session-manager';
 import { v4 as uuidv4 } from 'uuid';
 import { getLogger } from '@/lib/utils/logging/simple-logger';
+import { getErrorMessage } from '@/lib/utils/error-utils';
+import { testVintedSessionCookie } from '@/lib/services/auth/vinted-session-validator';
 
 /**
  * GET /api/v1/vinted/configure
@@ -29,9 +31,9 @@ export async function GET(_req: NextRequest) {
       return NextResponse.json({ status: 'requires_configuration' });
     }
 
-    return NextResponse.json(session[0]);
-  } catch (error: any) {
-    return NextResponse.json({ message: 'Erreur interne du serveur', error: error.message }, { status: 500 });
+    return NextResponse.json(session[0]!);
+  } catch (error: unknown) {
+    return NextResponse.json({ message: 'Erreur interne du serveur', error: getErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -51,21 +53,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Le cookie/token Vinted est requis.' }, { status: 400 });
     }
 
-    const encryptedSessionToken = await vintedCredentialService.encrypt(sessionToken);
+    // Valider le token/cookie via le validateur centralisé avant de le stocker
+    try {
+      const validation = await testVintedSessionCookie(sessionToken);
+      if (!validation?.success || !validation?.valid) {
+        const logger = getLogger('VintedConfigure');
+        logger.info('Validation de session Vinted échouée lors de la configuration', { userId: user.id, validation });
+        return NextResponse.json({ message: validation?.message || 'Token/cookie Vinted invalide', details: validation?.details ?? null }, { status: 400 });
+      }
+    } catch (valErr: any) {
+      const logger = getLogger('VintedConfigure');
+      logger.error('Erreur pendant la validation du token Vinted', { userId: user.id, error: valErr });
+      return NextResponse.json({ message: 'Erreur lors de la validation du token Vinted' }, { status: 500 });
+    }
+
+    // Use envelope encryption service to generate encrypted token + encrypted DEK
+    const { encryptedToken, encryptedDek, metadata } = await vintedSessionCipherService.encryptSession(user.id, sessionToken);
     const now = new Date().toISOString();
 
     // Utiliser une transaction pour assurer l'atomicité de l'upsert
-    await db.transaction(async (tx) => {
-        await tx.delete(vintedSessions).where(eq(vintedSessions.userId, user.id));
-        await tx.insert(vintedSessions).values({
-            id: uuidv4(),
-            userId: user.id,
-            sessionCookie: encryptedSessionToken,
-            status: 'active',
-            createdAt: now,
-            updatedAt: now,
-            lastValidatedAt: now,
-        });
+    await db.transaction(async (tx: any) => {
+      await tx.delete(vintedSessions).where(eq(vintedSessions.userId, user.id));
+      await tx.insert(vintedSessions).values({
+        id: uuidv4(),
+        userId: user.id,
+        sessionCookie: encryptedToken,
+        encryptedDek: encryptedDek,
+        encryptionMetadata: metadata,
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+        lastValidatedAt: now,
+      });
     });
 
     // Déclencher un premier rafraîchissement pour valider le token
@@ -82,9 +101,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ message: 'Cookie/token Vinted enregistré avec succès.' });
-
-  } catch (error: any) {
-    return NextResponse.json({ message: 'Erreur lors de la configuration', error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ message: 'Erreur lors de la configuration', error: getErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -102,7 +120,7 @@ export async function DELETE(_req: NextRequest) {
         await db.delete(vintedSessions).where(eq(vintedSessions.userId, user.id));
 
         return NextResponse.json({ message: 'Configuration Vinted supprimée avec succès.' });
-    } catch (error: any) {
-        return NextResponse.json({ message: 'Erreur interne du serveur', error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        return NextResponse.json({ message: 'Erreur interne du serveur', error: getErrorMessage(error) }, { status: 500 });
     }
 }

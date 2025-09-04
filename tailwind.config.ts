@@ -22,18 +22,21 @@ const config: Config = {
           foreground: "hsl(var(--popover-foreground))",
         },
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-          50: "hsl(var(--primary-50))",
-          100: "hsl(var(--primary-100))",
-          200: "hsl(var(--primary-200))",
-          300: "hsl(var(--primary-300))",
-          400: "hsl(var(--primary-400))",
-          500: "hsl(var(--primary-500))",
-          600: "hsl(var(--primary-600))",
-          700: "hsl(var(--primary-700))",
-          800: "hsl(var(--primary-800))",
-          900: "hsl(var(--primary-900))",
+          // Use Tailwind's <alpha-value> token so utilities that apply opacity
+          // (like `bg-primary/50`, `text-primary/80` or gradient stops `from-primary`)
+          // will correctly compose with the CSS custom properties set by the theme.
+          DEFAULT: "hsl(var(--primary) / <alpha-value>)",
+          foreground: "hsl(var(--primary-foreground) / <alpha-value>)",
+          50: "hsl(var(--primary-50) / <alpha-value>)",
+          100: "hsl(var(--primary-100) / <alpha-value>)",
+          200: "hsl(var(--primary-200) / <alpha-value>)",
+          300: "hsl(var(--primary-300) / <alpha-value>)",
+          400: "hsl(var(--primary-400) / <alpha-value>)",
+          500: "hsl(var(--primary-500) / <alpha-value>)",
+          600: "hsl(var(--primary-600) / <alpha-value>)",
+          700: "hsl(var(--primary-700) / <alpha-value>)",
+          800: "hsl(var(--primary-800) / <alpha-value>)",
+          900: "hsl(var(--primary-900) / <alpha-value>)",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -44,7 +47,7 @@ const config: Config = {
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
+          DEFAULT: "hsl(var(--accent, 210 40% 96.1%))",
           foreground: "hsl(var(--accent-foreground))",
         },
         destructive: {

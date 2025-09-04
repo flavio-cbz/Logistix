@@ -1,4 +1,4 @@
-import { useTheme } from 'next-themes'
+// import { useTheme } from 'next-themes'
 
 // Modern chart color palette that adapts to theme
 export const getChartColors = (theme?: string) => {
@@ -40,7 +40,7 @@ export const getChartColors = (theme?: string) => {
 }
 
 // Enhanced tooltip configuration for modern design
-export const getModernTooltipConfig = (theme?: string) => {
+export const getModernTooltipConfig = (_theme?: string) => {
   return {
     contentStyle: {
       backgroundColor: `hsl(var(--chart-tooltip-bg))`,
@@ -114,7 +114,7 @@ export const getResponsiveChartDimensions = (containerWidth: number) => {
 }
 
 // Modern grid configuration
-export const getModernGridConfig = (theme?: string) => {
+export const getModernGridConfig = (_theme?: string) => {
   return {
     stroke: `hsl(var(--chart-grid))`,
     strokeWidth: 0.5,
@@ -124,7 +124,7 @@ export const getModernGridConfig = (theme?: string) => {
 }
 
 // Enhanced axis configuration
-export const getModernAxisConfig = (theme?: string) => {
+export const getModernAxisConfig = (_theme?: string) => {
   return {
     axisLine: {
       stroke: `hsl(var(--chart-grid))`,
@@ -148,8 +148,8 @@ export const getModernAxisConfig = (theme?: string) => {
 }
 
 // Staggered animation delays for multiple elements
-export const getStaggeredDelay = (index: number, baseDelay: number = 100) => {
-  return index * baseDelay
+export const getStaggeredDelay = (_index: number, baseDelay: number = 100) => {
+  return _index * baseDelay
 }
 
 // Chart color utilities
@@ -192,7 +192,7 @@ export const formatChartValue = (value: number, type: 'currency' | 'percentage' 
 }
 
 // Chart accessibility helpers
-export const getChartAccessibilityProps = (title: string, description: string) => {
+export const getChartAccessibilityProps = (title: string, _description: string) => { // Renommé pour éviter TS6133
   return {
     role: 'img',
     'aria-label': title,

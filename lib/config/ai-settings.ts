@@ -3,6 +3,10 @@
  * Remplace les variables d'environnement par une configuration dynamique
  */
 
+import { databaseService } from '@/lib/services/database/db';
+
+// Déclaration pour étendre l'interface ProcessEnv et inclure les variables d'environnement personnalisées
+
 export interface AISettings {
   // Configuration générale
   enabled: boolean;
@@ -53,8 +57,8 @@ export interface AISettings {
   // Configuration OpenAI
   openai: {
     apiKey: string;
-    baseURL?: string;
-    organization?: string;
+    baseURL: string | undefined;
+    organization: string | undefined;
   };
 }
 
@@ -101,8 +105,8 @@ export const DEFAULT_AI_SETTINGS: AISettings = {
   
   openai: {
     apiKey: process.env.OPENAI_API_KEY || '',
-    baseURL: process.env.OPENAI_BASE_URL,
-    organization: process.env.OPENAI_ORGANIZATION
+    baseURL: process.env.OPENAI_BASE_URL || undefined,
+    organization: process.env.OPENAI_ORGANIZATION || undefined
   }
 };
 
@@ -231,22 +235,23 @@ export class AISettingsManager {
    */
   private async loadFromDatabase(): Promise<void> {
     try {
-      const { db } = await import('@/lib/services/database/drizzle-client');
+      // Utiliser le service de base de données centralisé (compatibilité API)
+      const dbService = databaseService;
       
-      // Créer la table si elle n'existe pas
-      await db.execute(`
+      // Créer la table si elle n'existe pas (stockage JSON dans TEXT pour SQLite)
+      await dbService.execute(`
         CREATE TABLE IF NOT EXISTS ai_settings (
           id INTEGER PRIMARY KEY DEFAULT 1,
-          settings JSONB NOT NULL,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          settings TEXT NOT NULL,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
           CONSTRAINT single_row CHECK (id = 1)
         );
       `);
 
-      const result = await db.execute('SELECT settings FROM ai_settings WHERE id = 1');
-      
-      if (result.rows && result.rows.length > 0) {
-        const savedSettings = result.rows[0].settings as AISettings;
+      const result = await dbService.queryOne<{ settings: string }>('SELECT settings FROM ai_settings WHERE id = 1');
+
+      if (result && (result as any).settings) {
+        const savedSettings = JSON.parse((result as any).settings) as AISettings;
         this.settings = { ...DEFAULT_AI_SETTINGS, ...savedSettings };
         currentSettings = { ...this.settings };
       }
@@ -261,14 +266,17 @@ export class AISettingsManager {
    */
   private async saveToDatabase(settings: AISettings): Promise<void> {
     try {
-      const { db } = await import('@/lib/services/database/drizzle-client');
+      const dbService = databaseService;
       
-      await db.execute(`
+      await dbService.execute(
+        `
         INSERT INTO ai_settings (id, settings, updated_at) 
         VALUES (1, $1, CURRENT_TIMESTAMP)
         ON CONFLICT (id) 
         DO UPDATE SET settings = $1, updated_at = CURRENT_TIMESTAMP
-      `, [JSON.stringify(settings)]);
+      `,
+        [JSON.stringify(settings)]
+      );
     } catch (error) {
       console.error('Erreur lors de la sauvegarde des paramètres AI:', error);
       throw new Error('Impossible de sauvegarder les paramètres');
@@ -307,5 +315,5 @@ export function isAIEnabled(): boolean {
  * Fonction utilitaire pour vérifier si un service spécifique est activé
  */
 export function isServiceEnabled(service: 'insights' | 'recommendations'): boolean {
-  return isAIEnabled() && currentSettings[service].enabled;
+  return isAIEnabled() && (currentSettings as any)[service].enabled;
 }

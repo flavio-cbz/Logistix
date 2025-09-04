@@ -1,18 +1,25 @@
 // Schéma Drizzle ORM pour les principales tables métier et historiques
 
-import { sqliteTable, text, integer, real, primaryKey, uniqueIndex, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, uniqueIndex, index } from "drizzle-orm/sqlite-core";
+
+// Définition des types pour les champs JSON et ENUM
+type MarketAnalysisStatus = "pending" | "completed" | "failed";
+type RiskTolerance = "conservative" | "moderate" | "aggressive";
+type UserActionType = "view_insight" | "follow_recommendation" | "ignore_recommendation" | "export_analysis" | "save_analysis" | "share_analysis" | "feedback"; // Ajout de "feedback"
+type VintedSessionStatus = "active" | "expired" | "error" | "requires_configuration";
 
 // Table des utilisateurs
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   username: text("username").notNull().unique(),
   password_hash: text("password_hash").notNull(),
+  encryption_secret: text("encryption_secret"), // Secret unique pour dériver la KEK utilisateur
   email: text("email"),
   bio: text("bio"),
   avatar: text("avatar"),
   language: text("language"),
   theme: text("theme"),
-  ai_config: text("ai_config", { mode: 'json' }),
+  ai_config: text("ai_config", { mode: 'json' }).$type<any>(),
   created_at: text("created_at"),
   updated_at: text("updated_at"),
 });
@@ -24,10 +31,10 @@ export const marketAnalyses = sqliteTable("market_analyses", {
   catalogId: integer("catalog_id"),
   categoryName: text("category_name"), // Nom de la catégorie pour référence
   brandId: integer("brand_id"), // ID de la marque Vinted
-  status: text("status", { enum: ["pending", "completed", "failed"] }).notNull(),
-  input: text("input", { mode: 'json' }), // Données d'entrée de la requête
-  result: text("result", { mode: 'json' }), // Résultats calculés (VintedAnalysisResult)
-  rawData: text("raw_data", { mode: 'json' }), // Données brutes des articles vendus (optionnel)
+  status: text("status", { enum: ["pending", "completed", "failed"] }).notNull().$type<MarketAnalysisStatus>(),
+  input: text("input", { mode: 'json' }).$type<any>(),
+  result: text("result", { mode: 'json' }).$type<any>(),
+  rawData: text("raw_data", { mode: 'json' }).$type<any>(),
   error: text("error"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at"),
@@ -64,8 +71,8 @@ export const historicalPrices = sqliteTable("historical_prices", {
 export const similarSales = sqliteTable("similar_sales", {
   id: text("id").primaryKey(),
   queryHash: text("query_hash").notNull(),
-  rawData: text("raw_data").notNull(),
-  parsedData: text("parsed_data").notNull(),
+  rawData: text("raw_data", { mode: 'json' }).$type<any>(),
+  parsedData: text("parsed_data", { mode: 'json' }).$type<any>(),
   expiresAt: text("expires_at").notNull(),
   createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
 }, (table) => ({
@@ -94,28 +101,33 @@ export const userQueryHistory = sqliteTable("user_query_history", {
 
 // Table pour la gestion des sessions Vinted (nouvelle version)
 export const vintedSessions = sqliteTable("vinted_sessions", {
-    id: text("id").primaryKey(), // UUID
-    userId: text("user_id").notNull(), // Référence à l'utilisateur de l'application
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
 
     // Cookie/token Vinted chiffré
     sessionCookie: text("session_cookie"),
+    // Encrypted DEK (Data Encryption Key) pour envelope encryption
+    encryptedDek: text("encrypted_dek"),
+    // Metadata lié au chiffrement (provider, algo, etc.)
+    encryptionMetadata: text("encryption_metadata").$type<any>(),
 
     // Données de session
-    sessionExpiresAt: text("session_expires_at"), // TIMESTAMPTZ stocké en texte ISO 8601
+    sessionExpiresAt: text("session_expires_at"),
+    tokenExpiresAt: text("token_expires_at"),
 
     // Métadonnées de gestion
-    status: text("status", { enum: ["active", "expired", "error", "requires_configuration"] }).notNull().default("requires_configuration"),
-    lastValidatedAt: text("last_validated_at"), // TIMESTAMPTZ stocké en texte ISO 8601
-    lastRefreshedAt: text("last_refreshed_at"), // TIMESTAMPTZ stocké en texte ISO 8601
+    status: text("status", { enum: ["active", "expired", "error", "requires_configuration"] }).notNull().default("requires_configuration").$type<VintedSessionStatus>(),
+    lastValidatedAt: text("last_validated_at"),
+    lastRefreshedAt: text("last_refreshed_at"),
+    lastRefreshAttemptAt: text("last_refresh_attempt_at"),
+    refreshAttemptCount: integer("refresh_attempt_attempt_count"),
     refreshErrorMessage: text("refresh_error_message"),
 
     // Timestamps
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
 }, (table) => ({
-    // Contrainte d'unicité pour garantir une seule session Vinted par utilisateur
     userIdx: uniqueIndex("idx_vinted_sessions_user_id").on(table.userId),
-    // Index pour filtrer rapidement par statut (ex: pour les tâches cron)
     statusIdx: index("idx_vinted_sessions_status").on(table.status),
 }));
 
@@ -123,15 +135,14 @@ export const vintedSessions = sqliteTable("vinted_sessions", {
 export const userPreferences = sqliteTable("user_preferences", {
     id: text("id").primaryKey(),
     userId: text("user_id").notNull(),
-    objectives: text("objectives", { mode: 'json' }).notNull(), // Array<'profit' | 'volume' | 'speed' | 'market-share'>
-    riskTolerance: text("risk_tolerance", { enum: ["conservative", "moderate", "aggressive"] }).notNull(),
-    preferredInsightTypes: text("preferred_insight_types", { mode: 'json' }).notNull(), // Array<'trends' | 'opportunities' | 'risks' | 'competitive'>
-    notificationSettings: text("notification_settings", { mode: 'json' }).notNull(),
-    customFilters: text("custom_filters", { mode: 'json' }).notNull(),
+    objectives: text("objectives", { mode: 'json' }).notNull().$type<any>(),
+    riskTolerance: text("risk_tolerance", { enum: ["conservative", "moderate", "aggressive"] }).notNull().$type<RiskTolerance>(),
+    preferredInsightTypes: text("preferred_insight_types", { mode: 'json' }).notNull().$type<any>(),
+    notificationSettings: text("notification_settings", { mode: 'json' }).notNull().$type<any>(),
+    customFilters: text("custom_filters", { mode: 'json' }).notNull().$type<any>(),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
 }, (table) => ({
-    // Contrainte d'unicité pour garantir une seule préférence par utilisateur
     userIdx: uniqueIndex("idx_user_preferences_user_id").on(table.userId),
 }));
 
@@ -140,18 +151,17 @@ export const userActions = sqliteTable("user_actions", {
     id: text("id").primaryKey(),
     userId: text("user_id").notNull(),
     actionType: text("action_type", { 
-        enum: ["view_insight", "follow_recommendation", "ignore_recommendation", "export_analysis", "save_analysis", "share_analysis"] 
-    }).notNull(),
-    actionData: text("action_data", { mode: 'json' }).notNull(),
+        enum: ["view_insight", "follow_recommendation", "ignore_recommendation", "export_analysis", "save_analysis", "share_analysis", "feedback"] // Ajout de "feedback"
+    }).notNull().$type<UserActionType>(),
+    actionData: text("action_data", { mode: 'json' }).notNull().$type<any>(),
     timestamp: text("timestamp").notNull(),
-    context: text("context", { mode: 'json' }),
+    context: text("context", { mode: 'json' }).$type<any>(),
     createdAt: text("created_at").notNull(),
 }, (table) => ({
-    // Index pour les requêtes par utilisateur et timestamp
     userTimestampIdx: index("idx_user_actions_user_timestamp").on(table.userId, table.timestamp),
-    // Index pour les requêtes par type d'action
     actionTypeIdx: index("idx_user_actions_action_type").on(table.actionType),
 }));
+
 // Table des produits suivis (produits que les utilisateurs surveillent)
 export const trackedProducts = sqliteTable("tracked_products", {
   id: text("id").primaryKey(),
@@ -162,7 +172,6 @@ export const trackedProducts = sqliteTable("tracked_products", {
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at"),
 }, (table) => ({
-  // Index pour rechercher rapidement les produits suivis par utilisateur
   userIdx: index("idx_tracked_products_user_id").on(table.userId),
 }));
 
@@ -176,7 +185,32 @@ export const marketTrends = sqliteTable("market_trends", {
   salesVolume: integer("sales_volume"),
   createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
 }, (table) => ({
-  // Index pour requêtes par produit suivi et par date
   trackedProductIdx: index("idx_market_trends_tracked_product").on(table.trackedProductId),
   snapshotDateIdx: index("idx_market_trends_snapshot_date").on(table.snapshotDate),
 }));
+
+// Table de gestion des clés d'application (KEK)
+export const appSecrets = sqliteTable("app_secrets", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  value: text("value").notNull(),
+  isActive: integer("is_active").default(1).notNull(),
+  createdAt: text("created_at").default("CURRENT_TIMESTAMP").notNull(),
+  updatedAt: text("updated_at"),
+  revokedAt: text("revoked_at"),
+}, (table) => ({
+  nameIdx: index("idx_app_secrets_name").on(table.name),
+}));
+
+// Table des parcelles
+export const parcels = sqliteTable("parcelles", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  numero: text("numero").notNull(),
+  transporteur: text("transporteur").notNull(),
+  prixAchat: real("prixAchat"),
+  poids: real("poids"),
+  prixTotal: real("prixTotal"),
+  prixParGramme: real("prixParGramme"),
+  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+});

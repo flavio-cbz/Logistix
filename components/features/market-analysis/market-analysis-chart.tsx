@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
-import { type VintedAnalysisResult, type MarketAnalysisHistoryItem } from "@/types/vinted-market-analysis"
+import type { VintedAnalysisResult, MarketAnalysisHistoryItem } from '@/types/vinted-market-analysis'
 
 interface MarketAnalysisChartProps {
   currentAnalysis: VintedAnalysisResult
@@ -16,18 +16,18 @@ export default function MarketAnalysisChart({ currentAnalysis, historicalData = 
     
     // Ajouter les données historiques si disponibles
     const completedHistorical = historicalData
-      .filter(item => item.status === 'completed')
+      .filter(_item => _item.status === 'completed') // Corrected `item` to `_item`
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
       .slice(-10) // Garder les 10 dernières analyses
     
-    completedHistorical.forEach(item => {
+    completedHistorical.forEach(_item => {
       data.push({
-        date: new Date(item.createdAt).toLocaleDateString('fr-FR', { 
+        date: new Date(_item.createdAt).toLocaleDateString('fr-FR', { // Corrected `item` to `_item`
           month: 'short', 
           day: 'numeric' 
         }),
-        prix: item.avgPrice,
-        volume: item.salesVolume,
+        prix: _item.avgPrice, // Corrected `item` to `_item`
+        volume: _item.salesVolume, // Corrected `item` to `_item`
         type: 'historical'
       })
     })
@@ -72,12 +72,12 @@ export default function MarketAnalysisChart({ currentAnalysis, historicalData = 
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const dataPoint = payload[0]?.payload
+      const dataPoint = payload[0]!?.payload
       return (
         <div className="bg-background border rounded-lg p-3 shadow-md">
           <p className="font-medium">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} style={{ color: entry.color }}>
+          {payload.map((entry: any, _index: number) => (
+            <p key={_index} style={{ color: entry.color }}> {/* Corrected index to _index */}
               {entry.name}: {entry.name === 'Prix' ? `${entry.value} €` : entry.value}
             </p>
           ))}
@@ -87,7 +87,7 @@ export default function MarketAnalysisChart({ currentAnalysis, historicalData = 
             </p>
           )}
           {dataPoint?.type === 'current' && (
-            <p className="text-xs text-green-600 mt-1">
+            <p className="text-xs text-[hsl(var(--success-foreground))] mt-1">
               * Analyse actuelle
             </p>
           )}

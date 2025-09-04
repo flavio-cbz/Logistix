@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/services/auth";
 import { databaseService } from "@/lib/services/database/db";
 import { createNonDatabaseHandler } from "@/lib/utils/api-route-optimization";
@@ -33,6 +34,54 @@ interface MetricsReport {
     averageResponseTime: number;
     errorCount: number;
     peakUtilization: number;
+  };
+}
+
+function calculateSummaryMetrics(
+  connectionLogs: any[], 
+  errorLogs: any[], 
+  monitoringLogs: any[]
+): MetricsReport['summary'] {
+  const now = Date.now();
+  const oneHourAgo = now - 3600000; // 1 hour ago
+  
+  // Filtrer les logs de la dernière heure
+  const recentConnections = connectionLogs.filter(log => 
+    new Date(log.timestamp).getTime() > oneHourAgo
+  );
+  const recentErrors = errorLogs.filter(log => 
+    new Date(log.timestamp).getTime() > oneHourAgo
+  );
+  const recentMonitoring = monitoringLogs.filter(log => 
+    new Date(log.timestamp).getTime() > oneHourAgo
+  );
+
+  // Calculer les métriques
+  const totalOperations = recentConnections.length;
+  
+  const responseTimes = recentConnections
+    .filter((log: { duration?: number }) => typeof log.duration === 'number' && log.duration > 0)
+    .map((log: { duration: number }) => log.duration);
+  const averageResponseTime = responseTimes.length > 0 ? 
+    responseTimes.reduce((sum: number, time: number) => sum + time, 0) / responseTimes.length : 0;
+
+  const errorCount = recentErrors.length;
+
+  // Calculer l'utilisation maximale
+  let peakUtilization = 0;
+  recentMonitoring.forEach((log: { totalConnections?: number; activeConnections?: number }) => {
+    if (log.totalConnections && log.activeConnections) {
+      const utilization = (log.activeConnections / log.totalConnections) * 100;
+      peakUtilization = Math.max(peakUtilization, utilization);
+    }
+  });
+
+  return {
+    period: "last_hour",
+    totalOperations,
+    averageResponseTime: Math.round(averageResponseTime),
+    errorCount,
+    peakUtilization: Math.round(peakUtilization * 100) / 100
   };
 }
 
@@ -87,54 +136,6 @@ function analyzeLogData(logs: any[], type: 'connections' | 'errors' | 'locks' | 
   return metrics.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 }
 
-function calculateSummaryMetrics(
-  connectionLogs: any[], 
-  errorLogs: any[], 
-  monitoringLogs: any[]
-): MetricsReport['summary'] {
-  const now = Date.now();
-  const oneHourAgo = now - 3600000; // 1 hour ago
-  
-  // Filtrer les logs de la dernière heure
-  const recentConnections = connectionLogs.filter(log => 
-    new Date(log.timestamp).getTime() > oneHourAgo
-  );
-  const recentErrors = errorLogs.filter(log => 
-    new Date(log.timestamp).getTime() > oneHourAgo
-  );
-  const recentMonitoring = monitoringLogs.filter(log => 
-    new Date(log.timestamp).getTime() > oneHourAgo
-  );
-
-  // Calculer les métriques
-  const totalOperations = recentConnections.length;
-  
-  const responseTimes = recentConnections
-    .filter(log => log.duration && log.duration > 0)
-    .map(log => log.duration);
-  const averageResponseTime = responseTimes.length > 0 ? 
-    responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length : 0;
-
-  const errorCount = recentErrors.length;
-
-  // Calculer l'utilisation maximale
-  let peakUtilization = 0;
-  recentMonitoring.forEach(log => {
-    if (log.totalConnections && log.activeConnections) {
-      const utilization = (log.activeConnections / log.totalConnections) * 100;
-      peakUtilization = Math.max(peakUtilization, utilization);
-    }
-  });
-
-  return {
-    period: "last_hour",
-    totalOperations,
-    averageResponseTime: Math.round(averageResponseTime),
-    errorCount,
-    peakUtilization: Math.round(peakUtilization * 100) / 100
-  };
-}
-
 async function metricsHandler(request: NextRequest): Promise<NextResponse> {
   const startTime = Date.now();
   
@@ -176,9 +177,9 @@ async function metricsHandler(request: NextRequest): Promise<NextResponse> {
     const poolMetrics = {
       utilization: monitoringMetrics.map(m => ({
         timestamp: m.timestamp,
-        value: m.metadata?.totalConnections ? 
-          (m.value / m.metadata.totalConnections) * 100 : 0,
-        metadata: { totalConnections: m.metadata?.totalConnections }
+        value: m.metadata?.['totalConnections'] ?
+          (m.value / m.metadata?.['totalConnections']) * 100 : 0,
+        metadata: { totalConnections: m.metadata?.['totalConnections'] }
       })),
       activeConnections: monitoringMetrics.map(m => ({
         timestamp: m.timestamp,
@@ -187,15 +188,15 @@ async function metricsHandler(request: NextRequest): Promise<NextResponse> {
       })),
       queueLength: monitoringMetrics.map(m => ({
         timestamp: m.timestamp,
-        value: m.metadata?.waitingRequests || 0,
-        metadata: { waitingRequests: m.metadata?.waitingRequests }
+        value: m.metadata?.['waitingRequests'] || 0,
+        metadata: { waitingRequests: m.metadata?.['waitingRequests'] }
       })),
       waitTime: connectionMetrics
-        .filter(m => m.metadata?.event === 'acquired' && m.metadata?.fromQueue)
+        .filter(m => m.metadata?.['event'] === 'acquired' && m.metadata?.['fromQueue'])
         .map(m => ({
           timestamp: m.timestamp,
           value: m.value,
-          metadata: { fromQueue: true, context: m.metadata?.context }
+          metadata: { fromQueue: true, context: m.metadata?.['context'] }
         }))
     };
 
@@ -206,9 +207,9 @@ async function metricsHandler(request: NextRequest): Promise<NextResponse> {
         .map(m => ({
           timestamp: m.timestamp,
           value: m.value,
-          metadata: { 
-            context: m.metadata?.context,
-            event: m.metadata?.event 
+          metadata: {
+            context: m.metadata?.['context'],
+            event: m.metadata?.['event']
           }
         })),
       errorRate: errorMetrics.map(m => ({
@@ -232,7 +233,7 @@ async function metricsHandler(request: NextRequest): Promise<NextResponse> {
       const intervalTime = intervalStart - (i * 300000);
       const intervalEnd = intervalTime + 300000;
       
-      const operationsInInterval = connectionLogs.filter(log => {
+      const operationsInInterval = connectionLogs.filter((log: { timestamp: string }) => {
         const logTime = new Date(log.timestamp).getTime();
         return logTime >= intervalTime && logTime < intervalEnd;
       }).length;

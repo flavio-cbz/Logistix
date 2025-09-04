@@ -1,65 +1,36 @@
-import type React from "react"
-import { SimpleSidebar } from "@/components/layout/simple-sidebar"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { ResponsiveHeader } from "@/components/layout/responsive-header"
-import { NotificationList } from "@/components/features/notifications/notification-list"
-import { AuthButton } from "@/components/auth/auth-button"
-import { SkipLinks } from "@/components/accessibility/skip-links"
-import { KeyboardShortcuts } from "@/components/accessibility/keyboard-shortcuts"
-import { FocusIndicator } from "@/components/accessibility/focus-management"
-import { AccessibilityLayout } from "@/components/layout/accessibility-layout"
+import { MainNav } from "@/components/main-nav"
+import { UserNav } from "../../components/user-nav"
+import { CommandMenu } from "../../components/command-menu"
+import { MobileSidebar } from "../../components/layout/mobile-sidebar"
+import { useState } from "react"
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  // Simuler un utilisateur pour le développement
+  const user = { username: "devuser", email: "dev@example.com", isAdmin: true };
+
+  // Commenter la redirection pour le développement
+  // if (!session || !user) {
+  //   redirect("/login")
+  // }
+
+  const [openMobileSidebar, setOpenMobileSidebar] = useState(false); // État pour MobileSidebar
+
   return (
-    <AccessibilityLayout>
-      <>
-        <FocusIndicator />
-        
-        <SkipLinks />
-        
-        <div className="min-h-screen flex">
-          <SimpleSidebar />
-          
-          <div className="flex-1 flex flex-col">
-            <header 
-              id="main-header"
-              role="banner"
-              aria-label="En-tête de page"
-              className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm"
-            >
-              <div className="flex h-16 items-center px-4 lg:px-6">
-                <div className="md:hidden w-12" />
-                <div className="ml-auto flex items-center space-x-3">
-                  <KeyboardShortcuts />
-                  <AuthButton user={null as any} />
-                  <ThemeToggle />
-                </div>
-              </div>
-            </header>
-            
-            <main 
-              id="main-content"
-              role="main"
-              aria-label="Contenu principal"
-              className="flex-1 overflow-auto"
-              tabIndex={-1}
-            >
-              <div className="container mx-auto px-4 md:px-6 lg:px-8">
-                <ResponsiveHeader className="border-b pb-4 mb-6 lg:border-b-0 lg:pb-0 lg:mb-8" />
-                
-                <div className="pb-8">
-                  {children}
-                </div>
-              </div>
-            </main>
+    <>
+      <div className="flex-col md:flex">
+        <div className="border-b">
+          <div className="flex h-16 items-center px-4">
+            {/* Utiliser le cast pour MainNav, ou définir explicitement ses props */}
+            <MainNav className="mx-6" />
+            <div className="ml-auto flex items-center space-x-4">
+              <CommandMenu />
+              <UserNav user={user} />
+            </div>
+            <MobileSidebar open={openMobileSidebar} onOpenChange={setOpenMobileSidebar} />
           </div>
-          <NotificationList />
         </div>
-      </>
-    </AccessibilityLayout>
+        <div className="flex-1 space-y-4 p-8 pt-6">{children}</div>
+      </div>
+    </>
   )
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { vintedMarketAnalysisService, AnalysisRequest, VintedApiError } from '@/lib/services/vinted-market-analysis';
+import { vintedMarketAnalysisService, VintedApiError } from '@/lib/services/vinted-market-analysis';
+import type { AnalysisRequest } from '@/lib/services/vinted-market-analysis';
 import { getSessionUser } from '@/lib/services/auth/auth';
-import { vintedSessionManager } from '@/lib/services/auth/vinted-session-manager';
 import { logger } from '@/lib/utils/logging/logger';
 
 // Le corps de la requête attend un tableau de demandes d'analyse partielles
@@ -18,10 +18,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Utilisateur non authentifié' }, { status: 401 });
     }
 
-    const vintedCookie = await vintedSessionManager.getSessionCookie(user.id);
-    if (!vintedCookie) {
-      return NextResponse.json({ error: 'Cookie de session Vinted non configuré ou invalide' }, { status: 403 });
-    }
+    // Vinted session is validated and accessed inside the service layer; avoid direct cookie access in route.
 
     // 2. Validation du corps de la requête
     const body = await request.json();
@@ -33,19 +30,19 @@ export async function POST(request: Request) {
     logger.info(`[API Compare] Début de la comparaison pour ${itemsToCompare.length} articles par l'utilisateur ${user.id}.`);
 
     // 3. Lancement des analyses en parallèle
-    const comparisonPromises = itemsToCompare.map(item => {
+    const comparisonPromises = itemsToCompare.map(_item => {
       const analysisRequest: AnalysisRequest = {
-        ...item,
-        token: vintedCookie,
+        ..._item,
+        userId: user.id,
       };
       return vintedMarketAnalysisService.analyzeProduct(analysisRequest)
         .then(result => ({
-          requestId: item.requestId,
+          requestId: _item.requestId,
           status: 'fulfilled',
-          data: result
+          _data: result
         }))
         .catch(error => ({
-          requestId: item.requestId,
+          requestId: _item.requestId,
           status: 'rejected',
           error: {
             message: error.message,

@@ -1,25 +1,62 @@
 import { useMarketAnalysisStore } from "@/lib/store";
-import { MarketAnalysisRequest, VintedAnalysisResult } from "@/types/vinted-market-analysis";
+import type { MarketAnalysisRequest, VintedAnalysisResult } from '@/types/vinted-market-analysis';
+
+interface CategorySuggestion {
+  id: number;
+  title?: string;
+  name?: string;
+}
+
+interface VintedCategoryResponse {
+  categories: CategorySuggestion[];
+}
+
+interface VintedTokenStatusResponse {
+  status: 'active' | 'inactive';
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+interface MarketAnalysisStartResponse {
+  id?: string;
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+interface MarketAnalysisStatusResponse {
+  status: 'pending' | 'completed' | 'failed';
+  result?: VintedAnalysisResult;
+  analysis?: VintedAnalysisResult;
+  error?: string;
+}
 
 /**
  * Suggestions de catégories mockées pour débloquer la compilation.
  */
-export async function getCategorySuggestions(productName: string): Promise<string[]> {
-  // Retourne des suggestions factices
-  if (!productName) return [];
-  return [
-    "Vêtements",
-    "Chaussures",
-    "Accessoires",
-    "Maison",
-    "Électronique"
-  ];
+export async function getCategorySuggestions(productName: string): Promise<{ id: number; title: string }[]> {
+  if (!productName || productName.trim().length < 3) return [];
+  try {
+    const res = await fetch(`/api/v1/vinted/category-filters?title=${encodeURIComponent(productName)}`);
+    if (!res.ok) throw new Error('Failed to fetch category suggestions');
+    const data: VintedCategoryResponse = await res.json();
+    const categories = Array.isArray(data.categories) ? data.categories : [];
+    return categories
+      .map((c: CategorySuggestion) => ({ id: Number(c.id), title: String(c.title ?? c.name ?? '') }))
+      .filter((c) => !!c.title);
+  } catch (error: unknown) {
+    console.error("Erreur lors de la récupération des suggestions de catégories:", error);
+    return [];
+  }
 }
 
 /**
  * Suggestions de marques mockées pour débloquer la compilation.
  */
-export async function getBrandSuggestions(productName: string, catalogId?: number): Promise<{ id: number; name: string }[]> {
+export async function getBrandSuggestions(productName: string, _catalogId?: number): Promise<{ id: number; name: string }[]> {
   // Retourne des marques factices
   if (!productName) return [];
   return [
@@ -57,62 +94,107 @@ export async function startMarketAnalysis(request: MarketAnalysisRequest): Promi
 export async function checkVintedTokenStatus(): Promise<void> {
   const { setTokenConfigured, setError } = useMarketAnalysisStore.getState();
   try {
-    const baseUrl = typeof window !== 'undefined' ? '' : 'http://localhost:3000'
-    const response = await fetch(`${baseUrl}/api/v1/vinted/auth`, { credentials: 'include' });
-    const data = await response.json();
+    const baseUrl = typeof window !== 'undefined' ? '' : 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/v1/vinted/configure`, { credentials: 'include' });
+    const data: VintedTokenStatusResponse = await response.json();
     
-    const isValid = !!data.authenticated;
+    // La réponse de l'API de configuration contient un champ "status" qui peut être "active" ou "inactive"
+    const isValid = data.status === 'active';
     setTokenConfigured(isValid);
     if (!isValid) {
         setError("Le token Vinted est invalide ou a expiré.");
     }
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Erreur lors de la vérification du token Vinted:", error);
     setTokenConfigured(false);
     setError("Impossible de vérifier le statut du token Vinted.");
   }
 }
 
-export async function launchMarketAnalysis(request: MarketAnalysisRequest): Promise<void> {
+export async function launchMarketAnalysis(request: MarketAnalysisRequest): Promise<boolean> {
   const { setIsLoading, setError, setCurrentAnalysis, setTokenConfigured } = useMarketAnalysisStore.getState();
+  let success = false;
 
   setIsLoading(true);
   setError(null);
 
   try {
-    const response = await fetch('/api/v1/market-analysis', {
+    // Start the analysis job (creates DB record and returns job id)
+    const startRes = await fetch('/api/v1/market-analysis/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
     });
 
-    const responseBody = await response.text();
+    const startBody: MarketAnalysisStartResponse = await startRes.json();
 
-    if (!response.ok) {
-      let errorData;
-      try {
-        errorData = JSON.parse(responseBody);
-      } catch (e) {
-        throw new Error(`Erreur serveur non-JSON: ${response.statusText}`);
-      }
-      
-      if (errorData.error?.code === 'VINTED_TOKEN_EXPIRED') {
+    if (!startRes.ok || !startBody?.id) {
+      // Handle token expired case if returned by start endpoint
+      if (startBody?.error?.code === 'VINTED_TOKEN_EXPIRED') {
         setTokenConfigured(false);
         setError("Votre token Vinted a expiré. Veuillez le renouveler.");
-        setIsLoading(false);
-        return;
+        return false;
       }
-      throw new Error(errorData.error?.message || "Erreur lors de l'analyse");
+      throw new Error(startBody?.error?.message || "Impossible de démarrer l'analyse");
     }
 
-    const analysisResult: VintedAnalysisResult = JSON.parse(responseBody);
-    setCurrentAnalysis(analysisResult);
+    const jobId: string = startBody.id;
 
-  } catch (error: any) {
+    // Poll the status endpoint until completed/failed or timeout
+    const pollIntervalMs = 1000;
+    const timeoutMs = 60000; // 60s
+    const startedAt = Date.now();
+
+    while (true) {
+      const statusRes = await fetch(`/api/v1/market-analysis/status?id=${encodeURIComponent(jobId)}`);
+      if (!statusRes.ok) {
+        const textBody = await statusRes.text();
+        throw new Error(`Erreur lors de la vérification du statut: ${statusRes.status} ${textBody}`);
+      }
+
+      const statusBody: MarketAnalysisStatusResponse = await statusRes.json();
+
+      if (statusBody?.status === 'completed') {
+        // Prefer structured result if provided
+        const result = statusBody?.result ?? statusBody?.analysis;
+        if (result) {
+          setCurrentAnalysis(result);
+          success = true;
+        } else {
+          setError("L'analyse est marquée comme terminée mais aucun résultat n'a été trouvé.");
+          success = false;
+        }
+        break;
+      }
+
+      if (statusBody?.status === 'failed') {
+        setError(statusBody?.error || "L'analyse a échoué");
+        success = false;
+        break;
+      }
+
+      if (Date.now() - startedAt > timeoutMs) {
+        setError("Délai d'attente dépassé pour l'analyse de marché.");
+        success = false;
+        break;
+      }
+
+      // Wait before next poll
+      await new Promise((res) => setTimeout(res, pollIntervalMs));
+    }
+
+  } catch (error: unknown) {
     console.error("Erreur lors du lancement de l'analyse de marché:", error);
-    setError(error.message);
+    if (error instanceof Error) {
+      setError(error.message);
+    } else {
+      setError("Une erreur inconnue est survenue lors de l'analyse de marché.");
+    }
+    return false;
   } finally {
     setIsLoading(false);
   }
+
+  return success;
 }

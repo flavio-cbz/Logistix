@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { runMarketAnalysisInference } from "./inference-client";
-import { VintedAnalysisResult } from "../vinted-market-analysis";
-import { AdvancedMetrics } from "@/lib/analytics/advanced-analytics-engine";
+import type { VintedAnalysisResult } from "../vinted-market-analysis";
+import type { AdvancedMetrics } from "@/lib/analytics/advanced-analytics-engine";
 
 // Schémas étendus pour les rapports avancés
 const InsightSchema = z.object({
@@ -153,7 +153,7 @@ export async function generateEnhancedReport(
       },
     });
 
-    const jsonString = response.choices[0].text.match(/{[\s\S]*}/)?.[0];
+    const jsonString = response.choices[0]!!.text.match(/{[\s\S]*}/)?.[0];
     if (!jsonString) {
       throw new Error("La réponse de l'IA ne contient pas de JSON valide.");
     }
@@ -272,7 +272,7 @@ export async function generateReport(analysisResult: Partial<VintedAnalysisResul
       max_tokens: 500,
     });
 
-    const jsonString = response.choices[0].text.match(/{[\s\S]*}/)?.[0];
+    const jsonString = response.choices[0]!!.text.match(/{[\s\S]*}/)?.[0];
     if (!jsonString) {
       throw new Error("La réponse de l'IA ne contient pas de JSON valide.");
     }

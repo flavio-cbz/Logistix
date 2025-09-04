@@ -1,11 +1,14 @@
 import { z } from "zod";
 import { runMarketAnalysisInference } from "./inference-client";
-import { VintedAnalysisResult, MarketAnalysisHistoryItem } from "@/types/vinted-market-analysis";
-import { AdvancedMetrics } from "@/lib/analytics/advanced-analytics-engine";
+import type { VintedAnalysisResult, MarketAnalysisHistoryItem } from "@/types/vinted-market-analysis";
+import type { AdvancedMetrics } from "@/lib/analytics/advanced-analytics-engine";
 import { marketAnalysisConfig } from "./market-analysis-config";
 import { AIAnalysisError } from "./ai-errors";
+import { getErrorMessage, toError } from '@/lib/utils/error-utils';
 
-// Schémas pour les prédictions de tendances
+/**
+ * Schémas stricts de validation Zod pour sécuriser et typer les réponses IA
+ */
 const TrendDirectionSchema = z.enum(['up', 'down', 'stable']);
 const TimeframeSchema = z.enum(['1week', '1month', '3months']);
 const ConfidenceSchema = z.number().min(0).max(1);
@@ -13,9 +16,9 @@ const ConfidenceSchema = z.number().min(0).max(1);
 const TrendPredictionSchema = z.object({
   metric: z.enum(['price', 'volume', 'demand']),
   direction: TrendDirectionSchema,
-  magnitude: z.number(), // Pourcentage de changement attendu
+  magnitude: z.number(), // Pourcentage de changement attendu (peut être négatif pour une baisse)
   confidence: ConfidenceSchema,
-  factors: z.array(z.string()), // Facteurs influençant cette prédiction
+  factors: z.array(z.string()),
   timeframe: TimeframeSchema,
 });
 
@@ -24,7 +27,7 @@ const ScenarioSchema = z.object({
   probability: z.number().min(0).max(1),
   description: z.string(),
   impact: z.string(),
-  conditions: z.array(z.string()), // Conditions pour que ce scénario se réalise
+  conditions: z.array(z.string()),
   predictions: z.array(TrendPredictionSchema),
 });
 
@@ -55,8 +58,27 @@ export type TrendDirection = z.infer<typeof TrendDirectionSchema>;
 export type TrendPrediction = z.infer<typeof TrendPredictionSchema>;
 export type MarketScenario = z.infer<typeof ScenarioSchema>;
 export type TrendAnalysis = z.infer<typeof TrendAnalysisSchema>;
+export type Timeframe = z.infer<typeof TimeframeSchema>;
 
-// Template de prompt pour l'analyse des tendances
+/**
+ * Constantes et utilitaires internes
+ */
+const EPSILON = 1e-9;
+const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
+const isFiniteNumber = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
+const average = (values: number[]): number => {
+  const valid = values.filter(isFiniteNumber);
+  return valid.length ? valid.reduce((s, n) => s + n, 0) / valid.length : 0;
+};
+const safeRelativeChange = (current: number, previous: number): number => {
+  if (!isFiniteNumber(current) || !isFiniteNumber(previous) || Math.abs(previous) < EPSILON) return 0;
+  return (current - previous) / previous;
+};
+const isValidDateString = (s: string): boolean => !Number.isNaN(Date.parse(s));
+
+/**
+ * Template de prompt pour l'analyse des tendances
+ */
 const TREND_PREDICTION_PROMPT_TEMPLATE = `
 Tu es un expert en analyse prédictive et en tendances de marché. Analyse les données historiques suivantes et génère des prédictions de tendances précises.
 
@@ -124,7 +146,9 @@ Réponds uniquement avec un objet JSON valide au format suivant:
 }
 `;
 
-// Interface pour les paramètres de prédiction
+/**
+ * Paramètres de prédiction
+ */
 export interface PredictionParameters {
   timeframes: Array<'1week' | '1month' | '3months'>;
   includeScenarios: boolean;
@@ -133,9 +157,12 @@ export interface PredictionParameters {
   scenarioTypes: Array<'optimistic' | 'pessimistic' | 'realistic'>;
 }
 
-// Service principal de prédiction de tendances
+/**
+ * Service principal de prédiction de tendances
+ */
 export class TrendPredictorService {
-  private static instance: TrendPredictorService;
+  private static instance: TrendPredictorService | undefined;
+  private constructor() {}
 
   public static getInstance(): TrendPredictorService {
     if (!TrendPredictorService.instance) {
@@ -154,9 +181,8 @@ export class TrendPredictorService {
     parameters?: Partial<PredictionParameters>
   ): Promise<TrendAnalysis> {
     const config = marketAnalysisConfig.getConfig();
-    
-    // Vérifier si les prédictions sont activées
-    if (!config.predictions.enabled) {
+
+    if (!config.predictions?.enabled) {
       throw new AIAnalysisError(
         'Les prédictions de tendances sont désactivées',
         'FEATURE_DISABLED' as any,
@@ -164,7 +190,6 @@ export class TrendPredictorService {
       );
     }
 
-    // Valider la qualité des données historiques
     const dataQuality = this.validateHistoricalData(historicalData);
     if (!dataQuality.valid) {
       throw new AIAnalysisError(
@@ -175,36 +200,45 @@ export class TrendPredictorService {
     }
 
     const params = this.getDefaultParameters(parameters);
-    
+
     try {
       const prompt = this.buildPrompt(currentData, historicalData, advancedMetrics, params);
-      
+
       const response = await runMarketAnalysisInference({
         prompt,
         analysisType: 'trends',
         temperature: 0.1, // Très conservateur pour les prédictions
         max_tokens: 1500,
         context: {
-          marketData: currentData,
-          historicalData,
-          userPreferences: advancedMetrics,
+          marketData: {
+            avgPrice: currentData.avgPrice,
+            salesVolume: currentData.salesVolume,
+            priceRange: currentData.priceRange,
+          },
+          historicalData: historicalData.map(h => ({ createdAt: h.createdAt, avgPrice: h.avgPrice, salesVolume: h.salesVolume })),
+          advancedMetrics,
         },
       });
 
-      const trendAnalysis = this.parseTrendResponse(response.choices[0].text);
-      
-      // Filtrer selon la configuration
+      const choiceText = Array.isArray((response as any)?.choices) && (response as any).choices[0]!?.text;
+      if (!choiceText || typeof choiceText !== 'string') {
+        throw new AIAnalysisError(
+          'Réponse IA invalide: format choices/text absent',
+          'INVALID_RESPONSE' as any,
+          { retryable: true, fallbackAvailable: true, context: response }
+        );
+      }
+
+      const trendAnalysis = this.parseTrendResponse(choiceText);
       return this.filterPredictionsByConfig(trendAnalysis, config);
-      
     } catch (error) {
       if (error instanceof AIAnalysisError) {
         throw error;
       }
-      
       throw new AIAnalysisError(
-        `Erreur lors de la prédiction des tendances: ${error.message}`,
+        `Erreur lors de la prédiction des tendances: ${getErrorMessage(error)}`,
         'INFERENCE_FAILED' as any,
-        { retryable: true, fallbackAvailable: true, cause: error }
+        { retryable: true, fallbackAvailable: true, cause: toError(error) }
       );
     }
   }
@@ -224,9 +258,8 @@ export class TrendPredictorService {
       advancedMetrics,
       { timeframes: [timeframe], includeScenarios: false }
     );
-
     return fullAnalysis.predictions.filter(p => p.timeframe === timeframe);
-  }
+    }
 
   /**
    * Génère des scénarios de marché alternatifs
@@ -257,13 +290,23 @@ export class TrendPredictorService {
         analysisType: 'trends',
         temperature: 0.2,
         max_tokens: 1000,
+        context: {
+          marketData: { avgPrice: currentData.avgPrice, salesVolume: currentData.salesVolume },
+          historicalData: historicalData.map(h => ({ createdAt: h.createdAt, avgPrice: h.avgPrice, salesVolume: h.salesVolume })),
+          advancedMetrics,
+        }
       });
 
-      const scenarios = JSON.parse(response.choices[0].text);
-      return scenarios.map((scenario: any) => ScenarioSchema.parse(scenario));
-      
-    } catch (error) {
-      // Fallback vers scénarios basiques
+      const text = Array.isArray((response as any)?.choices) && (response as any).choices[0]!?.text || '[]';
+      const sanitized = String(text).replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(sanitized);
+
+      if (!Array.isArray(parsed)) throw new Error('Le JSON retourné n\'est pas un tableau');
+
+      const scenarios = parsed.map((scenario: unknown) => ScenarioSchema.parse(scenario));
+      scenarios.forEach(s => (s as any).probability = clamp((s as any).probability, 0, 1));
+      return scenarios;
+    } catch {
       return this.generateBasicScenarios(currentData, historicalData);
     }
   }
@@ -288,34 +331,31 @@ export class TrendPredictorService {
       };
     }
 
-    // Calculer la volatilité des prix
-    const prices = historicalData.map(item => item.avgPrice);
-    const priceChanges = prices.slice(1).map((price, i) => 
-      Math.abs((price - prices[i]) / prices[i])
-    );
-    
-    const avgVolatility = priceChanges.reduce((sum, change) => sum + change, 0) / priceChanges.length;
-    
-    // Calculer la volatilité des volumes
-    const volumes = historicalData.map(item => item.salesVolume);
-    const volumeChanges = volumes.slice(1).map((volume, i) => 
-      Math.abs((volume - volumes[i]) / volumes[i])
-    );
-    
-    const avgVolumeVolatility = volumeChanges.reduce((sum, change) => sum + change, 0) / volumeChanges.length;
-    
-    // Déterminer le niveau de volatilité
+    const priceChanges = historicalData.slice(1).map((_item, i) => {
+      const curr = Number(_item.avgPrice);
+      const prev = Number(historicalData[i]!?.avgPrice);
+      return Math.abs(safeRelativeChange(curr, prev));
+    });
+    const avgVolatility = average(priceChanges);
+
+    const volumeChanges = historicalData.slice(1).map((_item, i) => {
+      const curr = Number(_item.salesVolume);
+      const prev = Number(historicalData[i]!?.salesVolume);
+      return Math.abs(safeRelativeChange(curr, prev));
+    });
+    const avgVolumeVolatility = average(volumeChanges);
+
     const combinedVolatility = (avgVolatility + avgVolumeVolatility) / 2;
     let level: 'low' | 'medium' | 'high';
-    
     if (combinedVolatility < 0.1) level = 'low';
     else if (combinedVolatility < 0.25) level = 'medium';
     else level = 'high';
-    
-    // Analyser la tendance de volatilité
-    const recentVolatility = priceChanges.slice(-3).reduce((sum, change) => sum + change, 0) / 3;
-    const earlierVolatility = priceChanges.slice(0, 3).reduce((sum, change) => sum + change, 0) / 3;
-    
+
+    const lastN = priceChanges.slice(-3);
+    const firstN = priceChanges.slice(0, Math.min(3, priceChanges.length));
+    const recentVolatility = average(lastN);
+    const earlierVolatility = average(firstN);
+
     let trend: 'increasing' | 'decreasing' | 'stable';
     if (recentVolatility > earlierVolatility * 1.2) trend = 'increasing';
     else if (recentVolatility < earlierVolatility * 0.8) trend = 'decreasing';
@@ -325,7 +365,7 @@ export class TrendPredictorService {
       level,
       trend,
       factors: this.identifyVolatilityFactors(historicalData),
-      confidence: Math.min(0.9, historicalData.length / 20), // Plus de données = plus de confiance
+      confidence: Math.min(0.9, Math.max(0.1, historicalData.length / 20)),
     };
   }
 
@@ -335,53 +375,63 @@ export class TrendPredictorService {
   private buildPrompt(
     currentData: VintedAnalysisResult,
     historicalData: MarketAnalysisHistoryItem[],
-    advancedMetrics?: AdvancedMetrics,
-    parameters?: PredictionParameters
+    advancedMetrics: AdvancedMetrics | undefined,
+    parameters: PredictionParameters
   ): string {
     const currentDataSummary = {
       avgPrice: currentData.avgPrice,
       salesVolume: currentData.salesVolume,
       priceRange: currentData.priceRange,
       analysisDate: currentData.analysisDate,
-      itemCount: currentData.rawItems?.length || 0,
+      itemCount: Array.isArray(currentData.rawItems) ? currentData.rawItems.length : 0,
     };
 
-    const historicalSummary = historicalData.map(item => ({
-      date: item.createdAt,
-      avgPrice: item.avgPrice,
-      salesVolume: item.salesVolume,
+    const historicalSummary = historicalData.map(_item => ({
+      date: _item.createdAt,
+      avgPrice: _item.avgPrice,
+      salesVolume: _item.salesVolume,
     }));
+
+    const timeframes = Array.isArray(parameters.timeframes) && parameters.timeframes.length
+      ? parameters.timeframes.join(', ')
+      : '1month';
+    const minConf = clamp(parameters.minConfidence, 0, 1);
 
     return TREND_PREDICTION_PROMPT_TEMPLATE
       .replace('{current_data}', JSON.stringify(currentDataSummary, null, 2))
       .replace('{historical_data}', JSON.stringify(historicalSummary, null, 2))
       .replace('{advanced_metrics}', advancedMetrics ? JSON.stringify(advancedMetrics, null, 2) : 'Non disponibles')
-      .replace('{timeframe}', parameters?.timeframes.join(', ') || '1month')
-      .replace('{min_confidence}', (parameters?.minConfidence || 0.6).toString())
-      .replace('{include_scenarios}', (parameters?.includeScenarios || true).toString())
+      .replace('{timeframe}', timeframes)
+      .replace('{min_confidence}', minConf.toString())
+      .replace('{include_scenarios}', String(!!parameters.includeScenarios))
       .replace('{timestamp}', new Date().toISOString());
   }
 
   /**
-   * Parse la réponse de l'IA et valide le format
+   * Parse la réponse de l'IA et valide le format via Zod
    */
   private parseTrendResponse(responseText: string): TrendAnalysis {
-    const jsonString = responseText.match(/{[\s\S]*}/)?.[0];
-    if (!jsonString) {
+    const stripped = responseText.replace(/```json|```/g, '').trim();
+    let jsonString = stripped;
+    const firstBrace = stripped.indexOf('{');
+    const lastBrace = stripped.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      jsonString = stripped.slice(firstBrace, lastBrace + 1);
+    }
+    if (!jsonString || jsonString[0]! !== '{') {
       throw new AIAnalysisError(
         'Réponse IA invalide: pas de JSON trouvé',
         'INVALID_RESPONSE' as any
       );
     }
-
     try {
       const parsed = JSON.parse(jsonString);
       return TrendAnalysisSchema.parse(parsed);
     } catch (error) {
       throw new AIAnalysisError(
-        `Erreur de parsing des prédictions: ${error.message}`,
+        `Erreur de parsing des prédictions: ${getErrorMessage(error)}`,
         'INVALID_RESPONSE' as any,
-        { cause: error }
+        { cause: toError(error) }
       );
     }
   }
@@ -394,28 +444,32 @@ export class TrendPredictorService {
     issues: string[];
   } {
     const issues: string[] = [];
-    
-    if (historicalData.length < 3) {
-      issues.push(`Pas assez de données historiques: ${historicalData.length} < 3`);
+
+    if (!Array.isArray(historicalData) || historicalData.length < 3) {
+      issues.push(`Pas assez de données historiques: ${Array.isArray(historicalData) ? historicalData.length : 0} < 3`);
     }
 
-    // Vérifier la continuité temporelle
-    const sortedData = [...historicalData].sort((a, b) => 
+    const sortedData = [...(historicalData || [])].sort((a, b) =>
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
 
-    const now = new Date();
-    const oldestData = new Date(sortedData[0]?.createdAt || now);
-    const daysDiff = (now.getTime() - oldestData.getTime()) / (1000 * 60 * 60 * 24);
-
-    if (daysDiff < 7) {
-      issues.push('Période historique trop courte (< 7 jours)');
+    if (sortedData.some(d => !d.createdAt || !isValidDateString(d.createdAt))) {
+      issues.push('Dates historiques invalides ou manquantes');
     }
 
-    // Vérifier la cohérence des données
-    const invalidItems = historicalData.filter(item => 
-      !item.avgPrice || item.avgPrice <= 0 || 
-      !item.salesVolume || item.salesVolume < 0
+    if (sortedData.length > 0) {
+      const now = new Date();
+      const oldestData = new Date(sortedData[0]!?.createdAt || now);
+      const daysDiff = (now.getTime() - oldestData.getTime()) / (1000 * 60 * 60 * 24);
+
+      if (daysDiff < 7) {
+        issues.push('Période historique trop courte (< 7 jours)');
+      }
+    }
+
+    const invalidItems = (historicalData || []).filter(_item =>
+      !isFiniteNumber(_item.avgPrice) || _item.avgPrice <= 0 ||
+      !isFiniteNumber(_item.salesVolume) || _item.salesVolume < 0
     );
 
     if (invalidItems.length > 0) {
@@ -429,17 +483,22 @@ export class TrendPredictorService {
   }
 
   /**
-   * Filtre les prédictions selon la configuration
+   * Filtre les prédictions selon la configuration active
    */
-  private filterPredictionsByConfig(analysis: TrendAnalysis, config: any): TrendAnalysis {
+  private filterPredictionsByConfig(
+    analysis: TrendAnalysis,
+    config: Readonly<ReturnType<typeof marketAnalysisConfig.getConfig>>
+  ): TrendAnalysis {
+    const allowedTimeframes = new Set(config.predictions?.timeframes || ['1month']);
+    const minConf = clamp(config.predictions?.minConfidence ?? 0.6, 0, 1);
+    const includeScenarios = !!config.predictions?.includeScenarios;
+
     return {
       ...analysis,
       predictions: analysis.predictions
-        .filter(pred => pred.confidence >= config.predictions.minConfidence)
-        .filter(pred => config.predictions.timeframes.includes(pred.timeframe)),
-      scenarios: config.predictions.includeScenarios 
-        ? analysis.scenarios 
-        : [],
+        .filter(pred => pred.confidence >= minConf)
+        .filter(pred => allowedTimeframes.has(pred.timeframe)),
+      scenarios: includeScenarios ? analysis.scenarios : [],
     };
   }
 
@@ -447,12 +506,9 @@ export class TrendPredictorService {
    * Génère des scénarios basiques en fallback
    */
   private generateBasicScenarios(
-    currentData: VintedAnalysisResult,
-    historicalData: MarketAnalysisHistoryItem[]
+    _currentData: VintedAnalysisResult,
+    _historicalData: MarketAnalysisHistoryItem[]
   ): MarketScenario[] {
-    const avgPrice = currentData.avgPrice;
-    const avgVolume = currentData.salesVolume;
-    
     return [
       {
         name: 'Scénario optimiste',
@@ -509,26 +565,24 @@ export class TrendPredictorService {
   }
 
   /**
-   * Résume les tendances historiques
+   * Résume les tendances historiques (prix/volume)
    */
   private summarizeHistoricalTrends(historicalData: MarketAnalysisHistoryItem[]): string {
-    if (historicalData.length < 2) {
+    if (!Array.isArray(historicalData) || historicalData.length < 2) {
       return 'Données historiques insuffisantes';
     }
-
-    const sortedData = [...historicalData].sort((a, b) => 
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    const sortedData = [...historicalData].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
-
-    const firstPrice = sortedData[0].avgPrice;
-    const lastPrice = sortedData[sortedData.length - 1].avgPrice;
-    const priceChange = ((lastPrice - firstPrice) / firstPrice) * 100;
-
-    const firstVolume = sortedData[0].salesVolume;
-    const lastVolume = sortedData[sortedData.length - 1].salesVolume;
-    const volumeChange = ((lastVolume - firstVolume) / firstVolume) * 100;
-
-    return `Prix: ${priceChange > 0 ? '+' : ''}${priceChange.toFixed(1)}%, Volume: ${volumeChange > 0 ? '+' : ''}${volumeChange.toFixed(1)}%`;
+    const first = sortedData[0]!;
+    const last = sortedData[sortedData.length - 1]!;
+    if (!first || !last) {
+      return 'Données historiques insuffisantes';
+    }
+    const priceChangePct = safeRelativeChange(Number(last.avgPrice), Number(first.avgPrice)) * 100;
+    const volumeChangePct = safeRelativeChange(Number(last.salesVolume), Number(first.salesVolume)) * 100;
+    const formatPct = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+    return `Prix: ${formatPct(priceChangePct)}, Volume: ${formatPct(volumeChangePct)}`;
   }
 
   /**
@@ -536,53 +590,62 @@ export class TrendPredictorService {
    */
   private identifyVolatilityFactors(historicalData: MarketAnalysisHistoryItem[]): string[] {
     const factors: string[] = [];
-    
-    // Analyser la fréquence des changements
-    const prices = historicalData.map(item => item.avgPrice);
-    const significantChanges = prices.slice(1).filter((price, i) => 
-      Math.abs((price - prices[i]) / prices[i]) > 0.1
-    );
-
-    if (significantChanges.length > historicalData.length * 0.3) {
+    if (!Array.isArray(historicalData) || historicalData.length < 2) {
+      return ['Données insuffisantes'];
+    }
+    const priceChanges = historicalData.slice(1).map((_item, i) => {
+      const curr = Number(_item.avgPrice);
+      const prev = Number(historicalData[i]!!.avgPrice);
+      return Math.abs(safeRelativeChange(curr, prev));
+    });
+    if (priceChanges.filter(c => isFiniteNumber(c) && c > 0.1).length > historicalData.length * 0.3) {
       factors.push('Fluctuations de prix fréquentes');
     }
-
-    // Analyser les volumes
-    const volumes = historicalData.map(item => item.salesVolume);
-    const volumeVariation = Math.max(...volumes) / Math.min(...volumes);
-    
-    if (volumeVariation > 2) {
-      factors.push('Variations importantes de volume');
+    const volumes = historicalData.map(_item => Number(_item.salesVolume)).filter(isFiniteNumber);
+    if (volumes.length >= 2) {
+      const minVol = Math.min(...volumes);
+      const maxVol = Math.max(...volumes);
+      if (minVol <= EPSILON) {
+        factors.push('Volumes très faibles ou nuls');
+      } else {
+        const volumeVariation = maxVol / Math.max(minVol, EPSILON);
+        if (volumeVariation > 2) {
+          factors.push('Variations importantes de volume');
+        }
+      }
     }
-
-    // Facteurs temporels
-    const timeSpan = Math.abs(new Date(historicalData[historicalData.length - 1].createdAt).getTime() - 
-                     new Date(historicalData[0].createdAt).getTime());
-    const days = timeSpan / (1000 * 60 * 60 * 24);
-    
+    const startMs = new Date(historicalData[0]!!.createdAt).getTime();
+    const endMs = new Date(historicalData[historicalData.length - 1]!!.createdAt).getTime();
+    const days = Math.abs(endMs - startMs) / (1000 * 60 * 60 * 24);
     if (days < 30) {
       factors.push('Période d\'observation courte');
     }
-
     if (factors.length === 0) {
       factors.push('Marché relativement stable');
     }
-
     return factors;
   }
 
   /**
-   * Obtient les paramètres par défaut
+   * Obtient les paramètres par défaut, fusionnés et normalisés
    */
   private getDefaultParameters(parameters?: Partial<PredictionParameters>): PredictionParameters {
     const config = marketAnalysisConfig.getConfig();
-    
+    const allowed: Timeframe[] = ['1week', '1month', '3months'];
+    const timeframes =
+      (parameters?.timeframes?.filter((t): t is Timeframe => allowed.includes(t as Timeframe)) ||
+       config.predictions.timeframes?.filter((t: any): t is Timeframe => allowed.includes(t)) ||
+       ['1month']);
+    const includeScenarios = parameters?.includeScenarios ?? config.predictions.includeScenarios ?? true;
+    const minConfidence = clamp(parameters?.minConfidence ?? config.predictions.minConfidence ?? 0.6, 0, 1);
+    const focusMetrics = parameters?.focusMetrics || ['price', 'volume'];
+    const scenarioTypes = parameters?.scenarioTypes || ['optimistic', 'realistic', 'pessimistic'];
     return {
-      timeframes: parameters?.timeframes || config.predictions.timeframes,
-      includeScenarios: parameters?.includeScenarios ?? config.predictions.includeScenarios,
-      minConfidence: parameters?.minConfidence || config.predictions.minConfidence,
-      focusMetrics: parameters?.focusMetrics || ['price', 'volume'],
-      scenarioTypes: parameters?.scenarioTypes || ['optimistic', 'realistic', 'pessimistic'],
+      timeframes,
+      includeScenarios,
+      minConfidence,
+      focusMetrics,
+      scenarioTypes,
     };
   }
 }

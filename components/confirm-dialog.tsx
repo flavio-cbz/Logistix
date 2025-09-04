@@ -21,7 +21,7 @@ interface ConfirmDialogProps {
 
 export function ConfirmDialog({ open, onOpenChange, onConfirm, title, description }: ConfirmDialogProps) {
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={onOpenChange!}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
@@ -30,7 +30,7 @@ export function ConfirmDialog({ open, onOpenChange, onConfirm, title, descriptio
         <AlertDialogFooter>
           <AlertDialogCancel>Annuler</AlertDialogCancel>
           <AlertDialogAction
-            onClick={onConfirm}
+            onClick={onConfirm!}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             Confirmer

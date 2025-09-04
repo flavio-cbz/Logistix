@@ -3,10 +3,7 @@
  * Implements robust recovery mechanisms like exponential backoff and fallbacks.
  */
 
-// Simple logger disabled
-// import { getLogger } from '@/lib/utils/simple-logger.js';
-import { ApiError, AppError, TimeoutError, categorizeError, ErrorCategory } from './error-types';
-
+import { AppError, TimeoutError, categorizeError, ErrorCategory } from './error-types'; // Removed ApiError as it's not directly used here
 import { getLogger } from '@/lib/utils/logging/simple-logger';
 
 const logger = getLogger('RecoveryStrategies');
@@ -60,11 +57,11 @@ export async function withExponentialBackoff<T>(
   for (let i = 0; i < config.attempts; i++) {
     try {
       return await fn();
-    } catch (error) {
+    } catch (error: unknown) {
       lastError = error instanceof Error ? error : new Error(String(error));
       
       if (!config.shouldRetry(lastError) || i === config.attempts - 1) {
-        logger.error(`Final attempt failed. No more retries. Error: ${lastError.message}`);
+        logger.error(`Final attempt ${i + 1}/${config.attempts} failed. No more retries. Error: ${lastError.message}`);
         throw lastError;
       }
 
@@ -99,7 +96,7 @@ export async function withTimeout<T>(
     timeout: number,
     operationName: string = 'Unnamed operation'
 ): Promise<T> {
-    let timeoutHandle: NodeJS.Timeout;
+    let timeoutHandle: NodeJS.Timeout | undefined;
 
     const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutHandle = setTimeout(() => {
@@ -110,7 +107,9 @@ export async function withTimeout<T>(
     try {
         return await Promise.race([promise, timeoutPromise]);
     } finally {
-        clearTimeout(timeoutHandle);
+        if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
+        }
     }
 }
 
@@ -135,7 +134,7 @@ export async function withFallback<T>(
 ): Promise<T> {
   try {
     return await primaryFn();
-  } catch (error) {
+  } catch (error: unknown) {
     const originalError = error instanceof Error ? error : new Error(String(error));
     if (fallbackConfig.shouldFallback(originalError)) {
       logger.warn(`Primary function failed. Executing fallback. Error: ${originalError.message}`);

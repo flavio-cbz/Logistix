@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { getSessionUser } from "@/lib/services/auth";
 import { db } from "@/lib/services/database/drizzle-client";
@@ -13,12 +14,8 @@ import {
 } from "@/lib/services/vinted-market-analysis";
 import { vintedApiMonitor } from "@/lib/services/performance-monitor";
 import { cacheManager } from "@/lib/services/cache-manager";
-import {
-  MarketAnalysisRequestSchema,
-  type EnhancedVintedAnalysisResult
-} from "@/types/vinted-market-analysis";
-import { vintedSessions } from "@/lib/services/database/drizzle-schema";
-import { vintedCredentialService } from "@/lib/services/auth/vinted-credential-service";
+import { MarketAnalysisRequestSchema } from '@/types/vinted-market-analysis'; // Changed from import type
+import type { EnhancedVintedAnalysisResult } from '@/types/vinted-market-analysis';
 import { z } from "zod";
 
 // Schema for AI enhancement options
@@ -37,8 +34,8 @@ const AIEnhancedMarketAnalysisRequestSchema = MarketAnalysisRequestSchema.extend
 // POST /api/v1/market-analysis/ai-enhanced : Lancer une analyse de marché avec IA
 export async function POST(req: NextRequest) {
   const id = uuidv4();
-  let user;
-
+  let user: any;
+ 
   try {
     user = await getSessionUser();
     if (!user) {
@@ -71,7 +68,7 @@ export async function POST(req: NextRequest) {
     const validationResult = AIEnhancedMarketAnalysisRequestSchema.safeParse(requestBody);
     if (!validationResult.success) {
       const errors = Object.entries(validationResult.error.flatten().fieldErrors).flatMap(([field, messages]) => 
-        (messages || []).map(message => ({ field, message, code: 'INVALID_INPUT' }))
+        (messages || []).map(_message => ({ field, _message, code: 'INVALID_INPUT' }))
       );
       logger.error("Validation failed for AI-enhanced market analysis request:", { errors, requestBody });
       return NextResponse.json(
@@ -129,29 +126,7 @@ export async function POST(req: NextRequest) {
     
     const categoryName = inputCategoryName || category.title;
 
-    // Get Vinted session
-    const vintedSession = await db.query.vintedSessions.findFirst({
-      where: eq(vintedSessions.userId, user.id),
-    });
-
-    if (!vintedSession?.sessionCookie) {
-      logger.error(`No Vinted session cookie found for user ${user.id}`);
-      return NextResponse.json(
-        createApiErrorResponse(new ApiError("Cookie de session Vinted non configuré pour cet utilisateur", 400, "VINTED_SESSION_NOT_CONFIGURED")),
-        { status: 400 }
-      );
-    }
-
-    let sessionCookie: string;
-    try {
-      sessionCookie = await vintedCredentialService.decrypt(vintedSession.sessionCookie);
-    } catch (error) {
-      logger.error(`Failed to decrypt Vinted session cookie for user ${user.id}:`, { error });
-      return NextResponse.json(
-        createApiErrorResponse(new ApiError("Impossible de déchiffrer le cookie de session Vinted", 500, "VINTED_SESSION_DECRYPTION_FAILED")),
-        { status: 500 }
-      );
-    }
+    // Vinted session is validated and accessed inside the service layer; avoid direct cookie access in route.
     
     const now = new Date();
 
@@ -199,7 +174,7 @@ export async function POST(req: NextRequest) {
             catalogId,
             categoryName,
             brandId: brandId ?? 0,
-            token: sessionCookie,
+            userId: user.id,
             maxProducts: maxProducts ?? 100,
             advancedParams: advancedParams ?? {},
             itemStates: Array.isArray(itemStates) ? itemStates.map(Number) : []
@@ -240,8 +215,8 @@ export async function POST(req: NextRequest) {
       // Update with results
       await db.update(marketAnalyses).set({
         status: "completed",
-        result: analysisResult,
-        rawData: analysisResult.rawItems,
+        result: analysisResult as unknown as Record<string, unknown>,
+        rawData: analysisResult.rawItems as unknown as Record<string, unknown>[],
         updatedAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24h cache
       }).where(eq(marketAnalyses.id, id));
@@ -374,7 +349,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (error instanceof ApiError) {
-      return NextResponse.json(createApiErrorResponse(error), { status: error.statusCode });
+      return NextResponse.json(createApiErrorResponse(error), { status: error.statusCode ?? 500 });
     }
     
     return NextResponse.json(

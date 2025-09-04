@@ -11,12 +11,12 @@ export async function POST() {
     
     return NextResponse.json({
       success: true,
-      message: 'Cache vidé avec succès'
+      _message: 'Cache vidé avec succès'
     });
   } catch (error) {
     console.error('Erreur lors du vidage du cache:', error);
     return NextResponse.json(
-      { success: false, message: 'Erreur serveur' },
+      { success: false, _message: 'Erreur serveur' },
       { status: 500 }
     );
   }

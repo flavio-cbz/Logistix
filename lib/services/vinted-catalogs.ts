@@ -244,7 +244,7 @@ export class VintedCatalogService {
      */
     findBestCatalogForProduct(productName: string): VintedCatalog | null {
         const suggestions = this.suggestCatalogsForProduct(productName);
-        return suggestions.length > 0 ? suggestions[0] : null;
+        return suggestions.length > 0 ? suggestions[0]! : null;
     }
 }
 

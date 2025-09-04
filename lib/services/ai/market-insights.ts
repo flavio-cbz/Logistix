@@ -3,7 +3,8 @@ import { runMarketAnalysisInference } from "./inference-client";
 import { VintedAnalysisResult } from "../vinted-market-analysis";
 import { AdvancedMetrics } from "@/lib/analytics/advanced-analytics-engine";
 import { marketAnalysisConfig } from "./market-analysis-config";
-import { AIAnalysisError } from "./ai-errors";
+import { AIAnalysisError, AIErrorCode } from "./ai-errors";
+import { getErrorMessage, toError } from '@/lib/utils/error-utils';
 
 // Schémas pour les insights de marché
 const PricingRecommendationSchema = z.object({
@@ -30,7 +31,7 @@ const MarketOpportunitySchema = z.object({
   effort: z.enum(['low', 'medium', 'high']),
   timeframe: z.enum(['immediate', 'short_term', 'long_term']),
   confidence: z.number().min(0).max(1),
-priority: z.enum(['low', 'medium', 'high', 'critical']),
+  priority: z.enum(['low', 'medium', 'high', 'critical']),
   actionSteps: z.array(z.string()),
 });
 
@@ -196,7 +197,7 @@ export class MarketInsightsService {
     if (!config.insights.enabled) {
       throw new AIAnalysisError(
         'Les insights de marché sont désactivés',
-        'FEATURE_DISABLED' as any,
+        AIErrorCode.FEATURE_DISABLED,
         { retryable: false, fallbackAvailable: true }
       );
     }
@@ -206,7 +207,7 @@ export class MarketInsightsService {
     if (!dataQuality.valid) {
       throw new AIAnalysisError(
         `Qualité des données insuffisante: ${dataQuality.issues.join(', ')}`,
-        'DATA_QUALITY_TOO_LOW' as any,
+        AIErrorCode.DATA_QUALITY_TOO_LOW,
         { retryable: false, fallbackAvailable: true, context: dataQuality }
       );
     }
@@ -228,7 +229,7 @@ export class MarketInsightsService {
         },
       });
 
-      const insights = this.parseInsightsResponse(response.choices[0].text);
+      const insights = this.parseInsightsResponse(response.choices[0]!!.text);
       
       // Filtrer selon la configuration
       return this.filterInsightsByConfig(insights, config);
@@ -239,9 +240,9 @@ export class MarketInsightsService {
       }
       
       throw new AIAnalysisError(
-        `Erreur lors de la génération des insights: ${error.message}`,
+        `Erreur lors de la génération des insights: ${getErrorMessage(error)}`,
         'INFERENCE_FAILED' as any,
-        { retryable: true, fallbackAvailable: true, cause: error }
+        { retryable: true, fallbackAvailable: true, cause: toError(error) }
       );
     }
   }
@@ -274,7 +275,7 @@ export class MarketInsightsService {
         max_tokens: 800,
       });
 
-      const recommendations: unknown[] = JSON.parse(response.choices[0].text);
+      const recommendations: unknown[] = JSON.parse(response.choices[0]!!.text);
       return recommendations.map((rec): PricingRecommendation => PricingRecommendationSchema.parse(rec));
       
     } catch (error) {
@@ -304,6 +305,7 @@ export class MarketInsightsService {
             effort: 'low',
             timeframe: 'immediate',
             confidence: gap.confidence,
+            priority: 'medium',
             actionSteps: [
               'Analyser la demande dans cette gamme de prix',
               'Tester un positionnement prix dans ce segment',
@@ -324,6 +326,7 @@ export class MarketInsightsService {
         effort: 'medium',
         timeframe: 'short_term',
         confidence: advancedMetrics.temporalAnalysis.seasonality.confidence,
+        priority: 'medium',
         actionSteps: [
           'Ajuster la stratégie selon le cycle saisonnier',
           'Optimiser le stock pour les pics de demande',
@@ -366,7 +369,7 @@ export class MarketInsightsService {
     if (!jsonString) {
       throw new AIAnalysisError(
         'Réponse IA invalide: pas de JSON trouvé',
-        'INVALID_RESPONSE' as any
+        AIErrorCode.INVALID_RESPONSE
       );
     }
 
@@ -375,9 +378,9 @@ export class MarketInsightsService {
       return MarketInsightsSchema.parse(parsed);
     } catch (error) {
       throw new AIAnalysisError(
-        `Erreur de parsing des insights: ${error.message}`,
-        'INVALID_RESPONSE' as any,
-        { cause: error }
+        `Erreur de parsing des insights: ${getErrorMessage(error)}`,
+        AIErrorCode.INVALID_RESPONSE,
+        { cause: toError(error) }
       );
     }
   }
@@ -408,8 +411,8 @@ export class MarketInsightsService {
     
     return [{
       optimalPriceRange: {
-        min: Math.max(currentPrice * 0.95, priceRange.min),
-        max: Math.min(currentPrice * 1.05, priceRange.max),
+        min: Math.max(currentPrice * 0.95, priceRange.min ?? currentPrice * 0.95),
+        max: Math.min(currentPrice * 1.05, priceRange.max ?? currentPrice * 1.05),
       },
       currentPricePosition: 'optimal',
       strategy: 'Maintenir le prix actuel avec ajustements mineurs',

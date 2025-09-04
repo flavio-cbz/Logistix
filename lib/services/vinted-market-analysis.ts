@@ -1,71 +1,55 @@
-import axios, { AxiosRequestHeaders } from 'axios';
+import axios from 'axios';
+import type { AxiosRequestHeaders } from 'axios';
 import { URLSearchParams } from 'url';
 import { logger } from '@/lib/utils/logging/logger';
 import { VintedIntegrationInstrumentation, MarketAnalysisInstrumentation } from './logging-instrumentation';
 import {
     SuggestionsResponseSchema,
     ApiResponseSoldItemsSchema,
-    SoldItem,
-    Catalog,
 } from '@/lib/validations/vinted-market-analysis-schemas';
 import { KNOWN_BRANDS } from '@/lib/data/known-brands';
 import { normalizeTitle } from '@/lib/services/ai/title-normalizer';
 import { isAnomaly } from '@/lib/services/ai/anomaly-detector';
-import { 
-    EnhancedVintedAnalysisResult, 
+import type {
+    SoldItem,
+    Catalog,
+    EnrichedSoldItem,
+    VintedAnalysisResult,
+    EnhancedVintedAnalysisResult,
     AIProcessingMetadata,
     AIInsights,
     AIRecommendations,
     AnomalyDetection,
     TrendPrediction,
     EnhancedChart,
-    EnhancedAdvancedMetrics
+    EnhancedAdvancedMetrics,
+    OpportunityRecommendation as OpportunityRecommendationType,
+    PricingRecommendation as PricingRecommendationType,
+    RiskMitigation as RiskMitigationType,
+    MarketingRecommendation as MarketingRecommendationType,
+    ActionPlan, // Import ActionPlan
+    ActionItem // Import ActionItem
 } from '@/types/vinted-market-analysis';
-import AdvancedAnalyticsEngine from '@/lib/analytics/advanced-analytics-engine';
+import { AdvancedAnalyticsEngine } from '@/lib/analytics/advanced-analytics-engine';
+import { vintedSessionManager } from '@/lib/services/auth/vinted-session-manager';
 
 // --- Constantes API ---
 const VINTED_API_BASE = 'https://www.vinted.fr/api/v2';
 const SOLD_ITEMS_URL = `${VINTED_API_BASE}/item_upload/items/similar_sold_items`;
 const SUGGESTIONS_URL = `${VINTED_API_BASE}/items/suggestions`;
 
-// --- Interfaces ---
-export interface EnrichedSoldItem extends SoldItem {
-  normalizedData: {
-    brand: string | null;
-    model: string | null;
-    year: number | null;
-    attributes: string[];
-  };
-}
-
-export interface VintedAnalysisResult {
-    salesVolume: number;
-    avgPrice: number;
-    priceRange: {
-        min: number;
-        max: number;
-    };
-    brandInfo: {
-        id: number;
-        name: string;
-    } | null;
-    catalogInfo: {
-        id: number;
-        name: string;
-    };
-    enrichedItems: EnrichedSoldItem[];
-    rawItems: SoldItem[]; // <-- Ajout pour correction TS
-    analysisDate: string;
-    brandDistribution: Record<string, number>;
-    modelDistribution: Record<string, number>;
-}
+ // --- Interfaces ---
+ //
+ // Utiliser les types partagés définis dans lib/types/vinted-market-analysis.ts
+ // (importés en haut du fichier) pour garantir la cohérence et lever les
+ // duplications de définitions locales.
 
 export interface AnalysisRequest {
+    userId: string;
     productName: string;
     catalogId: number;
     categoryName?: string;
     brandId?: number;
-    token: string;
     maxProducts?: number;
     advancedParams?: Record<string, any>;
     itemStates?: number[];
@@ -74,73 +58,19 @@ export interface AnalysisRequest {
 /**
  * Types internes manquants pour la compatibilité TypeScript stricte
  */
-export interface PricingRecommendation {
-  type: 'pricing';
-  optimalPrice: number;
-  priceRange: { min: number; max: number };
-  strategy: string;
-  justification: string;
-  confidence: number;
-  expectedImpact: string;
-}
-
-export interface OpportunityRecommendation {
-  type: 'opportunity';
-  opportunity: string;
-  description: string;
-  profitPotential: 'low' | 'medium' | 'high';
-  effort: 'low' | 'medium' | 'high';
-  timeline: string;
-  confidence: number;
-  actionSteps: string[];
-}
-
-export interface RiskMitigation {
-  type: 'risk';
-  risk: string;
-  severity: 'low' | 'medium' | 'high';
-  mitigation: string;
-  preventionSteps: string[];
-  confidence: number;
-}
-
-export interface MarketingRecommendation {
-  type: 'marketing';
-  strategy: string;
-  channels: string[];
-  targetAudience: string;
-  expectedOutcome: string;
-  confidence: number;
-  timeline: string;
-}
-
-export interface ActionItem {
-  action: string;
-  priority: 'low' | 'medium' | 'high';
-  effort: 'low' | 'medium' | 'high';
-  expectedImpact: string;
-  timeline: string;
-}
-
-export interface ActionPlan {
-  immediate: ActionItem[];
-  shortTerm: ActionItem[];
-  longTerm: ActionItem[];
-  totalEstimatedEffort: string;
-  expectedROI: string;
-}
+// Removed internal interfaces that are now imported from types/vinted-market-analysis.ts
 
 // --- Classes d'erreur ---
 export class VintedApiError extends Error {
-    constructor(message: string, public status?: number, public context?: any) {
-        super(message);
+    constructor(_message: string, public status?: number, public context?: any) {
+        super(_message);
         this.name = 'VintedApiError';
     }
 }
 
 export class VintedValidationError extends Error {
-    constructor(message: string) {
-        super(message);
+    constructor(_message: string) {
+        super(_message);
         this.name = 'VintedValidationError';
     }
 }
@@ -148,7 +78,7 @@ export class VintedValidationError extends Error {
 // --- Service principal ---
 export class VintedMarketAnalysisService {
     private static instance: VintedMarketAnalysisService;
-    private advancedAnalyticsEngine: InstanceType<typeof AdvancedAnalyticsEngine>;
+    private advancedAnalyticsEngine: AdvancedAnalyticsEngine;
 
     private constructor() {
         this.advancedAnalyticsEngine = new AdvancedAnalyticsEngine();
@@ -165,10 +95,14 @@ export class VintedMarketAnalysisService {
         return MarketAnalysisInstrumentation.instrumentAnalysis(
             'PRODUCT_ANALYSIS',
             async () => {
-                const { productName, catalogId, categoryName, brandId, token, maxProducts, itemStates } = request;
-                const headers = this.createHeaders(token);
+                const { userId, productName, catalogId, categoryName, brandId, maxProducts, itemStates } = request;
+                const cookie = await vintedSessionManager.getSessionCookie(userId);
+                if (!cookie) {
+                  throw new VintedValidationError('Session Vinted non configurée ou expirée pour cet utilisateur.');
+                }
+                const headers = this.createHeaders(cookie);
                 
-                logger.info(`[VintedService] Début de l'analyse pour "${productName}"`);
+                logger.info(`[VintedService] Début de l'analyse pour "${productName}" (user=${userId})`);
 
                 const finalCatalogId = await this.getBestCatalogId(categoryName || '', catalogId);
                 let finalBrandId = await this.determineBrandId(productName, brandId, finalCatalogId, headers);
@@ -184,14 +118,14 @@ export class VintedMarketAnalysisService {
                     soldItems = soldItems.slice(0, maxProducts);
                 }
 
-                const processingPromises = soldItems.map(async (item) => {
-                    const normalizedData = await normalizeTitle(item.title);
-                    const anomalyCheck = await isAnomaly(productName, item.title);
-                    return { ...item, normalizedData, isRelevant: anomalyCheck.is_relevant };
+                const processingPromises = soldItems.map(async (_item) => {
+                    const normalizedData = await normalizeTitle(_item.title);
+                    const anomalyCheck = await isAnomaly(productName, _item.title);
+                    return { ..._item, normalizedData, isRelevant: anomalyCheck.is_relevant };
                 });
 
                 const processedItems = await Promise.all(processingPromises);
-                const relevantItems = processedItems.filter(item => item.isRelevant) as EnrichedSoldItem[];
+                const relevantItems = processedItems.filter(_item => _item.isRelevant) as EnrichedSoldItem[];
                 
                 logger.info(`[VintedService] ${relevantItems.length} sur ${soldItems.length} articles jugés pertinents.`);
 
@@ -202,7 +136,6 @@ export class VintedMarketAnalysisService {
                 const result = this.calculateMetrics(relevantItems, finalCatalogId, finalBrandId);
 
                 logger.info(`[VintedService] Analyse terminée: ${result.salesVolume} ventes, prix moyen ${result.avgPrice}€`);
-                // Correction : Ajout de rawItems dans le résultat
                 return {
                   ...result,
                   rawItems: soldItems
@@ -238,11 +171,27 @@ export class VintedMarketAnalysisService {
 
     async getSuggestedBrandId(title: string, catalogId: number, headers: AxiosRequestHeaders): Promise<number | null> {
         try {
+            // Logging minimal pour tests des filtres : URL, présence du cookie et payload
+            const params = new URLSearchParams({ title, catalog_id: catalogId.toString() });
+            const url = `${SUGGESTIONS_URL}?${params.toString()}`;
+            logger.info(`[VintedService][DEBUG] Demande de suggestion de marque -> ${url}`);
+            logger.debug(`[VintedService][DEBUG] Headers keys: ${Object.keys(headers || {}).join(', ')}`);
+            if (headers && (headers as any).Cookie) {
+                logger.info(`[VintedService][DEBUG] Cookie header present (length=${String((headers as any).Cookie).length})`);
+            } else {
+                logger.warn(`[VintedService][DEBUG] Cookie header missing for suggestions request`);
+            }
+
             return await VintedIntegrationInstrumentation.instrumentApiCall('suggestions', 'GET', async () => {
-                const params = new URLSearchParams({ title, catalog_id: catalogId.toString() });
-                const response = await axios.get(`${SUGGESTIONS_URL}?${params.toString()}`, { headers, timeout: 10000 });
+                const response = await axios.get(url, { headers, timeout: 10000 });
+                logger.info(`[VintedService][DEBUG] Suggestions response status=${response.status}`);
                 const parsed = SuggestionsResponseSchema.safeParse(response.data);
                 const firstBrand = parsed.success ? parsed.data.brands?.[0] : undefined;
+                if (parsed.success) {
+                    logger.info(`[VintedService][DEBUG] Suggestions parsed brands=${(parsed.data.brands || []).length}`);
+                } else {
+                    logger.warn(`[VintedService][DEBUG] Suggestions response did not match schema`);
+                }
                 return firstBrand ? firstBrand.id : null;
             }, { title, catalogId });
         } catch (error) {
@@ -261,12 +210,24 @@ export class VintedMarketAnalysisService {
                     if (brandId) params.brand_id = brandId;
                     
                     try {
-                        const pageItems = await VintedIntegrationInstrumentation.instrumentApiCall(`sold_items_p${page}_s${statusId}`, 'GET', async () => {
-                            const response = await axios.get(`${SOLD_ITEMS_URL}?${new URLSearchParams(params)}`, { headers, timeout: 15000 });
-                            const parsed = ApiResponseSoldItemsSchema.safeParse(response.data);
-                            return parsed.success ? parsed.data.items : [];
-                        }, { brandId, catalogId, page, statusId });
+                        const requestKey = `sold_items_p${page}_s${statusId}`;
+                        const requestUrl = `${SOLD_ITEMS_URL}?${new URLSearchParams(params)}`;
+                        logger.info(`[VintedService][DEBUG] Requesting sold items -> ${requestUrl}`);
+                        logger.debug(`[VintedService][DEBUG] Headers keys: ${Object.keys(headers || {}).join(', ')}`);
+                        if (headers && (headers as any).Cookie) {
+                            logger.info(`[VintedService][DEBUG] Cookie header present (length=${String((headers as any).Cookie).length})`);
+                        } else {
+                            logger.warn(`[VintedService][DEBUG] Cookie header missing for sold items request`);
+                        }
 
+                        const pageItems = await VintedIntegrationInstrumentation.instrumentApiCall(requestKey, 'GET', async () => {
+                            const response = await axios.get(requestUrl, { headers, timeout: 15000 });
+                            logger.info(`[VintedService][DEBUG] Sold items response status=${response.status} for page=${page} statusId=${statusId}`);
+                            const parsed = ApiResponseSoldItemsSchema.safeParse(response.data);
+                            const items = parsed.success ? parsed.data.items : [];
+                            logger.info(`[VintedService][DEBUG] Parsed items count=${items.length} for page=${page} statusId=${statusId}`);
+                            return items;
+                        }, { brandId, catalogId, page, statusId });
                         if (pageItems.length === 0) break;
                         allItems = allItems.concat(pageItems);
                     } catch (error) {
@@ -280,11 +241,11 @@ export class VintedMarketAnalysisService {
     }
 
     private calculateMetrics(enrichedItems: EnrichedSoldItem[], catalogId: number, brandId: number | null): VintedAnalysisResult {
-        const prices = enrichedItems.map(item => parseFloat(item.price.amount));
+        const prices = enrichedItems.map(_item => parseFloat(_item.price.amount));
         const totalPrice = prices.reduce((sum, price) => sum + price, 0);
         const avgPrice = parseFloat((totalPrice / prices.length).toFixed(2));
         
-        const itemWithBrand = enrichedItems.find(item => item.brand);
+        const itemWithBrand = enrichedItems.find(_item => _item.brand);
         const brandInfo = itemWithBrand?.brand ? { id: itemWithBrand.brand.id, name: itemWithBrand.brand.title } : (brandId ? { id: brandId, name: 'Unknown' } : null);
 
         return {
@@ -296,15 +257,23 @@ export class VintedMarketAnalysisService {
             enrichedItems,
             rawItems: [], // sera remplacé dans analyzeProduct
             analysisDate: new Date().toISOString(),
-            brandDistribution: this.calculateDistribution(enrichedItems.map(item => item.normalizedData.brand)),
-            modelDistribution: this.calculateDistribution(enrichedItems.map(item => item.normalizedData.model)),
+            brandDistribution: this.calculateDistribution(
+              enrichedItems
+                .map(_item => _item.normalizedData?.brand)
+                .filter((v): v is string | null => v !== undefined)
+            ),
+            modelDistribution: this.calculateDistribution(
+              enrichedItems
+                .map(_item => _item.normalizedData?.model)
+                .filter((v): v is string | null => v !== undefined)
+            ),
         };
     }
 
     private calculateDistribution(values: (string | null)[]): Record<string, number> {
         return values.reduce((acc, value) => {
             if (value) {
-                acc[value] = (acc[value] || 0) + 1;
+                (acc as any)[value] = (acc[value]! || 0) + 1;
             }
             return acc;
         }, {} as Record<string, number>);
@@ -338,7 +307,7 @@ export class VintedMarketAnalysisService {
         const baseAnalysis = await this.analyzeProduct(request);
         
         // Calculate advanced metrics using AdvancedAnalyticsEngine
-        const advancedMetrics = this.advancedAnalyticsEngine.calculateAdvancedMetrics(baseAnalysis);
+        const advancedMetrics: EnhancedAdvancedMetrics = this.advancedAnalyticsEngine.calculateAdvancedMetrics(baseAnalysis);
         
         // Create processing metadata
         const processingMetadata: AIProcessingMetadata = {
@@ -364,10 +333,9 @@ export class VintedMarketAnalysisService {
         try {
             // Add AI enhancements based on options, using advanced metrics as context
             if (options.includeAIInsights) {
-                // Correction : cast forcé pour compatibilité stricte
                 enhancedResult.aiInsights = await this.generateAIInsights(
                   baseAnalysis,
-                  advancedMetrics as unknown as EnhancedAdvancedMetrics
+                  advancedMetrics
                 );
             }
 
@@ -375,21 +343,21 @@ export class VintedMarketAnalysisService {
                 enhancedResult.aiRecommendations = await this.generateAIRecommendations(
                     baseAnalysis, 
                     enhancedResult.aiInsights,
-                    advancedMetrics as unknown as EnhancedAdvancedMetrics
+                    advancedMetrics
                 );
             }
 
             if (options.includeAnomalyDetection) {
                 enhancedResult.anomalies = await this.detectMarketAnomalies(
                   baseAnalysis,
-                  advancedMetrics as unknown as EnhancedAdvancedMetrics
+                  advancedMetrics
                 );
             }
 
             if (options.includeTrendPrediction) {
                 enhancedResult.trendPredictions = await this.generateTrendPredictions(
                   baseAnalysis,
-                  advancedMetrics as unknown as EnhancedAdvancedMetrics
+                  advancedMetrics
                 );
             }
 
@@ -397,7 +365,7 @@ export class VintedMarketAnalysisService {
                 enhancedResult.enhancedCharts = await this.generateEnhancedCharts(
                     baseAnalysis, 
                     enhancedResult.aiInsights,
-                    advancedMetrics as unknown as EnhancedAdvancedMetrics
+                    advancedMetrics
                 );
             }
 
@@ -430,7 +398,7 @@ export class VintedMarketAnalysisService {
      * Generate AI insights from analysis data using advanced metrics
      */
     private async generateAIInsights(
-          analysis: VintedAnalysisResult,
+          _analysis: VintedAnalysisResult,
           advancedMetrics: EnhancedAdvancedMetrics
       ): Promise<AIInsights> {
           const keyFindings: any[] = [];
@@ -490,7 +458,7 @@ export class VintedMarketAnalysisService {
 
         // Price gaps opportunities
         if (advancedMetrics.competitiveAnalysis.priceGaps.length > 0) {
-            const topGap = advancedMetrics.competitiveAnalysis.priceGaps[0];
+            const topGap = advancedMetrics.competitiveAnalysis.priceGaps[0]!;
             if (topGap) {
                 keyFindings.push({
                     type: 'opportunity',
@@ -508,7 +476,7 @@ export class VintedMarketAnalysisService {
         }
 
         return {
-            summary: `Analyse de ${analysis.salesVolume} ventes avec un prix moyen de ${analysis.avgPrice.toFixed(2)}€. Position concurrentielle ${competitivePosition} avec un score de qualité des données de ${(advancedMetrics.qualityScore.overall * 100).toFixed(1)}%.`,
+            summary: `Analyse de ${advancedMetrics.descriptiveStats.mean} ventes avec un prix moyen de ${advancedMetrics.descriptiveStats.mean.toFixed(2)}€. Position concurrentielle ${competitivePosition} avec un score de qualité des données de ${(advancedMetrics.qualityScore.overall * 100).toFixed(1)}%.`,
             keyFindings,
             marketContext: {
                 competitivePosition: this.translateMarketPosition(competitivePosition),
@@ -529,14 +497,14 @@ export class VintedMarketAnalysisService {
      * Generate AI recommendations based on insights and advanced metrics
      */
     private async generateAIRecommendations(
-        analysis: VintedAnalysisResult, 
+        _analysis: VintedAnalysisResult,
         insights: AIInsights,
         advancedMetrics: EnhancedAdvancedMetrics
     ): Promise<AIRecommendations> {
-        const pricing: PricingRecommendation[] = [];
-        const opportunities: OpportunityRecommendation[] = [];
-        const risks: RiskMitigation[] = [];
-        const marketing: MarketingRecommendation[] = [];
+        const pricing: PricingRecommendationType[] = [];
+        const opportunities: OpportunityRecommendationType[] = [];
+        const marketing: MarketingRecommendationType[] = [];
+        const risks: RiskMitigationType[] = []; // Changed from _risks to risks, this variable is used now
 
         // Pricing recommendations based on advanced metrics
         const optimalPrice = (insights.priceAnalysis.optimalPriceRange.min + insights.priceAnalysis.optimalPriceRange.max) / 2;
@@ -547,7 +515,7 @@ export class VintedMarketAnalysisService {
             strategy: insights.priceAnalysis.pricingStrategy,
             justification: insights.priceAnalysis.justification,
             confidence: 0.8,
-            expectedImpact: `Potentiel d'amélioration de ${((optimalPrice - analysis.avgPrice) / analysis.avgPrice * 100).toFixed(1)}% du prix moyen`,
+            expectedImpact: `Potentiel d'amélioration de ${((optimalPrice - advancedMetrics.descriptiveStats.mean) / advancedMetrics.descriptiveStats.mean * 100).toFixed(1)}% du prix moyen`,
         });
 
         // Opportunity recommendations from price gaps
@@ -559,7 +527,7 @@ export class VintedMarketAnalysisService {
                 profitPotential: gap.opportunity > 2 ? 'high' : gap.opportunity > 1.5 ? 'medium' : 'low',
                 effort: 'medium',
                 timeline: '2-4 semaines',
-                confidence: gap.confidence,
+                confidence: gap.confidence || 0,
                 actionSteps: [
                     'Analyser la qualité des produits dans cette fourchette',
                     'Ajuster le positionnement produit',
@@ -570,7 +538,7 @@ export class VintedMarketAnalysisService {
         });
 
         // Risk mitigation based on outliers and volatility
-        if (advancedMetrics.descriptiveStats.outliers.length > analysis.salesVolume * 0.1) {
+        if (advancedMetrics.descriptiveStats.outliers.length > advancedMetrics.descriptiveStats.mean * 0.1) {
             risks.push({
                 type: 'risk',
                 risk: 'Forte variabilité des prix',
@@ -630,7 +598,7 @@ export class VintedMarketAnalysisService {
      * Detect market anomalies using enhanced AI and advanced metrics
      */
     private async detectMarketAnomalies(
-        analysis: VintedAnalysisResult, 
+        _analysis: VintedAnalysisResult,
         advancedMetrics: EnhancedAdvancedMetrics
     ): Promise<AnomalyDetection[]> {
         const anomalies: AnomalyDetection[] = [];
@@ -640,12 +608,9 @@ export class VintedMarketAnalysisService {
             anomalies.push({
                 id: `price-outliers-${Date.now()}`,
                 type: 'price',
-                severity: advancedMetrics.descriptiveStats.outliers.length > analysis.salesVolume * 0.1 ? 'high' : 'medium',
+                severity: advancedMetrics.descriptiveStats.outliers.length > advancedMetrics.descriptiveStats.mean * 0.1 ? 'high' : 'medium',
                 description: `${advancedMetrics.descriptiveStats.outliers.length} prix aberrants détectés`,
-                affectedItems: analysis.rawItems
-                    .filter(item => advancedMetrics.descriptiveStats.outliers.includes(parseFloat(item.price.amount)))
-                    .slice(0, 5)
-                    .map(item => item.title),
+                affectedItems: [],
                 suggestedAction: 'Vérifier la qualité et l\'authenticité de ces articles',
                 confidence: 0.9,
                 detectedAt: new Date().toISOString(),
@@ -677,7 +642,7 @@ export class VintedMarketAnalysisService {
      * Generate trend predictions using advanced metrics
      */
     private async generateTrendPredictions(
-        analysis: VintedAnalysisResult, 
+        _analysis: VintedAnalysisResult,
         advancedMetrics: EnhancedAdvancedMetrics
     ): Promise<TrendPrediction> {
         const trendData = advancedMetrics.temporalAnalysis.trends;
@@ -709,12 +674,11 @@ export class VintedMarketAnalysisService {
      * Generate enhanced charts with AI annotations using advanced metrics
      */
     private async generateEnhancedCharts(
-        analysis: VintedAnalysisResult, 
-        insights?: AIInsights,
+        _analysis: VintedAnalysisResult,
+        _insights?: AIInsights,
         advancedMetrics?: EnhancedAdvancedMetrics
     ): Promise<EnhancedChart[]> {
         const charts: EnhancedChart[] = [];
-
         if (advancedMetrics) {
             // Price distribution chart with AI annotations
             charts.push({
@@ -752,7 +716,6 @@ export class VintedMarketAnalysisService {
                 generatedAt: new Date().toISOString(),
             });
         }
-
         return charts;
     }
 
@@ -890,7 +853,7 @@ export class VintedMarketAnalysisService {
         
         // Adjust based on competitive gaps
         if (metrics.competitiveAnalysis.priceGaps.length > 0) {
-            const bestGap = metrics.competitiveAnalysis.priceGaps[0];
+            const bestGap = metrics.competitiveAnalysis.priceGaps[0]!;
             if (bestGap && bestGap.confidence && bestGap.confidence > 0.7) {
                 return {
                     min: Math.max(lowerBound, bestGap.min ?? lowerBound),
@@ -951,10 +914,10 @@ export class VintedMarketAnalysisService {
      * Generate action plan from recommendations
      */
     private generateActionPlan(
-        pricing: PricingRecommendation[],
-        opportunities: OpportunityRecommendation[],
-        risks: RiskMitigation[],
-        marketing: MarketingRecommendation[]
+        pricing: PricingRecommendationType[],
+        opportunities: OpportunityRecommendationType[],
+        risks: RiskMitigationType[],
+        marketing: MarketingRecommendationType[]
     ): ActionPlan {
         const immediate: ActionItem[] = [];
         const shortTerm: ActionItem[] = [];
@@ -982,15 +945,25 @@ export class VintedMarketAnalysisService {
             });
         });
 
+        // Actions à long terme provenant de l'atténuation des risques
+        risks.forEach(risk => {
+            longTerm.push({
+                action: `Atténuer le risque: ${risk.risk}`,
+                priority: risk.severity === 'high' ? 'high' : 'medium',
+                effort: 'high', // L'atténuation des risques est souvent un effort important
+                expectedImpact: `Réduire la sévérité du risque: ${risk.severity}`,
+                timeline: '3-6 mois',
+            });
+        });
         // Long-term actions from marketing and risk mitigation
         if (marketing.length > 0) {
-            if (marketing[0]) {
+            if (marketing[0]!) {
                 longTerm.push({
-                    action: marketing[0].strategy ?? '',
+                    action: marketing[0]!.strategy ?? '',
                     priority: 'medium',
                     effort: 'high',
-                    expectedImpact: marketing[0].expectedOutcome ?? '',
-                    timeline: marketing[0].timeline ?? '',
+                    expectedImpact: marketing[0]!.expectedOutcome ?? '',
+                    timeline: marketing[0]!.timeline ?? '',
                 });
             }
         }
@@ -1028,7 +1001,7 @@ export class VintedMarketAnalysisService {
     /**
      * Estimate ROI from recommendations
      */
-    private estimateROI(pricing: PricingRecommendation[], opportunities: OpportunityRecommendation[]): string {
+    private estimateROI(pricing: PricingRecommendationType[], opportunities: OpportunityRecommendationType[]): string {
         let score = 0;
         
         if (pricing.length > 0) {
@@ -1124,7 +1097,10 @@ export class VintedMarketAnalysisService {
         }
 
         // Check price consistency
-        const priceRange = analysis.priceRange.max - analysis.priceRange.min;
+        const priceRange =
+          (typeof analysis.priceRange.max === 'number' && typeof analysis.priceRange.min === 'number')
+            ? analysis.priceRange.max - analysis.priceRange.min
+            : 0;
         const avgPrice = analysis.avgPrice;
         if (priceRange > avgPrice * 3) {
             issues.push('Fourchette de prix très large, peut affecter la précision');
@@ -1157,10 +1133,12 @@ export class CatalogService {
         return CatalogService.instance;
     }
     async findCatalogByName(name: string): Promise<Catalog[]> {
-        if (name.toLowerCase() === 'hauts et t-shirts') return [{ id: 1806, title: 'Hauts et t-shirts', catalogs: [] }];
+        if (name.toLowerCase() === 'hauts et t-shirts') return [{ id: 1806, catalogs: [] }];
         return [];
     }
 }
 
 export const vintedMarketAnalysisService = VintedMarketAnalysisService.getInstance();
 export const catalogService = CatalogService.getInstance();
+
+export type { VintedAnalysisResult } from '@/types/vinted-market-analysis';

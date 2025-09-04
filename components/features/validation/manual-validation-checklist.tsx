@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { useToast } from "components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 const checklistItems = [
   { id: "access-interface", label: "Accès à l'interface d'analyse de marché" },
@@ -22,7 +22,7 @@ export function ManualValidationChecklist() {
     setCheckedItems((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const allChecked = checklistItems.every((item) => checkedItems[item.id]);
+  const allChecked = checklistItems.every((item) => Boolean(checkedItems[item.id]));
 
   const handleConfirmValidation = async () => {
     if (allChecked) {
@@ -69,7 +69,7 @@ export function ManualValidationChecklist() {
           <div key={item.id} className="flex items-center space-x-2">
             <Checkbox
               id={item.id}
-              checked={checkedItems[item.id] || false}
+              checked={!!checkedItems[item.id]}
               onCheckedChange={() => handleCheckboxChange(item.id)}
             />
             <Label htmlFor={item.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">

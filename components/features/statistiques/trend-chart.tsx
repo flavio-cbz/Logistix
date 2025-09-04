@@ -1,7 +1,6 @@
 "use client"
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from 'recharts';
-import { useTheme } from "next-themes"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface TrendData {
@@ -16,7 +15,6 @@ interface TrendChartProps {
 }
 
 export function TrendChart({ data }: TrendChartProps) {
-  const { theme } = useTheme();
 
   if (!data || data.length === 0) {
     return (
@@ -31,8 +29,6 @@ export function TrendChart({ data }: TrendChartProps) {
     );
   }
 
-  // Trouver l'index du premier mois de prévision (où i < 0 dans le calcul API)
-  // Pour le moment, je vais assumer que les 3 derniers points sont des prévisions.
   const predictionStartIndex = data.length > 3 ? data.length - 3 : 0;
 
   return (
@@ -52,33 +48,33 @@ export function TrendChart({ data }: TrendChartProps) {
                 bottom: 5,
               }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)"} />
-              <XAxis dataKey="mois" stroke={theme === 'dark' ? "#fff" : "#000"} />
-              <YAxis stroke={theme === 'dark' ? "#fff" : "#000"} />
+              <CartesianGrid strokeDasharray="3 3" stroke={`hsl(var(--chart-grid))`} strokeOpacity={0.6} />
+              <XAxis dataKey="mois" stroke={`hsl(var(--chart-text))`} />
+              <YAxis stroke={`hsl(var(--chart-text))`} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: theme === 'dark' ? '#333' : '#fff',
-                  borderColor: theme === 'dark' ? '#555' : '#ccc'
+                  backgroundColor: `hsl(var(--chart-tooltip-bg))`,
+                  borderColor: `hsl(var(--chart-tooltip-text))`
                 }}
               />
               <Legend />
-              <Line type="monotone" dataKey="valeur" stroke="#8884d8" name="Ventes Réelles/Prévisions" activeDot={{ r: 8 }} />
-              
+              <Line type="monotone" dataKey="valeur" stroke={`hsl(var(--chart-1))`} name="Ventes Réelles/Prévisions" activeDot={{ r: 8 }} />
+
               {/* Bande de confiance */}
-              <Line type="monotone" dataKey="max" stroke="#82ca9d" strokeDasharray="5 5" name="Max (Confiance)" dot={false} />
-              <Line type="monotone" dataKey="min" stroke="#ffc658" strokeDasharray="5 5" name="Min (Confiance)" dot={false} />
+              <Line type="monotone" dataKey="max" stroke={`hsl(var(--chart-2))`} strokeDasharray="5 5" name="Max (Confiance)" dot={false} />
+              <Line type="monotone" dataKey="min" stroke={`hsl(var(--chart-3))`} strokeDasharray="5 5" name="Min (Confiance)" dot={false} />
 
               {/* Zone de prévision */}
               {predictionStartIndex > 0 && (
                 <ReferenceArea
-                  x1={data[predictionStartIndex].mois}
-                  x2={data[data.length - 1].mois}
+                  x1={data[predictionStartIndex]!!!.mois}
+                  x2={data[data.length - 1]!!!.mois}
                   strokeOpacity={0.3}
-                  fill="#ccc"
+                  fill={`hsl(var(--chart-grid))`}
                   label={{
                     value: "Prévision",
                     position: "top",
-                    fill: theme === 'dark' ? "#fff" : "#000"
+                    fill: `hsl(var(--chart-text))`
                   }}
                 />
               )}

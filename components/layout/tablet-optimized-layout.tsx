@@ -86,9 +86,9 @@ export function TabletStatsGrid({ stats, className }: TabletStatsGridProps) {
     <ResponsiveGrid
       variant="dashboard"
       gap={isMobile ? "sm" : isTablet ? "md" : "lg"}
-      className={className}
+      className={className ?? ''}
     >
-      {stats.map((stat) => (
+      {stats.map((stat, _index) => ( // suppression de index
         <EnhancedCard
           key={stat.id}
           variant="elevated"
@@ -141,8 +141,8 @@ export function TabletStatsGrid({ stats, className }: TabletStatsGridProps) {
               <div className="flex items-center mt-4 pt-4 border-t border-border">
                 <div className={cn(
                   "flex items-center text-sm font-medium",
-                  stat.change.type === 'increase' && "text-green-600",
-                  stat.change.type === 'decrease' && "text-red-600",
+                  stat.change.type === 'increase' && "text-[hsl(var(--success-foreground))]",
+                  stat.change.type === 'decrease' && "text-[hsl(var(--destructive-foreground))]",
                   stat.change.type === 'neutral' && "text-muted-foreground"
                 )}>
                   <span className="mr-1">
@@ -174,7 +174,6 @@ interface TabletCardLayoutProps {
   description?: string
   actions?: React.ReactNode
   className?: string
-  variant?: 'default' | 'compact' | 'expanded'
 }
 
 export function TabletCardLayout({
@@ -182,18 +181,17 @@ export function TabletCardLayout({
   title,
   description,
   actions,
-  className,
-  variant = 'default'
+  className
 }: TabletCardLayoutProps) {
   const { isMobile, isTablet, getTouchSpacing } = useMobileNavigation()
 
   return (
     <EnhancedCard 
       variant="default" 
-      className={className}
+      className={className ?? ''}
       accessibility={{
-        label: title ? `Section: ${title}` : undefined,
-        description: description
+        label: title ? `Section: ${title}` : "",
+        description: description ?? ""
       }}
     >
       <EnhancedCardContent className="p-6">
@@ -290,7 +288,7 @@ export function TabletButtonGroup({
   orientation = 'auto',
   spacing = 'md'
 }: TabletButtonGroupProps) {
-  const { isMobile, isTablet, getTouchSpacing } = useMobileNavigation()
+  const { isMobile } = useMobileNavigation()
 
   const getOrientation = () => {
     if (orientation === 'auto') {
@@ -305,7 +303,7 @@ export function TabletButtonGroup({
       md: getOrientation() === 'horizontal' ? 'space-x-3' : 'space-y-3',
       lg: getOrientation() === 'horizontal' ? 'space-x-4' : 'space-y-4'
     }
-    return spacingClasses[spacing]
+    return spacingClasses[spacing]!
   }
 
   return (

@@ -1,18 +1,49 @@
-import {
-  ValidationReport,
-  TokenValidationResult,
-  ProductTestResult,
-  DeletionValidationResult,
-  IntegrityResult,
-  DebugReport,
-} from './types'; // Note: Assuming a 'types.ts' file exists or will be created.
+// Définitions d'interface pour le rapport de validation et ses composants
+export interface TokenValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
 
-interface ValidationData {
+export interface ProductTestResult {
+  productName: string;
+  success: boolean;
+  errors: string[];
+}
+
+export interface DeletionValidationResult {
+  success: boolean;
+  errors: string[];
+}
+
+export interface IntegrityResult {
+  databaseConsistent: boolean;
+  errors: string[];
+}
+
+export interface DebugReport {
+  // Définir les propriétés de DebugReport si elles existent
+  // Par exemple:
+  logs?: string[];
+  systemInfo?: Record<string, any>;
+}
+
+export interface ValidationReport {
+  timestamp: string;
+  overallSuccess: boolean;
   tokenValidation: TokenValidationResult;
   productTests: ProductTestResult[];
   deletionTest: DeletionValidationResult;
   databaseIntegrity: IntegrityResult;
-  debugInfo?: DebugReport;
+  recommendations: string[];
+  debugInfo: DebugReport | null; // Rendre debugInfo obligatoire mais peut être null
+}
+
+interface ValidationData {
+  tokenValidation: TokenValidationResult;
+  productTests: ProductTestResult[];
+  deletionTest: DeletionValidationResult; // Correction de 'deletionData'
+  databaseIntegrity: IntegrityResult;
+  debugInfo: DebugReport | null; // Type corrigé pour être compatible avec ValidationReport
 }
 
 export class ValidationReporter {
@@ -32,10 +63,10 @@ export class ValidationReporter {
       overallSuccess,
       tokenValidation: this.validationData.tokenValidation,
       productTests: this.validationData.productTests,
-      deletionTest: this.validationData.deletionTest,
+      deletionTest: this.validationData.deletionTest, // Correction de 'deletionData'
       databaseIntegrity: this.validationData.databaseIntegrity,
       recommendations,
-      debugInfo: this.validationData.debugInfo || undefined,
+      debugInfo: this.validationData.debugInfo || null,
     };
 
     return this.report!;

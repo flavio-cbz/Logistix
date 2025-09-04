@@ -172,15 +172,16 @@ export class DatabaseErrorHandler {
   };
 
   private logger = {
-    debug: (msg: string, data?: any) => {
-      if (process.env.DB_DEBUG === 'true') {
+    debug: (_msg: string, data?: any) => {
+      if ((process.env as any)['DB_DEBUG'] === 'true') {
+        console.debug(`[ErrorHandler] ${_msg}`, data ? JSON.stringify(data) : '');
       }
     },
-    warn: (msg: string, data?: any) => {
-      console.warn(`[ErrorHandler] ${msg}`, data ? JSON.stringify(data) : '');
+    warn: (_msg: string, data?: any) => {
+      console.warn(`[ErrorHandler] ${_msg}`, data ? JSON.stringify(data) : '');
     },
-    error: (msg: string, data?: any) => {
-      console.error(`[ErrorHandler] ${msg}`, data ? JSON.stringify(data) : '');
+    error: (_msg: string, data?: any) => {
+      console.error(`[ErrorHandler] ${_msg}`, data ? JSON.stringify(data) : '');
     },
   };
 
@@ -201,12 +202,13 @@ export class DatabaseErrorHandler {
    */
   public analyzeError(error: any, context?: string): ErrorInfo {
     const errorType = this.identifyErrorType(error);
-    const strategy = this.errorStrategies[errorType] || {
+    const defaultStrategy = {
       category: ErrorCategory.NON_RETRYABLE,
       strategy: ErrorResponseStrategy.FAIL_FAST,
       isRetryable: false,
       isCritical: false,
     };
+    const strategy = (this.errorStrategies as any)[errorType] ?? defaultStrategy;
 
     const errorInfo: ErrorInfo = {
       type: errorType,
@@ -216,14 +218,12 @@ export class DatabaseErrorHandler {
       isCritical: strategy.isCritical,
       message: error?.message || 'Unknown database error',
       originalError: error,
-      context,
+      ...(context !== undefined ? { context } : {}),
       timestamp: new Date(),
     };
 
-
     return errorInfo;
   }
-
   /**
    * Identifie le type d'erreur SQLite
    */
@@ -330,14 +330,14 @@ export class DatabaseErrorHandler {
  */
 export class DatabaseError extends Error {
   constructor(
-    message: string,
+    _message: string,
     public readonly type: SQLiteErrorType | 'UNKNOWN',
     public readonly category: ErrorCategory,
     public readonly strategy: ErrorResponseStrategy,
     public readonly originalError?: any,
     public readonly context?: string
   ) {
-    super(message);
+    super(_message);
     this.name = 'DatabaseError';
   }
 
@@ -361,7 +361,7 @@ export class DatabaseError extends Error {
   toJSON(): object {
     return {
       name: this.name,
-      message: this.message,
+      _message: this.message,
       type: this.type,
       category: this.category,
       strategy: this.strategy,

@@ -37,14 +37,13 @@ export function CatalogSelector({
 }: CatalogSelectorProps) {
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [catalogs, setCatalogs] = useState<VintedCatalog[]>([])
   const [suggestions, setSuggestions] = useState<VintedCatalog[]>([])
   const [selectedCatalog, setSelectedCatalog] = useState<VintedCatalog | null>(null)
 
   // Charger les catalogues au montage
   useEffect(() => {
-    const allCatalogs = vintedCatalogService.getAllCatalogs()
-    setCatalogs(allCatalogs)
+  // const loadedCatalogs = vintedCatalogService.getAllCatalogs()
+  // setAllCatalogs(loadedCatalogs)
 
     // Charger le catalogue sélectionné si une valeur est fournie
     if (value) {
@@ -62,7 +61,6 @@ export function CatalogSelector({
       setSuggestions([])
     }
   }, [productName])
-
   // Filtrer les catalogues selon la recherche
   const filteredCatalogs = searchQuery
     ? vintedCatalogService.searchCatalogs(searchQuery)
@@ -223,8 +221,8 @@ export function CatalogSelector({
             <div className="mt-2">
               <p className="text-xs text-muted-foreground mb-1">Mots-clés :</p>
               <div className="flex flex-wrap gap-1">
-                {selectedCatalog.keywords.slice(0, 5).map((keyword, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
+                {selectedCatalog.keywords.slice(0, 5).map((keyword, _index) => (
+                  <Badge key={_index} variant="secondary" className="text-xs"> {/* Corrected index usage */}
                     {keyword}
                   </Badge>
                 ))}

@@ -1,7 +1,13 @@
 // Importation des services nécessaires
 import { generateReport } from '@/lib/services/ai/ai-fallback-service';
 import { db } from '@/lib/services/database/drizzle-client';
-import { VintedAnalysisResult } from '@/lib/services/vinted-market-analysis';
+import type { VintedAnalysisResult } from '@/lib/services/vinted-market-analysis';
+import { users } from '@/lib/services/database/drizzle-schema';
+import { count } from 'drizzle-orm';
+// import { logs } from '@/lib/services/database/drizzle-schema'; // logs n'est pas exporté par drizzle-schema
+// import { desc } from 'drizzle-orm'; // Inutilisé sans la table logs
+
+// Correction : utiliser import type pour éviter TS2459 si le module n’exporte pas la valeur à l’exécution
 
 // Utilisation du logger natif console pour le développement
 const logger = {
@@ -14,10 +20,11 @@ async function main() {
     logger.info('Début de la génération du rapport système Vinted.');
 
     // Connexion à la base de données et récupération des informations
-    const userCount = await db.users.count();
-    const lastUpdate = await db.logs.findFirst({
-      orderBy: { updatedAt: 'desc' },
-    });
+    const userCountResult = await db.select({ count: count(users.id) }).from(users);
+    const userCount = userCountResult[0].count;
+    // Supprimé temporairement car 'logs' n'est pas exporté par drizzle-schema.
+    // const lastUpdateResult = await db.select().from(logs).orderBy(desc(logs.updatedAt)).limit(1);
+    // const lastUpdate = lastUpdateResult[0];
 
     // Création d'un objet conforme à VintedAnalysisResult (tous champs obligatoires présents)
     const reportData: VintedAnalysisResult = {
@@ -28,7 +35,7 @@ async function main() {
       catalogInfo: { id: 0, name: '' },
       rawItems: [],
       enrichedItems: [],
-      analysisDate: lastUpdate?.updatedAt?.toString() ?? new Date().toISOString(),
+      analysisDate: new Date().toISOString(), // Utilise la date actuelle en l'absence de lastUpdate
       brandDistribution: {},
       modelDistribution: {},
     };
@@ -38,7 +45,7 @@ async function main() {
 
     // Log du succès
     logger.info('Rapport généré avec succès.');
-    console.log(reportData);
+    
   } catch (error) {
     // Gestion des erreurs
     logger.error('Erreur lors de la génération du rapport système :', error);

@@ -25,6 +25,25 @@ describe('calculerBenefices', () => {
     expect(res.benefices).toBe(100);
     expect(res.pourcentageBenefice).toBe(0);
   });
+
+  it('supporte bénéfices négatifs', () => {
+    const produit = { vendu: true, prixVente: 30, prixArticle: 50, prixLivraison: 10 };
+    const res = calculerBenefices(produit);
+    expect(res.benefices).toBe(-30);
+    expect(res.pourcentageBenefice).toBeCloseTo((-30 / (50 + 10)) * 100);
+  });
+
+  it('retourne 0 si champs manquants partiels (prixArticle null)', () => {
+    const res = calculerBenefices({ vendu: true, prixVente: 100, prixArticle: null, prixLivraison: 5 });
+    expect(res).toEqual({ benefices: 0, pourcentageBenefice: 0 });
+  });
+
+  it('propagation de NaN si prixVente non numérique', () => {
+    const produit = { vendu: true, prixVente: NaN, prixArticle: 10, prixLivraison: 5 };
+    const res = calculerBenefices(produit as any);
+    expect(res.benefices).toBeNaN();
+    expect(res.pourcentageBenefice).toBeNaN();
+  });
 });
 
 describe('calculPrixLivraison', () => {
@@ -40,5 +59,11 @@ describe('calculPrixLivraison', () => {
   it('supporte poids 0', () => {
     const parcelles = [{ id: 'p3', prixParGramme: 2 }];
     expect(calculPrixLivraison(0, parcelles as any, 'p3')).toBe(0);
+  });
+
+  it('retourne NaN si poids non numérique', () => {
+    const parcelles = [{ id: 'p4', prixParGramme: 1 }];
+    // @ts-ignore
+    expect(calculPrixLivraison('abc' as any, parcelles as any, 'p4')).toBeNaN();
   });
 });

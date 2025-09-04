@@ -4,14 +4,14 @@ import { logger } from '@/lib/utils/logging/logger';
 
 /**
  * Calcule une régression linéaire simple.
- * @param data - Un tableau de paires [timestamp, valeur].
+ * @param _data - Un tableau de paires [timestamp, valeur].
  * @returns Un objet avec la pente (m) et l'ordonnée à l'origine (b).
  */
-function calculateLinearRegression(data: [number, number][]): { m: number; b: number } {
-  const n = data.length;
+function calculateLinearRegression(_data: [number, number][]): { m: number; b: number } {
+  const n = _data.length;
   let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
 
-  for (const [x, y] of data) {
+  for (const [x, y] of _data) {
     sumX += x;
     sumY += y;
     sumXY += x * y;

@@ -70,7 +70,7 @@
     --gradient-subtle: linear-gradient(135deg, hsl(var(--background)), hsl(var(--muted)));
 
     /* Glass Effect Variables */
-    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-bg: hsl(var(--glass-bg));
     --glass-border: rgba(255, 255, 255, 0.2);
     --glass-backdrop: blur(10px);
 
@@ -156,7 +156,7 @@
 
     /* Glass Effect Variables - Dark Mode */
     --glass-bg: rgba(255, 255, 255, 0.05);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-border: hsl(var(--glass-bg));
     --glass-backdrop: blur(10px);
 
     /* Chart Color Palette - Dark Mode */
@@ -479,9 +479,26 @@
 
 /* Cross-browser compatibility and fallbacks */
 @layer utilities {
+/* Popover utilities: ensure bg-popover uses the theme variable (--popover) */
+  .bg-popover {
+    background-color: hsl(var(--popover));
+  }
+  .text-popover-foreground {
+    color: hsl(var(--popover-foreground));
+  }
+
+  /* Fallback when CSS custom properties are not supported */
+  @supports not (color: hsl(var(--popover))) {
+    .bg-popover {
+      background-color: hsl(var(--card));
+    }
+    .text-popover-foreground {
+      color: hsl(var(--card-foreground));
+    }
+  }
   /* Glass effect with fallbacks */
   .glass-effect {
-    background: rgba(255, 255, 255, 0.1);
+    background: hsl(var(--glass-bg));
     border: 1px solid rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px); /* Safari support */
@@ -490,7 +507,7 @@
   /* Fallback for browsers without backdrop-filter support */
   @supports not (backdrop-filter: blur(10px)) {
     .glass-effect {
-      background: rgba(255, 255, 255, 0.8);
+      background: hsl(var(--glass-bg));
       border: 1px solid rgba(0, 0, 0, 0.1);
     }
   }
@@ -718,7 +735,7 @@
 /* Firefox-specific fixes */
 @-moz-document url-prefix() {
   .glass-effect {
-    background: rgba(255, 255, 255, 0.9);
+    background: hsl(var(--glass-bg));
   }
 }
 
@@ -732,7 +749,7 @@
 /* Print styles */
 @media print {
   .glass-effect {
-    background: white !important;
+    background: hsl(var(--glass-bg));
     backdrop-filter: none !important;
   }
 

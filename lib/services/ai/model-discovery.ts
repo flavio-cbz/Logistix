@@ -34,7 +34,7 @@ export const TESTED_MODELS: Record<string, ModelRecommendation> = {
     responseTime: 7800,
     efficiency: 12.4,
     category: 'champion',
-    description: '🏆 Champion absolu - Score quasi-parfait',
+  description: '🏆 Champion absolu - Score quasi-parfait',
     tested: true,
     recommended: true
   },
@@ -46,7 +46,7 @@ export const TESTED_MODELS: Record<string, ModelRecommendation> = {
     responseTime: 5300,
     efficiency: 17.6,
     category: 'fast',
-    description: '⚡ Champion vitesse - Ultra-rapide',
+  description: '⚡ Champion vitesse - Ultra-rapide',
     tested: true,
     recommended: true
   },
@@ -58,7 +58,7 @@ export const TESTED_MODELS: Record<string, ModelRecommendation> = {
     responseTime: 13600,
     efficiency: 6.9,
     category: 'excellent',
-    description: '🚀 Flagship Google - Multimodal',
+  description: '🚀 Flagship Google - Multimodal',
     tested: true,
     recommended: true
   },
@@ -70,7 +70,7 @@ export const TESTED_MODELS: Record<string, ModelRecommendation> = {
     responseTime: 6200,
     efficiency: 15.4,
     category: 'excellent',
-    description: '⚡ Version rapide Google',
+  description: '⚡ Version rapide Google',
     tested: true,
     recommended: true
   },
@@ -82,7 +82,7 @@ export const TESTED_MODELS: Record<string, ModelRecommendation> = {
     responseTime: 15000,
     efficiency: 6.4,
     category: 'excellent',
-    description: '🔥 Version optimisée récente',
+  description: '🔥 Version optimisée récente',
     tested: true,
     recommended: true
   },
@@ -96,7 +96,7 @@ export const TESTED_MODELS: Record<string, ModelRecommendation> = {
     responseTime: 9300,
     efficiency: 10.5,
     category: 'champion',
-    description: '🏆 Ex-champion NVIDIA - Excellent mais instable',
+  description: '🏆 Ex-champion NVIDIA - Excellent mais instable',
     tested: true,
     recommended: true
   },
@@ -108,7 +108,7 @@ export const TESTED_MODELS: Record<string, ModelRecommendation> = {
     responseTime: 12000,
     efficiency: 8.0,
     category: 'excellent',
-    description: '🎯 Référence qualité - Stable et éprouvé',
+  description: '🎯 Référence qualité - Stable et éprouvé',
     tested: true,
     recommended: true
   },
@@ -120,7 +120,7 @@ export const TESTED_MODELS: Record<string, ModelRecommendation> = {
     responseTime: 7300,
     efficiency: 11.9,
     category: 'good',
-    description: '💨 Rapide et économique',
+  description: '💨 Rapide et économique',
     tested: true,
     recommended: true
   },
@@ -132,7 +132,7 @@ export const TESTED_MODELS: Record<string, ModelRecommendation> = {
     responseTime: 3200,
     efficiency: 20.0,
     category: 'fast',
-    description: '🚀 Ultra-rapide - Qualité moyenne',
+  description: '🚀 Ultra-rapide - Qualité moyenne',
     tested: true,
     recommended: false
   },
@@ -144,7 +144,7 @@ export const TESTED_MODELS: Record<string, ModelRecommendation> = {
     responseTime: 19600,
     efficiency: 4.7,
     category: 'good',
-    description: '📚 Contexte long - Lent mais détaillé',
+  description: '📚 Contexte long - Lent mais détaillé',
     tested: true,
     recommended: false
   },
@@ -158,7 +158,7 @@ export const TESTED_MODELS: Record<string, ModelRecommendation> = {
     responseTime: 8000,
     efficiency: 11.9,
     category: 'excellent',
-    description: '🎯 GPT-4 optimisé - Multimodal',
+  description: '🎯 GPT-4 optimisé - Multimodal',
     tested: false,
     recommended: true
   },
@@ -170,7 +170,7 @@ export const TESTED_MODELS: Record<string, ModelRecommendation> = {
     responseTime: 10000,
     efficiency: 9.4,
     category: 'excellent',
-    description: '⚡ GPT-4 rapide - Contexte long',
+  description: '⚡ GPT-4 rapide - Contexte long',
     tested: false,
     recommended: true
   },
@@ -182,7 +182,7 @@ export const TESTED_MODELS: Record<string, ModelRecommendation> = {
     responseTime: 5000,
     efficiency: 16.4,
     category: 'good',
-    description: '💰 Économique et rapide',
+  description: '💰 Économique et rapide',
     tested: false,
     recommended: true
   }
@@ -336,8 +336,8 @@ export class ModelDiscoveryService {
     
     for (const modelId of modelIds) {
       // Vérifier si on a des données de test pour ce modèle
-      if (TESTED_MODELS[modelId]) {
-        recommendations.push({ ...TESTED_MODELS[modelId] });
+      if (TESTED_MODELS[modelId]!) {
+        recommendations.push({ ...TESTED_MODELS[modelId]! });
       } else {
         // Créer une recommandation basée sur des heuristiques
         const recommendation = this.createHeuristicRecommendation(modelId, providerType);
@@ -359,7 +359,7 @@ export class ModelDiscoveryService {
     const id = modelId.toLowerCase();
     let score = 70; // Score de base
     let responseTime = 10000; // 10s par défaut
-    let category: ModelRecommendation['category'] = 'unknown';
+  let category: ModelRecommendation["category"] = 'unknown';
     let description = '❓ Modèle non testé';
     let recommended = false;
 
@@ -474,8 +474,8 @@ export class ModelDiscoveryService {
       'anthropic': ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku']
     };
 
-    const ids = fallbackIds[providerType] || [];
-    return ids.map(id => TESTED_MODELS[id] || this.createHeuristicRecommendation(id, providerType));
+    const ids = fallbackIds[providerType]! || [];
+    return ids.map(id => TESTED_MODELS[id]! || this.createHeuristicRecommendation(id, providerType));
   }
 
   /**

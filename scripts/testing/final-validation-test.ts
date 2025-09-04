@@ -10,7 +10,7 @@ import { vintedCredentialService } from '../../lib/services/auth/vinted-credenti
 import axios from 'axios';
 
 // Cookie frais
-const TEST_COOKIE = process.env.VINTED_TEST_COOKIE || '';
+const TEST_COOKIE = process.env['VINTED_TEST_COOKIE']! || '';
 
 async function finalValidationTest() {
 

@@ -1,7 +1,6 @@
 "use client"
 
-import React, { useState, useCallback, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useCallback, useMemo } from 'react'
 import { useAccessibility } from '@/lib/contexts/accessibility-context'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
-import { AIInsights, AnomalyDetection, TrendPrediction } from '@/types/vinted-market-analysis'
+import type { AIInsights, AnomalyDetection, TrendPrediction } from '@/types/vinted-market-analysis'
 import { 
   Search, 
   Filter, 
@@ -83,7 +82,7 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
   onFilterChange,
   className
 }) => {
-  const { announceToScreenReader, preferences } = useAccessibility()
+  const { announceToScreenReader } = useAccessibility()
   const [filters, setFilters] = useState<InsightFilters>({
     search: '',
     type: 'all',
@@ -102,9 +101,9 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
 
     // Ajouter les insights principaux
     if (insights?.keyFindings) {
-      insights.keyFindings.forEach((finding, index) => {
+      insights.keyFindings.forEach((finding, _index) => {
         combined.push({
-          id: `insight-${index}`,
+          id: `insight-${_index}`,
           type: finding.type as any,
           title: finding.title,
           description: finding.description,
@@ -119,18 +118,17 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
     }
 
     // Ajouter les anomalies
-    anomalies.forEach((anomaly) => {
+    anomalies.forEach((anomaly, _index) => {
       combined.push({
         id: anomaly.id,
         type: 'anomaly',
         title: `Anomalie ${anomaly.type}`,
         description: anomaly.description,
         confidence: anomaly.confidence,
-        impact: anomaly.severity === 'critical' ? 'high' : 
-               anomaly.severity === 'high' ? 'high' :
-               anomaly.severity === 'medium' ? 'medium' : 'low',
+        impact: anomaly.severity === 'high' ? 'high' :
+                anomaly.severity === 'medium' ? 'medium' : 'low',
         category: 'Détection d\'anomalies',
-        evidence: anomaly.evidence,
+        evidence: anomaly.evidence ?? [],
         actionable: true,
         relatedData: { suggestedAction: anomaly.suggestedAction },
         timestamp: anomaly.detectedAt
@@ -139,9 +137,9 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
 
     // Ajouter les prédictions de tendances
     if (trendPredictions?.predictions) {
-      trendPredictions.predictions.forEach((prediction, index) => {
+      trendPredictions.predictions.forEach((prediction, _index) => {
         combined.push({
-          id: `trend-${index}`,
+          id: `trend-${_index}`,
           type: 'trend',
           title: `Tendance ${prediction.metric}`,
           description: `${prediction.direction === 'up' ? 'Hausse' : prediction.direction === 'down' ? 'Baisse' : 'Stabilité'} prévue de ${prediction.magnitude.toFixed(1)}%`,
@@ -178,7 +176,7 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
 
       // Filtre de confiance
       const confidencePercent = insight.confidence * 100
-      if (confidencePercent < filters.confidence[0] || confidencePercent > filters.confidence[1]) {
+      if (confidencePercent < filters.confidence[0]! || confidencePercent > filters.confidence[1]!) {
         return false
       }
 
@@ -200,7 +198,7 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
           break
         case 'impact':
           const impactOrder = { low: 0, medium: 1, high: 2 }
-          comparison = impactOrder[a.impact] - impactOrder[b.impact]
+          comparison = impactOrder[a.impact]! - impactOrder[b.impact]!
           break
         case 'type':
           comparison = a.type.localeCompare(b.type)
@@ -253,7 +251,7 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
   // Statistiques des insights filtrés
   const stats = useMemo(() => {
     const typeCount = filteredInsights.reduce((acc, insight) => {
-      acc[insight.type] = (acc[insight.type] || 0) + 1
+      (acc as any)[insight.type] = (acc[insight.type]! || 0) + 1
       return acc
     }, {} as Record<string, number>)
 
@@ -272,31 +270,24 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
   }, [filteredInsights])
 
   // Rendu d'un insight individuel
-  const renderInsight = (insight: CombinedInsight, index: number) => {
+  const renderInsight = (insight: CombinedInsight, _index: number) => {
     const isSelected = selectedInsight === insight.id
-    const config = typeConfig[insight.type]
+    const config = typeConfig[insight.type]!
     const Icon = config.icon
 
     return (
-      <motion.div
+      <div
         key={insight.id}
-        layout
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ 
-          delay: index * 0.05,
-          duration: preferences.reducedMotion ? 0 : 0.2 
-        }}
         className={cn(
           'cursor-pointer transition-all duration-200',
-          isSelected && 'ring-2 ring-blue-500 ring-offset-2'
+          isSelected && 'ring-2 ring-blue-500 ring-offset-2',
+          'transform transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]'
         )}
         onClick={() => handleInsightSelect(insight)}
       >
         <Card className={cn(
           'hover:shadow-md transition-shadow',
-          isSelected && 'border-blue-500'
+          isSelected && 'border-[hsl(var(--border))]'
         )}>
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
@@ -316,7 +307,7 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
                              insight.impact === 'medium' ? 'default' : 'secondary'}
                       className="text-xs"
                     >
-                      {impactConfig[insight.impact].label}
+                      {impactConfig[insight.impact]!.label}
                     </Badge>
                     <Badge variant="outline" className="text-xs">
                       {(insight.confidence * 100).toFixed(0)}%
@@ -324,33 +315,29 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
                   </div>
                 </div>
                 
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                <p className="text-sm text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))] mb-2 line-clamp-2">
                   {insight.description}
                 </p>
                 
-                <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center justify-between text-xs text-[hsl(var(--muted-foreground))]">
                   <span>{insight.category}</span>
                   <span>{config.label}</span>
                 </div>
                 
                 {/* Détails étendus pour l'insight sélectionné */}
-                <AnimatePresence>
                   {isSelected && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: preferences.reducedMotion ? 0 : 0.2 }}
-                      className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+                    <div
+                      className="mt-4 pt-4 border-t border-[hsl(var(--border))] dark:border-[hsl(var(--border))] transition-all duration-300 ease-in-out"
+                      style={{ opacity: isSelected ? 1 : 0, height: isSelected ? 'auto' : 0 }}
                     >
                       {/* Preuves */}
                       {insight.evidence && insight.evidence.length > 0 && (
                         <div className="mb-3">
                           <h5 className="font-medium text-sm mb-2">Preuves:</h5>
-                          <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                          <ul className="text-xs text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))] space-y-1">
                             {insight.evidence.map((evidence, evidenceIndex) => (
                               <li key={evidenceIndex} className="flex items-start gap-2">
-                                <span className="text-gray-400 mt-0.5">•</span>
+                                <span className="text-[hsl(var(--muted-foreground))] mt-0.5">•</span>
                                 <span>{evidence}</span>
                               </li>
                             ))}
@@ -362,7 +349,7 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
                       {insight.type === 'anomaly' && insight.relatedData?.suggestedAction && (
                         <div className="mb-3">
                           <h5 className="font-medium text-sm mb-1">Action suggérée:</h5>
-                          <p className="text-xs text-blue-600">
+                          <p className="text-xs text-[hsl(var(--primary-foreground))]">
                             {insight.relatedData.suggestedAction}
                           </p>
                         </div>
@@ -383,7 +370,7 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
                       )}
                       
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-[hsl(var(--muted-foreground))]">
                           {new Date(insight.timestamp).toLocaleString()}
                         </span>
                         {insight.actionable && (
@@ -392,14 +379,13 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
                           </Button>
                         )}
                       </div>
-                    </motion.div>
+                    </div>
                   )}
-                </AnimatePresence>
               </div>
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     )
   }
 
@@ -435,36 +421,36 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
           <Card>
             <CardContent className="pt-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
-                <div className="text-sm text-gray-600">Total insights</div>
+                <div className="text-2xl font-bold text-[hsl(var(--primary-foreground))]">{stats.total}</div>
+                <div className="text-sm text-[hsl(var(--muted-foreground))]">Total insights</div>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">{stats.highImpactCount}</div>
-                <div className="text-sm text-gray-600">Impact élevé</div>
+                <div className="text-2xl font-bold text-[hsl(var(--destructive-foreground))]">{stats.highImpactCount}</div>
+                <div className="text-sm text-[hsl(var(--muted-foreground))]">Impact élevé</div>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-[hsl(var(--success-foreground))]">
                   {(stats.avgConfidence * 100).toFixed(0)}%
                 </div>
-                <div className="text-sm text-gray-600">Confiance moy.</div>
+                <div className="text-sm text-[hsl(var(--muted-foreground))]">Confiance moy.</div>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
+                <div className="text-2xl font-bold text-[hsl(var(--accent-foreground))]">
                   {Object.keys(stats.typeCount).length}
                 </div>
-                <div className="text-sm text-gray-600">Types différents</div>
+                <div className="text-sm text-[hsl(var(--muted-foreground))]">Types différents</div>
               </div>
             </CardContent>
           </Card>
@@ -472,14 +458,10 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
       </div>
 
       {/* Panneau de filtres */}
-      <AnimatePresence>
         {showFilters && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: preferences.reducedMotion ? 0 : 0.3 }}
-            className="mb-6"
+          <div
+            className="mb-6 transition-all duration-300 ease-in-out"
+            style={{ opacity: showFilters ? 1 : 0, height: showFilters ? 'auto' : 0 }}
           >
             <Card>
               <CardHeader>
@@ -497,7 +479,7 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
                   <div>
                     <label className="block text-sm font-medium mb-2">Recherche</label>
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[hsl(var(--muted-foreground))]" />
                       <Input
                         placeholder="Rechercher..."
                         value={filters.search}
@@ -579,56 +561,51 @@ export const InteractiveInsightExplorer: React.FC<InteractiveInsightExplorerProp
                       </Button>
                     </div>
                   </div>
-                </div>
 
-                {/* Slider de confiance */}
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-2">
-                    Niveau de confiance: {filters.confidence[0]}% - {filters.confidence[1]}%
-                  </label>
-                  <Slider
-                    value={filters.confidence}
-                    onValueChange={(value) => handleFilterChange({ confidence: value as [number, number] })}
-                    max={100}
-                    min={0}
-                    step={5}
-                    className="w-full"
-                  />
+                  {/* Slider de confiance */}
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium mb-2">
+                      Niveau de confiance: {filters.confidence[0]!}% - {filters.confidence[1]!}%
+                    </label>
+                    <Slider
+                      value={filters.confidence}
+                      onValueChange={(value) => handleFilterChange({ confidence: value as [number, number] })}
+                      max={100}
+                      min={0}
+                      step={5}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
 
       {/* Liste des insights */}
       <div className={cn(
         'grid gap-4',
         viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'
       )}>
-        <AnimatePresence mode="popLayout">
           {filteredInsights.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+            <div
               className="col-span-full"
             >
               <Card>
                 <CardContent className="text-center py-8">
-                  <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  <Search className="h-12 w-12 text-[hsl(var(--muted-foreground))] mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))] mb-2">
                     Aucun insight trouvé
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-[hsl(var(--muted-foreground))] dark:text-[hsl(var(--muted-foreground))]">
                     Essayez de modifier vos filtres de recherche
                   </p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           ) : (
-            filteredInsights.map((insight, index) => renderInsight(insight, index))
+            filteredInsights.map((insight, _index) => renderInsight(insight, _index))
           )}
-        </AnimatePresence>
       </div>
 
       {/* Informations d'accessibilité */}

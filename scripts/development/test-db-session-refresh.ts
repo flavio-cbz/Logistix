@@ -23,7 +23,7 @@ async function testDBSessionRefresh() {
       return;
     }
 
-    const session = sessions[0];
+    const session = sessions[0]!;
 
     if (!session.sessionCookie) {
       return;
@@ -42,7 +42,7 @@ async function testDBSessionRefresh() {
 
     const hasAccessToken = decodedCookie.includes('access_token_web=');
     const hasRefreshToken = decodedCookie.includes('refresh_token_web=');
-    const hasSession = decodedCookie.includes('_vinted_fr_session=');
+    // const hasSession = decodedCookie.includes('_vinted_fr_session=');
     
 
     if (!hasAccessToken || !hasRefreshToken) {
@@ -73,8 +73,8 @@ async function testDBSessionRefresh() {
     // 3. Test avec VintedAuthService
     const authService = new VintedAuthService(decodedCookie);
     
-    const accessToken = VintedAuthService.extractAccessTokenFromCookie(decodedCookie);
-    const refreshToken = VintedAuthService.extractRefreshTokenFromCookie(decodedCookie);
+    // const accessToken = VintedAuthService.extractAccessTokenFromCookie(decodedCookie);
+    // const refreshToken = VintedAuthService.extractRefreshTokenFromCookie(decodedCookie);
     
 
     // 4. Validation du token

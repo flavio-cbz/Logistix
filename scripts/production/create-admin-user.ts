@@ -32,9 +32,9 @@ async function createAdminUser() {
       id: adminId,
       username: 'admin',
       email: 'admin@logistix.local',
-      password: 'hashed_password', // Mot de passe fictif
-      createdAt: now,
-      updatedAt: now,
+      password_hash: 'hashed_password', // Mot de passe fictif
+      created_at: now,
+      updated_at: now,
     });
 
 

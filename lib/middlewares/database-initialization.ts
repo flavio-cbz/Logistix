@@ -1,22 +1,29 @@
 import 'server-only';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { DatabaseInitializationManagerImpl } from '@/lib/services/database/initialization-manager';
 import { databaseLogger } from '@/lib/services/database/database-logger';
+import { secretManager } from "@/lib/services/security/secret-manager";
 
-// Logger pour le middleware
+/**
+ * Simple logger wrapper used by the DB middleware.
+ * Keeps the same API surface but avoids accidental use of undefined identifiers.
+ */
 const logger = {
-  info: (message: string, data?: any) => {
-    if (process.env.NODE_ENV === 'development' || process.env.DB_DEBUG === 'true') {
+  info: (msg: string, data?: any) => {
+    if ((process.env as any)['NODE_ENV'] === 'development' || (process.env as any)['DB_DEBUG'] === 'true') {
+      console.info(`[DB-Middleware] ${msg}`, data ? JSON.stringify(data) : '');
     }
   },
-  warn: (message: string, data?: any) => {
-    console.warn(`[DB-Middleware] ${message}`, data ? JSON.stringify(data) : '');
+  warn: (msg: string, data?: any) => {
+    console.warn(`[DB-Middleware] ${msg}`, data ? JSON.stringify(data) : '');
   },
-  error: (message: string, data?: any) => {
-    console.error(`[DB-Middleware] ${message}`, data ? JSON.stringify(data) : '');
+  error: (msg: string, data?: any) => {
+    console.error(`[DB-Middleware] ${msg}`, data ? JSON.stringify(data) : '');
   },
-  debug: (message: string, data?: any) => {
-    if (process.env.DB_DEBUG === 'true') {
+  debug: (msg: string, data?: any) => {
+    if ((process.env as any)['DB_DEBUG'] === 'true') {
+      console.debug(`[DB-Middleware] ${msg}`, data ? JSON.stringify(data) : '');
     }
   },
 };
@@ -36,18 +43,18 @@ export enum ExecutionContext {
  */
 export function getExecutionContext(): ExecutionContext {
   // Vérifier si nous sommes en mode build Next.js
-  if (process.env.NEXT_PHASE === 'phase-production-build' || 
-      process.env.NODE_ENV === 'production' && process.env.BUILDING === 'true') {
+  if ((process.env as any)['NEXT_PHASE'] === 'phase-production-build' || 
+      (process.env as any)['NODE_ENV'] === 'production' && (process.env as any)['BUILDING'] === 'true') {
     return ExecutionContext.BUILD_TIME;
   }
   
   // Vérifier si nous sommes en mode test
-  if (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true') {
+  if ((process.env as any)['NODE_ENV'] === 'test' || (process.env as any)['VITEST'] === 'true') {
     return ExecutionContext.TEST;
   }
   
   // Vérifier si nous sommes en développement
-  if (process.env.NODE_ENV === 'development') {
+  if ((process.env as any)['NODE_ENV'] === 'development') {
     return ExecutionContext.DEVELOPMENT;
   }
   
@@ -115,6 +122,14 @@ export async function withDatabaseInitialization<T>(
 
   const initManager = DatabaseInitializationManagerImpl.getInstance();
   const startTime = Date.now();
+
+  // Ensure application-level secrets are loaded before any DB-related work that may need them
+  try {
+    await secretManager.init();
+  } catch (err) {
+    // Do not block initialization on secret loading failure, but log it for investigation.
+    logger.warn('secretManager.init() failed', { error: err instanceof Error ? err.message : String(err) });
+  }
 
   try {
     // Si l'initialisation est explicitement ignorée

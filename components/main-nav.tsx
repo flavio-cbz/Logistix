@@ -7,7 +7,11 @@ import { AnimatedButton } from "@/components/ui/animated-button"
 import { LayoutGrid, Package, Map, BarChart, Shield, Search } from "lucide-react"
 import { useAuth } from "@/components/auth/auth-provider"
 
-export function MainNav() {
+interface MainNavProps {
+  className?: string; // Ajout de la propriété className
+}
+
+export function MainNav({ className }: MainNavProps) { // Accepter la propriété className
   const pathname = usePathname()
   const { user } = useAuth()
   const isAdmin = user?.isAdmin
@@ -56,9 +60,9 @@ export function MainNav() {
       id="main-navigation"
       role="menubar"
       aria-label="Navigation principale"
-      className="flex items-center space-x-4 lg:space-x-6"
+      className={cn("flex items-center space-x-4 lg:space-x-6", className)} // Appliquer className
     >
-      {navigationItems.map((item, index) => {
+      {navigationItems.map((item, index) => { // Correction: _item en item
         const Icon = item.icon
         const isActive = pathname === item.href
         

@@ -3,7 +3,7 @@
  * Comprehensive logging for all API requests and responses with performance metrics
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { 
   apiRequestLogger, 
@@ -18,156 +18,20 @@ interface RequestContext {
   method: string;
   url: string;
   pathname: string;
-  userAgent?: string;
-  ip?: string;
+  userAgent: string | undefined;
+  ip: string | undefined;
   startTime: number;
-  userId?: string;
-  sessionId?: string;
-  contentLength?: number;
+  userId: string | undefined;
+  sessionId: string | undefined;
+  contentLength: number | undefined;
 }
 
 interface ResponseMetrics {
   statusCode: number;
   duration: number;
-  responseSize?: number;
+  responseSize?: number | undefined;
   success: boolean;
   error?: Error;
-}
-
-/**
- * Enhanced middleware function to log HTTP requests with comprehensive metrics
- */
-export function withEnhancedRequestLogging<T extends any[]>(
-  handler: (request: NextRequest, ...args: T) => Promise<NextResponse>
-) {
-  return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
-    const requestId = uuidv4();
-    const startTime = Date.now();
-    
-    // Extract comprehensive request information
-    const context: RequestContext = {
-      requestId,
-      method: request.method,
-      url: request.url,
-      pathname: new URL(request.url).pathname,
-      userAgent: request.headers.get('user-agent') || undefined,
-      ip: extractClientIP(request),
-      startTime,
-      userId: await extractUserIdFromRequest(request),
-      sessionId: extractSessionId(request),
-      contentLength: getContentLength(request)
-    };
-
-    // Create request-scoped logger
-    const logger = createRequestLogger(requestId, context.userId);
-    const timer = new PerformanceTimer(`API_${context.method}_${context.pathname}`, logger);
-
-    // Log incoming request with detailed information
-    logger.http(`${context.method} ${context.pathname}`, {
-      url: context.url,
-      userAgent: context.userAgent,
-      ip: context.ip,
-      contentLength: context.contentLength,
-      headers: sanitizeHeaders(request.headers),
-      query: extractQueryParams(request.url),
-      isApiRoute: context.pathname.startsWith('/api/'),
-      timestamp: new Date().toISOString()
-    });
-
-    // Log request body for non-GET requests (with size limits)
-    if (context.method !== 'GET' && context.contentLength && context.contentLength > 0) {
-      try {
-        const body = await logRequestBody(request, logger);
-        // Clone request with logged body for handler
-        request = new NextRequest(request, {
-          body: body
-        });
-      } catch (error) {
-        logger.warn('Failed to log request body', { error: (error as Error).message });
-      }
-    }
-
-    try {
-      // Add request context to headers for downstream services
-      const requestWithContext = addContextHeaders(request, context);
-
-      // Execute the handler
-      const response = await handler(requestWithContext, ...args);
-      
-      // Calculate response metrics
-      const metrics: ResponseMetrics = {
-        statusCode: response.status,
-        duration: Date.now() - startTime,
-        responseSize: getResponseSize(response),
-        success: response.status < 400
-      };
-      
-      // Log successful response with metrics
-      logResponse(context, metrics, logger, timer);
-
-      // Log user action for audit trail
-      if (context.userId && context.pathname.startsWith('/api/')) {
-        await auditLogger.logUserAction(
-          context.userId,
-          {
-            action: `API_${context.method}`,
-            resource: context.pathname,
-            details: {
-              statusCode: metrics.statusCode,
-              duration: metrics.duration,
-              success: metrics.success
-            }
-          },
-          {
-            sessionId: context.sessionId,
-            ip: context.ip,
-            userAgent: context.userAgent,
-            requestId: context.requestId
-          }
-        );
-      }
-
-      // Add response context headers
-      return addResponseHeaders(response, context, metrics);
-      
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      const metrics: ResponseMetrics = {
-        statusCode: 500,
-        duration,
-        success: false,
-        error: error as Error
-      };
-      
-      // Log error with comprehensive context
-      logError(context, metrics, logger, timer);
-      
-      // Log failed user action for audit trail
-      if (context.userId && context.pathname.startsWith('/api/')) {
-        await auditLogger.logFailedUserAction(
-          context.userId,
-          {
-            action: `API_${context.method}`,
-            resource: context.pathname,
-            details: {
-              duration,
-              error: (error as Error).message
-            }
-          },
-          error as Error,
-          {
-            sessionId: context.sessionId,
-            ip: context.ip,
-            userAgent: context.userAgent,
-            requestId: context.requestId
-          }
-        );
-      }
-      
-      // Re-throw the error
-      throw error;
-    }
-  };
 }
 
 /**
@@ -286,16 +150,14 @@ async function logRequestBody(request: NextRequest, logger: any): Promise<string
       // Sanitize sensitive data in JSON
       if (contentType.includes('application/json')) {
         try {
-          const parsed = JSON.parse(body);
-          const sanitized = sanitizeRequestBody(parsed);
-        } catch {
+          // Optionally sanitize here if you want to log sanitized body
+          // const sanitized = sanitizeRequestBody(parsed); // This line can be uncommented if sanitization is needed for logging
+        } catch (e) {
+          logger.warn('Failed to parse request body as JSON', { error: (e as Error).message });
         }
-      } else {
       }
-      
       return body;
     }
-    
     return undefined;
   } catch (error) {
     logger.warn('Failed to read request body', { error: (error as Error).message });
@@ -303,25 +165,6 @@ async function logRequestBody(request: NextRequest, logger: any): Promise<string
   }
 }
 
-/**
- * Sanitize request body to remove sensitive information
- */
-function sanitizeRequestBody(body: any): any {
-  if (typeof body !== 'object' || body === null) {
-    return body;
-  }
-  
-  const sensitiveFields = ['password', 'token', 'secret', 'key', 'auth', 'credential'];
-  const sanitized = { ...body };
-  
-  for (const field of sensitiveFields) {
-    if (field in sanitized) {
-      sanitized[field] = '[REDACTED]';
-    }
-  }
-  
-  return sanitized;
-}
 
 /**
  * Get response size if available
@@ -338,8 +181,15 @@ function addContextHeaders(request: NextRequest, context: RequestContext): NextR
   const headers = new Headers(request.headers);
   headers.set('x-request-id', context.requestId);
   headers.set('x-request-start-time', context.startTime.toString());
-  
-  return new NextRequest(request, { headers });
+
+  // NextRequest is immutable, so we need to create a new instance with the same URL and method
+  // and pass the headers. The body is not handled here, as NextRequest does not support cloning with body.
+  return new NextRequest(request.url, {
+    method: request.method,
+    headers,
+    body: (request as any).body ?? undefined, // workaround for body, if needed
+    // Add other properties if needed
+  });
 }
 
 /**
@@ -391,7 +241,7 @@ function logResponse(context: RequestContext, metrics: ResponseMetrics, logger: 
       pathname: context.pathname,
       duration: metrics.duration,
       statusCode: metrics.statusCode,
-      threshold: 1000
+      _threshold: 1000
     });
   }
 }
@@ -411,8 +261,9 @@ function logError(context: RequestContext, metrics: ResponseMetrics, logger: any
       err,
       metrics.duration
     );
-  } catch {
+  } catch (e) {
     // swallow logger errors to avoid masking the original error
+    logger.error('Failed to log API request error to apiRequestLogger', { originalError: err.message, loggingError: (e as Error).message });
   }
 
   // End performance timer with error (guarded)
@@ -422,8 +273,9 @@ function logError(context: RequestContext, metrics: ResponseMetrics, logger: any
       ip: context.ip,
       userAgent: context.userAgent
     });
-  } catch {
+  } catch (e) {
     // ignore timer failures
+    logger.error('Failed to end performance timer with error', { originalError: err.message, timerError: (e as Error).message });
   }
 
   // Log error details
@@ -436,9 +288,149 @@ function logError(context: RequestContext, metrics: ResponseMetrics, logger: any
       ip: context.ip,
       userAgent: context.userAgent
     });
-  } catch {
+  } catch (e) {
     // final fallback: do nothing if logging fails
+    console.error(`CRITICAL: Failed to log error for ${context.method} ${context.pathname}. Original error: ${err.message}. Logging error: ${(e as Error).message}`);
   }
+}
+
+/**
+ * Enhanced middleware function to log HTTP requests with comprehensive metrics
+ */
+export function withEnhancedRequestLogging<T extends any[]>(
+  handler: (request: NextRequest, ...args: T) => Promise<NextResponse>
+) {
+  return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
+    const requestId = uuidv4();
+    const startTime = Date.now();
+    
+    // Extract comprehensive request information
+    const context: RequestContext = {
+      requestId,
+      method: request.method,
+      url: request.url,
+      pathname: new URL(request.url).pathname,
+      userAgent: request.headers.get('user-agent') || undefined,
+      ip: extractClientIP(request),
+      startTime,
+      userId: await extractUserIdFromRequest(request),
+      sessionId: extractSessionId(request),
+      contentLength: getContentLength(request)
+    };
+
+    // Create request-scoped logger
+    const logger = createRequestLogger(requestId, context.userId);
+    const timer = new PerformanceTimer(`API_${context.method}_${context.pathname}`, logger);
+
+    // Log incoming request with detailed information
+    if (logger.http) {
+      logger.http(`${context.method} ${context.pathname}`, {
+        url: context.url,
+        userAgent: context.userAgent,
+        ip: context.ip,
+        contentLength: context.contentLength,
+        headers: sanitizeHeaders(request.headers),
+        query: extractQueryParams(request.url),
+        isApiRoute: context.pathname.startsWith('/api/'),
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Log request body for non-GET requests (with size limits)
+    if (context.method !== 'GET' && context.contentLength && context.contentLength > 0) {
+      try {
+        const body = await logRequestBody(request, logger);
+        // Clone request with logged body for handler
+        request = new NextRequest(request.url, {
+          method: request.method,
+          headers: request.headers,
+          body: body !== undefined ? body : null
+        });
+      } catch (error) {
+        logger.warn('Failed to log request body', { error: (error as Error).message });
+      }
+    }
+
+    try {
+      // Add request context to headers for downstream services
+      const requestWithContext = addContextHeaders(request, context);
+
+      // Execute the handler
+      const response = await handler(requestWithContext, ...args);
+      
+      // Calculate response metrics
+      const metrics: ResponseMetrics = {
+        statusCode: response.status,
+        duration: Date.now() - startTime,
+        responseSize: getResponseSize(response) ?? undefined,
+        success: response.status < 400
+      };
+      // Log successful response with metrics
+      logResponse(context, metrics, logger, timer);
+
+      // Log user action for audit trail
+      if (context.userId && context.pathname.startsWith('/api/')) {
+        await auditLogger.logUserAction(
+          context.userId || 'system',
+          {
+            action: `API_${context.method}`,
+            resource: context.pathname,
+            details: {
+              statusCode: metrics.statusCode,
+              duration: metrics.duration,
+              success: metrics.success
+            }
+          },
+          {
+            ...(context.sessionId !== undefined ? { sessionId: context.sessionId } : {}),
+            ...(context.ip !== undefined ? { ip: context.ip } : {}),
+            ...(context.userAgent !== undefined ? { userAgent: context.userAgent } : {}),
+            ...(context.requestId !== undefined ? { requestId: context.requestId } : {})
+          }
+        );
+      }
+
+      // Add response context headers
+      return addResponseHeaders(response, context, metrics);
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      const metrics: ResponseMetrics = {
+        statusCode: 500,
+        duration,
+        success: false,
+        error: error as Error
+      };
+      
+      // Log error with comprehensive context
+      logError(context, metrics, logger, timer);
+      
+      // Log failed user action for audit trail
+      if (context.userId && context.pathname.startsWith('/api/')) {
+        await auditLogger.logFailedUserAction(
+          context.userId,
+          {
+            action: `API_${context.method}`,
+            resource: context.pathname,
+            details: {
+              duration,
+              error: (error as Error).message
+            }
+          },
+          error as Error,
+          {
+            ...(context.sessionId !== undefined ? { sessionId: context.sessionId } : {}),
+            ...(context.ip !== undefined ? { ip: context.ip } : {}),
+            ...(context.userAgent !== undefined ? { userAgent: context.userAgent } : {}),
+            ...(context.requestId !== undefined ? { requestId: context.requestId } : {})
+          }
+        );
+      }
+      
+      // Re-throw the error
+      throw error;
+    }
+  };
 }
 
 /**
@@ -454,17 +446,13 @@ export function withDatabaseOperationLogging<T extends any[], R>(
     const logger = createRequestLogger(uuidv4());
 
     try {
-
       const result = await fn(...args);
-
       timer.end({
         service: serviceName,
         operation,
         success: true,
         resultType: typeof result
       });
-
-
       return result;
     } catch (error) {
       logger.error(`Database operation failed: ${serviceName}.${operation}`, error as Error, {
@@ -477,40 +465,41 @@ export function withDatabaseOperationLogging<T extends any[], R>(
         service: serviceName,
         operation
       });
+      throw error;
     }
   };
 }
 
 /**
- * Service method logging decorator
+ * Decorator for logging service method performance and errors.
  */
-export function logServiceMethod<T extends any[], R>(
+export function withServiceMethodLogging<T extends any[], R>(
   serviceName: string,
   methodName: string
 ) {
   return function (
-    target: any,
-    propertyName: string,
+    _target: any, 
+    _propertyKey: string, 
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
+
+    if (typeof originalMethod !== 'function') {
+      throw new Error('withServiceMethodLogging can only be applied to methods.');
+    }
 
     descriptor.value = async function (...args: T): Promise<R> {
       const timer = new PerformanceTimer(`SERVICE_${serviceName}_${methodName}`, apiLogger);
       const logger = createRequestLogger(uuidv4());
 
       try {
-
         const result = await originalMethod.apply(this, args);
-
         timer.end({
           service: serviceName,
           method: methodName,
           success: true,
           resultType: typeof result
         });
-
-
         return result;
       } catch (error) {
         logger.error(`Service method failed: ${serviceName}.${methodName}`, error as Error, {
@@ -523,6 +512,7 @@ export function logServiceMethod<T extends any[], R>(
           service: serviceName,
           method: methodName
         });
+        throw error;
       }
     };
 

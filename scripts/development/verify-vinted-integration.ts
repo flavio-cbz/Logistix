@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import fs from 'fs';
-import path from 'path';
+// import path from 'path'; // Non utilisé
 
 async function verifyIntegration() {
 
@@ -54,9 +54,9 @@ async function verifyIntegration() {
     }
   ];
 
-  essentialFiles.forEach(({ path: filePath, description, critical }) => {
+  essentialFiles.forEach(({ path: filePath, critical }) => {
     const exists = fs.existsSync(filePath);
-    const status = exists ? '✅' : (critical ? '❌' : '⚠️');
+    // const status = exists ? '✅' : (critical ? '❌' : '⚠️');
     
     if (!exists && critical) {
       allChecksPass = false;
@@ -86,15 +86,15 @@ async function verifyIntegration() {
     },
     {
       key: 'VINTED_SESSION',
-      value: process.env.VINTED_SESSION ? '[CONFIGURÉ]' : 'OPTIONNEL',
+      value: process.env['VINTED_SESSION']! ? '[CONFIGURÉ]' : 'OPTIONNEL',
       expected: 'OPTIONNEL',
       critical: false
     }
   ];
 
-  configChecks.forEach(({ key, value, expected, critical }) => {
+  configChecks.forEach(({ value, expected, critical }) => {
     const isValid = !!value && (expected === '[CONFIGURÉ]' || value === expected);
-    const status = isValid ? '✅' : (critical ? '❌' : '⚠️');
+    // const status = isValid ? '✅' : (critical ? '❌' : '⚠️');
     
     if (!isValid && critical) {
       allChecksPass = false;
@@ -129,26 +129,26 @@ async function verifyIntegration() {
   // 4. Vérification de l'intégration dans l'application
   
   // Vérifier que Next.js va charger instrumentation.ts
-  const nextConfigExists = fs.existsSync('next.config.js') || fs.existsSync('next.config.mjs');
+  // const nextConfigExists = fs.existsSync('next.config.js') || fs.existsSync('next.config.mjs');
   
   // Vérifier la structure des dossiers
-  const hasSchedulerDir = fs.existsSync('lib/services/scheduler');
-  const hasAuthDir = fs.existsSync('lib/services/auth');
-  const hasApiDir = fs.existsSync('app/api/v1/vinted');
+  // const hasSchedulerDir = fs.existsSync('lib/services/scheduler');
+  // const hasAuthDir = fs.existsSync('lib/services/auth');
+  // const hasApiDir = fs.existsSync('app/api/v1/vinted');
   
 
   // 5. Test d'importation des modules
   
   try {
     // Test d'importation du scheduler
-    const { tokenRefreshScheduler } = await import('../../lib/services/scheduler/token-refresh-scheduler');
+    await import('../../lib/services/scheduler/token-refresh-scheduler');
   } catch (error: any) {
     allChecksPass = false;
   }
 
   try {
     // Test d'importation du gestionnaire de sessions
-    const { vintedSessionManager } = await import('../../lib/services/auth/vinted-session-manager');
+    await import('../../lib/services/auth/vinted-session-manager');
   } catch (error: any) {
     allChecksPass = false;
   }
@@ -162,7 +162,7 @@ async function verifyIntegration() {
   ];
 
   maintenanceScripts.forEach(script => {
-    const exists = fs.existsSync(script);
+    fs.existsSync(script);
   });
 
   // 7. Résumé final

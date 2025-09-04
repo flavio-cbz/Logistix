@@ -1,185 +1,194 @@
-"use client"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { AnimatedButton } from "@/components/ui/animated-button"
-import { useStore } from "@/lib/services/admin/store"
-import { useToast } from "@/components/ui/use-toast"
-import { useEffect } from "react"
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
-const venteFormSchema = z.object({
-  dateVente: z.string().min(1, "La date de vente est requise"),
-  dateMiseEnVente: z.string().min(1, "La date de mise en vente est requise"),
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
+import { Produit } from "@/types/database";
+
+const VenteFormSchema = z.object({
+  prixVente: z.coerce.number().min(0.01, "Le prix de vente doit être supérieur à 0."),
+  dateVente: z.date({
+    required_error: "La date de vente est requise.",
+  }),
+  plateforme: z.string().min(1, "La plateforme est requise."),
+  dateAchat: z.date({ // Changed from dateMiseEnVente to dateAchat
+    required_error: "La date d'achat est requise.",
+  }),
   tempsEnLigne: z.string().optional(),
-  prixVente: z.number().min(0, "Le prix de vente doit être positif"),
-  plateforme: z.string().min(1, "La plateforme est requise"),
-})
+});
+
+type VenteFormValues = z.infer<typeof VenteFormSchema>;
 
 interface VenteFormProps {
-  produitId: string
-  open: boolean
-  onClose: () => void
+  produit: Produit;
+  onSave: (produitData: Partial<Produit>) => void;
+  onCancel: () => void;
 }
 
-export default function VenteForm({ produitId, open, onClose }: VenteFormProps) {
-  const { updateProduitVente } = useStore()
-  const { toast } = useToast()
-
-  const form = useForm<z.infer<typeof venteFormSchema>>({
-    resolver: zodResolver(venteFormSchema),
+export function VenteForm({ produit, onSave, onCancel }: VenteFormProps) {
+  const form = useForm<VenteFormValues>({
+    resolver: zodResolver(VenteFormSchema),
     defaultValues: {
-      dateVente: new Date().toISOString().split("T")[0],
-      dateMiseEnVente: new Date().toISOString().split("T")[0],
-      tempsEnLigne: "",
-      prixVente: 0,
-      plateforme: "",
+      prixVente: produit.prixVente || 0, // Changed from produit.prix to produit.prixVente
+      dateVente: produit.dateVente ? new Date(produit.dateVente) : new Date(),
+      plateforme: produit.plateforme || "Vinted",
+      dateAchat: produit.dateAchat ? new Date(produit.dateAchat) : new Date(), // Changed from dateMiseEnVente to dateAchat
+      tempsEnLigne: produit.tempsEnLigne || undefined,
     },
-  })
+  });
 
-  // Calculer automatiquement le temps en ligne lorsque les dates changent
-  useEffect(() => {
-    const dateVente = form.watch("dateVente")
-    const dateMiseEnVente = form.watch("dateMiseEnVente")
-
-    if (dateVente && dateMiseEnVente) {
-      try {
-        const dateVenteObj = new Date(dateVente)
-        const dateMiseEnVenteObj = new Date(dateMiseEnVente)
-
-        // Vérifier que les dates sont valides
-        if (!isNaN(dateVenteObj.getTime()) && !isNaN(dateMiseEnVenteObj.getTime())) {
-          // Calculer la différence en jours
-          const diffTime = dateVenteObj.getTime() - dateMiseEnVenteObj.getTime()
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-          if (diffDays >= 0) {
-            form.setValue("tempsEnLigne", `${diffDays} jours`)
-          } else {
-            form.setValue("tempsEnLigne", "Date de vente antérieure à la mise en vente")
-          }
-        }
-      } catch (error) {
-        console.error("Erreur lors du calcul du temps en ligne:", error)
-      }
+  const onSubmit = (values: VenteFormValues) => {
+    let calculatedTempsEnLigne: string | undefined = undefined;
+    if (values.dateAchat && values.dateVente) { // Changed from dateMiseEnVente to dateAchat
+      const diffTime = Math.abs(values.dateVente.getTime() - values.dateAchat.getTime()); // Changed from dateMiseEnVente to dateAchat
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      calculatedTempsEnLigne = `${diffDays} jours`;
     }
-  }, [form.watch("dateVente"), form.watch("dateMiseEnVente"), form])
 
-  function onSubmit(values: z.infer<typeof venteFormSchema>) {
-    updateProduitVente(produitId, {
-      ...values,
-      prixVente: Number(values.prixVente),
+    const produitData: Partial<Produit> = {
+      prixVente: values.prixVente,
       vendu: true,
-    })
-    toast({
-      title: "Vente enregistrée",
-      description: "Les détails de la vente ont été enregistrés avec succès.",
-    })
-    onClose()
-  }
+      dateVente: values.dateVente.toISOString(),
+      plateforme: values.plateforme,
+      dateAchat: values.dateAchat.toISOString(), // Changed from dateMiseEnVente to dateAchat
+      ...(calculatedTempsEnLigne !== undefined && { tempsEnLigne: calculatedTempsEnLigne }),
+    };
+    onSave(produitData);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Détails de la vente</DialogTitle>
-          <DialogDescription>Renseignez les informations de vente pour ce produit</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="dateMiseEnVente"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date de mise en vente</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormDescription>Date à laquelle le produit a été mis en vente</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="dateVente"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date de vente</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormDescription>Date à laquelle le produit a été vendu</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="tempsEnLigne"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Temps en ligne</FormLabel>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <FormField
+          control={form.control}
+          name="prixVente"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Prix de vente</FormLabel>
+              <FormControl>
+                <Input type="number" step="0.01" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="dateVente"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Date de vente</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
                   <FormControl>
-                    <Input {...field} placeholder="Calculé automatiquement" readOnly />
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-[240px] pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP", { locale: fr })
+                      ) : (
+                        <span>Choisir une date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
                   </FormControl>
-                  <FormDescription>Calculé automatiquement à partir des dates ci-dessus</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="prixVente"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Prix de vente (€)</FormLabel>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date("1900-01-01")
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="plateforme"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Plateforme</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="dateAchat" // Changed from dateMiseEnVente to dateAchat
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Date d'achat</FormLabel> {/* Changed label */}
+              <Popover>
+                <PopoverTrigger asChild>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-[240px] pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP", { locale: fr })
+                      ) : (
+                        <span>Choisir une date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="plateforme"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Plateforme</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="ex: Vinted" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <AnimatedButton 
-              type="submit" 
-              className="w-full"
-              loading={form.formState.isSubmitting}
-              loadingText="Enregistrement..."
-              success={form.formState.isSubmitSuccessful}
-              successText="Vente enregistrée !"
-              ripple={true}
-              haptic={true}
-            >
-              Enregistrer la vente
-            </AnimatedButton>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  )
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date("1900-01-01")
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit">Enregistrer la vente</Button>
+        <Button type="button" variant="outline" onClick={onCancel}>Annuler</Button>
+      </form>
+    </Form>
+  );
 }
-

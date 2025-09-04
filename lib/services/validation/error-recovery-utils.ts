@@ -4,7 +4,8 @@
  * Requirements: 4.1, 4.2, 4.3, 4.4, 4.5
  */
 
-import { ErrorHandler, FallbackConfig, RecoveryResult, ErrorCategory } from './error-handler';
+import { ErrorHandler } from './error-handler';
+import type { FallbackConfig, RecoveryResult } from './error-handler';
 // Simple logger disabled
 // import { getLogger } from '@/lib/utils/simple-logger.js';
 
@@ -15,15 +16,15 @@ const logger = getLogger('ErrorRecovery');
 /**
  * Decorator for automatic error handling and recovery
  */
-export function withErrorRecovery(
+export function withErrorRecovery<T>(
   operationName?: string,
-  fallbackConfig?: FallbackConfig
+  fallbackConfig?: FallbackConfig<T>
 ) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const methodName = operationName || `${target.constructor.name}.${propertyKey}`;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: any[]): Promise<T> {
       const errorHandler = ErrorHandler.getInstance();
       
       const operation = () => originalMethod.apply(this, args);
@@ -33,7 +34,7 @@ export function withErrorRecovery(
         arguments: args.length
       };
 
-      const result = await errorHandler.executeWithRecovery(
+      const result = await errorHandler.executeWithRecovery<T>( // Explicitly specify T
         operation,
         methodName,
         context,
@@ -44,7 +45,7 @@ export function withErrorRecovery(
         throw result.error?.originalError || new Error(`Operation failed: ${methodName}`);
       }
 
-      return result.result;
+      return result.result as T;
     };
 
     return descriptor;
@@ -57,12 +58,12 @@ export function withErrorRecovery(
 export async function executeWithRecovery<T>(
   operation: () => Promise<T>,
   operationName: string,
-  fallbackConfig?: FallbackConfig,
+  fallbackConfig?: FallbackConfig<T>,
   context?: Record<string, any>
 ): Promise<T> {
   const errorHandler = ErrorHandler.getInstance();
   
-  const result = await errorHandler.executeWithRecovery(
+  const result = await errorHandler.executeWithRecovery<T>( // Explicitly specify T
     operation,
     operationName,
     context,
@@ -73,7 +74,7 @@ export async function executeWithRecovery<T>(
     throw result.error?.originalError || new Error(`Operation failed: ${operationName}`);
   }
 
-  return result.result;
+  return result.result as T;
 }
 
 /**
@@ -87,20 +88,20 @@ export async function safeExecute<T>(
 ): Promise<T | undefined> {
   const errorHandler = ErrorHandler.getInstance();
   
-  const fallbackConfig: FallbackConfig = {
+  const fallbackConfig: FallbackConfig<T> = {
     enabled: fallbackValue !== undefined,
     fallbackValue,
     degradedMode: false
   };
 
-  const result = await errorHandler.executeWithRecovery(
+  const result = await errorHandler.executeWithRecovery<T>( // Explicitly specify T
     operation,
     operationName,
     context,
     fallbackConfig
   );
 
-  return result.success ? result.result : fallbackValue;
+  return result.success ? (result.result as T) : fallbackValue;
 }
 
 /**
@@ -109,7 +110,7 @@ export async function safeExecute<T>(
 export async function apiCallWithRecovery<T>(
   apiCall: () => Promise<T>,
   endpoint: string,
-  fallbackConfig?: FallbackConfig
+  fallbackConfig?: FallbackConfig<T>
 ): Promise<RecoveryResult<T>> {
   const errorHandler = ErrorHandler.getInstance();
   
@@ -129,7 +130,7 @@ export async function apiCallWithRecovery<T>(
     }
   };
 
-  return await errorHandler.executeWithRecovery(
+  return await errorHandler.executeWithRecovery<T>( // Explicitly specify T
     operation,
     `API Call: ${endpoint}`,
     { endpoint, apiCall: true },
@@ -143,11 +144,11 @@ export async function apiCallWithRecovery<T>(
 export async function databaseOperationWithRecovery<T>(
   dbOperation: () => Promise<T>,
   operationName: string,
-  fallbackConfig?: FallbackConfig
+  fallbackConfig?: FallbackConfig<T>
 ): Promise<RecoveryResult<T>> {
   const errorHandler = ErrorHandler.getInstance();
   
-  return await errorHandler.executeWithRecovery(
+  return await errorHandler.executeWithRecovery<T>( // Explicitly specify T
     dbOperation,
     `DB Operation: ${operationName}`,
     { database: true, operation: operationName },
@@ -180,7 +181,7 @@ export async function batchOperationWithRecovery<T, R>(
   } = options;
 
   const results: (R | undefined)[] = [];
-  const failures: { index: number; item: T; error: any }[] = [];
+  const failures: { index: number; item: T | undefined; error: any }[] = [];
   let failureCount = 0;
 
   logger.info(`Starting batch operation: ${operationName}`, {
@@ -190,23 +191,26 @@ export async function batchOperationWithRecovery<T, R>(
   });
 
   for (let i = 0; i < items.length; i++) {
-    const item = items[i];
+    const item = items[i]!;
     
     try {
-      const result = await safeExecute(
-        () => operation(item, i),
-        `${operationName}[${i}]`,
-        fallbackValue,
-        { batchOperation: true, itemIndex: i }
-      );
-      
+      const result =
+        item !== undefined
+          ? await safeExecute(
+              () => operation(item, i),
+              `${operationName}[${i}]`,
+              fallbackValue,
+              { batchOperation: true, itemIndex: i }
+            )
+          : fallbackValue;
+
       results.push(result);
-      
+
     } catch (error) {
       failureCount++;
-      failures.push({ index: i, item, error });
+      failures.push({ index: i, item: item, error });
       results.push(fallbackValue);
-      
+
       logger.warn(`Batch operation item ${i} failed: ${operationName}`, {
         error: error instanceof Error ? error.message : String(error)
       });
@@ -232,7 +236,7 @@ export async function batchOperationWithRecovery<T, R>(
 
   return {
     results,
-    failures,
+    failures: failures as { index: number; item: T; error: any }[],
     successCount,
     failureCount
   };
@@ -286,7 +290,7 @@ export class CircuitBreaker {
       this.state = 'OPEN';
       logger.warn(`Circuit breaker opened: ${this.operationName}`, {
         failures: this.failures,
-        threshold: this.failureThreshold
+        _threshold: this.failureThreshold
       });
     }
   }
@@ -359,7 +363,7 @@ export async function withTimeout<T>(
   operation: () => Promise<T>,
   timeoutMs: number,
   operationName: string,
-  fallbackConfig?: FallbackConfig
+  fallbackConfig?: FallbackConfig<T>
 ): Promise<T> {
   const errorHandler = ErrorHandler.getInstance();
   
@@ -381,7 +385,7 @@ export async function withTimeout<T>(
     });
   };
 
-  const result = await errorHandler.executeWithRecovery(
+  const result = await errorHandler.executeWithRecovery<T>( // Explicitly specify T
     timeoutOperation,
     operationName,
     { timeout: timeoutMs },
@@ -392,7 +396,7 @@ export async function withTimeout<T>(
     throw result.error?.originalError || new Error(`Timeout operation failed: ${operationName}`);
   }
 
-  return result.result;
+  return result.result as T;
 }
 
 /**

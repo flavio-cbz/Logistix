@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react"; // Removed React import
 import { useMarketAnalysisStore } from "@/lib/store";
 import HistoricalDataView from "./historical-data-view";
 import { Button } from "@/components/ui/button";

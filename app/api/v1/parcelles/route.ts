@@ -4,10 +4,10 @@ import { databaseService } from '@/lib/services/database/db';
 import { v4 as uuidv4 } from 'uuid';
 import { createCriticalDatabaseHandler } from '@/lib/utils/api-route-optimization';
 
-async function getHandler(request: NextRequest): Promise<NextResponse> {
+async function getHandler(_request: NextRequest): Promise<NextResponse> {
     const user = await getSessionUser();
     if (!user) {
-        return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
+        return NextResponse.json({ success: false, _message: 'Non authentifié' }, { status: 401 });
     }
     
     const parcelles = await databaseService.query(
@@ -22,7 +22,7 @@ async function getHandler(request: NextRequest): Promise<NextResponse> {
 async function postHandler(request: NextRequest): Promise<NextResponse> {
     const user = await getSessionUser();
     if (!user) {
-        return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
+        return NextResponse.json({ success: false, _message: 'Non authentifié' }, { status: 401 });
     }
     
     const { numero, transporteur, prixAchat, poids } = await request.json();
@@ -31,7 +31,7 @@ async function postHandler(request: NextRequest): Promise<NextResponse> {
         const prixTotal = parseFloat(prixAchat);
         const poidsFloat = parseFloat(poids);
         if (isNaN(poidsFloat) || poidsFloat === 0) {
-            return NextResponse.json({ success: false, message: 'Poids invalide ou égal à zéro' }, { status: 400 });
+            return NextResponse.json({ success: false, _message: 'Poids invalide ou égal à zéro' }, { status: 400 });
         }
         const prixParGramme = prixTotal / poidsFloat;
          
@@ -60,20 +60,20 @@ async function postHandler(request: NextRequest): Promise<NextResponse> {
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'; 
         console.error("Erreur détaillée lors de la création de la parcelle:", error);
-        return NextResponse.json({ success: false, message: 'Erreur lors de la création de la parcelle', error: errorMessage }, { status: 500 });
+        return NextResponse.json({ success: false, _message: 'Erreur lors de la création de la parcelle', error: errorMessage }, { status: 500 });
     }
 }
 
 async function putHandler(request: NextRequest): Promise<NextResponse> {
     const user = await getSessionUser();
     if (!user) {
-        return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
+        return NextResponse.json({ success: false, _message: 'Non authentifié' }, { status: 401 });
     }
 
     const { id, ...data } = await request.json();
 
     if (!id) {
-        return NextResponse.json({ success: false, message: 'ID de parcelle manquant' }, { status: 400 });
+        return NextResponse.json({ success: false, _message: 'ID de parcelle manquant' }, { status: 400 });
     }
 
     try {
@@ -81,7 +81,7 @@ async function putHandler(request: NextRequest): Promise<NextResponse> {
         const prixTotal = parseFloat(data.prixAchat);
         const poidsFloat = parseFloat(data.poids);
         if (isNaN(poidsFloat) || poidsFloat === 0) {
-            return NextResponse.json({ success: false, message: 'Poids invalide ou égal à zéro' }, { status: 400 });
+            return NextResponse.json({ success: false, _message: 'Poids invalide ou égal à zéro' }, { status: 400 });
         }
         const prixParGramme = prixTotal / poidsFloat;
 
@@ -92,27 +92,27 @@ async function putHandler(request: NextRequest): Promise<NextResponse> {
         `, [data.numero, data.transporteur, data.prixAchat, data.poids, prixTotal, prixParGramme, updated_at, id, user.id], 'update_parcelle');
 
         if (result.changes === 0) {
-            return NextResponse.json({ success: false, message: 'Parcelle non trouvée ou non autorisée' }, { status: 404 });
+            return NextResponse.json({ success: false, _message: 'Parcelle non trouvée ou non autorisée' }, { status: 404 });
         }
 
         const updatedParcelle = { id, ...data, prixTotal, prixParGramme, updated_at };
         return NextResponse.json({ success: true, parcelle: updatedParcelle });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'; 
-        return NextResponse.json({ success: false, message: 'Erreur lors de la mise à jour de la parcelle', error: errorMessage }, { status: 500 });
+        return NextResponse.json({ success: false, _message: 'Erreur lors de la mise à jour de la parcelle', error: errorMessage }, { status: 500 });
     }
 }
 
 async function deleteHandler(request: NextRequest): Promise<NextResponse> {
     const user = await getSessionUser();
     if (!user) {
-        return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
+        return NextResponse.json({ success: false, _message: 'Non authentifié' }, { status: 401 });
     }
 
     const { id } = await request.json();
 
     if (!id) {
-        return NextResponse.json({ success: false, message: 'ID de parcelle manquant' }, { status: 400 });
+        return NextResponse.json({ success: false, _message: 'ID de parcelle manquant' }, { status: 400 });
     }
 
     try {
@@ -123,13 +123,13 @@ async function deleteHandler(request: NextRequest): Promise<NextResponse> {
         );
 
         if (result.changes === 0) {
-            return NextResponse.json({ success: false, message: 'Parcelle non trouvée ou non autorisée' }, { status: 404 });
+            return NextResponse.json({ success: false, _message: 'Parcelle non trouvée ou non autorisée' }, { status: 404 });
         }
 
         return NextResponse.json({ success: true });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'; 
-        return NextResponse.json({ success: false, message: 'Erreur lors de la suppression de la parcelle', error: errorMessage }, { status: 500 });
+        return NextResponse.json({ success: false, _message: 'Erreur lors de la suppression de la parcelle', error: errorMessage }, { status: 500 });
     }
 }
 

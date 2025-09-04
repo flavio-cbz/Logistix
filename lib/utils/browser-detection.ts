@@ -246,7 +246,7 @@ export function withFeatureSupport<T>(
  * Polyfill for CSS.supports if not available
  */
 export function polyfillCSSSupports(): void {
-  if (typeof window === 'undefined' || window.CSS?.supports) return
+  if (typeof window === 'undefined' || typeof window.CSS?.supports === 'function') return
 
   if (!window.CSS) {
     (window as any).CSS = {}
@@ -284,9 +284,9 @@ export function initializeBrowserDetection(): void {
   applyBrowserClasses()
 
   // Browser info available for debugging in development
-  if (process.env.NODE_ENV === 'development') {
-    const browser = detectBrowser()
-    const features = detectFeatureSupport()
+  if ((process.env as any)['NODE_ENV'] === 'development') {
+    // const browser = detectBrowser()
+    // const features = detectFeatureSupport()
     // Browser detection data available: { browser, features }
   }
 }

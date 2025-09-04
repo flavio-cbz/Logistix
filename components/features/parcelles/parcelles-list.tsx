@@ -7,22 +7,18 @@ import { AnimatedButton } from "@/components/ui/animated-button"
 import { Input } from "@/components/ui/input"
 import ParcelleForm from "@/components/features/parcelles/parcelle-form"
 import { Copy, Edit, Trash2 } from "lucide-react"
-import { ConfirmDialog } from "@/components/confirm-dialog"
 import type { Parcelle } from "@/types/database"
-import { useToast } from "@/components/ui/use-toast"
 import { useStore } from "@/lib/services/admin/store"
 import { useDuplicateEntity } from "@/lib/utils/duplication" // Import du hook de duplication
 
 interface ParcellesListProps {
   initialParcelles: Parcelle[]
-  onDelete: (id: string) => Promise<void>
+  onDelete: (id: string) => void
 }
 
 export default function ParcellesList({ initialParcelles = [], onDelete }: ParcellesListProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [deleteId, setDeleteId] = useState<string | null>(null)
   const [editParcelle, setEditParcelle] = useState<Parcelle | null>(null)
-  const { toast } = useToast()
   const { addParcelle } = useStore() // Destructurer addParcelle du store
   const { duplicateEntity } = useDuplicateEntity<Parcelle>(); // Utilisation du hook générique
 
@@ -34,22 +30,7 @@ export default function ParcellesList({ initialParcelles = [], onDelete }: Parce
         parcelle.numero.toString().includes(searchTerm),
     )
 
-  const handleDelete = async (id: string) => {
-    try {
-      await onDelete(id)
-      toast({
-        title: "Parcelle supprimée",
-        description: "La parcelle a été supprimée avec succès.",
-      })
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la suppression.",
-      })
-    }
-    setDeleteId(null)
-  }
+  // La confirmation et la suppression sont gérées par le parent via onDelete
 
   // Fonction pour dupliquer une parcelle
   const handleDuplicate = (parcelle: Parcelle) => {
@@ -131,7 +112,7 @@ export default function ParcellesList({ initialParcelles = [], onDelete }: Parce
                     <AnimatedButton 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => setDeleteId(parcelle.id)}
+                      onClick={() => onDelete(parcelle.id)}
                       ripple={true}
                       haptic={true}
                       screenReaderDescription="Supprimer la parcelle"
@@ -153,13 +134,7 @@ export default function ParcellesList({ initialParcelles = [], onDelete }: Parce
         </Table>
       </div>
 
-      <ConfirmDialog
-        open={!!deleteId}
-        onOpenChange={() => setDeleteId(null)}
-        onConfirm={() => deleteId && handleDelete(deleteId)}
-        title="Supprimer la parcelle"
-        description="Êtes-vous sûr de vouloir supprimer cette parcelle ? Cette action est irréversible."
-      />
+  {/* Confirmation déplacée au niveau parent */}
     </>
   )
 }

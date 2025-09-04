@@ -15,50 +15,7 @@ const logger = {
   info: console.log
 };
 
-// Mettons à jour la configuration par défaut du dashboard avec nos nouveaux composants
-const defaultDashboardConfig: DashboardConfig = {
-  cards: [
-    { id: "stats", title: "Statistiques principales", type: "stats", component: "MainStats", enabled: true, order: 0 },
-    {
-      id: "performance",
-      title: "Performance des ventes",
-      type: "chart",
-      component: "PerformanceChart",
-      enabled: true,
-      order: 1,
-    },
-    {
-      id: "plateformes",
-      title: "Répartition par plateforme",
-      type: "chart",
-      component: "VentesPlateformes",
-      enabled: true,
-      order: 2,
-    },
-    { id: "top-produits", title: "Top produits", type: "table", component: "TopProduits", enabled: true, order: 3 },
-    { id: "temps-vente", title: "Temps de vente", type: "chart", component: "TempsVente", enabled: true, order: 4 },
-    {
-      id: "marge-mensuelle",
-      title: "Marge mensuelle",
-      type: "chart",
-      component: "MargeMensuelle",
-      enabled: false,
-      order: 5,
-    },
-    { id: "top-parcelles", title: "Top parcelles", type: "table", component: "TopParcelles", enabled: false, order: 6 },
-    { id: "cout-poids", title: "Coût par poids", type: "chart", component: "CoutPoids", enabled: false, order: 7 },
-    {
-      id: "tendances",
-      title: "Tendances de vente",
-      type: "chart",
-      component: "TendancesVente",
-      enabled: false,
-      order: 8,
-    },
-  ],
-  layout: ["stats", "performance", "plateformes", "top-produits", "temps-vente"],
-  gridLayout: { lg: 2, md: 1 },
-}
+
 
 interface StoreState {
   parcelles: Parcelle[]
@@ -90,19 +47,24 @@ interface StoreState {
   clearNotification: (id: string) => void
 
   // Import/Export
-  importData: (data: any) => void
-  exportData: () => { parcelles: Parcelle[]; produits: Produit[]; dashboardConfig: DashboardConfig }
+  importData: (data: { parcelles: Parcelle[]; produits: Produit[]; dashboardConfig: DashboardConfig }) => void
+  exportData: () => { parcelles: Parcelle[]; produits: Produit[]; dashboardConfig: DashboardConfig; exportDate: string }
 
-  syncWithDatabase: () => Promise<boolean>
-  loadFromDatabase: () => Promise<boolean>
+  syncWithDatabase: () => Promise<boolean | { parcelles: Parcelle[]; produits: Produit[]; dashboardConfig: DashboardConfig } | null>;
+  loadFromDatabase: (returnData?: boolean) => Promise<boolean | { parcelles: Parcelle[]; produits: Produit[]; dashboardConfig: DashboardConfig } | null>;
+}
+
+type StoreWithSync = StoreState & {
+  _syncInProgress?: boolean
+  _syncPromise?: Promise<boolean | { parcelles: Parcelle[]; produits: Produit[]; dashboardConfig: DashboardConfig } | null>
 }
 
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
-      parcelles: [],
-      produits: [],
-      dashboardConfig: defaultDashboardConfig,
+      parcelles: get().parcelles,
+      produits: get().produits,
+      dashboardConfig: get().dashboardConfig,
       notifications: [],
 
       initializeStore: async () => {
@@ -205,10 +167,10 @@ export const useStore = create<StoreState>()(
 
         const newProduit: Produit = {
           id: crypto.randomUUID(),
-          userId: produit.userId || '', // Add userId field
+          userId: produit.userId,
           commandeId: produit.commandeId,
-          nom: produit.nom,
-          details: produit.details,
+          nom: produit.nom ?? undefined, // Use ?? undefined to handle null
+          details: produit.details ?? undefined, // Use ?? undefined to handle null
           prixArticle: produit.prixArticle,
           poids: produit.poids,
           parcelleId: produit.parcelleId,
@@ -218,6 +180,8 @@ export const useStore = create<StoreState>()(
           pourcentageBenefice,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          dateAchat: produit.dateAchat ?? undefined, // Handle dateAchat
+          tempsEnLigne: produit.tempsEnLigne ?? undefined, // Handle tempsEnLigne
         }
         
         set((state) => ({ produits: [...state.produits, newProduit] }))
@@ -266,6 +230,10 @@ export const useStore = create<StoreState>()(
             prixLivraison,
             benefices,
             pourcentageBenefice,
+            nom: data.nom ?? undefined, // Handle nom
+            details: data.details ?? undefined, // Handle details
+            dateAchat: data.dateAchat ?? undefined, // Handle dateAchat
+            tempsEnLigne: data.tempsEnLigne ?? undefined, // Handle tempsEnLigne
           }
         }
 
@@ -359,22 +327,22 @@ export const useStore = create<StoreState>()(
         logger.warn("Tentative d'utilisation de la fonctionnalité d'exportation désactivée.")
         get().addNotification("warning", "La fonctionnalité d'exportation est temporairement désactivée.")
         return {
-          parcelles: [],
-          produits: [],
-          dashboardConfig: defaultDashboardConfig,
-          exportDate: new Date().toISOString(),
+          parcelles: get().parcelles,
+          produits: get().produits,
+          dashboardConfig: get().dashboardConfig,
+          exportDate: new Date().toISOString(), // Add exportDate
         }
       },
 
       // Améliorer la synchronisation avec la base de données
       syncWithDatabase: async () => {
         // Empêcher les synchronisations concurrentes en utilisant un verrou interne (_syncInProgress)
-        const storeAny: any = get() as any
-        if (storeAny._syncInProgress) {
+        const store = get() as StoreWithSync
+        if (store._syncInProgress) {
           logger.info("Synchronisation déjà en cours, attente de la première requête")
-          return storeAny._syncPromise || false
+          return store._syncPromise || false
         }
-        storeAny._syncInProgress = true
+        store._syncInProgress = true
 
         const syncPromise = (async () => {
           try {
@@ -411,12 +379,12 @@ export const useStore = create<StoreState>()(
             return false
           } finally {
             // Libérer le verrou et supprimer la promesse interne
-            storeAny._syncInProgress = false
-            try { delete storeAny._syncPromise } catch { /* ignore */ }
+            store._syncInProgress = false
+            try { delete store._syncPromise } catch { /* ignore */ }
           }
         })()
 
-        storeAny._syncPromise = syncPromise
+        store._syncPromise = syncPromise
         return syncPromise
       },
 

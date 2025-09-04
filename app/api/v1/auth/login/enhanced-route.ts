@@ -95,7 +95,7 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
       });
 
       return NextResponse.json(
-        { success: false, message: "Identifiant ou mot de passe incorrect" },
+        { success: false, _message: "Identifiant ou mot de passe incorrect" },
         { status: 401 }
       );
     }
@@ -167,7 +167,7 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
     // Create response with session cookie
     const response = NextResponse.json({ 
       success: true, 
-      message: "Connexion réussie",
+      _message: "Connexion réussie",
       user: {
         id: user.id,
         username: user.username
@@ -176,10 +176,14 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
 
     response.cookies.set("session_id", sessionId, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
+      secure: (process.env as any)['NODE_ENV'] === "production",
+      // Expires explicitement (aligné avec la durée de session en base)
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      maxAge: 60 * 60 * 24 * 7, // 1 week in seconds
       path: "/",
-      sameSite: 'lax'
+      // En production, si le frontend est sur un domaine différent, utilisez 'none' (requiert secure:true).
+      // En dev local, garder 'lax' pour que le cookie soit envoyé depuis localhost.
+      sameSite: (process.env as any)['NODE_ENV'] === "production" ? 'none' : 'lax',
     });
 
     return response;
@@ -210,7 +214,7 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         { 
           success: false, 
-          message: "Erreur de validation", 
+          _message: "Erreur de validation", 
           errors: error.errors 
         },
         { status: 400 }
@@ -240,7 +244,7 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
     );
 
     return NextResponse.json(
-      { success: false, message: "Erreur interne du serveur" },
+      { success: false, _message: "Erreur interne du serveur" },
       { status: 500 }
     );
   }

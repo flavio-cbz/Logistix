@@ -128,7 +128,7 @@ export class StatisticsService {
       courbeTendance: this.calculateTrendCurve(produits),
       previsionsVentes: this.calculateSalesPredictions(produits)
     }
-
+ 
     this.setCachedData(cacheKey, data)
     return data
   }
@@ -164,11 +164,11 @@ export class StatisticsService {
 
     for (const p of produitsVendusAvecTemps) {
       const plateforme = p.plateforme || 'Non spécifié'
-      if (!statsParPlateforme[plateforme]) {
-        statsParPlateforme[plateforme] = { totalJours: 0, count: 0 }
+      if (!statsParPlateforme[plateforme]!) {
+        (statsParPlateforme as any)[plateforme] = { totalJours: 0, count: 0 }
       }
-      statsParPlateforme[plateforme].totalJours += p.tempsVente
-      statsParPlateforme[plateforme].count++
+      statsParPlateforme[plateforme]!!.totalJours += p.tempsVente
+      statsParPlateforme[plateforme]!!.count++
     }
 
     return Object.entries(statsParPlateforme).map(([plateforme, data]) => ({
@@ -189,7 +189,7 @@ export class StatisticsService {
         const dateVente = new Date(p.dateVente!)
         const dayOfWeek = dateVente.getDay()
         const hour = dateVente.getHours()
-        heatmapData[dayOfWeek][hour]++
+        heatmapData[dayOfWeek]![hour]++
       })
 
     return heatmapData
@@ -226,8 +226,8 @@ export class StatisticsService {
     produits
       .filter(p => p.vendu && p.benefices != null)
       .forEach(p => {
-        const plateforme = p.plateforme || 'Non spécifié'
-        rentabiliteParPlateforme[plateforme] = (rentabiliteParPlateforme[plateforme] || 0) + (p.benefices || 0)
+  const plateforme = p.plateforme || 'Non spécifié';
+  (rentabiliteParPlateforme as any)[plateforme] = ((rentabiliteParPlateforme as any)[plateforme] || 0) + (p.benefices || 0);
       })
 
     return Object.entries(rentabiliteParPlateforme)
@@ -292,8 +292,8 @@ export class StatisticsService {
       .forEach(p => {
         const dateVente = new Date(p.dateVente!)
         const annee = dateVente.getFullYear()
-        const mois = (dateVente.getMonth() + 1).toString().padStart(2, '0')
-        const cle = `${annee}-${mois}`
+        const moisStr = (dateVente.getMonth() + 1).toString().padStart(2, '0')
+        const cle = `${annee}-${moisStr}`
         ventesParMoisAnnee[cle] = (ventesParMoisAnnee[cle] || 0) + (p.prixVente || 0)
       })
 
@@ -313,8 +313,8 @@ export class StatisticsService {
       .forEach(p => {
         const dateVente = new Date(p.dateVente!)
         const annee = dateVente.getFullYear()
-        const mois = dateVente.getMonth()
-        const cle = `${annee}-${mois}`
+        const moisNum = dateVente.getMonth()
+        const cle = `${annee}-${moisNum}`
         ventesMensuelles[cle] = (ventesMensuelles[cle] || 0) + (p.prixVente || 0)
       })
 
@@ -324,8 +324,8 @@ export class StatisticsService {
     for (let i = 11; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
       const annee = date.getFullYear()
-      const mois = date.getMonth()
-      const cle = `${annee}-${mois}`
+      const moisNum = date.getMonth()
+      const cle = `${annee}-${moisNum}`
       const nomMois = date.toLocaleString('fr-FR', { month: 'short', year: '2-digit' })
 
       const valeur = ventesMensuelles[cle] || 0
@@ -355,7 +355,7 @@ export class StatisticsService {
         const dateVente = new Date(p.dateVente!)
         const annee = dateVente.getFullYear()
         const mois = dateVente.getMonth()
-        const cle = `${annee}-${mois}`
+        const cle: string = `${annee}-${mois}`
         ventesMensuelles[cle] = (ventesMensuelles[cle] || 0) + (p.prixVente || 0)
       })
 
@@ -413,8 +413,8 @@ export class StatisticsService {
    */
   clearCache(userId?: string): void {
     if (userId) {
-      const keysToDelete = Array.from(this.cache.keys()).filter(key => key.includes(userId))
-      keysToDelete.forEach(key => this.cache.delete(key))
+      const keysToDelete = Array.from(this.cache.keys()).filter(_key => _key.includes(userId))
+      keysToDelete.forEach(_key => this.cache.delete(_key))
     } else {
       this.cache.clear()
     }
@@ -451,7 +451,7 @@ export class StatisticsService {
     }
     return null
   }
-
+ 
   private setCachedData(key: string, data: any): void {
     this.cache.set(key, { data, timestamp: Date.now() })
   }

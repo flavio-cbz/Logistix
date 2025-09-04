@@ -26,7 +26,7 @@ export async function GET() {
   } catch (error) {
     console.error('Erreur lors de la récupération des paramètres AI:', error);
     return NextResponse.json(
-      { success: false, message: 'Erreur serveur' },
+      { success: false, _message: 'Erreur serveur' },
       { status: 500 }
     );
   }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     
     if (!settings) {
       return NextResponse.json(
-        { success: false, message: 'Paramètres manquants' },
+        { success: false, _message: 'Paramètres manquants' },
         { status: 400 }
       );
     }
@@ -51,14 +51,14 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      message: 'Paramètres mis à jour avec succès'
+      _message: 'Paramètres mis à jour avec succès'
     });
   } catch (error) {
     console.error('Erreur lors de la mise à jour des paramètres AI:', error);
     return NextResponse.json(
       { 
         success: false, 
-        message: error instanceof Error ? error.message : 'Erreur serveur' 
+        _message: error instanceof Error ? error.message : 'Erreur serveur' 
       },
       { status: 500 }
     );

@@ -285,7 +285,7 @@ export const borderRadius: DesignTokens['borderRadius'] = {
 }
 
 // Points de rupture responsive
-export const breakpoints: DesignTokens['breakpoints'] = {
+export const breakpoints: Record<string, string> = {
   xs: '475px',
   sm: '640px',
   md: '768px',
@@ -342,8 +342,8 @@ export const designTokens: DesignTokens = {
 }
 
 // Utilitaires pour calculer les ratios de contraste
-export function getContrastRatio(color1: string, color2: string): number {
-  // Implémentation simplifiée - dans un vrai projet, utiliser une bibliothèque comme chroma-js
+export function getContrastRatio(_color1: string, _color2: string): number {
+  // Implémentation simplifiée - dans un vrai projet, utiliser une librairie comme chroma-js
   // Cette fonction devrait calculer le ratio de contraste WCAG
   return 4.5 // Placeholder
 }
@@ -361,25 +361,93 @@ export function isAccessibleContrast(
 export function generateCSSVariables(tokens: DesignTokens): Record<string, string> {
   const variables: Record<string, string> = {}
 
-  // Couleurs
+  // Helper: convert hex '#rrggbb' to "h s% l%" (e.g. "210 40% 96.1%")
+  function hexToHslString(hex: string): string {
+    const clean = hex.replace('#', '')
+    if (clean.length !== 6) return hex
+    const r = parseInt(clean.slice(0, 2), 16) / 255
+    const g = parseInt(clean.slice(2, 4), 16) / 255
+    const b = parseInt(clean.slice(4, 6), 16) / 255
+
+    const max = Math.max(r, g, b)
+    const min = Math.min(r, g, b)
+    let h = 0
+    let s = 0
+    const l = (max + min) / 2
+
+    if (max !== min) {
+      const d = max - min
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break
+        case g: h = (b - r) / d + 2; break
+        case b: h = (r - g) / d + 4; break
+      }
+      h /= 6
+    }
+
+    const hDeg = Math.round(h * 360)
+    const sPct = +(s * 100).toFixed(1)
+    const lPct = +(l * 100).toFixed(1)
+    return `${hDeg} ${sPct}% ${lPct}%`
+  }
+
+  // Couleurs: fournir à la fois les variables --color-... (hex ou original)
+  // et les shorthand attendues par globals.css / tailwind: --<category>-<shade> (HSL triple)
   Object.entries(tokens.colors).forEach(([category, scale]) => {
     if (typeof scale === 'object' && scale !== null) {
       Object.entries(scale).forEach(([shade, value]) => {
         if (typeof value === 'string') {
+          // Always keep explicit color token (hex or provided string)
           variables[`--color-${category}-${shade}`] = value
+
+          // If value is a hex color, convert to HSL triple string for CSS usage
+          const isHex: boolean = value.startsWith('#')
+          if (isHex) {
+            const hsl: string = hexToHslString(value)
+            variables[`--${category}-${shade}`] = hsl
+            // shorthand for 500
+            if (shade === '500') {
+              variables[`--${category}`] = hsl
+              variables[`--color-${category}`] = value
+            }
+          } else {
+            variables[`--${category}-${shade}`] = value
+            if (shade === '500') {
+              variables[`--${category}`] = value
+              variables[`--color-${category}`] = value
+            }
+          }
         } else if (typeof value === 'object') {
-          // Pour les couleurs sémantiques
+          // Pour les couleurs sémantiques (nested)
           Object.entries(value).forEach(([subShade, subValue]) => {
             if (typeof subValue === 'string') {
-  if (typeof subValue === 'string') {
-  variables[`--color-${category}-${shade}-${subShade}`] = subValue
-}
-}
+              variables[`--color-${category}-${shade}-${subShade}`] = subValue
+              const isHex: boolean = subValue.startsWith('#')
+              if (isHex) {
+                const hsl: string = hexToHslString(subValue)
+                variables[`--${category}-${shade}-${subShade}`] = hsl
+              } else {
+                variables[`--${category}-${shade}-${subShade}`] = subValue
+              }
+            }
           })
         }
       })
     }
   })
+// Semantic shorthands (defaults) used by components that expect --background / --foreground etc.
+try {
+  // Assign semantic shorthand variables with fallbacks safely
+  variables['--background'] = variables['--background'] ?? variables['--color-neutral-50'] ?? tokens.colors.neutral[50];
+  variables['--foreground'] = variables['--foreground'] ?? variables['--color-neutral-900'] ?? tokens.colors.neutral[900];
+  variables['--card'] = variables['--card'] ?? variables['--color-neutral-50'] ?? tokens.colors.neutral[50];
+  variables['--card-foreground'] = variables['--card-foreground'] ?? variables['--color-neutral-900'] ?? tokens.colors.neutral[900];
+  variables['--primary'] = variables['--primary'] ?? variables['--color-primary-500'] ?? tokens.colors.primary[500];
+  variables['--primary-foreground'] = variables['--primary-foreground'] ?? variables['--color-neutral-50'] ?? tokens.colors.neutral[50];
+} catch (e) {
+  // Defensive: ignore if tokens shape unexpected
+}
 
   // Typographie
   Object.entries(tokens.typography.fontSizes).forEach(([size, value]) => {

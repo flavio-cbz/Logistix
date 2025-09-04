@@ -19,10 +19,10 @@ interface LogEntry {
 }
 
 export interface ILogger {
-  error(message: string, context?: unknown, error?: unknown): void;
-  warn(message: string, context?: unknown): void;
-  info(message: string, context?: unknown): void;
-  debug(message: string, context?: unknown): void;
+  error(_message: string, context?: unknown, error?: unknown): void;
+  warn(_message: string, context?: unknown): void;
+  info(_message: string, context?: unknown): void;
+  debug(_message: string, context?: unknown): void;
   // Extended optional methods used across the codebase. Use flexible signatures to avoid
   // frequent type mismatches while preserving intent. Implementations should handle args.
   http?: (...args: any[]) => void;
@@ -47,7 +47,7 @@ function maskString(str: string): string {
   // Mask JWTs (three base64url parts separated by .) - keep header, mask payload/signature
   str = str.replace(
     /\b([A-Za-z0-9-_]+\.)[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\b/g,
-    (match, header) => `${header}***.***`
+    (_match, header) => `${header}***.***`
   );
 
   // Mask long alphanumeric tokens (>= 20 chars) - keep first 6 and last 4
@@ -58,7 +58,7 @@ function maskString(str: string): string {
 
   // Mask credit card numbers (keep last 4)
   str = str.replace(
-    /\b(?:\d[ -]*){13,19}\b/g,
+    /\b(?:\d[ -]!*){13,19}\b/g,
     (m) => {
       const digits = m.replace(/[^0-9]/g, '');
       if (digits.length < 13) return m;
@@ -71,20 +71,20 @@ function maskString(str: string): string {
 
 function anonymizeValue(value: any, key?: string, seen = new WeakSet(), depth = 3): any {
   if (value == null || depth <= 0) return value;
-
+ 
   // Primitive types
   if (typeof value === 'string') {
     // Keys that indicate secrets
-    if (key && /password|pwd|secret|token|access[_-]?token|api[_-]?key|apikey|credential/i.test(key)) {
+    if (key && /password|pwd|secret|token|access[_-]!?token|api[_-]!?key|apikey|credential/i.test(key)) {
       return '***';
     }
     return maskString(value);
   }
-
+ 
   if (typeof value === 'number' || typeof value === 'boolean') {
     return value;
   }
-
+ 
   if (Array.isArray(value)) {
     return value.map((v) => anonymizeValue(v, key, seen, depth - 1));
   }
@@ -99,16 +99,16 @@ function anonymizeValue(value: any, key?: string, seen = new WeakSet(), depth = 
       try {
         const v = (value as any)[k];
         if (v == null) {
-          out[k] = v;
+          (out as any)[k] = v;
           continue;
         }
-        if (/password|pwd|secret|token|access[_-]?token|api[_-]?key|apikey|credential/i.test(k)) {
-          out[k] = '***';
+        if (/password|pwd|secret|token|access[_-]!?token|api[_-]!?key|apikey|credential/i.test(k)) {
+          (out as any)[k] = '***';
           continue;
         }
-        out[k] = anonymizeValue(v, k, seen, depth - 1);
+        (out as any)[k] = anonymizeValue(v, k, seen, depth - 1);
       } catch {
-        out[k] = '[Unserializable]';
+        (out as any)[k] = '[Unserializable]';
       }
     }
     seen.delete(value);
@@ -123,7 +123,7 @@ export function anonymize(objOrString: any): any {
 }
 
 class Logger implements ILogger {
-  private isDevelopment = process.env.NODE_ENV === 'development';
+  private isDevelopment = (process.env as any)['NODE_ENV'] === 'development';
 
   private formatMessage(entry: LogEntry): string {
     const { level, message, timestamp, context, error } = entry;
@@ -163,7 +163,7 @@ class Logger implements ILogger {
     } else if (error && typeof error === 'string') {
       safeError = anonymize(error);
     }
-
+ 
     const entry: LogEntry = {
       level,
       message: safeMessage,
@@ -173,7 +173,7 @@ class Logger implements ILogger {
     if (safeError) {
       (entry as LogEntry).error = safeError;
     }
-
+ 
     const formattedMessage = this.formatMessage(entry);
 
     // In development, use console methods for better formatting
@@ -197,50 +197,50 @@ class Logger implements ILogger {
     }
   }
 
-  error(message: string, context?: any, error?: any): void {
-    this.log(LogLevel.ERROR, message, context, error);
+  error(_message: string, context?: any, error?: any): void {
+    this.log(LogLevel.ERROR, _message, context, error);
   }
 
-  warn(message: string, context?: any): void {
-    this.log(LogLevel.WARN, message, context);
+  warn(_message: string, context?: any): void {
+    this.log(LogLevel.WARN, _message, context);
   }
 
-  info(message: string, context?: any): void {
-    this.log(LogLevel.INFO, message, context);
+  info(_message: string, context?: any): void {
+    this.log(LogLevel.INFO, _message, context);
   }
 
-  debug(message: string, context?: any): void {
-    this.log(LogLevel.DEBUG, message, context);
+  debug(_message: string, context?: any): void {
+    this.log(LogLevel.DEBUG, _message, context);
   }
 
   // Optional extended methods
-  http(message: string, context?: any): void {
-    this.log(LogLevel.INFO, message, { ...(context || {}), type: 'http' });
+  http(_message: string, context?: any): void {
+    this.log(LogLevel.INFO, _message, { ...(context || {}), type: 'http' });
   }
 
-  verbose(message: string, context?: any): void {
-    this.log(LogLevel.DEBUG, message, context);
+  verbose(_message: string, context?: any): void {
+    this.log(LogLevel.DEBUG, _message, context);
   }
 
-  silly(message: string, context?: any): void {
-    this.log(LogLevel.DEBUG, message, context);
+  silly(_message: string, context?: any): void {
+    this.log(LogLevel.DEBUG, _message, context);
   }
 
-  performance(message: string, data?: any): void {
-    this.log(LogLevel.INFO, message, { performance: data });
+  performance(_message: string, data?: any): void {
+    this.log(LogLevel.INFO, _message, { performance: data });
   }
 
   request(...args: any[]): void {
     // Accept variable args and format
-    this.log(LogLevel.INFO, String(args[0] ?? ''), { args: args.slice(1) });
+    this.log(LogLevel.INFO, String(args[0]! ?? ''), { args: args.slice(1) });
   }
 
-  database(message: string, duration?: number, meta?: any): void {
-    this.log(LogLevel.INFO, message, { duration, ...meta });
+  database(_message: string, duration?: number, meta?: any): void {
+    this.log(LogLevel.INFO, _message, { duration, ...meta });
   }
 
-  userAction(message: string, data?: any): void {
-    this.log(LogLevel.INFO, message, { action: data });
+  userAction(_message: string, data?: any): void {
+    this.log(LogLevel.INFO, _message, { action: data });
   }
 }
 
@@ -251,32 +251,32 @@ export const logger = new Logger();
  */
 export function getLogger(serviceName: string): ILogger {
   return {
-    error: (message: string, context?: unknown, error?: unknown) => {
-      logger.error(`[${serviceName}] ${message}`, context as any, error as any);
+    error: (_message: string, context?: unknown, error?: unknown) => {
+      logger.error(`[${serviceName}] ${_message}`, context as any, error as any);
     },
-    warn: (message: string, context?: unknown) => {
-      logger.warn(`[${serviceName}] ${message}`, context as any);
+    warn: (_message: string, context?: unknown) => {
+      logger.warn(`[${serviceName}] ${_message}`, context as any);
     },
-    info: (message: string, context?: unknown) => {
-      logger.info(`[${serviceName}] ${message}`, context as any);
+    info: (_message: string, context?: unknown) => {
+      logger.info(`[${serviceName}] ${_message}`, context as any);
     },
-    debug: (message: string, context?: unknown) => {
-      logger.debug(`[${serviceName}] ${message}`, context as any);
+    debug: (_message: string, context?: unknown) => {
+      logger.debug(`[${serviceName}] ${_message}`, context as any);
     },
-    http: (message: string, context?: unknown) => {
-      if (logger.http) logger.http(`[${serviceName}] ${message}`, context);
+    http: (_message: string, context?: unknown) => {
+      if (logger.http) logger.http(`[${serviceName}] ${_message}`, context);
     },
-    performance: (message: string, data?: unknown) => {
-      if (logger.performance) logger.performance(message, data);
+    performance: (_message: string, data?: unknown) => {
+      if (logger.performance) logger.performance(_message, data);
     },
-    database: (message: string, duration?: number, meta?: unknown) => {
-      if (logger.database) logger.database(message, duration, meta);
+    database: (_message: string, duration?: number, meta?: unknown) => {
+      if (logger.database) logger.database(_message, duration, meta);
     },
-    request: (message: string, data?: unknown) => {
-      if (logger.request) logger.request(message, data);
+    request: (_message: string, data?: unknown) => {
+      if (logger.request) logger.request(_message, data);
     },
-    userAction: (message: string, data?: unknown) => {
-      if (logger.userAction) logger.userAction(message, data);
+    userAction: (_message: string, data?: unknown) => {
+      if (logger.userAction) logger.userAction(_message, data);
     }
   };
 }

@@ -2,7 +2,7 @@
 
 import { logger } from '@/lib/utils/logging/logger';
 import { VintedApiError, VintedValidationError } from '@/lib/services/vinted-market-analysis';
-import { type UserError } from '@/types/vinted-market-analysis';
+import type { UserError } from '@/types/vinted-market-analysis';
 
 export class ErrorHandler {
   /**
@@ -204,7 +204,7 @@ export class ErrorHandler {
     logger.error(`[ErrorHandler] ${context}:`, {
       error: {
         name: error.name,
-        message: error.message,
+        _message: error.message,
         stack: error.stack,
       },
       context,

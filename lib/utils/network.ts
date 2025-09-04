@@ -59,7 +59,7 @@ export async function fetchWithRetry(input: RequestInfo, init: FetchWithRetryOpt
       lastError = err
 
       // If aborted due to timeout, treat as retryable
-      const isAbort = err?.name === 'AbortError'
+      // const isAbort = err?.name === 'AbortError'
 
       // If last attempt, rethrow
       if (attempt >= retries - 1) {

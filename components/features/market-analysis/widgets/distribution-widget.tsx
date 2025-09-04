@@ -1,7 +1,6 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { VintedAnalysisResult } from "@/lib/services/vinted-market-analysis";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 
 interface DistributionWidgetProps {
@@ -13,7 +12,7 @@ export default function DistributionWidget({ title, data }: DistributionWidgetPr
   const chartData = data
     ? Object.entries(data)
         .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count)
+        .sort((a: { name: string; count: number }, b: { name: string; count: number }) => b.count - a.count)
         .slice(0, 10)
     : [];
 

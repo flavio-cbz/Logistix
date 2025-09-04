@@ -8,7 +8,7 @@ export default async function adminMiddleware() {
     // Si l'utilisateur n'est pas authentifié ou n'est pas admin -> 403
     if (!user || !user.isAdmin) {
       return NextResponse.json(
-        { success: false, message: 'Accès interdit - rôle admin requis' },
+        { success: false, _message: 'Accès interdit - rôle admin requis' },
         { status: 403 }
       );
     }
@@ -18,7 +18,7 @@ export default async function adminMiddleware() {
   } catch (error) {
     // En cas d'erreur inattendue, renvoyer 403 pour ne pas divulguer d'information
     return NextResponse.json(
-      { success: false, message: 'Accès interdit' },
+      { success: false, _message: 'Accès interdit' },
       { status: 403 }
     );
   }

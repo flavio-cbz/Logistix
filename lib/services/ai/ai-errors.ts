@@ -12,11 +12,15 @@ export enum AIErrorCode {
   DATA_QUALITY_TOO_LOW = 'DATA_QUALITY_TOO_LOW',
   
   // Erreurs d'analyse
+  ANALYSIS_FAILED = 'ANALYSIS_FAILED',
+  REPORT_GENERATION_FAILED = 'REPORT_GENERATION_FAILED',
+  INSIGHTS_GENERATION_FAILED = 'INSIGHTS_GENERATION_FAILED',
   ANALYSIS_TIMEOUT = 'ANALYSIS_TIMEOUT',
   CONFIDENCE_TOO_LOW = 'CONFIDENCE_TOO_LOW',
   CONFLICTING_INSIGHTS = 'CONFLICTING_INSIGHTS',
   
   // Erreurs de configuration
+  FEATURE_DISABLED = 'FEATURE_DISABLED',
   INVALID_AI_CONFIG = 'INVALID_AI_CONFIG',
   UNSUPPORTED_ANALYSIS_TYPE = 'UNSUPPORTED_ANALYSIS_TYPE',
   
@@ -31,9 +35,11 @@ export class AIAnalysisError extends Error {
   public readonly fallbackAvailable: boolean;
   public readonly context?: any;
   public readonly timestamp: Date;
+  // Propriété explicitement déclarée pour éviter des erreurs TS lors de l'affectation
+  
 
   constructor(
-    message: string,
+    _message: string,
     code: AIErrorCode,
     options: {
       retryable?: boolean;
@@ -42,7 +48,7 @@ export class AIAnalysisError extends Error {
       cause?: Error;
     } = {}
   ) {
-    super(message);
+    super(_message);
     this.name = 'AIAnalysisError';
     this.code = code;
     this.retryable = options.retryable ?? false;
@@ -50,6 +56,7 @@ export class AIAnalysisError extends Error {
     this.context = options.context;
     this.timestamp = new Date();
     
+    // Affectation sûre de la cause
     if (options.cause) {
       this.cause = options.cause;
     }
@@ -58,20 +65,21 @@ export class AIAnalysisError extends Error {
   toJSON() {
     return {
       name: this.name,
-      message: this.message,
+      _message: this.message,
       code: this.code,
       retryable: this.retryable,
       fallbackAvailable: this.fallbackAvailable,
       context: this.context,
       timestamp: this.timestamp.toISOString(),
       stack: this.stack,
+      cause: this.cause instanceof Error ? { message: this.cause.message, stack: this.cause.stack } : undefined,
     };
   }
 }
 
 export class InferenceError extends AIAnalysisError {
-  constructor(message: string, options?: { cause?: Error; context?: any }) {
-    super(message, AIErrorCode.INFERENCE_FAILED, {
+  constructor(_message: string, options?: { cause?: Error; context?: any }) {
+    super(_message, AIErrorCode.INFERENCE_FAILED, {
       retryable: true,
       fallbackAvailable: true,
       ...options,
@@ -80,8 +88,8 @@ export class InferenceError extends AIAnalysisError {
 }
 
 export class DataQualityError extends AIAnalysisError {
-  constructor(message: string, context?: any) {
-    super(message, AIErrorCode.DATA_QUALITY_TOO_LOW, {
+  constructor(_message: string, context?: any) {
+    super(_message, AIErrorCode.DATA_QUALITY_TOO_LOW, {
       retryable: false,
       fallbackAvailable: true,
       context,
@@ -90,8 +98,8 @@ export class DataQualityError extends AIAnalysisError {
 }
 
 export class AnalysisTimeoutError extends AIAnalysisError {
-  constructor(message: string, context?: any) {
-    super(message, AIErrorCode.ANALYSIS_TIMEOUT, {
+  constructor(_message: string, context?: any) {
+    super(_message, AIErrorCode.ANALYSIS_TIMEOUT, {
       retryable: true,
       fallbackAvailable: true,
       context,
@@ -100,8 +108,8 @@ export class AnalysisTimeoutError extends AIAnalysisError {
 }
 
 export class CostLimitError extends AIAnalysisError {
-  constructor(message: string, context?: any) {
-    super(message, AIErrorCode.COST_LIMIT_EXCEEDED, {
+  constructor(_message: string, context?: any) {
+    super(_message, AIErrorCode.COST_LIMIT_EXCEEDED, {
       retryable: false,
       fallbackAvailable: true,
       context,
@@ -115,8 +123,10 @@ export function isRetryableError(error: Error): boolean {
     return error.retryable;
   }
   
+  // Accès protégé à message (possible objet non standard)
+  const msg = (error as any)?.message ?? '';
   // Erreurs réseau généralement retryables
-  if (error.message.includes('fetch') || error.message.includes('network')) {
+  if (typeof msg === 'string' && (msg.includes('fetch') || msg.includes('network') || msg.includes('timeout'))) {
     return true;
   }
   
@@ -131,25 +141,33 @@ export function hasFallbackAvailable(error: Error): boolean {
   return true; // Par défaut, on assume qu'un fallback est disponible
 }
 
-export function createErrorFromResponse(response: any, context?: any): AIAnalysisError {
-  if (response.error?.code === 'rate_limit_exceeded') {
+/**
+ * Crée une AIAnalysisError depuis une réponse d'API/SDK.
+ * - Prend en charge des objets 'response' partiels ou non conformes sans throw.
+ */
+export function createErrorFromResponse(response: unknown, context?: any): AIAnalysisError {
+  const err = (response as any)?.error;
+  const code = typeof err?.code === 'string' ? err.code.toLowerCase() : undefined;
+  const message = err?.message ?? (typeof response === 'string' ? response : undefined) ?? 'Erreur d\'inférence inconnue';
+
+  if (code === 'rate_limit_exceeded' || code === 'rate_limit') {
     return new AIAnalysisError(
       'Limite de taux dépassée',
       AIErrorCode.RATE_LIMIT_EXCEEDED,
-      { retryable: true, fallbackAvailable: true, context }
+      { retryable: true, fallbackAvailable: true, context, cause: err?.cause }
     );
   }
   
-  if (response.error?.code === 'insufficient_quota') {
+  if (code === 'insufficient_quota' || code === 'quota_exceeded') {
     return new AIAnalysisError(
       'Quota insuffisant',
       AIErrorCode.QUOTA_EXCEEDED,
-      { retryable: false, fallbackAvailable: true, context }
+      { retryable: false, fallbackAvailable: true, context, cause: err?.cause }
     );
   }
   
   return new InferenceError(
-    response.error?.message || 'Erreur d\'inférence inconnue',
-    { context }
+    String(message),
+    { context, cause: err?.cause }
   );
 }

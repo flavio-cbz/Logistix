@@ -37,8 +37,8 @@ export async function GET(req: Request) {
       csvContent += `Nombre de Parcelles,${data.nombreParcelles}\n`;
 
       csvContent += "\nROI par Produit\n";
-      data.roiParProduit.forEach(item => {
-        csvContent += `${item.produit},${item.roi}\n`;
+      data.roiParProduit.forEach(_item => {
+        csvContent += `${_item.produit},${_item.roi}\n`;
       });
 
       return new NextResponse(csvContent, {

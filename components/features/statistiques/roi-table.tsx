@@ -22,9 +22,9 @@ interface RoiTableProps {
 
 export function RoiTable({ data }: RoiTableProps) {
   const getBadgeClass = (roi: number) => {
-    if (roi > 100) return "bg-green-500 hover:bg-green-600"
-    if (roi > 50) return "bg-yellow-500 hover:bg-yellow-600"
-    return "bg-red-500 hover:bg-red-600"
+    if (roi > 100) return "bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]"
+    if (roi > 50) return "bg-[hsl(var(--warning))] hover:bg-[hsl(var(--warning))]"
+    return "bg-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive))]"
   }
 
   return (
@@ -41,12 +41,12 @@ export function RoiTable({ data }: RoiTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data && data.map((item, index) => (
+            {data && data.map((_item, index) => (
               <TableRow key={index}>
-                <TableCell>{item.produit}</TableCell>
+                <TableCell>{_item.produit}</TableCell>
                 <TableCell className="text-right">
-                  <Badge className={getBadgeClass(item.roi || 0)}>
-                    {item.roi != null ? `${item.roi.toFixed(1)}%` : "N/A"}
+                  <Badge className={getBadgeClass(_item.roi || 0)}>
+                    {_item.roi != null ? `${_item.roi.toFixed(1)}%` : "N/A"}
                   </Badge>
                 </TableCell>
               </TableRow>

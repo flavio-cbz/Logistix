@@ -26,6 +26,7 @@ const produitBaseSchema = z.object({
   prixArticle: z.number().min(0, "Le prix doit être positif"),
   poids: z.number().min(1, "Le poids doit être positif"),
   parcelleId: z.string().min(1, "La parcelle est requise"),
+  userId: z.string().min(1, "L'ID utilisateur est requis"), // Made userId required
 })
 
 // Schéma pour les produits vendus (avec champs supplémentaires)
@@ -65,6 +66,7 @@ export default function ProduitForm({ className, editProduit = null, onClose }: 
       prixArticle: 0,
       poids: 0,
       parcelleId: "",
+      userId: user?.id || "", // Ensure userId is always a string
     },
   })
 
@@ -86,6 +88,7 @@ export default function ProduitForm({ className, editProduit = null, onClose }: 
           dateVente: editProduit.dateVente?.split("T")[0] || new Date().toISOString().split("T")[0],
           tempsEnLigne: editProduit.tempsEnLigne || "",
           plateforme: editProduit.plateforme || "",
+          userId: editProduit.userId, // Ensure userId is passed
         })
       } else {
         form.reset({
@@ -96,26 +99,31 @@ export default function ProduitForm({ className, editProduit = null, onClose }: 
           prixArticle: editProduit.prixArticle,
           poids: editProduit.poids,
           parcelleId: editProduit.parcelleId,
+          userId: editProduit.userId, // Ensure userId is passed
         })
       }
 
       setOpen(true)
     }
-  }, [editProduit, form])
-
+  }, [editProduit, form, user?.id]) // Added user?.id to dependency array
+ 
   function onSubmit(values: z.infer<typeof produitFormSchema>) {
-    // Extraire les données communes
-    const { isVendu, commandeId, nom, details, prixArticle, poids, parcelleId } = values
 
-    // Données de base pour tous les produits
-    const baseData = {
+    // Extraire les données communes
+    const { isVendu, commandeId, nom, details, prixArticle, poids, parcelleId, userId } = values // Added userId
+
+    // Données de base pour tous les produits, inclure 'vendu' pour satisfaire le typage strict
+    const baseData: Omit<Produit, "id" | "createdAt" | "updatedAt" | "prixLivraison" | "benefices" | "pourcentageBenefice"> = {
       commandeId,
       nom,
-      details,
       prixArticle,
       poids,
       parcelleId,
-      userId: user?.id || '', // Add userId from auth context
+      userId, // Use userId from form values
+      vendu: !!isVendu, // Toujours présent, booléen strict
+    }
+    if (typeof details === 'string') {
+      baseData.details = details
     }
 
     // Ajouter les données de vente si le produit est vendu
@@ -137,7 +145,7 @@ export default function ProduitForm({ className, editProduit = null, onClose }: 
       ...baseData,
       ...venteData,
       prixLivraison,
-    }
+    } as Produit // Cast to Produit
 
     if (editProduit) {
       updateProduit(editProduit.id, produitData)
@@ -167,14 +175,14 @@ export default function ProduitForm({ className, editProduit = null, onClose }: 
     <>
       <AnimatedButton 
         onClick={() => setOpen(true)} 
-        className={className}
+        className={className ?? ''}
         ripple={true}
         haptic={true}
         screenReaderDescription={editProduit ? "Ouvrir le formulaire de modification du produit" : "Ouvrir le formulaire d'ajout de produit"}
       >
         {editProduit ? "Modifier le produit" : "Ajouter un produit"}
       </AnimatedButton>
-      <Dialog open={open} onOpenChange={handleClose}>
+      <Dialog open={open} onOpenChange={handleClose}> {/* Removed ! */}
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editProduit ? "Modifier le produit" : "Ajouter un produit"}</DialogTitle>
@@ -209,7 +217,7 @@ export default function ProduitForm({ className, editProduit = null, onClose }: 
               {/* Afficher un badge si le produit est vendu */}
               {editProduit && editProduit.vendu && (
                 <div className="flex justify-end">
-                  <Badge variant="outline" className="bg-green-100 dark:bg-green-900">
+                  <Badge variant="outline" className="bg-[hsl(var(--success))] dark:bg-[hsl(var(--success))]">
                     Produit vendu
                   </Badge>
                 </div>

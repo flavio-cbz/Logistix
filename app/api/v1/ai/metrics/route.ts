@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/services/auth/auth";
 import { aiMetricsCollector } from "@/lib/services/ai/ai-metrics-collector";
 import { marketAnalysisConfig } from "@/lib/services/ai/market-analysis-config";
@@ -54,7 +55,7 @@ function generateCostAlerts() {
   if (costPercentage >= alertThreshold) {
     alerts.push({
       type: costPercentage >= 0.95 ? "critical" : "warning",
-      message: `Budget mensuel bientôt atteint: ${currentMonthlyCost.toFixed(2)}€ / ${monthlyBudget}€`,
+      _message: `Budget mensuel bientôt atteint: ${currentMonthlyCost.toFixed(2)}€ / ${monthlyBudget}€`,
       currentCost: currentMonthlyCost,
       budgetLimit: monthlyBudget,
       percentage: costPercentage * 100,
@@ -81,10 +82,10 @@ function generatePerformanceAlerts() {
   if (avgProcessingTime > maxProcessingTime * 0.8) {
     alerts.push({
       type: avgProcessingTime > maxProcessingTime ? "critical" : "warning",
-      message: `Temps de traitement élevé détecté`,
+      _message: `Temps de traitement élevé détecté`,
       metric: "Temps de traitement moyen",
       value: Math.round(avgProcessingTime),
-      threshold: Math.round(maxProcessingTime * 0.8),
+      _threshold: Math.round(maxProcessingTime * 0.8),
     });
   }
 
@@ -96,10 +97,10 @@ function generatePerformanceAlerts() {
   if (errorRate > 0.1) {
     alerts.push({
       type: errorRate > 0.2 ? "critical" : "warning",
-      message: `Taux d'erreur élevé détecté`,
+      _message: `Taux d'erreur élevé détecté`,
       metric: "Taux d'erreur",
       value: Math.round(errorRate * 100),
-      threshold: 10,
+      _threshold: 10,
     });
   }
 
@@ -115,10 +116,10 @@ function generatePerformanceAlerts() {
     if (avgConfidence < 0.6) {
       alerts.push({
         type: avgConfidence < 0.4 ? "critical" : "warning",
-        message: `Confiance IA faible détectée`,
+        _message: `Confiance IA faible détectée`,
         metric: "Confiance moyenne",
         value: Math.round(avgConfidence * 100),
-        threshold: 60,
+        _threshold: 60,
       });
     }
   }
@@ -144,19 +145,19 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case "clear_cache":
         // TODO: Implémenter le nettoyage du cache
-        return NextResponse.json({ success: true, message: "Cache vidé avec succès" });
+        return NextResponse.json({ success: true, _message: "Cache vidé avec succès" });
 
       case "export_metrics":
         const exportData = aiMetricsCollector.exportMetrics();
         return NextResponse.json({
           success: true,
-          data: exportData,
+          _data: exportData,
           filename: `ai-metrics-${new Date().toISOString().split("T")[0]}.json`,
         });
 
       case "reset_metrics":
         // TODO: Implémenter la réinitialisation des métriques (avec précautions)
-        return NextResponse.json({ success: true, message: "Métriques réinitialisées" });
+        return NextResponse.json({ success: true, _message: "Métriques réinitialisées" });
 
       default:
         return NextResponse.json(

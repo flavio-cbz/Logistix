@@ -28,7 +28,7 @@ function getCurrentTimestamp() {
 export async function GET(_req: Request) {
     const user = await getSessionUser();
     if (!user) {
-        return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
+        return NextResponse.json({ success: false, _message: 'Non authentifié' }, { status: 401 });
     }
 
     const produits = await databaseService.query('SELECT * FROM produits WHERE user_id = ?', [user.id]);
@@ -38,7 +38,7 @@ export async function GET(_req: Request) {
 export async function POST(req: Request) {
     const user = await getSessionUser();
     if (!user) {
-        return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
+        return NextResponse.json({ success: false, _message: 'Non authentifié' }, { status: 401 });
     }
 
     try {

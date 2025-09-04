@@ -1,41 +1,39 @@
-import { VintedAuthService } from '@/lib/services/auth/vinted-auth-service';
-import { vintedCredentialService } from '@/lib/services/auth/vinted-credential-service';
-import { db } from '@/lib/services/database/drizzle-client';
-import { vintedSessions } from '@/lib/services/database/drizzle-schema';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/services/auth";
+import { ApiError, createApiErrorResponse } from "@/lib/utils/validation";
+import { logger } from "@/lib/utils/logging/logger";
+import { vintedSearchService } from "@/lib/services/search-service"; // Corrected import
 
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const title = searchParams.get('title');
-  const categoryId = searchParams.get('category_id');
-
-  if (!title || !categoryId) {
-    return NextResponse.json({ error: 'Les paramètres "title" et "category_id" sont manquants.' }, { status: 400 });
-  }
-
+export async function GET(req: NextRequest) {
   try {
-    const session = await db.select().from(vintedSessions).limit(1);
-    if (!session[0]?.sessionCookie) throw new Error('Aucun cookie Vinted enregistré.');
-    const cookie = await vintedCredentialService.decrypt(session[0].sessionCookie);
-    const token = VintedAuthService.extractAccessTokenFromCookie(cookie);
-    if (!token) throw new Error('Token Vinted non disponible');
-
-    const url = `https://www.vinted.fr/api/v2/item_upload/suggestions/attributes?title=${encodeURIComponent(title)}&category_id=${categoryId}`;
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erreur de l'API Vinted: ${response.statusText}`);
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json(
+        createApiErrorResponse(new ApiError("Authentification requise", 401, "AUTH_REQUIRED")),
+        { status: 401 }
+      );
     }
 
-    const data = await response.json();
+    const { searchParams } = new URL(req.url);
+    const query = searchParams.get('query') || '';
+
+    if (!query) {
+      return NextResponse.json(
+        createApiErrorResponse(new ApiError("Le paramètre 'query' est requis", 400, "MISSING_QUERY")),
+        { status: 400 }
+      );
+    }
+
+    logger.info(`[API Brand Suggestions] Requête pour les suggestions de marques pour '${query}' par l'utilisateur ${user.id}`);
+
+    const data = await vintedSearchService.getBrandSuggestions(query);
+
     return NextResponse.json(data);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Une erreur inconnue est survenue';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  } catch (error: any) {
+    logger.error("[API Brand Suggestions] Erreur lors de la récupération des suggestions de marques:", error);
+    return NextResponse.json(
+      createApiErrorResponse(new ApiError("Erreur lors de la récupération des suggestions de marques", 500, "BRAND_SUGGESTIONS_ERROR")),
+      { status: 500 }
+    );
   }
 }

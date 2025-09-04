@@ -1,7 +1,7 @@
 // Disabled market analysis services
 // import { MetadataService } from '@/lib/services/market-analysis/metadata-service';
 // import { SyncService } from '@/lib/services/market-analysis/sync-service';
-import { db, getCurrentTimestamp } from '@/lib/services/database/db';
+import { db } from '@/lib/services/database/db';
 import { SCHEDULE_CONFIG } from '@/lib/constants/config';
 
 // Interface pour les tâches planifiées
@@ -10,6 +10,16 @@ interface ScheduledTask {
   token: string;
   scheduledTime: string;
   frequency: 'daily' | 'weekly' | 'monthly';
+}
+
+// Typage interne pour la structure des données récupérées de la DB
+interface UserSyncData {
+  userId: string;
+  username: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  sync_time: string;
+  last_sync: string | null;
+  is_enabled: 1 | 0;
 }
 
 /**
@@ -33,6 +43,21 @@ export class CronScheduler {
    * Démarre le scheduler (désactivé)
    */
   start(): void {
+    // Le scheduler est actuellement désactivé.
+    // Pour l'activer, décommenter la logique ci-dessous et implémenter les services MetadataService et SyncService.
+    
+    if (this.isRunning) {
+      console.warn("CronScheduler est déjà en cours d'exécution.");
+      return;
+    }
+    this.isRunning = true;
+    this.intervalId = setInterval(() => {
+      this.executeSync().catch(error => {
+        console.error("Erreur non gérée dans l'exécution de la synchronisation:", error);
+      });
+    }, SCHEDULE_CONFIG.CHECK_INTERVAL);
+    console.log(`CronScheduler démarré. Vérification toutes les ${SCHEDULE_CONFIG.CHECK_INTERVAL / 1000} secondes.`);
+    
     return;
   }
 
@@ -44,6 +69,7 @@ export class CronScheduler {
       clearInterval(this.intervalId);
       this.intervalId = null;
       this.isRunning = false;
+      console.log('CronScheduler arrêté.');
     }
   }
 
@@ -76,8 +102,11 @@ export class CronScheduler {
       case 'weekly':
         return timeDiff >= 7 * 24 * 60 * 60 * 1000;
       case 'monthly':
-        return now.getTime() - lastSyncDate.getTime() >= 30 * 24 * 60 * 60 * 1000;
+        // Approximation d'un mois, à ajuster si une précision calendaire est nécessaire.
+        return timeDiff >= 30 * 24 * 60 * 60 * 1000;
       default:
+        // Devrait être impossible avec un type strict 'frequency'
+        console.warn(`Fréquence de synchronisation inconnue: ${frequency}`);
         return false;
     }
   }
@@ -85,30 +114,22 @@ export class CronScheduler {
   /**
    * Récupère les utilisateurs à synchroniser maintenant
    */
-  private async getUsersToSync(): Promise<ScheduledTask[]> {
-  const stmt = db.prepare(`
-    SELECT
-      u.id as userId,
-      u.username,
-      uss.frequency,
-      uss.sync_time,
-      uss.last_sync,
-      uss.is_enabled
-    FROM users u
-    JOIN user_sync_settings uss ON u.id = uss.user_id
-    WHERE uss.is_enabled = 1
-    ORDER BY uss.last_sync ASC
-    LIMIT ?
-  `);
-
-    interface UserSyncData {
-  userId: string;
-  username: string;
-  frequency: 'daily' | 'weekly' | 'monthly';
-  sync_time: string;
-  last_sync: string | null;
-  is_enabled: 1 | 0;
-}
+  private async getUsersToSync(): Promise<ScheduledTask[]> { 
+    const stmt = db.prepare(`
+      SELECT
+        u.id as userId,
+        u.username,
+        uss.frequency,
+        uss.sync_time,
+        uss.last_sync,
+        uss.is_enabled
+      FROM users u
+      JOIN user_sync_settings uss ON u.id = uss.user_id
+      WHERE uss.is_enabled = 1
+      ORDER BY uss.last_sync ASC
+      LIMIT ?
+    `);
+    
     const users = stmt.all(SCHEDULE_CONFIG.MAX_CONCURRENT_USERS) as UserSyncData[];
     const tasks: ScheduledTask[] = [];
 
@@ -125,7 +146,6 @@ export class CronScheduler {
         }
       }
     }
-
     return tasks;
   }
 
@@ -148,16 +168,22 @@ export class CronScheduler {
       const tasks = await this.getUsersToSync();
       
       if (tasks.length === 0) {
+        console.log('Aucune tâche de synchronisation à exécuter.');
         return;
       }
 
-
+      console.log(`Exécution de ${tasks.length} tâches de synchronisation...`);
       // Exécuter en parallèle avec limite
-      const promises = tasks.map(task => this.syncUser(task));
+      const promises = tasks.map((task: ScheduledTask) => this.syncUser(task)); // Typage explicite du paramètre
       await Promise.allSettled(promises);
+      console.log('Toutes les tâches de synchronisation ont été traitées.');
 
-    } catch (error) {
-      console.error('❌ Erreur dans executeSync:', error);
+    } catch (error: unknown) { // Utilisation de unknown pour une meilleure gestion des erreurs
+      if (error instanceof Error) {
+        console.error('❌ Erreur lors de l\'exécution de executeSync:', error.message);
+      } else {
+        console.error('❌ Erreur inconnue lors de l\'exécution de executeSync:', error);
+      }
     }
   }
 
@@ -165,13 +191,22 @@ export class CronScheduler {
    * Synchronise un utilisateur spécifique - DISABLED
    */
   private async syncUser(task: ScheduledTask): Promise<boolean> {
+    // Cette fonction est actuellement désactivée et retourne toujours false.
+    // La logique de synchronisation réelle devrait être implémentée ici.
+    console.log(`Synchronisation de l'utilisateur ${task.userId} (token: ${task.token.substring(0, 5)}...) pour la fréquence ${task.frequency}...`);
+    // Exemple d'appel de service désactivé
+    // await this.syncService.syncUserData(task.userId, task.token); 
+    // await this.metadataService.fetchAndStoreMetadata(task.userId, task.token);
+    // await this.updateLastSync(task.userId); // Mettre à jour le dernier timestamp de synchronisation
+    console.log(`Synchronisation de l'utilisateur ${task.userId} terminée (désactivée).`);
     return false;
   }
 
+  
   /**
    * Obtient l'état actuel du scheduler
    */
-  getStatus(): { isRunning: boolean; nextExecution?: Date } {
+  getStatus(): { isRunning: boolean; nextExecution?: Date | undefined } {
     return {
       isRunning: this.isRunning,
       nextExecution: this.isRunning 
@@ -185,6 +220,8 @@ export class CronScheduler {
 export const cronScheduler = new CronScheduler();
 
 // Démarrage automatique si le fichier est exécuté directement
+// Note: Dans un environnement de production, le démarrage du scheduler devrait être géré par un processus dédié
+// ou un service de gestion de tâches (ex: pm2, Kubernetes cron job) plutôt que par cette condition.
 if (require.main === module) {
   cronScheduler.start();
 }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { databaseService } from "@/lib/services/database/db";
 import { checkDatabaseStatus } from "@/lib/middlewares/database-initialization";
 import { createNonDatabaseHandler } from "@/lib/utils/api-route-optimization";
@@ -53,8 +53,7 @@ async function performConnectivityCheck(): Promise<HealthCheckResult> {
       responseTime,
       message: `Database connectivity check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       details: {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        testQuery: 'SELECT 1 as result'
+        error: error instanceof Error ? error.message : 'Unknown error'
       }
     };
   }
@@ -65,15 +64,16 @@ async function performConnectionPoolCheck(): Promise<HealthCheckResult> {
   
   try {
     const poolStatus = databaseService.getPoolStatus();
-    const activeConnections = databaseService.getActiveConnectionsDetails();
+    
     const responseTime = Date.now() - startTime;
+    const detailedStats = databaseService.getDetailedStats();
     
     // Calculer l'utilisation
     const utilizationPercent = poolStatus.totalConnections > 0 ? 
       (poolStatus.activeConnections / poolStatus.totalConnections) * 100 : 0;
     
-    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
     let message = 'Connection pool operating normally';
+    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
     
     if (utilizationPercent > 95) {
       status = 'unhealthy';
@@ -94,7 +94,7 @@ async function performConnectionPoolCheck(): Promise<HealthCheckResult> {
         idleConnections: poolStatus.idleConnections,
         waitingRequests: poolStatus.waitingRequests,
         utilizationPercent: Math.round(utilizationPercent * 100) / 100,
-        transactionCount: activeConnections.transactionCount
+        transactionCount: detailedStats.transactionCount
       }
     };
   } catch (error) {
@@ -125,14 +125,14 @@ async function performPerformanceCheck(): Promise<HealthCheckResult> {
     
     // Calculer les métriques de performance
     const queryTimes = connectionLogs
-      .filter(log => 'duration' in log && log.duration && log.duration > 0)
-      .map(log => (log as any).duration as number);
+      .filter((log: { duration?: number }) => typeof log.duration === 'number' && log.duration > 0)
+      .map((log: { duration: number }) => log.duration);
     
     const averageQueryTime = queryTimes.length > 0 ? 
-      queryTimes.reduce((sum, time) => sum + time, 0) / queryTimes.length : 0;
+      queryTimes.reduce((sum: number, time: number) => sum + time, 0) / queryTimes.length : 0;
     
-    const slowQueries = queryTimes.filter(time => time > 1000).length; // > 1s
-    const verySlowQueries = queryTimes.filter(time => time > 5000).length; // > 5s
+    const slowQueries = queryTimes.filter((time: number) => time > 1000).length; // > 1s
+    const verySlowQueries = queryTimes.filter((time: number) => time > 5000).length; // > 5s
     
     const errorRate = connectionLogs.length > 0 ? 
       (errorLogs.length / connectionLogs.length) * 100 : 0;
@@ -140,8 +140,8 @@ async function performPerformanceCheck(): Promise<HealthCheckResult> {
     const lockEventCount = lockLogs.length;
     
     // Déterminer le statut
-    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
     let message = 'Database performance is optimal';
+    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
     
     if (verySlowQueries > 0 || errorRate > 10 || lockEventCount > 10) {
       status = 'unhealthy';
@@ -189,8 +189,8 @@ async function performInitializationCheck(): Promise<HealthCheckResult> {
     const initState = databaseService.getInitializationState();
     const responseTime = Date.now() - startTime;
     
-    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
     let message = 'Database initialization completed successfully';
+    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
     
     if (!dbStatus.isInitialized || initState === 'failed') {
       status = 'unhealthy';
@@ -249,19 +249,19 @@ function generateAlertsAndRecommendations(components: HealthCheckResult[]): {
           recommendations.push('Verify SQLite database file integrity');
           break;
         case 'connection_pool':
-          if (component.details?.utilizationPercent > 95) {
+          if (component.details?.['utilizationPercent'] > 95) {
             recommendations.push('Increase maxConnections in pool configuration');
           }
-          if (component.details?.waitingRequests > 10) {
+          if (component.details?.['waitingRequests'] > 10) {
             recommendations.push('Optimize query performance to reduce connection hold time');
           }
           break;
         case 'database_performance':
-          if (component.details?.verySlowQueries > 0) {
+          if (component.details?.['verySlowQueries'] > 0) {
             recommendations.push('Identify and optimize slow queries');
             recommendations.push('Consider adding database indexes');
           }
-          if (component.details?.errorRate > 10) {
+          if (component.details?.['errorRate'] > 10) {
             recommendations.push('Investigate database errors and implement proper error handling');
           }
           break;
@@ -335,8 +335,7 @@ async function healthCheckHandler(): Promise<NextResponse> {
   
   try {
     // Effectuer tous les contrôles de santé en parallèle
-    const [
-      connectivityResult,
+    const [connectivityResult,
       poolResult,
       performanceResult,
       initializationResult

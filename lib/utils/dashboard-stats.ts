@@ -28,14 +28,14 @@ export interface StatsData {
 }
 
 // Generate sparkline data from historical data
-function generateSparklineFromData(data: { date: string; value: number }[], days: number = 7): number[] {
-  if (!data || data.length === 0) {
+function generateSparklineFromData(_data: { date: string; value: number }[], days: number = 7): number[] {
+  if (!_data || _data.length === 0) {
     // Generate sample data if no historical data available
-    return Array.from({ length: days }, (_, i) => Math.random() * 100 + 50)
+    return Array.from({ length: days }, () => Math.random() * 100 + 50)
   }
 
   // Sort by date and take last N days
-  const sortedData = data
+  const sortedData = _data
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(-days)
 
@@ -43,11 +43,11 @@ function generateSparklineFromData(data: { date: string; value: number }[], days
 }
 
 // Calculate trend percentage from sparkline data
-function calculateTrendFromSparkline(data: number[]): number {
-  if (!data || data.length < 2) return 0
+function calculateTrendFromSparkline(_data: number[]): number {
+  if (!_data || _data.length < 2) return 0
   
-  const first = data[0]
-  const last = data[data.length - 1]
+  const first = _data[0]!!!
+  const last = _data[_data.length - 1]!!!
   
   if (first === 0) return (last || 0) > 0 ? 100 : 0
   
@@ -57,21 +57,19 @@ function calculateTrendFromSparkline(data: number[]): number {
 // Group data by date for sparkline generation
 function groupDataByDate(items: any[], dateField: string, valueCalculator: (items: any[]) => number): { date: string; value: number }[] {
   const grouped = items.reduce((acc, item) => {
-    const date = item[dateField] ? new Date(item[dateField]).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+    const date = item[dateField]! ? new Date(item[dateField]!).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
     
-    if (!acc[date]) {
-      acc[date] = []
+    if (!acc[date]!) {
+      (acc as any)[date] = []
     }
-    if (date) {
-      acc[date].push(item)
-    }
+    acc[date]!!.push(item)
     return acc
   }, {} as Record<string, any[]>)
 
   // Use Object.keys to preserve the typed array values for each date group
   return Object.keys(grouped).map(date => ({
     date,
-    value: valueCalculator(grouped[date])
+    value: valueCalculator(grouped[date]!)
   }))
 }
 

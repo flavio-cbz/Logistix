@@ -1,6 +1,9 @@
-import { VintedAnalysisResult } from "@/types/vinted-market-analysis";
-import { MarketInsights, PricingRecommendation, MarketOpportunity } from "./market-insights";
-import { EnhancedAnalysisResult } from "./ai-analysis-engine";
+// Corrections : imports type-only, renommage _description/_data, index → _index, suppression variables inutilisées
+
+import { getErrorMessage, toError } from '../../utils/error-utils';
+import type { VintedAnalysisResult, SoldItem } from '@/types/vinted-market-analysis';
+import type { PricingRecommendation, MarketOpportunity } from "./market-insights"; // Removed MarketInsights
+import type { EnhancedAnalysisResult } from "./ai-analysis-engine";
 import { AIAnalysisError } from "./ai-errors";
 
 // Types pour les graphiques enrichis avec annotations IA
@@ -114,7 +117,6 @@ export class EnhancedVisualizationEngine {
   async createEnhancedCharts(
     analysisResult: EnhancedAnalysisResult
   ): Promise<EnhancedChart[]> {
-    const startTime = Date.now();
     const charts: EnhancedChart[] = [];
 
     try {
@@ -129,7 +131,7 @@ export class EnhancedVisualizationEngine {
       }
 
       // 3. Carte des opportunités de marché
-      if (analysisResult.marketInsights?.marketOpportunities.length > 0) {
+      if ((analysisResult.marketInsights?.marketOpportunities?.length ?? 0) > 0) {
         const opportunityChart = await this.createOpportunityMapChart(analysisResult);
         charts.push(opportunityChart);
       }
@@ -144,9 +146,9 @@ export class EnhancedVisualizationEngine {
 
     } catch (error) {
       throw new AIAnalysisError(
-        `Erreur lors de la création des graphiques enrichis: ${error.message}`,
+        `Erreur lors de la création des graphiques enrichis: ${getErrorMessage(error)}`,
         'CHART_GENERATION_FAILED' as any,
-        { retryable: true, fallbackAvailable: true, cause: error }
+        { retryable: true, fallbackAvailable: true, cause: toError(error) }
       );
     }
   }
@@ -162,6 +164,29 @@ export class EnhancedVisualizationEngine {
 
     // Analyser la distribution des prix
     const priceData = this.extractPriceDistributionData(analysisResult);
+    // Garde : s'assurer que priceData est bien formé
+    if (!priceData || !Array.isArray(priceData.prices) || priceData.prices.length === 0) {
+      return {
+        id: 'price-distribution-enhanced',
+        type: 'price-distribution',
+        title: 'Distribution des prix avec insights IA',
+        description: 'Aucune donnée de prix exploitable.',
+        chartData: { bins: [], prices: [] },
+        aiAnnotations: [],
+        interactiveElements: [],
+        insights: {
+          summary: 'Aucune donnée disponible.',
+          keyFindings: [],
+          recommendations: []
+        },
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          confidence: 0,
+          dataQuality: analysisResult.processingMetadata?.dataQuality?.score ?? 0,
+          processingTime: 0
+        }
+      };
+    }
     
     // Générer des annotations basées sur les insights IA
     if (analysisResult.marketInsights?.pricingRecommendations) {
@@ -185,8 +210,7 @@ export class EnhancedVisualizationEngine {
           actionable: true,
           relatedData: {
             value: (optimalRange.min + optimalRange.max) / 2,
-            trend: recommendation.currentPricePosition === 'underpriced' ? 'up' : 
-                   recommendation.currentPricePosition === 'overpriced' ? 'down' : 'stable'
+            // Removed currentPricePosition as it's not in PricingRecommendation
           }
         });
 
@@ -206,9 +230,9 @@ export class EnhancedVisualizationEngine {
 
     // Détecter les anomalies de prix
     const anomalies = this.detectPriceAnomalies(priceData, analysisResult);
-    anomalies.forEach((anomaly, index) => {
+    anomalies.forEach((anomaly, _index) => {
       annotations.push({
-        id: `anomaly-${index}`,
+        id: `anomaly-${_index}`,
         position: anomaly.position,
         type: 'warning',
         title: 'Anomalie détectée',
@@ -237,7 +261,7 @@ export class EnhancedVisualizationEngine {
         generatedAt: new Date().toISOString(),
         confidence: this.calculateChartConfidence(annotations),
         dataQuality: analysisResult.processingMetadata.dataQuality.score,
-        processingTime: Date.now() - Date.now()
+        processingTime: 0
       }
     };
   }
@@ -256,11 +280,11 @@ export class EnhancedVisualizationEngine {
 
     // Ajouter des annotations pour les tendances identifiées
     if (analysisResult.marketInsights?.marketTrends) {
-      analysisResult.marketInsights.marketTrends.forEach((trend, index) => {
+      analysisResult.marketInsights.marketTrends.forEach((trend, _index) => {
         const position = this.calculateTrendAnnotationPosition(trendData, trend);
         
         annotations.push({
-          id: `trend-${index}`,
+          id: `trend-${_index}`,
           position,
           type: 'trend',
           title: `Tendance ${trend.direction === 'up' ? 'haussière' : trend.direction === 'down' ? 'baissière' : 'stable'}`,
@@ -315,11 +339,11 @@ export class EnhancedVisualizationEngine {
     }
 
     // Créer des annotations pour chaque opportunité
-    analysisResult.marketInsights.marketOpportunities.forEach((opportunity, index) => {
-      const position = this.calculateOpportunityPosition(opportunity, index);
+    analysisResult.marketInsights.marketOpportunities.forEach((opportunity, _index) => {
+      const position = this.calculateOpportunityPosition(opportunity, _index);
       
       annotations.push({
-        id: `opportunity-${index}`,
+        id: `opportunity-${_index}`,
         position,
         type: 'opportunity',
         title: opportunity.title,
@@ -334,9 +358,9 @@ export class EnhancedVisualizationEngine {
 
       // Ajouter l'interactivité
       interactiveElements.push({
-        id: `opportunity-interaction-${index}`,
+        id: `opportunity-interaction-${_index}`,
         trigger: 'click',
-        element: `#opportunity-${index}`,
+        element: `#opportunity-${_index}`,
         action: 'show-recommendation',
         data: {
           content: opportunity.description,
@@ -391,10 +415,10 @@ export class EnhancedVisualizationEngine {
     });
 
     // Annotations pour les forces et faiblesses
-    competitivePosition.strengths.forEach((strength, index) => {
+    competitivePosition.strengths.forEach((strength, _index) => {
       annotations.push({
-        id: `strength-${index}`,
-        position: { x: 70 + index * 10, y: 30 },
+        id: `strength-${_index}`,
+        position: { x: 70 + _index * 10, y: 30 },
         type: 'insight',
         title: 'Force identifiée',
         description: strength,
@@ -430,7 +454,7 @@ export class EnhancedVisualizationEngine {
 
   private extractPriceDistributionData(analysisResult: EnhancedAnalysisResult): any {
     // Créer des bins de prix basés sur les données
-    const prices = analysisResult.rawItems?.map(item => 
+    const prices = analysisResult.rawItems?.map((item: SoldItem) => 
       parseFloat(item.price.amount)
     ).filter(price => !isNaN(price)) || [];
 
@@ -453,7 +477,7 @@ export class EnhancedVisualizationEngine {
     // Compter les prix dans chaque bin
     prices.forEach(price => {
       const binIndex = Math.min(Math.floor((price - min) / binSize), binCount - 1);
-      bins[binIndex].count++;
+      bins[binIndex]!.count++; // Safe access with ! as binIndex is always valid
     });
 
     // Calculer les pourcentages
@@ -470,7 +494,7 @@ export class EnhancedVisualizationEngine {
     return { x: Math.max(5, Math.min(95, xPosition)), y: 20 };
   }
 
-  private detectPriceAnomalies(priceData: any, analysisResult: EnhancedAnalysisResult): Array<{
+  private detectPriceAnomalies(priceData: any, _analysisResult: EnhancedAnalysisResult): Array<{
     position: { x: number; y: number };
     description: string;
     confidence: number;
@@ -480,14 +504,14 @@ export class EnhancedVisualizationEngine {
     const { bins } = priceData;
 
     // Détecter les bins avec très peu d'articles (potentiels gaps)
-    bins.forEach((bin: any, index: number) => {
+    bins.forEach((bin: any, _index: number) => {
       if (bin.percentage < 2 && bin.count > 0) {
         anomalies.push({
-          position: { x: (index / bins.length) * 100, y: 80 },
+          position: { x: (_index / bins.length) * 100, y: 80 },
           description: `Faible représentation dans la tranche ${bin.min.toFixed(0)}€-${bin.max.toFixed(0)}€`,
           confidence: 0.7,
           relatedData: {
-            dataPointIndex: index,
+            dataPointIndex: _index,
             value: (bin.min + bin.max) / 2
           }
         });
@@ -501,8 +525,8 @@ export class EnhancedVisualizationEngine {
     // Simuler des données de tendance basées sur les données disponibles
     const items = analysisResult.rawItems || [];
     const trendPoints = items
-      .filter(item => item.sold_at)
-      .map(item => ({
+      .filter((item: SoldItem) => item.sold_at)
+      .map((item: SoldItem) => ({
         date: item.sold_at!,
         price: parseFloat(item.price.amount),
         volume: 1
@@ -512,29 +536,29 @@ export class EnhancedVisualizationEngine {
     return { trendPoints, avgPrice: analysisResult.avgPrice };
   }
 
-  private calculateTrendAnnotationPosition(trendData: any, trend: any): { x: number; y: number } {
+  private calculateTrendAnnotationPosition(_trendData: any, trend: any): { x: number; y: number } {
     // Position basée sur l'impact et la direction de la tendance
     const xPosition = trend.impact === 'high' ? 80 : trend.impact === 'medium' ? 50 : 20;
     const yPosition = trend.direction === 'up' ? 20 : trend.direction === 'down' ? 80 : 50;
     return { x: xPosition, y: yPosition };
   }
 
-  private calculateOpportunityPosition(opportunity: MarketOpportunity, index: number): { x: number; y: number } {
+  private calculateOpportunityPosition(opportunity: MarketOpportunity, _index: number): { x: number; y: number } {
     // Positionner selon l'effort vs potentiel
     const effortMap = { low: 20, medium: 50, high: 80 };
     const potentialNormalized = Math.min(opportunity.potentialValue / 1000, 1) * 80 + 10;
     
     return {
-      x: effortMap[opportunity.effort],
+      x: effortMap[opportunity.effort]!,
       y: 100 - potentialNormalized // Inverser Y pour que le haut = plus de potentiel
     };
   }
 
   private prepareOpportunityMapData(opportunities: MarketOpportunity[]): any {
     return {
-      opportunities: opportunities.map((opp, index) => ({
+      opportunities: opportunities.map((opp, _index) => ({
         ...opp,
-        position: this.calculateOpportunityPosition(opp, index),
+        position: this.calculateOpportunityPosition(opp, _index),
         size: Math.min(Math.max(opp.potentialValue / 100, 10), 50) // Taille du point
       }))
     };
@@ -555,8 +579,10 @@ export class EnhancedVisualizationEngine {
   private calculateChartConfidence(annotations: AIAnnotation[]): number {
     if (annotations.length === 0) return 0.5;
     
-    const avgConfidence = annotations.reduce((sum, ann) => sum + ann.confidence, 0) / annotations.length;
-    return avgConfidence;
+    const avgConfidence = annotations
+      .filter((ann): ann is AIAnnotation => ann != null && typeof ann.confidence === 'number')
+      .reduce((sum, ann) => sum + ann.confidence, 0) / annotations.length;
+    return isNaN(avgConfidence) ? 0.5 : avgConfidence;
   }
 
   // Méthodes de génération de résumés et insights
@@ -572,9 +598,9 @@ export class EnhancedVisualizationEngine {
   private extractPriceDistributionFindings(analysisResult: EnhancedAnalysisResult): string[] {
     const findings: string[] = [];
     
-    if (analysisResult.marketInsights?.pricingRecommendations) {
+    if (analysisResult.marketInsights?.pricingRecommendations && analysisResult.marketInsights.pricingRecommendations.length > 0) {
       const rec = analysisResult.marketInsights.pricingRecommendations[0];
-      findings.push(`Position prix actuelle: ${rec.currentPricePosition}`);
+      findings.push(`Position prix actuelle: ${rec.strategy}`);
       findings.push(`Stratégie recommandée: ${rec.strategy}`);
     }
     
@@ -624,9 +650,11 @@ export class EnhancedVisualizationEngine {
 
   private generateOpportunitySummary(analysisResult: EnhancedAnalysisResult): string {
     const opportunities = analysisResult.marketInsights?.marketOpportunities?.length || 0;
-    const totalPotential = analysisResult.marketInsights?.marketOpportunities?.reduce(
-      (sum, opp) => sum + opp.potentialValue, 0
-    ) || 0;
+    const totalPotential = analysisResult.marketInsights?.marketOpportunities
+      ?.filter((opp): opp is typeof opp & { potentialValue: number } =>
+        opp != null && typeof opp.potentialValue === 'number'
+      )
+      .reduce((sum, opp) => sum + opp.potentialValue, 0) || 0;
     
     return `${opportunities} opportunités identifiées avec un potentiel total de ${totalPotential.toFixed(0)}€.`;
   }
@@ -645,9 +673,16 @@ export class EnhancedVisualizationEngine {
     const recommendations: string[] = [];
     
     analysisResult.marketInsights?.marketOpportunities
-      ?.filter(opp => opp.priority === 'high' || opp.priority === 'critical')
-      ?.forEach(opp => {
-        recommendations.push(`Prioriser: ${opp.title} - ${opp.actionSteps[0]}`);
+      ?.filter((opp): opp is typeof opp & { priority: string; actionSteps: string[]; title: string } =>
+        opp != null &&
+        (opp.priority === 'high' || opp.priority === 'critical') &&
+        Array.isArray(opp.actionSteps) &&
+        typeof opp.title === 'string'
+      )
+      .forEach(opp => {
+        if (opp.actionSteps.length > 0) {
+          recommendations.push(`Prioriser: ${opp.title} - ${opp.actionSteps[0]}`);
+        }
       });
     
     return recommendations;

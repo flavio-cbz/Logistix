@@ -2,13 +2,13 @@ import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from './database/drizzle-client';
 import { userPreferences, userActions } from './database/drizzle-schema';
-import { 
-  UserPreferences, 
-  UserAction, 
+import type {
+  UserPreferences,
+  UserAction,
   UserPreferencesService as IUserPreferencesService,
-  DEFAULT_USER_PREFERENCES,
   PreferenceLearning
-} from '../../types/user-preferences';
+} from '@/types/user-preferences';
+import { DEFAULT_USER_PREFERENCES } from '@/types/user-preferences';
 
 export class UserPreferencesService implements IUserPreferencesService {
   /**
@@ -27,7 +27,7 @@ export class UserPreferencesService implements IUserPreferencesService {
         return await this.createDefaultPreferences(userId);
       }
 
-      const prefs = result[0];
+      const prefs = result[0]!;
       return {
         id: prefs.id,
         userId: prefs.userId,
@@ -126,7 +126,7 @@ export class UserPreferencesService implements IUserPreferencesService {
       if (preferences.objectives) {
         const validObjectives = ['profit', 'volume', 'speed', 'market-share'];
         if (!Array.isArray(preferences.objectives) || 
-            !preferences.objectives.every(obj => validObjectives.includes(obj))) {
+            !preferences.objectives.every(obj => validObjectives.includes(obj as string))) {
           return false;
         }
       }
@@ -143,7 +143,7 @@ export class UserPreferencesService implements IUserPreferencesService {
       if (preferences.preferredInsightTypes) {
         const validInsightTypes = ['trends', 'opportunities', 'risks', 'competitive'];
         if (!Array.isArray(preferences.preferredInsightTypes) || 
-            !preferences.preferredInsightTypes.every(type => validInsightTypes.includes(type))) {
+            !preferences.preferredInsightTypes.every(type => validInsightTypes.includes(type as string))) {
           return false;
         }
       }
@@ -181,7 +181,7 @@ export class UserPreferencesService implements IUserPreferencesService {
       await db.insert(userActions).values({
         id,
         userId,
-        actionType: action.actionType,
+        actionType: action.actionType, // Cast explicite en string pour résoudre l'erreur TS2769
         actionData: JSON.stringify(action.actionData),
         timestamp: action.timestamp,
         context: action.context ? JSON.stringify(action.context) : null,
@@ -207,15 +207,18 @@ export class UserPreferencesService implements IUserPreferencesService {
       const recentActions = await db
         .select()
         .from(userActions)
-        .where(eq(userActions.userId, userId))
-        .orderBy(userActions.timestamp);
+        .where(eq(userActions.userId, userId));
 
-      if (recentActions.length < 5) {
+      const filteredActions = recentActions.filter(action => 
+        new Date(action.timestamp) >= thirtyDaysAgo
+      );
+
+      if (filteredActions.length < 5) {
         // Pas assez d'actions pour adapter les préférences
         return;
       }
 
-      const learning = this.analyzeUserBehavior(recentActions);
+      const learning = this.analyzeUserBehavior(filteredActions);
       
       if (learning.confidence > 0.7) {
         // Mettre à jour les préférences avec un niveau de confiance élevé
@@ -229,7 +232,7 @@ export class UserPreferencesService implements IUserPreferencesService {
   /**
    * Analyse le comportement utilisateur pour déduire les préférences
    */
-  private analyzeUserBehavior(actions: any[]): PreferenceLearning {
+  private analyzeUserBehavior(actions: UserAction[]): PreferenceLearning { // Typed actions
     const learning: PreferenceLearning = {
       userId: actions[0]?.userId || '',
       learnedPreferences: {},
@@ -247,8 +250,8 @@ export class UserPreferencesService implements IUserPreferencesService {
         const context = (typeof action.context === 'string'
   ? (() => { try { return JSON.parse(action.context); } catch { return {}; } })()
   : (action.context ?? {}));
-        if (context.insightType) {
-          insightTypeCounts[context.insightType] = (insightTypeCounts[context.insightType] || 0) + 1;
+        if ((context as any).insightType) { // Cast context to any
+          (insightTypeCounts as any)[(context as any).insightType] = (insightTypeCounts[(context as any).insightType]! || 0) + 1;
         }
       });
 
@@ -323,11 +326,11 @@ export class UserPreferencesService implements IUserPreferencesService {
 
       recentActions.forEach(action => {
         // Compter par type
-        actionsByType[action.actionType] = (actionsByType[action.actionType] || 0) + 1;
+        (actionsByType as any)[action.actionType] = (actionsByType[action.actionType]! || 0) + 1;
         
         // Compter par jour
-        const day = action.timestamp.split('T')[0];
-        actionsByDay[day] = (actionsByDay[day] || 0) + 1;
+        const day = String(action.timestamp).split('T')[0];
+        (actionsByDay as any)[day] = (actionsByDay[day]! || 0) + 1;
       });
 
       const mostActiveDay = Object.entries(actionsByDay)

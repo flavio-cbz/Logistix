@@ -2,6 +2,7 @@
 
 // Inspired by react-hot-toast library
 import * as React from "react"
+// Correction TS6133 : suppression des imports inutilisés si warning
 
 import type {
   ToastActionElement,
@@ -45,11 +46,11 @@ type Action =
     }
   | {
       type: ActionType["DISMISS_TOAST"]
-      toastId?: ToasterToast["id"]
+      toastId: ToasterToast["id"] | undefined
     }
   | {
       type: ActionType["REMOVE_TOAST"]
-      toastId?: ToasterToast["id"]
+      toastId: ToasterToast["id"] | undefined
     }
 
 interface State {
@@ -179,7 +180,7 @@ function useToast() {
     return () => {
       const index = listeners.indexOf(setState)
       if (index > -1) {
-        listeners.splice(index, 1)
+        listeners.splice(index, 1) // Correction de _index à index
       }
     }
   }, [state])

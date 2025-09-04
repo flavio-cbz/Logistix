@@ -48,15 +48,16 @@ class TokenRefreshScheduler {
   }
 
   /**
-   * Rafraîchit tous les tokens des utilisateurs
+   * Rafraîchit tous les tokens des utilisateurs.
+   * Désormais déclenche le refresh proactif basé sur tokenExpiresAt via vintedSessionManager.refreshExpiringSessions().
    */
   private async refreshAllTokens() {
     try {
-      logger.info('[TokenRefreshScheduler] Début du rafraîchissement automatique des tokens');
+      logger.info('[TokenRefreshScheduler] Début du rafraîchissement automatique des tokens (proactif)');
       
-      const config = getVintedConfig();
-      // Utilise l'utilisateur par défaut de la configuration
-      await vintedSessionManager.refreshSession(config.defaultUserId);
+      // Déclencher le rafraîchissement proactif qui sélectionne les sessions
+      // proches de l'expiration et les rafraîchit.
+      await vintedSessionManager.refreshExpiringSessions();
       
       logger.info('[TokenRefreshScheduler] Rafraîchissement automatique terminé');
     } catch (error) {

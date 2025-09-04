@@ -38,11 +38,11 @@ export function getBuildOptimizationConfig(): BuildOptimizationConfig {
   if (context === ExecutionContext.BUILD_TIME) {
     return {
       ...DEFAULT_BUILD_CONFIG,
-      enableDatabaseOptimization: process.env.BUILD_DB_OPTIMIZATION !== 'false',
-      skipNonEssentialRoutes: process.env.BUILD_SKIP_NON_ESSENTIAL !== 'false',
-      enableBuildTimeLogging: process.env.BUILD_LOGGING === 'true',
-      maxConcurrentConnections: parseInt(process.env.BUILD_MAX_CONNECTIONS || '2'),
-      buildTimeoutMs: parseInt(process.env.BUILD_TIMEOUT_MS || '30000')
+      enableDatabaseOptimization: process.env['BUILD_DB_OPTIMIZATION']! !== 'false',
+      skipNonEssentialRoutes: process.env['BUILD_SKIP_NON_ESSENTIAL']! !== 'false',
+  enableBuildTimeLogging: (process.env as any)['BUILD_LOGGING'] === 'true',
+      maxConcurrentConnections: parseInt(process.env['BUILD_MAX_CONNECTIONS']! || '2'),
+      buildTimeoutMs: parseInt(process.env['BUILD_TIMEOUT_MS']! || '30000')
     };
   }
   
@@ -112,14 +112,14 @@ export function applyBuildOptimizations(): void {
   
   // Configurer les variables d'environnement pour l'optimisation
   if (config.enableDatabaseOptimization) {
-    process.env.DB_POOL_SIZE = config.maxConcurrentConnections.toString();
-    process.env.DB_CONNECTION_TIMEOUT = config.buildTimeoutMs.toString();
-    process.env.DB_BUILD_MODE = 'true';
+  (process.env as any)['DB_POOL_SIZE'] = config.maxConcurrentConnections.toString();
+  (process.env as any)['DB_CONNECTION_TIMEOUT'] = config.buildTimeoutMs.toString();
+  (process.env as any)['DB_BUILD_MODE'] = 'true';
   }
   
   // Configurer le logging
   if (config.enableBuildTimeLogging) {
-    process.env.DB_DEBUG = 'true';
+  (process.env as any)['DB_DEBUG'] = 'true';
   }
   
   logger.info('Build optimizations applied successfully');
@@ -138,7 +138,7 @@ export function cleanupBuildOptimizations(): void {
   logger.info('Cleaning up build optimizations');
   
   // Nettoyer les variables d'environnement temporaires
-  delete process.env.DB_BUILD_MODE;
+  delete process.env['DB_BUILD_MODE'];
   
   logger.info('Build optimizations cleanup completed');
 }

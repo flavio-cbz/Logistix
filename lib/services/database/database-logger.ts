@@ -86,7 +86,7 @@ export class DatabaseLogger {
       enableLockLogging: config?.enableLockLogging ?? true,
       enableErrorLogging: config?.enableErrorLogging ?? true,
       enablePerformanceMonitoring: config?.enablePerformanceMonitoring ?? true,
-      logLevel: config?.logLevel ?? (process.env.NODE_ENV === 'development' ? 'debug' : 'info'),
+  logLevel: config?.logLevel ?? ((process.env as any)['NODE_ENV'] === 'development' ? 'debug' : 'info'),
       maxLogEntries: config?.maxLogEntries ?? 1000,
       warningThresholds: {
         activeConnectionsPercent: config?.warningThresholds?.activeConnectionsPercent ?? 80,
@@ -112,22 +112,24 @@ export class DatabaseLogger {
    */
   private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: any): void {
     const levels = { debug: 0, info: 1, warn: 2, error: 3 };
-    const configLevel = levels[this.config.logLevel];
-    const messageLevel = levels[level];
-
+    const configLevel = levels[this.config.logLevel]!;
+    const messageLevel = levels[level]!;
+ 
     if (messageLevel < configLevel) return;
-
+ 
     const timestamp = new Date().toISOString();
     const logMessage = `[DB-${level.toUpperCase()}] ${timestamp} - ${message}`;
-    
+ 
     const logData = data ? (typeof data === 'object' ? JSON.stringify(data, null, 2) : data) : '';
-
+ 
     switch (level) {
       case 'debug':
-        if (process.env.DB_DEBUG === 'true') {
+        if ((process.env as any)['DB_DEBUG'] === 'true') {
+          console.debug(logMessage, logData);
         }
         break;
       case 'info':
+        console.info(logMessage, logData);
         break;
       case 'warn':
         console.warn(logMessage, logData);
@@ -149,14 +151,14 @@ export class DatabaseLogger {
     metadata?: Record<string, any>
   ): void {
     if (!this.config.enableConnectionLifecycleLogging) return;
-
+ 
     const entry: ConnectionLogEntry = {
       connectionId,
       timestamp: new Date().toISOString(),
       event,
-      context,
-      duration,
-      metadata
+      ...(context !== undefined ? { context } : {}),
+      ...(duration !== undefined ? { duration } : {}),
+      ...(metadata !== undefined ? { metadata } : {})
     };
 
     this.connectionLogs.push(entry);
@@ -176,7 +178,7 @@ export class DatabaseLogger {
       this.log('warn', `Connection acquisition took longer than expected`, {
         connectionId: connectionId.substring(0, 8),
         duration,
-        threshold: this.config.warningThresholds.averageWaitTimeMs
+        _threshold: this.config.warningThresholds.averageWaitTimeMs
       });
     }
   }
@@ -199,13 +201,13 @@ export class DatabaseLogger {
     const entry: DatabaseLockLogEntry = {
       timestamp: new Date().toISOString(),
       lockType,
-      connectionId,
+      ...(connectionId !== undefined ? { connectionId } : {}),
       context,
       operation,
       duration,
       retryAttempt,
       resolved,
-      error
+      ...(error !== undefined ? { error } : {})
     };
 
     this.lockLogs.push(entry);
@@ -228,7 +230,7 @@ export class DatabaseLogger {
       this.log('error', `Database lock duration exceeded threshold`, {
         lockType,
         duration,
-        threshold: this.config.warningThresholds.lockDurationMs,
+        _threshold: this.config.warningThresholds.lockDurationMs,
         context,
         operation
       });
@@ -253,16 +255,16 @@ export class DatabaseLogger {
     const entry: DatabaseErrorLogEntry = {
       timestamp: new Date().toISOString(),
       errorId,
-      connectionId,
+      ...(connectionId !== undefined ? { connectionId } : {}),
       context,
       operation,
       errorType: error?.constructor?.name || 'Unknown',
-      errorCode: error?.code,
+      ...(error?.code !== undefined ? { errorCode: error?.code } : {}),
       errorMessage: error?.message || String(error),
-      stackTrace: error?.stack,
+      ...(error?.stack !== undefined ? { stackTrace: error?.stack } : {}),
       retryAttempt,
       duration,
-      metadata
+      ...(metadata !== undefined ? { metadata } : {})
     };
 
     this.errorLogs.push(entry);
@@ -310,7 +312,7 @@ export class DatabaseLogger {
     this.trimLogs(this.monitoringData);
 
     // Log seulement si debug activé ou si seuils dépassés
-    const shouldLog = process.env.DB_DEBUG === 'true' || 
+  const shouldLog = (process.env as any)['DB_DEBUG'] === 'true' || 
                      connectionUtilization > this.config.warningThresholds.activeConnectionsPercent ||
                      averageWaitTime > this.config.warningThresholds.averageWaitTimeMs ||
                      waitingRequests > 0;
@@ -331,7 +333,7 @@ export class DatabaseLogger {
     if (connectionUtilization > this.config.warningThresholds.activeConnectionsPercent) {
       this.log('warn', `High connection utilization detected`, {
         utilization: `${connectionUtilization.toFixed(1)}%`,
-        threshold: `${this.config.warningThresholds.activeConnectionsPercent}%`,
+        _threshold: `${this.config.warningThresholds.activeConnectionsPercent}%`,
         activeConnections,
         totalConnections
       });
@@ -403,6 +405,7 @@ export class DatabaseLogger {
         errors: this.errorLogs.length,
         monitoring: this.monitoringData.length
       },
+      recentLogsCount: recentErrors.length + recentLocks.length + recentConnections.length,
       recentActivity: {
         errors: recentErrors.length,
         locks: recentLocks.length,

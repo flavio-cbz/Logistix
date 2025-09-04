@@ -1,3 +1,5 @@
+export {};
+
 /**
  * Global Type Definitions
  * Provides type safety across the entire application
@@ -26,7 +28,6 @@ declare global {
     
     // Development tools
     __REDUX_DEVTOOLS_EXTENSION__?: any;
-    __NEXT_DATA__?: any;
     
     // Custom app globals
     APP_CONFIG?: {
@@ -44,85 +45,9 @@ declare global {
   }
 }
 
-// Module Augmentations
-declare module '*.svg' {
-  const content: React.FunctionComponent<React.SVGAttributes<SVGElement>>;
-  export default content;
-}
-
-declare module '*.png' {
-  const content: string;
-  export default content;
-}
-
-declare module '*.jpg' {
-  const content: string;
-  export default content;
-}
-
-declare module '*.jpeg' {
-  const content: string;
-  export default content;
-}
-
-declare module '*.gif' {
-  const content: string;
-  export default content;
-}
-
-declare module '*.webp' {
-  const content: string;
-  export default content;
-}
-
-declare module '*.ico' {
-  const content: string;
-  export default content;
-}
-
-declare module '*.css' {
-  const content: Record<string, string>;
-  export default content;
-}
-
-declare module '*.scss' {
-  const content: Record<string, string>;
-  export default content;
-}
-
-declare module '*.sass' {
-  const content: Record<string, string>;
-  export default content;
-}
-
-declare module '*.module.css' {
-  const classes: Record<string, string>;
-  export default classes;
-}
-
-declare module '*.module.scss' {
-  const classes: Record<string, string>;
-  export default classes;
-}
-
-// Third-party library augmentations
-declare module 'better-sqlite3' {
-  interface Database {
-    // Add custom methods if needed
-    backup?(filename: string): Promise<void>;
-    restore?(filename: string): Promise<void>;
-  }
-}
-
-declare module 'winston' {
-  interface Logger {
-    // Add custom log methods
-    performance?(message: string, meta?: any): void;
-    request?(message: string, meta?: any): void;
-    database?(message: string, meta?: any): void;
-    userAction?(message: string, meta?: any): void;
-  }
-}
+// Note: asset module declarations and third-party augmentations are intentionally omitted here
+// to avoid duplicating and conflicting with types provided by `next` and other packages.
+// Keep project-wide utility types and global Window augmentations minimal and non-conflicting.
 
 // Utility Types
 export type Prettify<T> = {
@@ -139,7 +64,8 @@ export type DeepRequired<T> = {
 
 export type NonEmptyArray<T> = [T, ...T[]];
 
-export type ValueOf<T> = T[keyof T];
+// ValueOf<T> provides the union of value types for an object T.
+// Defined later in file once to avoid duplicates.
 
 export type KeysOfType<T, U> = {
   [K in keyof T]: T[K] extends U ? K : never;
@@ -166,7 +92,7 @@ export interface ApiResponse<T = any> {
   error?: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown | Record<string, unknown> | string[];
   };
   meta?: {
     timestamp: string;
@@ -211,7 +137,7 @@ export interface UserOwnedEntity extends BaseEntity {
 }
 
 // Form Types
-export interface FormState<T = any> {
+export interface FormState<T extends Record<string, unknown>> {
   data: T;
   errors: Partial<Record<keyof T, string>>;
   isSubmitting: boolean;
@@ -220,7 +146,7 @@ export interface FormState<T = any> {
   touched: Partial<Record<keyof T, boolean>>;
 }
 
-export interface FormField<T = any> {
+export interface FormField<T extends Record<string, unknown>> {
   value: T;
   error?: string;
   touched: boolean;
@@ -249,8 +175,8 @@ export interface AsyncComponentProps extends LoadingProps, ErrorProps {}
 // Event Handler Types
 export type EventHandler<T = Event> = (event: T) => void;
 export type AsyncEventHandler<T = Event> = (event: T) => Promise<void>;
-export type ChangeHandler<T = any> = (value: T) => void;
-export type AsyncChangeHandler<T = any> = (value: T) => Promise<void>;
+export type ChangeHandler<T = unknown> = (value: T) => void;
+export type AsyncChangeHandler<T = unknown> = (value: T) => Promise<void>;
 
 // Hook Return Types
 export interface UseAsyncState<T> {
@@ -277,7 +203,7 @@ export interface UseFormReturn<T> {
 }
 
 // Service Types
-export interface ServiceResponse<T = any> {
+export interface ServiceResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -294,7 +220,7 @@ export interface LogContext {
   sessionId?: string;
   requestId?: string;
   operation?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Configuration Types
@@ -314,7 +240,7 @@ export interface AppConfig {
     jwtSecret: string;
     tokenExpiry: string;
     refreshTokenExpiry: string;
-  };
+    };
   logging: {
     level: string;
     transports: string[];
@@ -335,7 +261,7 @@ export interface TestContext {
   };
   database?: {
     cleanup: () => Promise<void>;
-    seed: (data: any) => Promise<void>;
+    seed: (_data: any) => Promise<void>;
   };
 }
 
@@ -350,5 +276,4 @@ export interface MockFunction<T extends (...args: any[]) => any> {
   mockRestore: () => void;
 }
 
-// Export empty object to make this a module
-export {};
+export type ValueOf<T> = T[keyof T];

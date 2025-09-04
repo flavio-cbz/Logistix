@@ -4,13 +4,16 @@ import type { NextRequest } from "next/server"
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname
 
-  // Bloquer l'accès aux routes de débogage en production
+  // Bloquer l'accès aux routes de débogage en production sauf si override explicite
   const isDebugRoute = path.startsWith("/debug")
-  if (isDebugRoute && process.env.NODE_ENV === "production") {
+  // Pour autoriser temporairement les routes de debug en prod, exporter DEBUG_ROUTES_ENABLED=true
+  if (isDebugRoute && (process.env as any)['NODE_ENV'] === "production" && process.env['DEBUG_ROUTES_ENABLED']! !== "true") {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 
-  const sessionId = req.cookies.get("session_id")?.value
+  // Use configurable cookie name to avoid hardcoded values across scripts
+  const cookieName = process.env['COOKIE_NAME']! || "session_id"
+  const sessionId = req.cookies.get(cookieName)?.value
   const isAuthenticated = !!sessionId
 
   const protectedRoutes = new Set([
@@ -38,7 +41,7 @@ export async function middleware(req: NextRequest) {
   const redirectTo = (targetPath: string) => {
     if (redirectCount > 2) {
       const response = NextResponse.redirect(new URL("/login", req.url))
-      response.cookies.delete("session_id")
+      response.cookies.delete(cookieName)
       return response
     }
     const redirectUrl = req.nextUrl.clone()

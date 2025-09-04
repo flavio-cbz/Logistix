@@ -12,15 +12,6 @@ interface SearchResult {
   relevance: number
 }
 
-interface SearchResponse {
-  success: boolean
-  results: SearchResult[]
-  total: number
-  query: string
-  suggestions?: string[]
-  page: number
-  limit: number
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +19,7 @@ export async function GET(request: NextRequest) {
     const sessionResult = await validateSession(request)
     if (!sessionResult.success || !sessionResult.user) {
       return NextResponse.json(
-        { success: false, message: 'Non authentifié' },
+        { success: false, _message: 'Non authentifié' },
         { status: 401 }
       )
     }
@@ -159,7 +150,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Search error:', error)
     return NextResponse.json(
-      { success: false, message: 'Erreur lors de la recherche' },
+      { success: false, _message: 'Erreur lors de la recherche' },
       { status: 500 }
     )
   }

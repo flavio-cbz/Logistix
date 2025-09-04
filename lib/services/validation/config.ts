@@ -1,4 +1,4 @@
-import { TestConfiguration } from './types';
+import type { TestConfiguration } from './types';
 import { TEST_PRODUCTS, DEFAULT_TIMEOUT_SETTINGS, VALIDATION_CONSTANTS, ENV_KEYS } from '@/lib/constants/config';
 
 /**
@@ -6,17 +6,17 @@ import { TEST_PRODUCTS, DEFAULT_TIMEOUT_SETTINGS, VALIDATION_CONSTANTS, ENV_KEYS
  */
 export function createDefaultTestConfiguration(): TestConfiguration {
   // Support both VINTED_ACCESS_TOKEN and VINTED_TOKEN for compatibility
-  const vintedToken = process.env[ENV_KEYS.VINTED_API_TOKEN] || process.env[ENV_KEYS.VINTED_TOKEN_FALLBACK] || "";
+  const vintedToken = process.env[ENV_KEYS.VINTED_API_TOKEN]! || process.env[ENV_KEYS.VINTED_TOKEN_FALLBACK]! || "";
   
   return {
     vintedApiToken: vintedToken,
     testProducts: TEST_PRODUCTS,
-    debugMode: process.env[ENV_KEYS.DEBUG_MODE] === 'true',
+  debugMode: (process.env as any)[ENV_KEYS.DEBUG_MODE] === 'true',
     timeoutSettings: {
-      apiCallTimeout: parseInt(process.env[ENV_KEYS.API_TIMEOUT] || String(DEFAULT_TIMEOUT_SETTINGS.apiCallTimeout)),
-      analysisTimeout: parseInt(process.env[ENV_KEYS.ANALYSIS_TIMEOUT] || String(DEFAULT_TIMEOUT_SETTINGS.analysisTimeout)),
+      apiCallTimeout: parseInt(process.env[ENV_KEYS.API_TIMEOUT]! || String(DEFAULT_TIMEOUT_SETTINGS.apiCallTimeout)),
+      analysisTimeout: parseInt(process.env[ENV_KEYS.ANALYSIS_TIMEOUT]! || String(DEFAULT_TIMEOUT_SETTINGS.analysisTimeout)),
       pollingInterval: DEFAULT_TIMEOUT_SETTINGS.pollingInterval,
-      maxRetries: parseInt(process.env[ENV_KEYS.MAX_RETRIES] || String(DEFAULT_TIMEOUT_SETTINGS.maxRetries))
+      maxRetries: parseInt(process.env[ENV_KEYS.MAX_RETRIES]! || String(DEFAULT_TIMEOUT_SETTINGS.maxRetries))
     }
   };
 }

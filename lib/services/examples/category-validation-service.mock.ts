@@ -1,173 +1,85 @@
-// Service de validation de catégories avec logique réelle basée sur les catégories Vinted
+import { getLogger } from '@/lib/utils/logging/simple-logger';
 
-import { VintedCategoryFetcher } from '../vinted-category-fetcher';
+const logger = getLogger('CategoryValidationServiceMock');
 
-type Category = {
-  id: number;
+/**
+ * Interface pour la structure d'une catégorie.
+ */
+interface Category {
+  id: string;
   name: string;
-  parent_id?: number;
-  children?: Category[];
-  level?: number;
-  [key: string]: any;
-};
-
-function flattenCategories(categories: Category[]): Category[] {
-  const result: Category[] = [];
-  function recurse(catList: Category[], level = 1, parentId?: number) {
-    for (const cat of catList) {
-      result.push({ ...cat, level, parent_id: parentId });
-      if (cat.children && cat.children.length > 0) {
-        recurse(cat.children, level + 1, cat.id);
-      }
-    }
-  }
-  recurse(categories);
-  return result;
+  type: 'clothing' | 'electronics' | 'home'; // Exemple de types de catégorie
+  min_price?: number;
+  max_price?: number;
 }
 
-function findCategoryById(categories: Category[], id: number): Category | undefined {
-  return categories.find(cat => cat.id === id);
-}
+/**
+ * Données de catégorie mockées pour la validation.
+ */
+const categoriesData: Category[] = [
+  { id: '1', name: 'T-shirts', type: 'clothing', min_price: 5, max_price: 50 },
+  { id: '2', name: 'Smartphones', type: 'electronics', min_price: 100, max_price: 1000 },
+  { id: '3', name: 'Meubles', type: 'home', min_price: 20, max_price: 500 },
+  { id: '4', name: 'Livres', type: 'home' },
+];
 
-function getChildren(categories: Category[], parentId: number): Category[] {
-  return categories.filter(cat => cat.parent_id === parentId);
-}
-
-function getCategoryLevel(category: Category): number {
-  return category.level || 1;
-}
-
-export const categoryValidationService = {
-  // Validation simple : la catégorie existe et est de niveau 3
-  async validateCategory(category: string) {
-    const categories = flattenCategories(await VintedCategoryFetcher.fetchCategories());
-    const found = categories.find(cat => cat.name.toLowerCase().trim() === category.toLowerCase().trim());
-    const isValid = !!found && getCategoryLevel(found) === 3;
-    const suggestions = !found
-      ? categories.filter(cat => cat.name.toLowerCase().includes(category.toLowerCase())).slice(0, 3)
-      : [];
-    return {
-      isValid,
-      suggestions: suggestions.map(cat => ({ id: cat.id, name: cat.name })),
-      normalized: found ? found.name : category.trim(),
-    };
-  },
-
-  // Validation par ID pour analyse : doit exister et être niveau 3
-  async validateCategoryForAnalysis(categoryId: number) {
-    const categories = flattenCategories(await VintedCategoryFetcher.fetchCategories());
-    const found = findCategoryById(categories, categoryId);
-    const isValid = !!found && getCategoryLevel(found) === 3;
-    const suggestions = found && getCategoryLevel(found) !== 3
-      ? getChildren(categories, found.id).filter(cat => getCategoryLevel(cat) === 3).slice(0, 3)
-      : [];
-    return {
-      isValid,
-      suggestions: suggestions.map(cat => ({ id: cat.id, name: cat.name })),
-      normalized: found ? found.name : String(categoryId),
-    };
-  },
-
-  // Validation avec contexte produit : propose des suggestions selon le nom produit
-  async validateWithProductContext(categoryId: number, productName: string) {
-    const categories = flattenCategories(await VintedCategoryFetcher.fetchCategories());
-    const found = findCategoryById(categories, categoryId);
-    const isValid = !!found && getCategoryLevel(found) === 3 && productName.length > 0;
-    let suggestions: Category[] = [];
-    if (found && productName) {
-      suggestions = categories
-        .filter(cat =>
-          getCategoryLevel(cat) === 3 &&
-          cat.name.toLowerCase().includes(productName.toLowerCase())
-        )
-        .slice(0, 3);
+/**
+ * Service mock pour la validation des catégories.
+ * Simule les appels API ou DB pour la validation et la récupération des détails de catégorie.
+ */
+export const categoryValidationServiceMock = {
+  /**
+   * Valide si une catégorie existe et est valide.
+   * @param categoryId L'ID de la catégorie à valider.
+   * @returns Vrai si la catégorie est valide, faux sinon.
+   */
+  async validateCategory(categoryId: string): Promise<boolean> {
+    logger.info(`Validating category: ${categoryId}`);
+    // Simuler un délai asynchrone
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const isValid = categoriesData.some(cat => cat.id === categoryId);
+    if (!isValid) {
+      logger.warn(`Category with ID ${categoryId} not found.`);
     }
-    return {
-      isValid,
-      suggestions: suggestions.map(cat => ({ id: cat.id, name: cat.name })),
-      normalized: productName.trim().toLowerCase(),
-    };
+    return isValid;
   },
 
-  // Suggère des alternatives enfants ou proches
-  async suggestAlternatives(categoryId: number, count: number) {
-    const categories = flattenCategories(await VintedCategoryFetcher.fetchCategories());
-    const found = findCategoryById(categories, categoryId);
-    let suggestions: Category[] = [];
-    if (found) {
-      suggestions = getChildren(categories, found.id).filter(cat => getCategoryLevel(cat) === 3);
-      if (suggestions.length === 0) {
-        // Si pas d'enfants niveau 3, proposer des catégories de même parent
-        suggestions = categories.filter(
-          cat => cat.parent_id === found.parent_id && cat.id !== found.id && getCategoryLevel(cat) === 3
-        );
-      }
+  /**
+   * Récupère les détails d'une catégorie par son ID.
+   * @param categoryId L'ID de la catégorie.
+   * @returns Les détails de la catégorie ou null si non trouvée.
+   */
+  async getCategoryDetails(categoryId: string): Promise<Category | null> {
+    logger.info(`Fetching details for category: ${categoryId}`);
+    // Simuler un délai asynchrone
+    await new Promise(resolve => setTimeout(resolve, 150));
+    const category = categoriesData.find(cat => cat.id === categoryId);
+    if (!category) {
+      logger.warn(`Details for category ID ${categoryId} not found.`);
+      return null;
     }
-    return suggestions.slice(0, count).map(cat => ({ id: cat.id, name: cat.name }));
+    return category;
   },
 
-  // Message explicite selon la validité
-  async getValidationMessage(categoryId: number) {
-    const categories = flattenCategories(await VintedCategoryFetcher.fetchCategories());
-    const found = findCategoryById(categories, categoryId);
-    if (!found) return `Catégorie ${categoryId} inexistante.`;
-    if (getCategoryLevel(found) !== 3) return `Catégorie "${found.name}" non valide pour l'analyse (niveau ${getCategoryLevel(found)}).`;
-    return `Catégorie "${found.name}" valide pour l'analyse.`;
+  /**
+   * Simule la recherche de catégories par nom.
+   * @param query La chaîne de recherche.
+   * @returns Un tableau de catégories correspondantes.
+   */
+  async searchCategories(query: string): Promise<Category[]> {
+    logger.info(`Searching categories for query: "${query}"`);
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const lowerCaseQuery = query.toLowerCase();
+    return categoriesData.filter(cat => cat.name.toLowerCase().includes(lowerCaseQuery));
   },
 
-  // Actions correctives : suggestions et explications
-  async generateCorrectiveActions(categoryId: number, productName: string) {
-    const categories = flattenCategories(await VintedCategoryFetcher.fetchCategories());
-    const found = findCategoryById(categories, categoryId);
-    let suggestions: Category[] = [];
-    if (found) {
-      suggestions = categories
-        .filter(cat =>
-          getCategoryLevel(cat) === 3 &&
-          cat.name.toLowerCase().includes(productName.toLowerCase())
-        )
-        .slice(0, 3);
-    }
-    const actions = [];
-    if (!found) {
-      actions.push(`Sélectionnez une catégorie existante correspondant à "${productName}".`);
-    } else if (getCategoryLevel(found) !== 3) {
-      actions.push(`Choisissez une sous-catégorie plus précise pour "${found.name}".`);
-    } else {
-      actions.push(`Catégorie correcte, aucune action requise.`);
-    }
-    return {
-      suggestions: suggestions.map(cat => ({ id: cat.id, name: cat.name })),
-      actions,
-    };
-  },
-
-  // Validation par lot
-  async validateCategoriesBatch(categoryIds: number[]) {
-    const categories = flattenCategories(await VintedCategoryFetcher.fetchCategories());
-    return categoryIds.map(id => {
-      const found = findCategoryById(categories, id);
-      return {
-        id,
-        isValid: !!found && getCategoryLevel(found) === 3,
-      };
-    });
-  },
-
-  // Compatibilité API : ici, on considère compatible si la catégorie existe et est active
-  async isApiCompatible(categoryId: number) {
-    const categories = flattenCategories(await VintedCategoryFetcher.fetchCategories());
-    const found = findCategoryById(categories, categoryId);
-    // On suppose qu'une catégorie est compatible si elle existe, niveau 3, et n'est pas désactivée
-    return !!found && getCategoryLevel(found) === 3 && found.is_active !== false;
-  },
-
-  // Statistiques basées sur les catégories
-  async getValidationStats() {
-    const categories = flattenCategories(await VintedCategoryFetcher.fetchCategories());
-    const total = categories.length;
-    const valid = categories.filter(cat => getCategoryLevel(cat) === 3).length;
-    const invalid = total - valid;
-    return { total, valid, invalid };
+  /**
+   * Simule la récupération de toutes les catégories.
+   * @returns Un tableau de toutes les catégories.
+   */
+  async getAllCategories(): Promise<Category[]> {
+    logger.info('Fetching all categories.');
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return categoriesData;
   },
 };

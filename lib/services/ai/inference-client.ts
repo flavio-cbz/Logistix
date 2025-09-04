@@ -1,3 +1,9 @@
+import { getErrorMessage, toError } from '../../utils/error-utils';
+import { AIAnalysisError, InferenceError, createErrorFromResponse, AIErrorCode } from './ai-errors'; // Import AIErrorCode
+import { marketAnalysisConfig } from './market-analysis-config';
+import { aiMetricsCollector, AIPerformanceMetrics, AICostMetrics } from './ai-metrics-collector';
+import { v4 as uuidv4 } from 'uuid';
+
 interface InferenceRequest {
   prompt: string;
   max_tokens?: number;
@@ -20,11 +26,11 @@ interface InferenceResponse {
 interface MarketAnalysisInferenceRequest extends InferenceRequest {
   analysisType: 'insights' | 'recommendations' | 'trends' | 'anomalies';
   context?: {
-    marketData?: any;
-    userPreferences?: any;
-    historicalData?: any;
-    advancedMetrics?: any;
-opportunities?: any;
+    marketData?: unknown; // Changed from any to unknown
+    userPreferences?: unknown; // Changed from any to unknown
+    historicalData?: unknown; // Changed from any to unknown
+    advancedMetrics?: unknown; // Changed from any to unknown
+    opportunities?: unknown; // Changed from any to unknown
     userId?: string;
     provider?: string;
     modelVersion?: string;
@@ -37,21 +43,16 @@ interface MarketAnalysisInferenceResponse extends InferenceResponse {
     confidence: number;
     tokensUsed: number;
     cost?: number;
-requestId?: string;
+    requestId?: string;
   };
 }
-
-import { AIAnalysisError, InferenceError, createErrorFromResponse } from './ai-errors';
-import { marketAnalysisConfig } from './market-analysis-config';
-import { aiMetricsCollector, AIPerformanceMetrics, AICostMetrics } from './ai-metrics-collector';
-import { v4 as uuidv4 } from 'uuid';
 
 export async function runInference(payload: InferenceRequest): Promise<InferenceResponse> {
   const requestId = uuidv4();
   const startTime = Date.now();
   const config = marketAnalysisConfig.getPerformanceConfig();
   
-  let success = false;
+  
   let errorType: string | undefined;
   let tokensUsed = 0;
   let estimatedCost = 0;
@@ -87,7 +88,7 @@ export async function runInference(payload: InferenceRequest): Promise<Inference
     tokensUsed = result.usage?.total_tokens || 0;
     estimatedCost = estimateCost(tokensUsed);
     confidence = calculateConfidence(result, payload);
-    success = true;
+    
     
     // Ajouter les métadonnées de performance
     if (result && typeof result === 'object') {
@@ -114,6 +115,7 @@ export async function runInference(payload: InferenceRequest): Promise<Inference
       cacheHit: false, // Sera mis à jour par les services qui utilisent le cache
       provider: 'openai', // Valeur par défaut
       modelVersion: 'gpt-4-turbo', // Valeur par défaut
+      timestamp: Date.now(), // Added timestamp
     };
     
     aiMetricsCollector.recordPerformanceMetrics(performanceMetrics);
@@ -137,7 +139,7 @@ export async function runInference(payload: InferenceRequest): Promise<Inference
     const processingTime = endTime - startTime;
     
     // Déterminer le type d'erreur
-    if (error.name === 'AbortError') {
+    if ((error as any).name === 'AbortError') {
       errorType = 'TIMEOUT';
     } else if (error instanceof AIAnalysisError) {
       errorType = error.code;
@@ -159,14 +161,15 @@ export async function runInference(payload: InferenceRequest): Promise<Inference
       cacheHit: false,
       provider: 'openai',
       modelVersion: 'gpt-4-turbo',
+      timestamp: Date.now(), // Added timestamp
     };
     
     aiMetricsCollector.recordPerformanceMetrics(performanceMetrics);
     
-    if (error.name === 'AbortError') {
+    if ((error as any).name === 'AbortError') {
       throw new AIAnalysisError(
         `Timeout après ${processingTime}ms`,
-        'ANALYSIS_TIMEOUT' as any,
+        AIErrorCode.ANALYSIS_TIMEOUT, // Used AIErrorCode enum
         { retryable: true, fallbackAvailable: true, context: { processingTime, payload, requestId } }
       );
     }
@@ -176,8 +179,8 @@ export async function runInference(payload: InferenceRequest): Promise<Inference
     }
     
     throw new InferenceError(
-      `Erreur d'inférence: ${error.message}`,
-      { cause: error, context: { processingTime, payload, requestId } }
+      `Erreur d'inférence: ${getErrorMessage(error)}`,
+      { cause: toError(error), context: { processingTime, payload, requestId } }
     );
   }
 }
@@ -247,6 +250,7 @@ export async function runMarketAnalysisInference(
         cacheHit: false, // Sera mis à jour par les services qui utilisent le cache
         provider: getProviderFromContext(payload.context),
         modelVersion: getModelVersionFromContext(payload.context),
+        timestamp: Date.now(), // Added timestamp
       };
       
       aiMetricsCollector.recordPerformanceMetrics(performanceMetrics);
@@ -311,10 +315,10 @@ function getOptimalMaxTokens(analysisType: string): number {
 }
 
 // Fonctions utilitaires pour extraire les informations de contexte
-function getProviderFromContext(context?: any): string {
-  return context?.provider || process.env.AI_PROVIDER || 'openai';
+function getProviderFromContext(context?: Record<string, unknown>): string { // Changed context type
+  return (context?.provider as string) || process.env['AI_PROVIDER']! || 'openai';
 }
 
-function getModelVersionFromContext(context?: any): string {
-  return context?.modelVersion || process.env.AI_MODEL_VERSION || 'gpt-4-turbo';
+function getModelVersionFromContext(context?: Record<string, unknown>): string { // Changed context type
+  return (context?.modelVersion as string) || process.env['AI_MODEL_VERSION']! || 'gpt-4-turbo';
 }

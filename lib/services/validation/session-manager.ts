@@ -7,13 +7,14 @@
 import type { ValidationReport } from './types';
 // Simple logger disabled
 // import { logger } from '@/lib/utils/simple-logger.js';
-import { MonitoringState, ValidationMonitor } from './validation-monitor';
+import type { MonitoringState } from './validation-monitor';
+import { ValidationMonitor } from './validation-monitor';
 
 // Mock logger since logger is disabled
 const logger = {
   error: (msg: string, data?: any) => console.error(`[SessionManager] ${msg}`, data || ''),
   warn: (msg: string, data?: any) => console.warn(`[SessionManager] ${msg}`, data || ''),
-info: (msg: string, data?: any) => console.info(`[SessionManager] ${msg}`, data || ''),
+  info: (msg: string, data?: any) => console.info(`[SessionManager] ${msg}`, data || ''),
 };
 
 export interface ValidationSession {
@@ -100,7 +101,7 @@ export class ValidationSessionManager {
 
     session.monitoring = monitoringState;
     session.progress = monitoringState.progress;
-    session.status = monitoringState.status.toLowerCase() as ValidationSession['status'];
+  session.status = monitoringState.status.toLowerCase() as ValidationSession['status'];
 
     this.sessions.set(validationId, session);
     return true;
@@ -111,7 +112,7 @@ export class ValidationSessionManager {
    */
   updateSessionStatus(
     validationId: string, 
-    status: ValidationSession['status'], 
+  status: ValidationSession['status'], 
     progress?: number,
     error?: string
   ): boolean {
@@ -257,14 +258,20 @@ export class ValidationSessionManager {
   } {
     const sessions = Array.from(this.sessions.values());
     
-    const stats = {
+    const stats: {
+      total: number;
+      pending: number;
+      running: number;
+      completed: number;
+      failed: number;
+      oldestSession?: string;
+      newestSession?: string;
+    } = {
       total: sessions.length,
       pending: sessions.filter(s => s.status === 'pending').length,
       running: sessions.filter(s => s.status === 'running').length,
       completed: sessions.filter(s => s.status === 'completed').length,
-      failed: sessions.filter(s => s.status === 'failed').length,
-      oldestSession: undefined as string | undefined,
-      newestSession: undefined as string | undefined
+      failed: sessions.filter(s => s.status === 'failed').length
     };
 
     if (sessions.length > 0) {

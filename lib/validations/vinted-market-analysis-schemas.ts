@@ -48,6 +48,19 @@ export const InitializersResponseSchema = z.object({
     }),
 });
 
+ // Schéma de requête pour démarrer une analyse de marché (aligné sur AnalysisRequest)
+ export const MarketAnalysisRequestSchema = z.object({
+     userId: z.string(),
+     productName: z.string().min(1),
+     catalogId: z.number().int(),
+     categoryName: z.string().optional(),
+     brandId: z.number().optional(),
+     maxProducts: z.number().int().optional(),
+     advancedParams: z.record(z.unknown()).optional(),
+     itemStates: z.array(z.number()).optional(),
+ });
+
 export type SoldItem = z.infer<typeof SoldItemSchema>;
 export type Catalog = z.infer<typeof CatalogSchema>;
 export type SuggestionBrand = z.infer<typeof SuggestionBrandSchema>;
+export type MarketAnalysisRequest = z.infer<typeof MarketAnalysisRequestSchema>;

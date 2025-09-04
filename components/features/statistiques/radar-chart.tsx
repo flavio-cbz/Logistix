@@ -9,7 +9,6 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts"
-import { useTheme } from "next-themes"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface RadarData {
@@ -23,7 +22,6 @@ interface RadarChartProps {
 }
 
 export function RadarChart({ data }: RadarChartProps) {
-  const { theme } = useTheme()
 
   if (!data || data.length === 0) {
     return (
@@ -47,19 +45,19 @@ export function RadarChart({ data }: RadarChartProps) {
         <div className="h-[300px] w-full">
           <ResponsiveContainer>
             <RechartsRadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
-              <PolarGrid stroke={theme === 'dark' ? "#4A4A4A" : "#D4D4D4"} />
-              <PolarAngleAxis dataKey="subject" stroke={theme === 'dark' ? "#E0E0E0" : "#333333"} />
+              <PolarGrid stroke={`hsl(var(--chart-grid))`} />
+              <PolarAngleAxis dataKey="subject" stroke={`hsl(var(--chart-text))`} />
               <PolarRadiusAxis 
                 angle={90} 
                 domain={[0, Math.max(...data.map(d => d.fullMark))]} 
-                stroke={theme === 'dark' ? "#E0E0E0" : "#333333"} 
+                stroke={`hsl(var(--chart-text))`} 
                 tickFormatter={(value) => `${value}`}
               />
-              <Radar name="Performance" dataKey="A" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
+              <Radar name="Performance" dataKey="A" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.6} />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: theme === 'dark' ? '#333' : '#fff',
-                  borderColor: theme === 'dark' ? '#555' : '#ccc'
+                  backgroundColor: `hsl(var(--chart-tooltip-bg))`,
+                  borderColor: `hsl(var(--chart-tooltip-text))`
                 }}
               />
             </RechartsRadarChart>

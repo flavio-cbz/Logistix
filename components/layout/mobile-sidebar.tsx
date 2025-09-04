@@ -1,9 +1,8 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { AnimatedButton } from "@/components/ui/animated-button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -16,14 +15,15 @@ import {
   Shield, 
   Search,
   X,
-  Menu
+  Menu,
+  LucideIcon // Importez LucideIcon
 } from "lucide-react"
 import { useAuth } from "@/components/auth/auth-provider"
 
 interface NavigationItem {
   href: string
   label: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: LucideIcon // Changez le type pour LucideIcon
   adminOnly?: boolean
   badge?: number
 }
@@ -97,32 +97,17 @@ export function MobileSidebar({ open, onOpenChange, className }: MobileSidebarPr
 
   if (!mounted) return null
 
-  const renderNavigationItem = (item: NavigationItem, index: number) => {
+  const renderNavigationItem = (item: NavigationItem) => {
     if (item.adminOnly && !user?.isAdmin) return null
 
     const isActive = pathname === item.href
     const Icon = item.icon
 
     return (
-      <motion.div
+      <div
         key={item.href}
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ 
-          opacity: 1, 
-          x: 0,
-          transition: {
-            delay: index * 0.05,
-            duration: 0.3,
-            ease: [0.4, 0, 0.2, 1]
-          }
-        }}
-        exit={{ 
-          opacity: 0, 
-          x: -20,
-          transition: {
-            duration: 0.2
-          }
-        }}
+        className="transition-all duration-300 transform"
+        style={{ opacity: 1, transform: 'translateX(0px)' }} // Simulate initial and animate
       >
         <AnimatedButton
           variant="ghost"
@@ -141,29 +126,20 @@ export function MobileSidebar({ open, onOpenChange, className }: MobileSidebarPr
         >
           <Link href={item.href} onClick={() => onOpenChange(false)}>
             {/* Hover background effect */}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100"
-              initial={{ x: "-100%" }}
-              whileHover={{ 
-                x: "0%",
-                transition: { duration: 0.3, ease: "easeOut" }
-              }}
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-all duration-300"
+              style={{ transform: 'translateX(-100%)' }} // Simulate initial
             />
             
             <div className="flex items-center gap-4 w-full relative z-10">
-              <motion.div
-                whileHover={{ 
-                  scale: 1.1,
-                  rotate: isActive ? 0 : 5,
-                  transition: { duration: 0.2 }
-                }}
-                whileTap={{ scale: 0.95 }}
+              <div
+                className="transition-transform duration-200"
               >
                 <Icon className={cn(
                   "h-6 w-6 shrink-0 transition-colors duration-200",
                   isActive ? "text-primary" : "text-muted-foreground group-hover:text-primary/80"
                 )} />
-              </motion.div>
+              </div>
               
               <span className="text-base font-medium truncate transition-colors duration-200 group-hover:text-foreground">
                 {item.label}
@@ -171,31 +147,16 @@ export function MobileSidebar({ open, onOpenChange, className }: MobileSidebarPr
               
               {/* Badge */}
               {item.badge && (
-                <motion.span
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ 
-                    scale: 1, 
-                    opacity: 1,
-                    transition: {
-                      type: "spring",
-                      stiffness: 500,
-                      damping: 30,
-                      delay: index * 0.05 + 0.2
-                    }
-                  }}
-                  whileHover={{
-                    scale: 1.1,
-                    transition: { duration: 0.2 }
-                  }}
-                  className="bg-primary text-primary-foreground text-sm rounded-full px-2 py-1 min-w-[24px] text-center font-medium ml-auto shadow-sm border border-primary/20"
+                <span
+                  className="bg-primary text-primary-foreground text-sm rounded-full px-2 py-1 min-w-[24px] text-center font-medium ml-auto shadow-sm border border-primary/20 transition-all duration-200"
                 >
                   {item.badge > 99 ? "99+" : item.badge}
-                </motion.span>
+                </span>
               )}
             </div>
           </Link>
         </AnimatedButton>
-      </motion.div>
+      </div>
     )
   }
 
@@ -213,20 +174,14 @@ export function MobileSidebar({ open, onOpenChange, className }: MobileSidebarPr
         {/* Header */}
         <SheetHeader className="border-b border-border/50 p-6 pb-4">
           <div className="flex items-center justify-between">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ 
-                opacity: 1, 
-                scale: 1,
-                transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }
-              }}
-              className="flex items-center gap-3"
+            <div
+              className="flex items-center gap-3 transition-all duration-300"
             >
               <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-primary-foreground font-bold text-lg">L</span>
               </div>
               <SheetTitle className="text-xl font-semibold">Logistix</SheetTitle>
-            </motion.div>
+            </div>
             
             <AnimatedButton
               variant="ghost"
@@ -247,69 +202,34 @@ export function MobileSidebar({ open, onOpenChange, className }: MobileSidebarPr
 
         {/* Navigation */}
         <nav className={cn("flex-1 overflow-auto", getTouchSpacing())} role="menubar">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            variants={{
-              visible: {
-                transition: {
-                  staggerChildren: 0.05,
-                  delayChildren: 0.1
-                }
-              },
-              hidden: {
-                transition: {
-                  staggerChildren: 0.02,
-                  staggerDirection: -1
-                }
-              }
-            }}
+          <div
             className="space-y-2"
           >
-            {navigationItems.map((item, index) => renderNavigationItem(item, index))}
-          </motion.div>
+            {navigationItems.map((item) => renderNavigationItem(item))}
+          </div>
         </nav>
 
         {/* Footer */}
         <div className="border-t border-border/50 p-6 pt-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ 
-              opacity: 1, 
-              y: 0,
-              transition: { 
-                delay: 0.4, 
-                duration: 0.3,
-                ease: [0.4, 0, 0.2, 1]
-              }
-            }}
-            className="text-center"
+          <div
+            className="text-center transition-all duration-300"
           >
             <p className="text-sm text-muted-foreground font-medium">Logistix v1.0</p>
             <p className="text-xs text-muted-foreground/70 mt-1">© 2025</p>
-          </motion.div>
+          </div>
         </div>
 
         {/* Swipe indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ 
-            opacity: [0, 0.5, 0],
-            transition: {
-              duration: 2,
-              repeat: 2,
-              delay: 1
-            }
-          }}
-          className="absolute top-1/2 right-4 transform -translate-y-1/2 pointer-events-none"
+        <div
+          className="absolute top-1/2 right-4 transform -translate-y-1/2 pointer-events-none transition-opacity duration-200"
+          style={{ opacity: 0 }} // Removed animation, default to hidden
         >
           <div className="flex items-center gap-1 text-muted-foreground/50">
             <div className="w-1 h-8 bg-current rounded-full opacity-30" />
             <div className="w-1 h-6 bg-current rounded-full opacity-50" />
             <div className="w-1 h-4 bg-current rounded-full opacity-70" />
           </div>
-        </motion.div>
+        </div>
       </SheetContent>
     </Sheet>
   )
@@ -339,12 +259,11 @@ export function MobileSidebarTrigger({ onClick, className }: MobileSidebarTrigge
       haptic={true}
       screenReaderDescription="Ouvrir la navigation"
     >
-      <motion.div
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+      <div
+        className="transition-transform duration-200 hover:scale-[1.05] active:scale-[0.95]"
       >
         <Menu className="h-6 w-6" />
-      </motion.div>
+      </div>
     </AnimatedButton>
   )
 }

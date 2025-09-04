@@ -4,38 +4,38 @@ import type { PoolConfig } from '@/lib/types/database-pool';
  * Configuration du pool de connexions basée sur l'environnement
  */
 export function getDatabasePoolConfig(): PoolConfig {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
+  const isProduction = (process.env as any)['NODE_ENV'] === 'production';
+  const isBuild = (process.env as any)['NEXT_PHASE'] === 'phase-production-build';
   
   // Configuration optimisée pour le build
   if (isBuild) {
     return {
-      maxConnections: parseInt(process.env.DB_POOL_MAX_CONNECTIONS_BUILD || '2'),
-      connectionTimeout: parseInt(process.env.DB_POOL_CONNECTION_TIMEOUT_BUILD || '10000'), // 10s pour le build
-      idleTimeout: parseInt(process.env.DB_POOL_IDLE_TIMEOUT_BUILD || '60000'), // 1min pour le build
-      retryAttempts: parseInt(process.env.DB_POOL_RETRY_ATTEMPTS || '3'),
-      retryDelay: parseInt(process.env.DB_POOL_RETRY_DELAY || '1000'), // 1s pour le build
+      maxConnections: parseInt(process.env['DB_POOL_MAX_CONNECTIONS_BUILD'] || '2'),
+      connectionTimeout: parseInt(process.env['DB_POOL_CONNECTION_TIMEOUT_BUILD'] || '10000'), // 10s pour le build
+      idleTimeout: parseInt(process.env['DB_POOL_IDLE_TIMEOUT_BUILD'] || '60000'), // 1min pour le build
+      retryAttempts: parseInt(process.env['DB_POOL_RETRY_ATTEMPTS'] || '3'),
+      retryDelay: parseInt(process.env['DB_POOL_RETRY_DELAY'] || '1000'), // 1s pour le build
     };
   }
   
   // Configuration pour la production
   if (isProduction) {
     return {
-      maxConnections: parseInt(process.env.DB_POOL_MAX_CONNECTIONS || '8'),
-      connectionTimeout: parseInt(process.env.DB_POOL_CONNECTION_TIMEOUT || '30000'),
-      idleTimeout: parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '300000'), // 5min
-      retryAttempts: parseInt(process.env.DB_POOL_RETRY_ATTEMPTS || '5'),
-      retryDelay: parseInt(process.env.DB_POOL_RETRY_DELAY || '500'),
+      maxConnections: parseInt(process.env['DB_POOL_MAX_CONNECTIONS'] || '8'),
+      connectionTimeout: parseInt(process.env['DB_POOL_CONNECTION_TIMEOUT'] || '30000'),
+      idleTimeout: parseInt(process.env['DB_POOL_IDLE_TIMEOUT'] || '300000'), // 5min
+      retryAttempts: parseInt(process.env['DB_POOL_RETRY_ATTEMPTS'] || '5'),
+      retryDelay: parseInt(process.env['DB_POOL_RETRY_DELAY'] || '500'),
     };
   }
   
   // Configuration pour le développement
   return {
-    maxConnections: parseInt(process.env.DB_POOL_MAX_CONNECTIONS || '3'),
-    connectionTimeout: parseInt(process.env.DB_POOL_CONNECTION_TIMEOUT || '15000'),
-    idleTimeout: parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '180000'), // 3min
-    retryAttempts: parseInt(process.env.DB_POOL_RETRY_ATTEMPTS || '3'),
-    retryDelay: parseInt(process.env.DB_POOL_RETRY_DELAY || '500'),
+    maxConnections: parseInt(process.env['DB_POOL_MAX_CONNECTIONS'] || '3'),
+    connectionTimeout: parseInt(process.env['DB_POOL_CONNECTION_TIMEOUT'] || '15000'),
+    idleTimeout: parseInt(process.env['DB_POOL_IDLE_TIMEOUT'] || '180000'), // 3min
+    retryAttempts: parseInt(process.env['DB_POOL_RETRY_ATTEMPTS'] || '3'),
+    retryDelay: parseInt(process.env['DB_POOL_RETRY_DELAY'] || '500'),
   };
 }
 
@@ -100,10 +100,19 @@ export function validatePoolConfig(config: PoolConfig): string[] {
 /**
  * Affiche la configuration actuelle du pool
  */
-export function logPoolConfig(config: PoolConfig): void {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
+export function logPoolConfig(): void {
+  const isProduction = (process.env as any)['NODE_ENV'] === 'production';
+
+  // const _isBuild = (process.env as any)['NEXT_PHASE'] === 'phase-production-build';
   
-  if (!isProduction || process.env.DB_DEBUG === 'true') {
+  if (!isProduction || (process.env as any)['DB_DEBUG'] === 'true') {
+    // console.log(`[Database Pool Config] Max Connections: ${config.maxConnections}`);
+    // console.log(`[Database Pool Config] Connection Timeout: ${config.connectionTimeout}ms`);
+    // console.log(`[Database Pool Config] Idle Timeout: ${config.idleTimeout}ms`);
+    // console.log(`[Database Pool Config] Retry Attempts: ${config.retryAttempts}`);
+    // console.log(`[Database Pool Config] Retry Delay: ${config.retryDelay}ms`);
+    // if (isBuild) {
+    //   console.log('[Database Pool Config] (Build-specific configuration)');
+    // }
   }
 }

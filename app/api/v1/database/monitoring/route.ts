@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/services/auth";
 import { databaseService } from "@/lib/services/database/db";
-import { checkDatabaseStatus, getExecutionContext } from "@/lib/middlewares/database-initialization";
+import { checkDatabaseStatus } from "@/lib/middlewares/database-initialization";
 import { getApiOptimizationStats, getRecentPerformanceMetrics } from "@/lib/utils/api-route-optimization";
 import { createNonDatabaseHandler } from "@/lib/utils/api-route-optimization";
 import { formatApiError } from "@/lib/utils/error-handler";
@@ -24,6 +24,18 @@ interface PerformanceMetrics {
     memoryUsage: NodeJS.MemoryUsage;
     cpuUsage: number;
   };
+}
+
+// Définition de type pour les statistiques détaillées du pool de connexions
+interface DetailedPoolStats {
+  poolSize: number;
+  currentActive: number;
+  circuitBreakerState: any;
+  isHealthy: boolean;
+  dbPath: string;
+  waitingRequests: number;
+  idleConnections: number;
+  transactionCount: number;
 }
 
 function logHasDuration(log: any): log is { duration: number } {
@@ -50,17 +62,17 @@ async function calculatePerformanceMetrics(): Promise<PerformanceMetrics> {
   if (connectionLogs.length > 0) {
     const queryTimes = connectionLogs
       .filter(logHasDuration)
-      .map(log => (log as { duration: number }).duration);
+      .map((log: { duration: number }) => log.duration);
     
     if (queryTimes.length > 0) {
-      averageQueryTime = queryTimes.reduce((sum, time) => sum + time, 0) / queryTimes.length;
-      slowQueries = queryTimes.filter(time => time > 1000).length; // Requêtes > 1s
+      averageQueryTime = queryTimes.reduce((sum: number, time: number) => sum + time, 0) / queryTimes.length;
+      slowQueries = queryTimes.filter((time: number) => time > 1000).length; // Requêtes > 1s
     }
   }
 
   const errorRate = errorLogs.length;
   const lockEvents = lockLogs.length;
-
+  
   // Métriques système
   const memoryUsage = process.memoryUsage();
   const uptime = process.uptime();
@@ -68,7 +80,7 @@ async function calculatePerformanceMetrics(): Promise<PerformanceMetrics> {
   return {
     connectionPool: {
       utilization,
-      averageWaitTime: detailedStats.queue?.averageWaitTime || 0,
+      averageWaitTime: detailedStats.waitingRequests, // Utiliser waitingRequests comme proxy pour averageWaitTime
       peakConnections: poolStatus.totalConnections,
       totalRequests: (loggingStats.totalLogs.connections + loggingStats.totalLogs.locks + loggingStats.totalLogs.errors + loggingStats.totalLogs.monitoring) || 0
     },
@@ -96,7 +108,6 @@ async function monitoringHandler(): Promise<NextResponse> {
 
     // Informations de base disponibles sans authentification
     const dbStatus = await checkDatabaseStatus();
-    const context = getExecutionContext();
     
     const basicInfo = {
       database: {
@@ -105,7 +116,6 @@ async function monitoringHandler(): Promise<NextResponse> {
         state: dbStatus.initializationState
       },
       execution: {
-        context,
         timestamp: new Date().toISOString(),
         responseTime: 0 // Will be updated at the end
       }
@@ -113,14 +123,14 @@ async function monitoringHandler(): Promise<NextResponse> {
 
     // Si pas authentifié, retourner seulement les informations de base
     if (!isAuthenticated) {
-      const responseTime = Date.now() - startTime;
+      const responseTime = Date.now() - startTime; // Correction
       return NextResponse.json({
         ...basicInfo,
         execution: {
           ...basicInfo.execution,
           responseTime
         },
-        message: "Authentication required for detailed monitoring data"
+        _message: "Authentication required for detailed monitoring data"
       });
     }
 
@@ -163,8 +173,8 @@ async function monitoringHandler(): Promise<NextResponse> {
             isHealthy: poolStatus.totalConnections > 0 && poolStatus.activeConnections <= poolStatus.totalConnections,
             utilizationPercent: poolStatus.totalConnections > 0 ? 
               (poolStatus.activeConnections / poolStatus.totalConnections) * 100 : 0,
-            queueLength: poolStatus.waitingRequests,
-            alerts: generatePoolAlerts(poolStatus, activeConnections)
+            queueLength: detailedStats.waitingRequests,
+            alerts: generatePoolAlerts(detailedStats, activeConnections)
           }
         },
         performance: performanceMetrics,
@@ -229,12 +239,12 @@ async function monitoringHandler(): Promise<NextResponse> {
   }
 }
 
-function generatePoolAlerts(poolStatus: any, activeConnections: any): string[] {
+function generatePoolAlerts(poolStatus: DetailedPoolStats, activeConnections: any): string[] {
   const alerts: string[] = [];
   
   // Alerte utilisation élevée
-  const utilizationPercent = poolStatus.totalConnections > 0 ? 
-    (poolStatus.activeConnections / poolStatus.totalConnections) * 100 : 0;
+  const utilizationPercent = poolStatus.poolSize > 0 ? 
+    (poolStatus.currentActive / poolStatus.poolSize) * 100 : 0;
   
   if (utilizationPercent > 90) {
     alerts.push(`HIGH_UTILIZATION: Pool utilization at ${utilizationPercent.toFixed(1)}%`);
@@ -254,8 +264,8 @@ function generatePoolAlerts(poolStatus: any, activeConnections: any): string[] {
   }
   
   // Alerte transactions bloquées
-  if (activeConnections.transactionCount > 2) {
-    alerts.push(`HIGH_TRANSACTION_COUNT: ${activeConnections.transactionCount} active transactions`);
+  if (poolStatus.transactionCount > 2) {
+    alerts.push(`HIGH_TRANSACTION_COUNT: ${poolStatus.transactionCount} active transactions`);
   }
   
   return alerts;

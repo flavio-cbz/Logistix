@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     
     if (!apiKey) {
       return NextResponse.json(
-        { success: false, message: 'Clé API manquante' },
+        { success: false, _message: 'Clé API manquante' },
         { status: 400 }
       );
     }
@@ -35,14 +35,14 @@ export async function POST(request: NextRequest) {
       
       return NextResponse.json({
         success: true,
-        message: `Connexion ${provider} réussie`,
+        _message: `Connexion ${provider} réussie`,
         provider: provider,
         modelCount: modelCount,
         models: sampleModels
       });
     } else {
       return NextResponse.json(
-        { success: false, message: 'Aucun modèle disponible' },
+        { success: false, _message: 'Aucun modèle disponible' },
         { status: 400 }
       );
     }
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
     
     return NextResponse.json(
-      { success: false, message: errorMessage },
+      { success: false, _message: errorMessage },
       { status: 400 }
     );
   }

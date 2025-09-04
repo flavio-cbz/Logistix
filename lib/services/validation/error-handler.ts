@@ -4,17 +4,10 @@
  * Requirements: 4.1, 4.2, 4.3, 4.4, 4.5
  */
 
-// Simple logger disabled
-// import { getLogger } from '../../utils/simple-logger.js';
+// Importation d'un logger plus robuste si disponible, sinon utiliser une implémentation par défaut typée
+import { getLogger } from '@/lib/utils/logging/simple-logger';
 
-// Simple logger disabled
-const logger = { 
-  trace: console.log, 
-  error: console.error, 
-  warn: console.warn,
-  debug: console.log,
-  info: console.log
-};
+const logger = getLogger('ErrorHandler'); // Renamed logger variable
 
 /**
  * Error categories for systematic error handling
@@ -59,7 +52,7 @@ export interface CategorizedError {
   severity: ErrorSeverity;
   message: string;
   originalError: Error | unknown;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>; // Utiliser unknown pour un typage plus sûr
   timestamp: string;
   recoveryStrategy: RecoveryStrategy;
   retryable: boolean;
@@ -81,17 +74,17 @@ export interface RetryConfig {
 /**
  * Fallback configuration
  */
-export interface FallbackConfig {
+export interface FallbackConfig<T = unknown> { // T pour le type de fallbackValue et le retour de fallbackFunction
   enabled: boolean;
-  fallbackFunction?: () => Promise<any>;
-  fallbackValue?: any;
+  fallbackFunction?: () => Promise<T>;
+  fallbackValue?: T | undefined; // Changed to allow undefined
   degradedMode: boolean;
 }
 
 /**
  * Recovery result
  */
-export interface RecoveryResult<T = any> {
+export interface RecoveryResult<T = unknown> { // T pour le type de result
   success: boolean;
   result?: T;
   error?: CategorizedError;
@@ -142,7 +135,7 @@ export class ErrorHandler {
   /**
    * Categorize error based on type and context
    */
-  public categorizeError(error: Error | unknown, context?: Record<string, any>): CategorizedError {
+  public categorizeError(error: Error | unknown, context?: Record<string, unknown>): CategorizedError {
     const timestamp = new Date().toISOString();
     let category: ErrorCategory;
     let severity: ErrorSeverity;
@@ -173,9 +166,9 @@ export class ErrorHandler {
       maxRetries = 3;
     } else if (this.isApiError(errorMessage, errorName, context)) {
       category = ErrorCategory.API_ERROR;
-      severity = this.getApiErrorSeverity(errorMessage, context);
-      recoveryStrategy = this.getApiRecoveryStrategy(errorMessage, context);
-      retryable = this.isApiErrorRetryable(errorMessage, context);
+      severity = this.getApiErrorSeverity(context); // Removed message as parameter
+      recoveryStrategy = this.getApiRecoveryStrategy(context); // Removed message as parameter
+      retryable = this.isApiErrorRetryable(context); // Removed message as parameter
       maxRetries = retryable ? 3 : undefined;
     } else if (this.isDatabaseError(errorMessage, errorName)) {
       category = ErrorCategory.DATABASE_ERROR;
@@ -203,14 +196,16 @@ export class ErrorHandler {
     const categorizedError: CategorizedError = {
       category,
       severity,
-      message: errorMessage,
+      message: errorMessage, // Renommé _message en message
       originalError: error,
       context: context || {},
       timestamp,
       recoveryStrategy,
-      retryable,
-      maxRetries
+      retryable
     };
+    if (maxRetries !== undefined) {
+      categorizedError.maxRetries = maxRetries;
+    }
 
     // Add to error history
     this.errorHistory.push(categorizedError);
@@ -237,8 +232,8 @@ export class ErrorHandler {
   public async executeWithRecovery<T>(
     operation: () => Promise<T>,
     operationName: string,
-    context?: Record<string, any>,
-    fallbackConfig?: FallbackConfig
+    context?: Record<string, unknown>,
+    fallbackConfig?: FallbackConfig<T>
   ): Promise<RecoveryResult<T>> {
     let lastError: CategorizedError | undefined;
     let attemptsUsed = 0;
@@ -250,7 +245,6 @@ export class ErrorHandler {
       attemptsUsed = attempt;
       
       try {
-        
         const result = await operation();
         
         if (attempt > 1) {
@@ -261,11 +255,11 @@ export class ErrorHandler {
           success: true,
           result,
           attemptsUsed,
-          recoveryStrategy: attempt > 1 ? RecoveryStrategy.RETRY : RecoveryStrategy.RETRY,
+          recoveryStrategy: attempt > 1 ? RecoveryStrategy.RETRY : RecoveryStrategy.RETRY, // Peut-être toujours RETRY ici?
           degradedMode: this.degradedMode
         };
 
-      } catch (error) {
+      } catch (error: unknown) { // Typage de l'erreur du catch
         const categorizedError = this.categorizeError(error, { 
           ...context, 
           operationName, 
@@ -274,7 +268,7 @@ export class ErrorHandler {
         });
         
         lastError = categorizedError;
-
+        
         logger.warn(`Attempt ${attempt} failed for operation: ${operationName}`, {
           error: categorizedError.message,
           category: categorizedError.category,
@@ -305,8 +299,9 @@ export class ErrorHandler {
       error: {
         category: ErrorCategory.SYSTEM_ERROR,
         severity: ErrorSeverity.HIGH,
-        message: `Operation ${operationName} failed with unknown error`,
+        message: `Operation ${operationName} failed with unknown error`, // Renommé _message
         originalError: new Error('Unknown error'),
+        context: {},
         timestamp: new Date().toISOString(),
         recoveryStrategy: RecoveryStrategy.ABORT,
         retryable: false
@@ -323,7 +318,7 @@ export class ErrorHandler {
   private async handleFailedOperation<T>(
     error: CategorizedError,
     operationName: string,
-    fallbackConfig?: FallbackConfig,
+    fallbackConfig?: FallbackConfig<T>,
     attemptsUsed: number = 0
   ): Promise<RecoveryResult<T>> {
     logger.error(`Operation failed: ${operationName}`, {
@@ -368,7 +363,7 @@ export class ErrorHandler {
   private async executeFallback<T>(
     error: CategorizedError,
     operationName: string,
-    fallbackConfig?: FallbackConfig,
+    fallbackConfig?: FallbackConfig<T>,
     attemptsUsed: number = 0
   ): Promise<RecoveryResult<T>> {
     if (!fallbackConfig?.enabled) {
@@ -385,7 +380,7 @@ export class ErrorHandler {
     try {
       logger.info(`Executing fallback for operation: ${operationName}`);
       
-      let result: T;
+      let result: T | undefined;
       if (fallbackConfig.fallbackFunction) {
         result = await fallbackConfig.fallbackFunction();
       } else if (fallbackConfig.fallbackValue !== undefined) {
@@ -407,7 +402,7 @@ export class ErrorHandler {
         degradedMode: this.degradedMode
       };
 
-    } catch (fallbackError) {
+    } catch (fallbackError: unknown) { // Typage de l'erreur du catch
       const categorizedFallbackError = this.categorizeError(fallbackError, {
         operationName,
         fallbackAttempt: true
@@ -433,7 +428,7 @@ export class ErrorHandler {
   private async executeDegradedMode<T>(
     error: CategorizedError,
     operationName: string,
-    fallbackConfig?: FallbackConfig,
+    fallbackConfig?: FallbackConfig<T>,
     attemptsUsed: number = 0
   ): Promise<RecoveryResult<T>> {
     this.degradedMode = true;
@@ -516,7 +511,6 @@ export class ErrorHandler {
   }
 
   // Error detection methods
-
   private isTokenError(message: string, name: string): boolean {
     const tokenPatterns = [
       /token.*invalid/i,
@@ -557,7 +551,7 @@ export class ErrorHandler {
            name === 'AbortError';
   }
 
-  private isApiError(message: string, name: string, context?: Record<string, any>): boolean {
+  private isApiError(message: string, name: string, context?: Record<string, unknown>): boolean {
     const apiPatterns = [
       /api.*error/i,
       /http.*error/i,
@@ -568,12 +562,12 @@ export class ErrorHandler {
     ];
     
     const hasApiContext = context && (
-      context.statusCode || 
-      context.responseStatus || 
-      context.apiCall
+      (typeof context['statusCode'] === 'number' && context['statusCode'] > 0) ||
+      (typeof context['responseStatus'] === 'number' && context['responseStatus'] > 0) ||
+      (typeof context['apiCall'] === 'boolean' && context['apiCall'])
     );
 
-    return apiPatterns.some(pattern => pattern.test(message)) || 
+    return apiPatterns.some(pattern => pattern.test(message)) ||
            hasApiContext ||
            name === 'HTTPError';
   }
@@ -618,31 +612,35 @@ export class ErrorHandler {
            name === 'ConfigurationError';
   }
 
-  private getApiErrorSeverity(message: string, context?: Record<string, any>): ErrorSeverity {
-    const statusCode = context?.statusCode || context?.responseStatus;
+  private getApiErrorSeverity(context?: Record<string, unknown>): ErrorSeverity { // Removed message parameter
+    const statusCode = typeof context?.['statusCode'] === 'number' ? context['statusCode'] : 
+                       (typeof context?.['responseStatus'] === 'number' ? context['responseStatus'] : undefined);
     
-    if (statusCode >= 500) return ErrorSeverity.HIGH;
-    if (statusCode >= 400) return ErrorSeverity.MEDIUM;
+    if (statusCode && statusCode >= 500) return ErrorSeverity.HIGH;
+    if (statusCode && statusCode >= 400) return ErrorSeverity.MEDIUM;
     
-    if (message.includes('rate limit')) return ErrorSeverity.MEDIUM;
-    if (message.includes('quota exceeded')) return ErrorSeverity.HIGH;
+    // Fallback if no status code
+    if (context?.['message'] && (context['message'] as string).includes('rate limit')) return ErrorSeverity.MEDIUM;
+    if (context?.['message'] && (context['message'] as string).includes('quota exceeded')) return ErrorSeverity.HIGH;
     
     return ErrorSeverity.MEDIUM;
   }
 
-  private getApiRecoveryStrategy(message: string, context?: Record<string, any>): RecoveryStrategy {
-    const statusCode = context?.statusCode || context?.responseStatus;
+  private getApiRecoveryStrategy(context?: Record<string, unknown>): RecoveryStrategy { // Removed message parameter
+    const statusCode = typeof context?.['statusCode'] === 'number' ? context['statusCode'] : 
+                       (typeof context?.['responseStatus'] === 'number' ? context['responseStatus'] : undefined);
     
     if (statusCode === 429) return RecoveryStrategy.RETRY; // Rate limit
-    if (statusCode >= 500) return RecoveryStrategy.RETRY; // Server error
+    if (statusCode && statusCode >= 500) return RecoveryStrategy.RETRY; // Server error
     if (statusCode === 404) return RecoveryStrategy.SKIP; // Not found
     if (statusCode === 401 || statusCode === 403) return RecoveryStrategy.ABORT; // Auth error
     
     return RecoveryStrategy.FALLBACK;
   }
 
-  private isApiErrorRetryable(message: string, context?: Record<string, any>): boolean {
-    const statusCode = context?.statusCode || context?.responseStatus;
+  private isApiErrorRetryable(context?: Record<string, unknown>): boolean { // Removed message parameter
+    const statusCode = typeof context?.['statusCode'] === 'number' ? context['statusCode'] : 
+                       (typeof context?.['responseStatus'] === 'number' ? context['responseStatus'] : undefined);
     
     // Retryable status codes
     const retryableStatusCodes = [429, 500, 502, 503, 504];
@@ -669,8 +667,8 @@ export class ErrorHandler {
     recentErrors: CategorizedError[];
     degradedMode: boolean;
   } {
-    const errorsByCategory = {} as Record<ErrorCategory, number>;
-    const errorsBySeverity = {} as Record<ErrorSeverity, number>;
+    const errorsByCategory: Record<ErrorCategory, number> = {} as Record<ErrorCategory, number>;
+    const errorsBySeverity: Record<ErrorSeverity, number> = {} as Record<ErrorSeverity, number>;
 
     // Initialize counters
     Object.values(ErrorCategory).forEach(category => {

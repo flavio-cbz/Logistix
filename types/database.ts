@@ -4,7 +4,7 @@ export interface Parcelle {
   numero: string
   transporteur: string
   poids: number
-  prixAchat: number
+  prixAchat?: number
   prixTotal: number
   prixParGramme: number // Calculé : prixTotal / poids
   createdAt?: string
@@ -15,19 +15,20 @@ export interface Produit {
   id: string
   userId: string;
   commandeId: string
-  nom: string | null
-  details?: string
+  nom?: string | undefined;
+  details?: string | undefined;
   prixArticle: number // En euros uniquement
   poids: number
   prixLivraison: number // En euros uniquement
   vendu: boolean
-  dateVente?: string
-  tempsEnLigne?: string
-  prixVente?: number // En euros uniquement
-  plateforme?: string
+  dateVente?: string | undefined;
+  dateAchat?: string | undefined; // Ajout de la propriété dateAchat
+  tempsEnLigne?: string | undefined; // Modifié pour être string | undefined
+  prixVente?: number | undefined; // En euros uniquement
+  plateforme?: string | undefined;
   parcelleId: string
-  benefices?: number // En euros uniquement
-  pourcentageBenefice?: number
-  createdAt?: string
-  updatedAt?: string
+  benefices?: number | undefined; // En euros uniquement
+  pourcentageBenefice?: number | undefined;
+  createdAt?: string | undefined;
+  updatedAt?: string | undefined;
 }

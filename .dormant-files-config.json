@@ -1,0 +1,55 @@
+{
+  "entryPoints": [
+    "app/",
+    "lib/"
+  ],
+  "include": [
+    "app/**/*.ts",
+    "lib/**/*.ts",
+    "components/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules/**",
+    "scripts/**",
+    "tests/**"
+  ],
+  "testCommand": "npm test",
+  "verificationCommands": [
+    "npm run checks"
+  ],
+  "backupDir": "backups/dormant-files",
+  "logFile": "logs/clean-dormant.log",
+  "reportFile": "logs/clean-dormant-report.md",
+  "lockFile": "logs/clean-dormant.lock",
+  "groupDeletion": true,
+  "finalizeBackups": true,
+  "neverDelete": [
+    "package.json",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    "tsconfig.json",
+    "eslint.config.*",
+    "next.config.*",
+    "tailwind.config.*",
+    "postcss.config.*",
+    "drizzle.config.*",
+    "vitest.config.*",
+    "jest.config.*",
+    ".env*",
+    "Dockerfile",
+    "docker-compose.*",
+    "**/README.md",
+    "**/*.md",
+    ".next/**",
+    "node_modules/**",
+    "public/**",
+    "docs/**",
+    "logs/**",
+    "backups/**",
+    "coverage/**",
+    "drizzle/**",
+    "tests/**",
+    "types/**/*.d.ts"
+  ]
+}

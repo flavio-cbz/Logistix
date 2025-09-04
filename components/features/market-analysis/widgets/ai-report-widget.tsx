@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { VintedAnalysisResult } from "@/types/vinted-market-analysis";
+import type { VintedAnalysisResult } from "@/types/vinted-market-analysis";
 import { generateReport } from "@/lib/services/ai/report-generator";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -44,8 +44,8 @@ export default function AiReportWidget({ analysis }: AiReportWidgetProps) {
             <div>
               <h4 className="font-semibold">Recommandations</h4>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                {(report.recommendations || []).map((rec, index) => (
-                  <li key={index}>{rec}</li>
+                {(report.recommendations || []).map((rec, _index) => (
+                  <li key={_index}>{rec}</li>
                 ))}
               </ul>
             </div>

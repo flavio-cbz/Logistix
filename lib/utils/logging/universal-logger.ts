@@ -1,10 +1,10 @@
 // Universal logger that works in both client and server environments
 // Only logs in development mode to avoid console pollution in production
 
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = (process.env as any)['NODE_ENV'] === 'development';
 
 export const logger = {
-  debug: (...args: any[]) => {
+  debug: (..._args: any[]) => {
     if (isDevelopment && typeof console !== 'undefined') {
       // debug removed
     }

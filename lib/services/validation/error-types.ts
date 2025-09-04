@@ -8,13 +8,13 @@
  */
 export class AppError extends Error {
   public readonly context?: any;
-  public readonly originalError?: Error;
+  public readonly originalError?: Error | undefined;
 
-  constructor(message: string, context?: any, originalError?: Error) {
-    super(message);
+  constructor(_message: string, context?: any, originalError?: Error | undefined) {
+    super(_message);
     this.name = this.constructor.name;
     this.context = context;
-    this.originalError = originalError || undefined;
+    this.originalError = originalError;
     Error.captureStackTrace(this, this.constructor);
   }
 }
@@ -26,12 +26,50 @@ export class AppError extends Error {
  * - Invalid API response (JSON parsing failed)
  */
 export class ApiError extends AppError {
-  public readonly statusCode?: number;
+  public readonly statusCode: number | undefined;
+  public readonly code: string | undefined;
+  public readonly errors: any[] | undefined;
 
-  constructor(message: string, statusCode?: number, context?: any, originalError?: Error) {
-    super(message, context, originalError);
+  /**
+   * Flexible constructor to support both older callsites and the AppError-style usage:
+   * - new ApiError(_message, statusCode?, code?, errors?)
+   * - new ApiError(_message, statusCode?, context?, originalError?)
+   */
+  constructor(
+    _message: string,
+    statusCode?: number,
+    codeOrContext?: string | any,
+    originalErrorOrErrors?: Error | any[],
+    maybeOriginalError?: Error
+  ) {
+    // Determine usage shape
+    let context: any = undefined;
+    let originalError: Error | undefined = undefined;
+    let code: string | undefined = undefined;
+    let errors: any[] | undefined = undefined;
+
+    if (typeof codeOrContext === 'string') {
+      // signature: (_message, statusCode, code, errors?)
+      code = codeOrContext;
+      if (Array.isArray(originalErrorOrErrors)) {
+        errors = originalErrorOrErrors;
+        originalError = maybeOriginalError;
+      } else if (originalErrorOrErrors instanceof Error) {
+        originalError = originalErrorOrErrors;
+      }
+    } else {
+      // signature: (_message, statusCode, context?, originalError?)
+      context = codeOrContext;
+      if (originalErrorOrErrors instanceof Error) {
+        originalError = originalErrorOrErrors;
+      }
+    }
+
+    super(_message, context, originalError);
     this.name = 'ApiError';
-    this.statusCode = statusCode || undefined;
+    this.statusCode = statusCode;
+    this.code = code;
+    this.errors = errors;
   }
 }
 
@@ -42,9 +80,30 @@ export class ApiError extends AppError {
  * - Data integrity issues post-deletion
  */
 export class ValidationError extends AppError {
-  constructor(message: string, context?: any, originalError?: Error) {
-    super(message, context, originalError);
+  public readonly errors: any[] | undefined;
+  public readonly code: string | undefined;
+
+  /**
+   * Flexible constructor to support:
+   * - new ValidationError(_message, errorsArray?)
+   * - new ValidationError(_message, context?, originalError?)
+   */
+  constructor(_message: string, contextOrErrors?: any[] | any, originalError?: Error) {
+    let context: any = undefined;
+    let errors: any[] | undefined = undefined;
+
+    if (Array.isArray(contextOrErrors)) {
+      errors = contextOrErrors;
+    } else {
+      context = contextOrErrors;
+    }
+
+    super(_message, context, originalError);
     this.name = 'ValidationError';
+    this.errors = errors;
+    if (context && typeof context === 'string') {
+      this.code = context;
+    }
   }
 }
 
@@ -55,8 +114,8 @@ export class ValidationError extends AppError {
  * - Database connection failure
  */
 export class SystemError extends AppError {
-  constructor(message: string, context?: any, originalError?: Error) {
-    super(message, context, originalError);
+  constructor(_message: string, context?: any, originalError?: Error) {
+    super(_message, context, originalError);
     this.name = 'SystemError';
   }
 }
@@ -121,7 +180,7 @@ export function categorizeError(error: unknown): CategorizedError {
     } else if (originalError.message.toLowerCase().includes('json')) {
         category = ErrorCategory.ApiInvalidResponse;
     }
-    return { category, message: originalError.message, isCritical: true, originalError, context: originalError.context };
+  return { category, message: originalError.message, isCritical: true, originalError, context: originalError.context };
   }
 
   if (originalError instanceof ValidationError) {
@@ -129,22 +188,22 @@ export function categorizeError(error: unknown): CategorizedError {
     if (originalError.message.toLowerCase().includes('price')) {
         category = ErrorCategory.ValidationPrice;
     }
-    return { category, message: originalError.message, isCritical: false, originalError, context: originalError.context };
+  return { category, message: originalError.message, isCritical: false, originalError, context: originalError.context };
   }
   
   if (originalError instanceof TimeoutError) {
-    return { category: ErrorCategory.ValidationTimeout, message: originalError.message, isCritical: false, originalError, context: originalError.context };
+  return { category: ErrorCategory.ValidationTimeout, message: originalError.message, isCritical: false, originalError, context: originalError.context };
   }
 
   if (originalError instanceof SystemError) {
     const category = originalError.message.toLowerCase().includes('database') ? ErrorCategory.SystemDatabase : ErrorCategory.SystemConfiguration;
-    return { category, message: originalError.message, isCritical: true, originalError, context: originalError.context };
+  return { category, message: originalError.message, isCritical: true, originalError, context: originalError.context };
   }
 
   // Default fallback
   return {
     category: ErrorCategory.SystemInternal,
-    message: 'An unexpected internal error occurred.',
+  message: 'An unexpected internal error occurred.',
     isCritical: true,
     originalError,
   };

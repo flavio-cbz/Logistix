@@ -2,7 +2,7 @@ import { useMarketAnalysisStore } from "@/lib/store";
 import { useEffect, useState } from "react";
 
 export function useMarketAnalysisData() {
-  const { historicalData, setHistoricalData, pagination, setPagination } = useMarketAnalysisStore();
+  const { historicalData, setHistoricalData, setPagination } = useMarketAnalysisStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadHistoricalData = async (page = 1) => {
@@ -42,7 +42,7 @@ export function useMarketAnalysisData() {
     if (historicalData.length === 0) {
       loadHistoricalData();
     }
-  }, []); // Ne s'exécute qu'au montage
+  }, [historicalData.length]); // Dépendance ajoutée pour éviter les boucles infinies
 
   const onRefresh = (page?: number) => {
     loadHistoricalData(page ?? 1); // Recharge la page indiquée ou la première page par défaut

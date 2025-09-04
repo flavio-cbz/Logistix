@@ -1,5 +1,3 @@
-
-
 import { getSessionUser } from "@/lib/services/auth"
 import { ProfileForm } from "@/components/auth/profile-form"
 import { redirect } from "next/navigation"
@@ -13,7 +11,7 @@ export default async function ProfilePage() {
 
   const initialData = {
     username: user.username,
-    
+    email: user.email || '',
     language: user.language || "fr",
     theme: user.theme || "system",
     avatar: user.avatar || "",
@@ -29,4 +27,3 @@ export default async function ProfilePage() {
     </div>
   )
 }
-

@@ -1,12 +1,6 @@
-// Simple logger disabled
-// import { logger } from '@/lib/utils/simple-logger.js';
+import { getLogger } from '@/lib/utils/logging/simple-logger';
 
-// Mock logger since logger is disabled
-const logger = {
-  error: (msg: string, data?: any) => console.error(`[ValidationMonitor] ${msg}`, data || ''),
-  warn: (msg: string, data?: any) => console.warn(`[ValidationMonitor] ${msg}`, data || ''),
-  info: (msg: string, data?: any) => console.info(`[ValidationMonitor] ${msg}`, data || ''),
-};
+const logger = getLogger('ValidationMonitor');
 
 /**
  * Represents the status of a validation.
@@ -31,7 +25,7 @@ export interface ValidationMetrics {
 export interface ValidationError {
   message: string;
   timestamp: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>; // Utilisation de unknown pour un typage plus sûr
 }
 
 /**
@@ -89,7 +83,7 @@ export class ValidationMonitor {
       this.state.status = 'COMPLETED';
       this.state.progress = 100;
       this.finalizeMetrics();
-      logger.info(`Validation monitoring completed. Duration: ${this.state.metrics.durationSeconds}s`);
+      logger.info(`Validation monitoring completed. Duration: ${this.state.metrics.durationSeconds ?? 0}s`);
     }
   }
 
@@ -98,7 +92,7 @@ export class ValidationMonitor {
    * @param errorMessage - The primary error message.
    * @param details - Additional context for the error.
    */
-  public fail(errorMessage: string, details?: Record<string, any>): void {
+  public fail(errorMessage: string, details?: Record<string, unknown>): void {
     this.state.status = 'FAILED';
     this.finalizeMetrics();
     this.logError(errorMessage, details);
@@ -113,6 +107,8 @@ export class ValidationMonitor {
   public updateProgress(progress: number): void {
     if (progress >= 0 && progress <= 100) {
       this.state.progress = progress;
+    } else {
+      logger.warn(`Invalid progress value: ${progress}. Progress must be between 0 and 100.`);
     }
   }
 
@@ -137,13 +133,14 @@ export class ValidationMonitor {
    * @param message - The error message.
    * @param details - Optional details about the error.
    */
-  public logError(message: string, details?: Record<string, any>): void {
+  public logError(message: string, details?: Record<string, unknown>): void {
     const error: ValidationError = {
       message,
       details: details || {},
       timestamp: new Date().toISOString(),
     };
     this.state.errors.push(error);
+    logger.error(`Logged error: ${message}`, details);
   }
 
   /**

@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { getSessionUser } from "@/lib/services/auth"
 import { db } from "@/lib/services/database/drizzle-client"
 import { marketAnalyses } from "@/lib/services/database/drizzle-schema"
@@ -71,7 +72,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     
     return NextResponse.json({
       ...task,
-      message: "Tâche récupérée avec succès"
+      _message: "Tâche récupérée avec succès"
     })
 
   } catch (error: any) {
@@ -80,7 +81,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     // Handle known error types
     if (error instanceof ApiError) {
       const errorResponse = createApiErrorResponse(error)
-      return NextResponse.json(errorResponse, { status: error.statusCode })
+      return NextResponse.json(errorResponse, { status: error.statusCode ?? 500 })
     }
     
     if (error instanceof ValidationError) {
@@ -189,7 +190,7 @@ export async function DELETE({ params }: { params: { id: string } }) {
     // Handle known error types
     if (error instanceof ApiError) {
       const errorResponse = createApiErrorResponse(error)
-      return NextResponse.json(errorResponse, { status: error.statusCode })
+      return NextResponse.json(errorResponse, { status: error.statusCode ?? 500 })
     }
     
     if (error instanceof ValidationError) {

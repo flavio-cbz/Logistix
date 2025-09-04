@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     // Vérifier l'authentification
     const user = await getSessionUser()
     if (!user) {
-      return NextResponse.json({ success: false, message: "Non authentifié" }, { status: 401 })
+      return NextResponse.json({ success: false, _message: "Non authentifié" }, { status: 401 })
     }
     logger.info(`Synchronisation demandée par l'utilisateur: ${user.id}`)
 
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Payload invalide",
+          _message: "Payload invalide",
           details: parsed.error.errors,
         },
         { status: 400 },
@@ -73,15 +73,15 @@ export async function POST(request: Request) {
     logger.info(`Données reçues: ${parcelles.length} parcelles, ${produits.length} produits`)
 
     await databaseService.transaction((db) => {
-      logger.info("Début de la transaction de synchronisation")
+      logger.info("Début de la transaction de synchronisation");
       
       // Supprimer les anciennes données de l'utilisateur
-      db.prepare("DELETE FROM parcelles WHERE user_id = ?").run(user.id)
-      db.prepare("DELETE FROM produits WHERE user_id = ?").run(user.id)
+      (db as any).client.prepare("DELETE FROM parcelles WHERE user_id = ?").run(user.id)
+      (db as any).client.prepare("DELETE FROM produits WHERE user_id = ?").run(user.id)
       logger.info("Anciennes données supprimées")
 
       // Insérer les nouvelles parcelles
-      const insertParcelle = db.prepare(`
+      const insertParcelle = (db as any).client.prepare(`
         INSERT INTO parcelles (id, user_id, numero, transporteur, poids, prixTotal, prixParGramme, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
       logger.info(`${parcelles.length} parcelles insérées`)
 
       // Insérer les nouveaux produits
-      const insertProduit = db.prepare(`
+      const insertProduit = (db as any).client.prepare(`
         INSERT INTO produits (
           id, user_id, parcelleId, commandeId, nom, details, prixArticle, poids, prixLivraison,
           vendu, dateVente, tempsEnLigne, prixVente, plateforme, benefices, pourcentageBenefice,
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Données synchronisées avec succès",
+      _message: "Données synchronisées avec succès",
       count: {
         parcelles: parcelles.length,
         produits: produits.length,
@@ -153,7 +153,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Une erreur s'est produite lors de la synchronisation des données",
+        _message: error.message || "Une erreur s'est produite lors de la synchronisation des données",
       },
       { status: 500 },
     )
@@ -165,7 +165,7 @@ export async function GET() {
     // Vérifier l'authentification
     const user = await getSessionUser()
     if (!user) {
-      return NextResponse.json({ success: false, message: "Non authentifié" }, { status: 401 })
+      return NextResponse.json({ success: false, _message: "Non authentifié" }, { status: 401 })
     }
 
     // Récupérer les parcelles de l'utilisateur
@@ -184,7 +184,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: {
+      _data: {
         parcelles,
         produits,
       },
@@ -195,7 +195,7 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Une erreur s'est produite lors de la récupération des données",
+        _message: error.message || "Une erreur s'est produite lors de la récupération des données",
       },
       { status: 500 },
     )

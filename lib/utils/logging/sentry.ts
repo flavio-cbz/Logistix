@@ -7,7 +7,7 @@
 let Sentry: typeof import('@sentry/node') | null = null;
 
 async function loadSentry() {
-  if (!Sentry && (process.env.NODE_ENV === 'production' || process.env.SENTRY_DSN)) {
+  if (!Sentry && ((process.env as any)['NODE_ENV'] === 'production' || process.env['SENTRY_DSN']!)) {
     try {
       // Import dynamique pour éviter les warnings webpack
       Sentry = await import('@sentry/node');
@@ -20,27 +20,27 @@ async function loadSentry() {
 
 async function initSentry() {
   // Ne charger Sentry qu'en production ou si explicitement configuré
-  if (process.env.NODE_ENV === 'development' && !process.env.SENTRY_DSN) {
+  if ((process.env as any)['NODE_ENV'] === 'development' && !process.env['SENTRY_DSN']!) {
     // Sentry skipped in development mode
     return;
   }
 
-  if (process.env.SENTRY_DSN) {
+  if (process.env['SENTRY_DSN']!) {
     const SentryModule = await loadSentry();
     
     if (SentryModule) {
       try {
         SentryModule.init({
-          dsn: process.env.SENTRY_DSN,
+          dsn: process.env['SENTRY_DSN']!,
           
           // Définir le taux d'échantillonnage des performances (0.0 - 1.0)
-          tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0, 
+          tracesSampleRate: (process.env as any)['NODE_ENV'] === 'production' ? 0.1 : 1.0,
           
           // Définir le niveau d'environnement (ex: production, development)
-          environment: process.env.NODE_ENV || 'development',
+          environment: process.env['NODE_ENV']! || 'development',
 
           // Activer les traces de débogage en développement
-          debug: process.env.NODE_ENV === 'development',
+          debug: (process.env as any)['NODE_ENV'] === 'development',
 
           // Configuration des intégrations pour éviter les conflits OpenTelemetry
           integrations: (integrations) => {
@@ -74,7 +74,7 @@ async function initSentry() {
           initialScope: {
             tags: {
               component: 'logistix-backend',
-              version: process.env.npm_package_version || '1.0.0'
+              version: process.env['npm_package_version']! || '1.0.0'
             }
           }
         });

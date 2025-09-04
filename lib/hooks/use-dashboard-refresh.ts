@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useCallback, useRef } from "react"
-import { useStore } from "@/store/store"
+import { useStore } from "@/lib/store"
 
 interface RefreshOptions {
   showNotification?: boolean
@@ -163,7 +163,7 @@ export function useWidgetRefreshManager() {
     setWidgetStates(prev => ({
       ...prev,
       [widgetId]: {
-        ...prev[widgetId],
+        ...prev[widgetId]!,
         ...state
       }
     }))
@@ -174,7 +174,7 @@ export function useWidgetRefreshManager() {
     refreshFn: () => Promise<void>,
     options: RefreshOptions = {}
   ) => {
-    const currentState = widgetStates[widgetId] || {
+    const currentState = widgetStates[widgetId]! || {
       isRefreshing: false,
       lastRefresh: null,
       error: null
@@ -215,7 +215,7 @@ export function useWidgetRefreshManager() {
   }, [widgetStates, updateWidgetState])
 
   const getWidgetState = useCallback((widgetId: string): RefreshState => {
-    return widgetStates[widgetId] || {
+    return widgetStates[widgetId]! || {
       isRefreshing: false,
       lastRefresh: null,
       error: null

@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
         logger.error(`[TokenTest] Erreur générale:`, error);
 
         if (error instanceof ApiError) {
-            return NextResponse.json(createApiErrorResponse(error), { status: error.statusCode });
+            return NextResponse.json(createApiErrorResponse(error), { status: error.statusCode ?? 500 });
         }
 
         return NextResponse.json(
@@ -196,7 +196,7 @@ async function testVintedSessionCookie(token: string): Promise<{
                 details: {
                     status: response.status,
                     suggestionsCount: suggestions.length,
-                    firstSuggestion: suggestions[0]?.title || null,
+                    firstSuggestion: suggestions[0]!?.title || null,
                 },
                 suggestions,
             };

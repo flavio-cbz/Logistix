@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { VintedAnalysisResult, MarketAnalysisHistoryItem, MarketAnalysisRequest } from "@/types/vinted-market-analysis";
+import type { VintedAnalysisResult, MarketAnalysisHistoryItem } from "@/types/vinted-market-analysis"; // Removed MarketAnalysisRequest as it's not used here
 
 interface MarketAnalysisStore {
   currentAnalysis: VintedAnalysisResult | null;
@@ -17,7 +17,7 @@ interface MarketAnalysisStore {
   setIsLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setTokenConfigured: (configured: boolean | null) => void;
-  setPagination: (pagination: MarketAnalysisStore["pagination"]) => void;
+  setPagination: (pagination: { page: number; totalPages: number; hasMore: boolean }) => void;
   reset: () => void;
 }
 
@@ -32,12 +32,12 @@ export const useMarketAnalysisStore = create<MarketAnalysisStore>((set) => ({
     totalPages: 1,
     hasMore: false,
   },
-  setCurrentAnalysis: (analysis) => set({ currentAnalysis: analysis }),
-  setHistoricalData: (data) => set({ historicalData: data }),
-  setIsLoading: (loading) => set({ isLoading: loading }),
-  setError: (error) => set({ error }),
-  setTokenConfigured: (configured) => set({ tokenConfigured: configured }),
-  setPagination: (pagination) => set({ pagination }),
+  setCurrentAnalysis: (analysis: VintedAnalysisResult | null) => set({ currentAnalysis: analysis }),
+  setHistoricalData: (data: MarketAnalysisHistoryItem[]) => set({ historicalData: data }),
+  setIsLoading: (loading: boolean) => set({ isLoading: loading }),
+  setError: (error: string | null) => set({ error: error }),
+  setTokenConfigured: (configured: boolean | null) => set({ tokenConfigured: configured }),
+  setPagination: (pagination: { page: number; totalPages: number; hasMore: boolean }) => set({ pagination: pagination }),
   reset: () =>
     set({
       currentAnalysis: null,
@@ -48,6 +48,3 @@ export const useMarketAnalysisStore = create<MarketAnalysisStore>((set) => ({
       pagination: { page: 1, totalPages: 1, hasMore: false },
     }),
 }));
-
-// Re-export the main store for backward compatibility
-export { useStore } from "@/lib/services/admin/store";

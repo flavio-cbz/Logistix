@@ -36,3 +36,11 @@ export function calculPrixLivraison(poids: number, parcelles: Parcelle[], parcel
 
   return poids * parcelle.prixParGramme
 }
+
+/**
+ * Récupère l'horodatage actuel au format ISO 8601.
+ * @returns {string} L'horodatage actuel.
+ */
+export function getCurrentTimestamp(): string {
+  return new Date().toISOString();
+}

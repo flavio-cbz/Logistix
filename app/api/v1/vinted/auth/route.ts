@@ -5,7 +5,6 @@ import { VintedAuthService } from '@/lib/services/auth/vinted-auth-service';
 import { databaseService } from '@/lib/services/database/db'; // Utiliser databaseService pour les requêtes brutes
 import { db } from '@/lib/services/database/drizzle-client';
 import { vintedSessions } from '@/lib/services/database/drizzle-schema';
-import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 import { getLogger } from '@/lib/utils/logging/simple-logger';
 
@@ -67,11 +66,11 @@ export async function GET() {
   try {
     // Récupère le cookie en clair depuis la base
     const session = await db.select().from(vintedSessions).limit(1);
-    if (!session[0]?.sessionCookie) {
+    if (!session[0]!?.sessionCookie) {
       return NextResponse.json({ authenticated: false, error: 'Aucun cookie Vinted enregistré.' }, { status: 401 });
     }
     
-    const cookie = session[0].sessionCookie; // Plus de déchiffrement
+    const cookie = session[0]!!.sessionCookie; // Plus de déchiffrement
 
     // Vérifie la validité du token
     const authService = new VintedAuthService(cookie);

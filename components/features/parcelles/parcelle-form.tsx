@@ -118,11 +118,11 @@ export default function ParcelleForm({ editParcelle, onClose, className }: Parce
   }
 
   return (
-    <Dialog open={open || !!editParcelle} onOpenChange={handleOpenChange}>
+    <Dialog open={open || !!editParcelle} onOpenChange={handleOpenChange!}>
       {!editParcelle && (
         <DialogTrigger asChild>
           <AnimatedButton 
-            className={className}
+            className={className ?? ''}
             ripple={true}
             haptic={true}
             screenReaderDescription="Ouvrir le formulaire d'ajout de nouvelle parcelle"

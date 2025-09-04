@@ -52,15 +52,15 @@ export default function ProductInfoWidget({ analysis }: ProductInfoWidgetProps) 
           <h4 className="text-sm font-medium">Qualité de l'analyse</h4>
           <div className="flex items-center gap-2">
             {(analysis.salesVolume ?? 0) >= 50 ? (
-              <Badge className="bg-green-100 text-green-800">
+              <Badge className="bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))]">
                 Excellente ({analysis.salesVolume ?? 0} ventes)
               </Badge>
             ) : (analysis.salesVolume ?? 0) >= 20 ? (
-              <Badge className="bg-yellow-100 text-yellow-800">
+              <Badge className="bg-[hsl(var(--warning))] text-[hsl(var(--warning-foreground))]">
                 Bonne ({analysis.salesVolume ?? 0} ventes)
               </Badge>
             ) : (
-              <Badge className="bg-orange-100 text-orange-800">
+              <Badge className="bg-[hsl(var(--warning))] text-[hsl(var(--warning-foreground))]">
                 Limitée ({analysis.salesVolume ?? 0} ventes)
               </Badge>
             )}

@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../../utils/error-utils';
 import { logger } from '@/lib/utils/logging/logger';
 import { aiMetricsCollector, AIAggregatedMetrics } from './ai-metrics-collector';
 import { marketAnalysisConfig } from './market-analysis-config';
@@ -153,9 +154,9 @@ export class AICostOptimizer {
       // Trier par priorité et impact potentiel
       recommendations.sort((a, b) => {
         const priorityOrder = { high: 3, medium: 2, low: 1 };
-        const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
-        if (priorityDiff !== 0) return priorityDiff;
-        return b.potentialSavings - a.potentialSavings;
+        const effortOrder = { low: 3, medium: 2, high: 1 };
+        return (priorityOrder[b.priority] * effortOrder[b.implementationEffort]) - 
+               (priorityOrder[a.priority] * effortOrder[a.implementationEffort]);
       });
 
       logger.info('[AICostOptimizer] Generated optimization recommendations', {
@@ -167,7 +168,7 @@ export class AICostOptimizer {
       return recommendations;
     } catch (error) {
       logger.error('[AICostOptimizer] Error generating optimization recommendations', {
-        error: error.message,
+        error: getErrorMessage(error),
         timeframe,
       });
       return [];
@@ -187,7 +188,7 @@ export class AICostOptimizer {
     // Déterminer la tendance des coûts
     const costTrend = this.determineCostTrend(metrics.totalCost, previousPeriodMetrics?.totalCost || 0);
     
-    // Calculer les métriques de coût
+    // Calcule les métriques de coût
     const costPerRequest = metrics.totalRequests > 0 ? metrics.totalCost / metrics.totalRequests : 0;
     const costPerToken = metrics.totalTokensUsed > 0 ? metrics.totalCost / metrics.totalTokensUsed : 0;
     
@@ -264,7 +265,7 @@ export class AICostOptimizer {
     const maxRequestsForType = Math.max(...Object.values(metrics.requestsByType));
     const totalRequests = metrics.totalRequests;
     
-    return maxRequestsForType / totalRequests > 0.6; // Plus de 60% du même type
+    return totalRequests > 0 && maxRequestsForType / totalRequests > 0.6; // Plus de 60% du même type
   }
 
   /**
@@ -283,7 +284,7 @@ export class AICostOptimizer {
   /**
    * Obtient les métriques de la période précédente
    */
-  private getPreviousPeriodMetrics(currentMetrics: AIAggregatedMetrics): AIAggregatedMetrics | null {
+  private getPreviousPeriodMetrics(_currentMetrics: AIAggregatedMetrics): AIAggregatedMetrics | null {
     // Pour l'instant, retourner null - dans une implémentation complète,
     // on récupérerait les métriques de la période précédente depuis le stockage
     return null;
@@ -307,7 +308,7 @@ export class AICostOptimizer {
    */
   private findMostExpensiveAnalysisType(metrics: AIAggregatedMetrics): string {
     const requestsByType = metrics.requestsByType;
-    const avgCostPerRequest = metrics.totalRequests > 0 ? metrics.totalCost / metrics.totalRequests : 0;
+    // const avgCostPerRequest = metrics.totalRequests > 0 ? metrics.totalCost / metrics.totalRequests : 0; // Not used in this logic
     
     // Logique simplifiée : le type avec le plus de requêtes est considéré comme le plus coûteux
     let maxType = '';

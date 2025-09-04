@@ -74,7 +74,7 @@ export async function isAdminUsingDefaultPassword(): Promise<boolean> {
 }
 
 export function getAdminPassword(): string {
-  return process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD
+  return process.env['ADMIN_PASSWORD']! || DEFAULT_ADMIN_PASSWORD
 }
 
 // Fonction pour obtenir des statistiques de la base de données

@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useEffect, useState, useMemo } from "react"
-import { motion, useReducedMotion } from "framer-motion"
+// import { motion, useReducedMotion } from "framer-motion" // Removed framer-motion imports
 import { DollarSign, Package, TrendingUp, Users, FileText, FileSpreadsheet } from "lucide-react"
 import { CardStats } from "@/components/ui/card-stats"
 import { useStore } from "@/lib/services/admin/store"
@@ -34,24 +34,22 @@ type AnimatedItemProps = {
   delay?: number
 }
 
-const fadeUpVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-}
 
-function AnimatedItem({ children, delay = 0 }: AnimatedItemProps) {
-  const reduce = useReducedMotion()
-  if (reduce) return <div>{children}</div>
+function AnimatedItem({ children, delay: _delay = 0 }: AnimatedItemProps) {
+  // const reduce = useReducedMotion() // Removed useReducedMotion
+  // if (reduce) return <div>{children}</div> // Removed motion check
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={fadeUpVariants}
-      transition={{ duration: 0.5, delay }}
-    >
-      {children}
-    </motion.div>
+    // <motion.div // Removed motion.div
+    //   initial="hidden"
+    //   animate="visible"
+    //   variants={fadeUpVariants}
+    //   transition={{ duration: 0.5, delay }}
+    // >
+      <div>
+        {children}
+      </div>
+    // </motion.div>
   )
 }
 
@@ -75,12 +73,12 @@ export default function StatistiquesPage() {
             return
           }
           const errorData = await response.json().catch(() => ({}))
-          const message = errorData?.message || "Erreur lors de la récupération des statistiques avancées"
-          setError(message)
+          const errorMessage = errorData?.message || "Erreur lors de la récupération des statistiques avancées"
+          setError(errorMessage)
           return
         }
-        const data = await response.json()
-        setAdvancedStats(data)
+        const responseData = await response.json()
+        setAdvancedStats(responseData)
 
       } catch (err: any) {
         console.error(err)
@@ -92,7 +90,6 @@ export default function StatistiquesPage() {
 
     loadData()
   }, [initializeStore])
-
   const handleExport = async (format: 'csv' | 'pdf') => {
     try {
       const response = await fetch(`/api/v1/statistiques?format=${format}`);
@@ -117,22 +114,30 @@ export default function StatistiquesPage() {
     }
   };
 
+  const produitsVendusData = useMemo(() => {
+    if (!Array.isArray(produits)) return []
+    return produits
+      .filter((p) => p?.vendu && p?.prixVente != null && p?.benefices != null)
+      .sort((a, b) => (b.benefices || 0) - (a.benefices || 0))
+      .slice(0, 5)
+  }, [produits])
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
+        <div
+          // initial={{ opacity: 0 }} // Removed motion props
+          // animate={{ opacity: 1 }} // Removed motion props
+          // transition={{ duration: 0.5 }} // Removed motion props
           className="flex flex-col items-center"
         >
-          <motion.div
+          <div
             className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+            // animate={{ rotate: 360 }} // Removed motion props
+            // transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }} // Removed motion props
           />
           <p className="text-muted-foreground">Chargement des statistiques avancées...</p>
-        </motion.div>
+        </div>
       </div>
     )
   }
@@ -141,7 +146,7 @@ export default function StatistiquesPage() {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center">
-          <p className="text-red-500 mb-2">Erreur : {error}</p>
+          <p className="text-[hsl(var(--destructive-foreground))] mb-2">Erreur : {error}</p>
           <Button onClick={() => { setError(null); setIsLoading(true); (async ()=>{ await initializeStore(); setIsLoading(false) })(); }} variant="outline">Réessayer</Button>
         </div>
       </div>
@@ -156,17 +161,9 @@ export default function StatistiquesPage() {
     )
   }
 
-  const produitsVendusData = useMemo(() => {
-    if (!Array.isArray(produits)) return []
-    return produits
-      .filter((p) => p?.vendu && p?.prixVente != null && p?.benefices != null)
-      .sort((a, b) => (b.benefices || 0) - (a.benefices || 0))
-      .slice(0, 5)
-  }, [produits])
-
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex justify-between items-center">
+      <div /* initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} */ className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-medium">Statistiques Avancées</h3>
           <p className="text-sm text-muted-foreground">Vue d'overview des performances et analyses détaillées.</p>
@@ -179,94 +176,98 @@ export default function StatistiquesPage() {
             <FileText className="mr-2 h-4 w-4" /> Export PDF
           </Button>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+      <div
+        // initial={{ opacity: 0, y: 20 }} // Removed motion props
+        // animate={{ opacity: 1, y: 0 }} // Removed motion props
+        // transition={{ duration: 0.5 }} // Removed motion props
         className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
+        <div
+          // initial={{ opacity: 0, scale: 0.9 }} // Removed motion props
+          // animate={{ opacity: 1, scale: 1 }} // Removed motion props
+          // transition={{ duration: 0.3, delay: 0.1 }} // Removed motion props
         >
           <CardStats
             title="Ventes Totales"
             value={`${advancedStats.ventesTotales.toFixed(2)} €`}
-            icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+            Icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+            description="Chiffre d'affaires total généré"
           />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
+        </div>
+        <div
+          // initial={{ opacity: 0, scale: 0.9 }} // Removed motion props
+          // animate={{ opacity: 1, scale: 1 }} // Removed motion props
+          // transition={{ duration: 0.3, delay: 0.2 }} // Removed motion props
         >
           <CardStats
             title="Produits Vendus"
             value={advancedStats.produitsVendus}
-            icon={<Package className="h-4 w-4 text-muted-foreground" />}
+            Icon={<Package className="h-4 w-4 text-muted-foreground" />}
+            description="Nombre total de produits vendus"
           />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
+        </div>
+        <div
+          // initial={{ opacity: 0, scale: 0.9 }} // Removed motion props
+          // animate={{ opacity: 1, scale: 1 }} // Removed motion props
+          // transition={{ duration: 0.3, delay: 0.3 }} // Removed motion props
         >
           <CardStats
             title="Bénéfices"
             value={`${advancedStats.beneficesTotaux.toFixed(2)} €`}
-            icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
+            Icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
+            description="Bénéfices nets totaux"
           />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.4 }}
+        </div>
+        <div
+          // initial={{ opacity: 0, scale: 0.9 }} // Removed motion props
+          // animate={{ opacity: 1, scale: 1 }} // Removed motion props
+          // transition={{ duration: 0.3, delay: 0.4 }} // Removed motion props
         >
           <CardStats
             title="Parcelles"
             value={advancedStats.nombreParcelles}
-            icon={<Users className="h-4 w-4 text-muted-foreground" />}
+            Icon={<Users className="h-4 w-4 text-muted-foreground" />}
+            description="Nombre total de parcelles traitées"
           />
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
       
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
+      <div /* initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} */>
         <HeatmapChart data={advancedStats.heatmapVentes} />
-      </motion.div>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
+        <div /* initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} */>
            <RoiTable data={advancedStats.roiParProduit} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
+        </div>
+        <div /* initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} */>
            <TempsMoyenVenteTable data={advancedStats.tempsMoyenVente} />
-        </motion.div>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}>
+        <div /* initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} */>
            <PlateformesRentabiliteTable data={advancedStats.meilleuresPlateformes} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
+        </div>
+        <div /* initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} */>
            <RadarChart data={advancedStats.radarPerformances} />
-        </motion.div>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}>
+        <div /* initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} */>
            <TendancesSaisonnieresTable data={advancedStats.tendancesSaisonnieres} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }}>
+        </div>
+        <div /* initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }} */>
            <TrendChart data={advancedStats.courbeTendance} />
-        </motion.div>
+        </div>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }}>
+      <div /* initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }} */>
          <PrevisionsVentesTable data={advancedStats.previsionsVentes} />
-      </motion.div>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <AnimatedItem delay={1.0}>

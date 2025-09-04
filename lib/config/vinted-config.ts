@@ -6,7 +6,11 @@
 export interface VintedConfig {
   autoRefreshEnabled: boolean;
   refreshIntervalMinutes: number;
+  proactiveRefreshMarginMinutes: number;
   defaultUserId: string;
+  maxRefreshAttempts: number;
+  refreshBackoffBaseSeconds: number;
+  tokenTTLHours: number;
   apiEndpoints: {
     userCurrent: string;
     sessionRefresh: string;
@@ -28,9 +32,16 @@ export const VINTED_CONFIG: VintedConfig = {
   
   // Intervalle de rafraîchissement par défaut (30 minutes)
   refreshIntervalMinutes: 30,
+
+  // Marge par défaut (minutes) pour refresh proactif
+  proactiveRefreshMarginMinutes: 10,
   
   // Utilisateur par défaut (sera résolu dynamiquement)
   defaultUserId: 'admin',
+
+  maxRefreshAttempts: 5,
+  refreshBackoffBaseSeconds: 60,
+  tokenTTLHours: 24,
   
   // Endpoints API Vinted
   apiEndpoints: {
@@ -54,10 +65,13 @@ export function getVintedConfig(): VintedConfig {
   return {
     ...VINTED_CONFIG,
     // Permettre la surcharge via .env si disponible (optionnel)
-    autoRefreshEnabled: process.env.VINTED_AUTO_REFRESH_ENABLED === 'false' ? false : VINTED_CONFIG.autoRefreshEnabled,
-    refreshIntervalMinutes: process.env.VINTED_TOKEN_REFRESH_INTERVAL_MINUTES 
-      ? parseInt(process.env.VINTED_TOKEN_REFRESH_INTERVAL_MINUTES) 
-      : VINTED_CONFIG.refreshIntervalMinutes
+    autoRefreshEnabled: (process.env as any)['VINTED_AUTO_REFRESH_ENABLED'] === 'false' ? false : VINTED_CONFIG.autoRefreshEnabled,
+    refreshIntervalMinutes: process.env['VINTED_TOKEN_REFRESH_INTERVAL_MINUTES']!
+      ? parseInt(process.env['VINTED_TOKEN_REFRESH_INTERVAL_MINUTES']!)
+      : VINTED_CONFIG.refreshIntervalMinutes,
+    proactiveRefreshMarginMinutes: process.env['VINTED_PROACTIVE_REFRESH_MARGIN_MINUTES']!
+      ? parseInt(process.env['VINTED_PROACTIVE_REFRESH_MARGIN_MINUTES']!)
+      : VINTED_CONFIG.proactiveRefreshMarginMinutes,
   };
 }
 
@@ -70,5 +84,5 @@ export const DEFAULT_TEST_SESSION = 'session_par_defaut_pour_tests';
  * Récupère la session Vinted (depuis .env si disponible, sinon session par défaut)
  */
 export function getVintedSession(): string {
-  return process.env.VINTED_SESSION || DEFAULT_TEST_SESSION;
+  return process.env['VINTED_SESSION']! || DEFAULT_TEST_SESSION;
 }

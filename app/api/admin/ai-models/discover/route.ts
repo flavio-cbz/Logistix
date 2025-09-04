@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     
     if (!endpointUrl || !apiKey) {
       return NextResponse.json(
-        { success: false, message: "URL d'endpoint et clé API requis" },
+        { success: false, _message: "URL d'endpoint et clé API requis" },
         { status: 400 }
       );
     }
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        message: error instanceof Error ? error.message : 'Erreur serveur' 
+        _message: error instanceof Error ? error.message : 'Erreur serveur' 
       },
       { status: 500 }
     );
@@ -68,7 +68,7 @@ export async function GET() {
     return NextResponse.json(
       { 
         success: false, 
-        message: error instanceof Error ? error.message : 'Erreur serveur' 
+        _message: error instanceof Error ? error.message : 'Erreur serveur' 
       },
       { status: 500 }
     );

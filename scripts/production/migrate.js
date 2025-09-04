@@ -171,7 +171,7 @@ CREATE TABLE IF NOT EXISTS similar_sales (
   expires_at TIMESTAMP NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-`);
+`)
 
 // Vérifier si l'utilisateur admin existe déjà
 const adminUser = db.prepare(`SELECT id FROM users WHERE username = 'admin'`).get()
@@ -189,12 +189,11 @@ if (!adminUser) {
   // Fonctions utilitaires
   const generateId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
   const getCurrentTimestamp = () => new Date().toISOString()
-  const hashPassword = (password) => bcrypt.hashSync(password, SALT_ROUNDS)
 
   // Insérer l'utilisateur admin dans la base de données
   const id = generateId()
   const timestamp = getCurrentTimestamp()
-  const passwordHash = hashPassword(adminPassword)
+  const passwordHash = hashPasswordSync(adminPassword)
 
   db.prepare(`
     INSERT INTO users (id, username, email, password_hash, created_at, updated_at)

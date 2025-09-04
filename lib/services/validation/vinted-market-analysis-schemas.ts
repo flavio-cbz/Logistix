@@ -3,7 +3,7 @@ import { z } from 'zod';
 /**
  * Schéma récursif Catalog — utiliser le schéma Zod et inférer le type pour éviter les divergences.
  */
-export const CatalogSchema = z.object({
+export const CatalogSchema: z.ZodType<any> = z.object({
     id: z.number(),
     title: z.string(),
     catalogs: z.array(z.lazy(() => CatalogSchema)).default([]),

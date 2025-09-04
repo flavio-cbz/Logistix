@@ -12,18 +12,9 @@ import {
   History, 
   Search, 
   Filter, 
-  TrendingUp, 
-  TrendingDown, 
-  Minus,
-  Calendar,
-  ShoppingCart,
-  Euro,
-  Loader2,
-  AlertCircle,
-  RefreshCw,
   Eye
 } from "lucide-react"
-import { type HistoricalDataViewProps, type MarketAnalysisHistoryItem } from "@/types/vinted-market-analysis"
+import type { HistoricalDataViewProps, MarketAnalysisHistoryItem } from '@/types/vinted-market-analysis'
 
 
 export default function HistoricalDataView({
@@ -113,9 +104,9 @@ export default function HistoricalDataView({
   const getStatusBadge = (status: MarketAnalysisHistoryItem['status']) => {
     switch (status) {
       case 'completed':
-        return <Badge className="bg-green-100 text-green-800">Terminé</Badge>
+        return <Badge className="bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))]">Terminé</Badge>
       case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">En cours</Badge>
+        return <Badge className="bg-[hsl(var(--warning))] text-[hsl(var(--warning-foreground))]">En cours</Badge>
       case 'failed':
         return <Badge variant="destructive">Échec</Badge>
       default:
@@ -148,7 +139,7 @@ export default function HistoricalDataView({
             </div>
           </div>
           <div className="flex gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={setStatusFilter!}>
               <SelectTrigger className="w-[140px]">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue />
@@ -190,7 +181,7 @@ export default function HistoricalDataView({
                       onClick={() => onRowClick && onRowClick(analysis)}
                       className={`transition-all duration-300 ${
                         isPending ? "opacity-50" : "cursor-pointer hover:bg-muted/50"
-                      } ${isSelected ? "bg-blue-100 hover:bg-blue-200" : ""}`}
+                      } ${isSelected ? "bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]" : ""}`}
                     >
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox
@@ -201,7 +192,7 @@ export default function HistoricalDataView({
                       </TableCell>
                       <TableCell>
                           <p className="font-medium">{analysis.productName}</p>
-                          {analysis.error && <p className="text-xs text-red-600 mt-1">{analysis.error}</p>}
+                          {analysis.error && <p className="text-xs text-[hsl(var(--destructive-foreground))] mt-1">{analysis.error}</p>}
                       </TableCell>
                       <TableCell>{getStatusBadge(analysis.status)}</TableCell>
                       <TableCell>{formatPrice(analysis.avgPrice)}</TableCell>
@@ -220,7 +211,7 @@ export default function HistoricalDataView({
           </div>
         )}
 
-        {hasMore && <div className="flex justify-center pt-4"><Button variant="outline" onClick={onLoadMore} disabled={isLoading}>Charger plus</Button></div>}
+        {hasMore && <div className="flex justify-center pt-4"><Button variant="outline" onClick={onLoadMore!} disabled={isLoading}>Charger plus</Button></div>}
       </CardContent>
     </Card>
   )

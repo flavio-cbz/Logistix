@@ -73,7 +73,7 @@ const EnhancedCard = React.forwardRef<HTMLDivElement, EnhancedCardProps>(
         className={cn(cardVariants({ variant, interactive, loading }), className)}
         role={interactive ? "button" : "region"}
         tabIndex={interactive ? 0 : undefined}
-        aria-busy={loading}
+        aria-busy={loading ?? undefined}
         {...ariaAttributes}
         {...props}
       >

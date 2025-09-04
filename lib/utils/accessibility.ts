@@ -24,27 +24,27 @@ export function generateAriaAttributes(descriptor: AccessibilityDescriptor) {
   const attributes: Record<string, string | boolean> = {}
 
   if (descriptor.label) {
-    attributes['aria-label'] = descriptor.label
+    (attributes as any)['aria-label'] = descriptor.label
   }
 
   if (descriptor.description) {
-    attributes['aria-describedby'] = `desc-${generateId()}`
+    (attributes as any)['aria-describedby'] = `desc-${generateId()}`
   }
 
   if (descriptor.role) {
-    attributes['role'] = descriptor.role
+    (attributes as any)['role'] = descriptor.role
   }
 
   if (descriptor.ariaLive) {
-    attributes['aria-live'] = descriptor.ariaLive
+    (attributes as any)['aria-live'] = descriptor.ariaLive
   }
 
   if (descriptor.ariaAtomic !== undefined) {
-    attributes['aria-atomic'] = descriptor.ariaAtomic
+    (attributes as any)['aria-atomic'] = descriptor.ariaAtomic
   }
 
   if (descriptor.ariaRelevant) {
-    attributes['aria-relevant'] = descriptor.ariaRelevant
+    (attributes as any)['aria-relevant'] = descriptor.ariaRelevant
   }
 
   return attributes
@@ -60,26 +60,26 @@ export function generateId(): string {
 /**
  * Create descriptive text for data visualizations
  */
-export function createChartDescription(data: any[], type: 'line' | 'bar' | 'pie' | 'area' = 'line'): string {
-  if (!data || data.length === 0) {
+export function createChartDescription(_data: any[], type: 'line' | 'bar' | 'pie' | 'area' = 'line'): string {
+  if (!_data || _data.length === 0) {
     return "Aucune donnée disponible pour ce graphique"
   }
 
-  const dataPoints = data.length
-  const hasValues = data.some(item => typeof item.value === 'number')
-  
+  const dataPoints = _data.length
+  const hasValues = _data.some(_item => typeof _item.value === 'number')
+
   if (!hasValues) {
     return `Graphique ${type} contenant ${dataPoints} points de données sans valeurs numériques`
   }
 
-  const values = data.map(item => item.value).filter(v => typeof v === 'number')
+  const values = _data.map(_item => _item.value).filter(v => typeof v === 'number')
   const min = Math.min(...values)
   const max = Math.max(...values)
   const avg = values.reduce((sum, val) => sum + val, 0) / values.length
 
-  const trend = values.length > 1 ? 
-    ((values[values.length - 1] || 0) > (values[0] || 0) ? 'croissante' : 
-     (values[values.length - 1] || 0) < (values[0] || 0) ? 'décroissante' : 'stable') : 'stable'
+  const trend = values.length > 1 ?
+    ((values[values.length - 1]! || 0) > (values[0]! || 0) ? 'croissante' :
+     (values[values.length - 1]! || 0) < (values[0]! || 0) ? 'décroissante' : 'stable') : 'stable'
 
   return `Graphique ${type} avec ${dataPoints} points de données. ` +
          `Valeur minimale: ${min.toLocaleString('fr-FR')}, ` +
@@ -92,27 +92,27 @@ export function createChartDescription(data: any[], type: 'line' | 'bar' | 'pie'
  * Create descriptive text for statistics cards
  */
 export function createStatsDescription(
-  title: string, 
-  value: string | number, 
+  title: string,
+  value: string | number,
   trend?: { value: number; label?: string },
   description?: string
 ): string {
   let desc = `${title}: ${value}`
-  
+
   if (trend) {
     const trendDirection = trend.value > 0 ? 'en hausse' : trend.value < 0 ? 'en baisse' : 'stable'
     const trendValue = Math.abs(trend.value).toFixed(1).replace('.', ',')
     desc += `, ${trendDirection} de ${trendValue}%`
-    
+
     if (trend.label) {
       desc += ` ${trend.label}`
     }
   }
-  
+
   if (description) {
     desc += `. ${description}`
   }
-  
+
   return desc
 }
 
@@ -176,7 +176,7 @@ export function createTableDescription(
  * Announce dynamic content changes to screen readers
  */
 export function announceToScreenReader(
-  message: string,
+  _message: string,
   priority: 'polite' | 'assertive' = 'polite'
 ): void {
   // Create or update live region
@@ -203,7 +203,7 @@ export function announceToScreenReader(
   }
   
   // Update the live region content
-  liveRegion.textContent = message
+  liveRegion.textContent = _message
   
   // Clear after announcement to allow repeated messages
   setTimeout(() => {

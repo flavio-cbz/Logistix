@@ -15,7 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Parcelle } from "@/types/database";
+import type { Parcelle } from '@/types/database';
 import { Button } from "@/components/ui/button";
 import { PencilIcon, Trash2Icon, CopyIcon } from "lucide-react";
 import { useDuplicateEntity } from "@/lib/utils/duplication";
@@ -27,7 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import ParcelleForm from "@/components/features/parcelles/parcelle-form"; // Correction: import par défaut
+import ParcelleForm from "@/components/features/parcelles/parcelle-form";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface ParcellesTableProps {
@@ -35,7 +35,7 @@ interface ParcellesTableProps {
 }
 
 export function ParcellesTable({ parcelles }: ParcellesTableProps) {
-  const { addParcelle, updateParcelle, deleteParcelle } = useStore();
+  const { addParcelle, deleteParcelle } = useStore();
   const { duplicateEntity } = useDuplicateEntity<Parcelle>();
   const [editingParcelle, setEditingParcelle] = useState<Parcelle | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -46,7 +46,7 @@ export function ParcellesTable({ parcelles }: ParcellesTableProps) {
       entity: parcelle,
       transform: (p) => ({
         ...p,
-        numero: `${p.numero ?? ""}-copie`, // Exemple: ajouter "-copie" au numéro
+        numero: `${p.numero ?? ""}-copie`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }),

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { runInference } from "./inference-client";
-import { VintedAnalysisResult, VintedSoldItem } from "../../../types/vinted-market-analysis";
+import { VintedAnalysisResult, SoldItem } from "../../../types/vinted-market-analysis";
 
 // Legacy schema for backward compatibility
 const AnomalyDetectionSchema = z.object({
@@ -32,7 +32,7 @@ const BatchAnomalyDetectionSchema = z.object({
   }),
 });
 
-type AnomalyDetectionResponse = z.infer<typeof AnomalyDetectionSchema>;
+export type AnomalyDetectionResponse = z.infer<typeof AnomalyDetectionSchema>;
 export type MarketAnomalyDetection = z.infer<typeof MarketAnomalyDetectionSchema>;
 export type BatchAnomalyDetectionResult = z.infer<typeof BatchAnomalyDetectionSchema>;
 
@@ -49,6 +49,7 @@ Réponds uniquement avec un objet JSON valide au format suivant :
   "reason": "L'annonce concerne bien un {analysis_subject}."
 }
 // OU
+{
 {
   "is_relevant": false,
   "reason": "L'annonce concerne une coque et non le téléphone lui-même."
@@ -195,24 +196,21 @@ export async function detectMarketAnomalies(
   const { sampleSize = 10, focusTypes = ['price', 'volume', 'timing', 'quality'] } = options;
   
   // Calculate statistics for anomaly detection
-  const prices = analysisResult.rawItems.map(item => parseFloat(item.price.amount));
-  const avgPrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-  const priceStd = Math.sqrt(
-    prices.reduce((sum, price) => sum + Math.pow(price - avgPrice, 2), 0) / prices.length
-  );
+  const prices = analysisResult.rawItems.map((item: SoldItem) => parseFloat(item.price.amount));
+  const avgPrice = prices.length > 0 ? prices.reduce((sum, price) => sum + price, 0) / prices.length : 0; // Added check for empty prices
 
   // Sample items for analysis
   const sampleItems = analysisResult.rawItems
     .slice(0, sampleSize)
-    .map(item => `- ${item.title} (${item.price.amount}€)`)
+    .map((item: SoldItem) => `- ${item.title} (${item.price.amount}€)`)
     .join('\n');
 
   const prompt = MARKET_ANOMALY_DETECTION_PROMPT_TEMPLATE
     .replace("{product_name}", analysisResult.catalogInfo.name)
     .replace("{sales_volume}", analysisResult.salesVolume.toString())
     .replace("{avg_price}", avgPrice.toFixed(2))
-    .replace("{min_price}", analysisResult.priceRange.min.toString())
-    .replace("{max_price}", analysisResult.priceRange.max.toString())
+    .replace("{min_price}", String(analysisResult.priceRange?.min ?? ''))
+    .replace("{max_price}", String(analysisResult.priceRange?.max ?? ''))
     .replace("{items_count}", analysisResult.rawItems.length.toString())
     .replace("{sample_items}", sampleItems)
     .replace("{current_date}", new Date().toISOString());
@@ -263,22 +261,22 @@ export async function detectBatchAnomalies(
     includeStatisticalAnalysis?: boolean;
   } = {}
 ): Promise<BatchAnomalyDetectionResult> {
-  const { chunkSize = 50, includeStatisticalAnalysis = true } = options;
+  const { chunkSize = 50, includeStatisticalAnalysis: _includeStatisticalAnalysis = true } = options;
   
   try {
-    // Calculate comprehensive statistics
-    const prices = analysisResult.rawItems.map(item => parseFloat(item.price.amount));
-    const avgPrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-    const priceStd = Math.sqrt(
-      prices.reduce((sum, price) => sum + Math.pow(price - avgPrice, 2), 0) / prices.length
-    );
+  // Calculate comprehensive statistics
+  const prices = analysisResult.rawItems.map((item: SoldItem) => parseFloat(item.price.amount));
+    const avgPrice = prices.length > 0 ? prices.reduce((sum, price) => sum + price, 0) / prices.length : 0; // Added check for empty prices
+    const priceStd = prices.length > 1 ? Math.sqrt( // Added check for single price
+      prices.reduce((sum, price) => sum + Math.pow(price - avgPrice, 2), 0) / (prices.length - 1) // Using n-1 for sample standard deviation
+    ) : 0;
 
     // Prepare detailed items analysis
     const detailedItems = analysisResult.rawItems
       .slice(0, chunkSize)
-      .map((item, index) => {
+      .map((item: SoldItem, index: number) => {
         const price = parseFloat(item.price.amount);
-        const priceDeviation = Math.abs(price - avgPrice) / priceStd;
+        const priceDeviation = priceStd > 0 ? Math.abs(price - avgPrice) / priceStd : 0; // Added check for priceStd > 0
         return `${index + 1}. "${item.title}" - ${price}€ (déviation: ${priceDeviation.toFixed(2)}σ) - Créé: ${item.created_at || 'N/A'}`;
       })
       .join('\n');
@@ -343,7 +341,7 @@ export function classifyAnomalySeverity(
   standardDeviation: number,
   type: 'price' | 'volume' | 'timing' | 'quality'
 ): 'low' | 'medium' | 'high' | 'critical' {
-  const deviation = Math.abs(value - mean) / standardDeviation;
+  const deviation = standardDeviation > 0 ? Math.abs(value - mean) / standardDeviation : 0; // Added check for standardDeviation > 0
   
   switch (type) {
     case 'price':
@@ -389,9 +387,10 @@ export function generateAnomalyExplanation(
       return `Anomalie temporelle détectée. ${anomaly.description} Confiance: ${(anomaly.confidence * 100).toFixed(1)}%`;
     
     case 'quality':
-      return `Anomalie de qualité détectée. ${anomaly.description} Confiance: ${(anomaly.confidence * 100).toFixed(1)}%`;
+      return `Anomalie de qualité détectée. ${anomaly.description} Vérifier les descriptions et photos des ${anomaly.affectedItems?.length ?? 0} articles concernés. Confiance: ${(anomaly.confidence * 100).toFixed(1)}%`;
     
     default:
-      return `Anomalie détectée: ${anomaly.description} Confiance: ${(anomaly.confidence * 100).toFixed(1)}%`;
+      // Couverture défensive : garantir un return même si un nouveau type apparaît
+      return `${anomaly.type ? `Anomalie (${anomaly.type})` : 'Anomalie'} détectée. ${anomaly.description ?? ''} Confiance: ${(anomaly.confidence ?? 0 * 100).toFixed(1)}%`;
   }
 }

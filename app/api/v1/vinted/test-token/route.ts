@@ -1,42 +1,58 @@
-// API route pour tester la validité du token Vinted
+import { NextRequest, NextResponse } from "next/server"
+import { z } from "zod"
 
-import { NextRequest, NextResponse } from 'next/server';
-import { VintedAuthService } from '@/lib/services/auth/vinted-auth-service';
+/**
+ * POST /api/v1/vinted/test-token
+ *
+ * Body: { token: string }
+ *
+ * Utilise le service centralisé de validation de session Vinted (vinted-session-validator)
+ * pour effectuer : validation, refresh et fallback HTTP en un seul appel.
+ *
+ * Réponses:
+ * - 200 { valid: true, refreshed?: boolean, details?: any }
+ * - 400 { valid: false, error: string }
+ * - 500 { error: string }
+ */
 
-import { getLogger } from '@/lib/utils/logging/logger';
+const bodySchema = z.object({
+  token: z.string().min(10, "token too short"),
+})
 
-const logger = getLogger('vinted-token-test');
 export async function POST(req: NextRequest) {
   try {
-    const { token } = await req.json();
-logger.info('Début de la validation du token Vinted.', { token });
-
-    if (!token || typeof token !== 'string') {
-      return NextResponse.json(
-        { valid: false, error: "Token Vinted manquant ou invalide." },
-        { status: 400 }
-      );
+    const json = await req.json().catch(() => ({}))
+    const parsed = bodySchema.safeParse(json)
+    if (!parsed.success) {
+      return NextResponse.json({ valid: false, error: "Payload invalide" }, { status: 400 })
     }
 
-    const authService = new VintedAuthService(token);
-    const result = await authService.validateAccessToken();
-logger.info('Résultat de la validation du token Vinted.', { result });
+    const { token } = parsed.data
 
-    if (result.valid) {
+    try {
+      // Import dynamique du validateur centralisé
+      const mod = await import('@/lib/services/auth/vinted-session-validator')
+      const testVintedSessionCookie = (mod as any).testVintedSessionCookie ?? (mod as any).default ?? mod
+
+      const result = await testVintedSessionCookie(token)
+
+      if (result.success && result.valid) {
+        return NextResponse.json(
+          { valid: true, refreshed: !!result.refreshed, details: result.details ?? null },
+          { status: 200 }
+        )
+      }
+
+      // Validation échouée — renvoyer message utilisateur-friendly sans exposer de secrets
       return NextResponse.json(
-        { valid: true, status: result.status, user: result.body },
-        { status: 200 }
-      );
-    } else {
-      return NextResponse.json(
-        { valid: false, error: result.error || "Token Vinted invalide ou expiré.", status: result.status },
-        { status: result.status === 401 ? 401 : 400 }
-      );
+        { valid: false, error: result.message || "Token/cookie Vinted invalide ou expiré" },
+        { status: 400 }
+      )
+    } catch (err: any) {
+      // Si le validateur échoue pour une raison inattendue, renvoyons 500
+      return NextResponse.json({ error: err?.message ?? "Erreur interne lors de la validation" }, { status: 500 })
     }
   } catch (err: any) {
-    return NextResponse.json(
-      { valid: false, error: err?.message || "Erreur interne lors de la validation du token." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err?.message ?? "Erreur interne" }, { status: 500 })
   }
 }

@@ -44,37 +44,37 @@ export function createRequestLogger(requestId: string, userId?: string): ILogger
   
   // Wrap all logger methods to include request context
   return {
-    error: (message: string, error?: Error | unknown, meta?: Record<string, any>) => {
-      logger.error(message, error, { ...meta, requestId, userId });
+    error: (_message: string, error?: Error | unknown, meta?: Record<string, any>) => {
+      logger.error(_message, error, { ...meta, requestId, userId });
     },
-    warn: (message: string, meta?: Record<string, any>) => {
-      logger.warn(message, { ...meta, requestId, userId });
+    warn: (_message: string, meta?: Record<string, any>) => {
+      logger.warn(_message, { ...meta, requestId, userId });
     },
-    info: (message: string, meta?: Record<string, any>) => {
-      logger.info(message, { ...meta, requestId, userId });
+    info: (_message: string, meta?: Record<string, any>) => {
+      logger.info(_message, { ...meta, requestId, userId });
     },
-    http: (message: string, meta?: Record<string, any>) => {
-      logger.http(message, { ...meta, requestId, userId });
+    http: (_message: string, meta?: Record<string, any>) => {
+      logger.http?.(_message, { ...meta, requestId, userId });
     },
-    verbose: (message: string, meta?: Record<string, any>) => {
-      logger.verbose(message, { ...meta, requestId, userId });
+    verbose: (_message: string, meta?: Record<string, any>) => {
+      logger.verbose?.(_message, { ...meta, requestId, userId });
     },
-    debug: (message: string, meta?: Record<string, any>) => {
+    debug: (_message: string, _meta?: Record<string, any>) => {
     },
-    silly: (message: string, meta?: Record<string, any>) => {
-      logger.silly(message, { ...meta, requestId, userId });
+    silly: (_message: string, meta?: Record<string, any>) => {
+      logger.silly?.(_message, { ...meta, requestId, userId });
     },
     performance: (operation: string, duration: number, meta?: Record<string, any>) => {
-      logger.performance(operation, duration, { ...meta, requestId, userId });
+      logger.performance?.(operation, duration, { ...meta, requestId, userId });
     },
     request: (method: string, url: string, statusCode: number, duration: number, meta?: Record<string, any>) => {
-      logger.request(method, url, statusCode, duration, { ...meta, requestId, userId });
+      logger.request?.(method, url, statusCode, duration, { ...meta, requestId, userId });
     },
     database: (query: string, duration: number, meta?: Record<string, any>) => {
-      logger.database(query, duration, { ...meta, requestId, userId });
+      logger.database?.(query, duration, { ...meta, requestId, userId });
     },
     userAction: (action: string, userIdParam: string, meta?: Record<string, any>) => {
-      logger.userAction(action, userIdParam, { ...meta, requestId, userId });
+      logger.userAction?.(action, userIdParam, { ...meta, requestId, userId });
     }
   };
 }
@@ -98,7 +98,7 @@ export class PerformanceTimer {
 
   end(additionalMetadata?: Record<string, any>): number {
     const duration = Date.now() - this.startTime;
-    this.logger.performance(this.operation, duration, {
+    this.logger.performance?.(this.operation, duration, {
       ...this.metadata,
       ...additionalMetadata
     });
@@ -138,7 +138,7 @@ export class DatabaseQueryLogger {
   }
 
   logQuery(query: string, params?: any[], duration?: number, metadata?: Record<string, any>) {
-    this.logger.database(query, duration || 0, {
+    this.logger.database?.(query, duration || 0, {
       params: params ? params.slice(0, 10) : undefined, // Limit params for security
       paramCount: params?.length,
       ...metadata
@@ -146,7 +146,7 @@ export class DatabaseQueryLogger {
   }
 
   logTransaction(operation: string, duration: number, metadata?: Record<string, any>) {
-    this.logger.performance(`DB_TRANSACTION_${operation}`, duration, {
+    this.logger.performance?.(`DB_TRANSACTION_${operation}`, duration, {
       type: 'database_transaction',
       ...metadata
     });
@@ -173,7 +173,7 @@ export class ApiRequestLogger {
   }
 
   logRequest(method: string, url: string, headers?: Record<string, string>, body?: any) {
-    this.logger.http(`${method} ${url}`, {
+    this.logger.http?.(`${method} ${url}`, {
       method,
       url,
       headers: this.sanitizeHeaders(headers),
@@ -183,7 +183,7 @@ export class ApiRequestLogger {
   }
 
   logResponse(method: string, url: string, statusCode: number, duration: number, responseSize?: number) {
-    this.logger.request(method, url, statusCode, duration, {
+    this.logger.request?.(method, url, statusCode, duration, {
       responseSize,
       type: 'api_response'
     });
@@ -205,8 +205,8 @@ export class ApiRequestLogger {
     const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key', 'x-auth-token'];
     
     for (const header of sensitiveHeaders) {
-      if (sanitized[header]) {
-        sanitized[header] = '[REDACTED]';
+      if (sanitized[header]!) {
+        (sanitized as any)[header] = '[REDACTED]';
       }
     }
     

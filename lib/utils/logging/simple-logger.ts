@@ -3,15 +3,15 @@
  * Remplace le logger Winston pour éviter les erreurs de compilation côté client
  */
 
-import { LogLevel, NODE_ENV, LOG_LEVEL } from '@/lib/constants/config';
+import { LogLevel, LOG_LEVEL } from '@/lib/constants/config';
 
 export { LogLevel };
 
 export class SimpleLogger {
-  private context?: string
+  private context: string // Changé le type pour être toujours une chaîne de caractères
 
   constructor(context?: string) {
-    this.context = context
+    this.context = context ?? '' // Assure que le contexte est toujours une chaîne vide si non fourni
   }
 
   private formatMessage(level: string, message: string, ...args: any[]): string {
@@ -40,8 +40,9 @@ export class SimpleLogger {
     }
   }
 
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ..._args: any[]): void {
     if (LOG_LEVEL >= LogLevel.DEBUG) {
+        console.debug(this.formatMessage('DEBUG', message, ..._args));
     }
   }
 }

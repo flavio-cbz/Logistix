@@ -59,7 +59,7 @@ export async function GET(request: Request) {
     `).all(productName) as HistoricalPriceData[];
 
     if (historicalData.length === 0) {
-      const noDataResponse = { recommendedPrice: null, message: "Aucune donnée historique pour ce produit" };
+      const noDataResponse = { recommendedPrice: null, _message: "Aucune donnée historique pour ce produit" };
       return NextResponse.json(noDataResponse);
     }
 
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
       totalSalesVolume += data.sales_volume;
     }
 
-    const recommendedPrice = totalSalesVolume > 0 ? (totalWeightedPrice / totalSalesVolume) : (historicalData[0]?.price || 0);
+    const recommendedPrice = totalSalesVolume > 0 ? (totalWeightedPrice / totalSalesVolume) : (historicalData[0]!?.price || 0);
     const responseData = { recommendedPrice: parseFloat(recommendedPrice.toFixed(2)) };
 
     return NextResponse.json(responseData);

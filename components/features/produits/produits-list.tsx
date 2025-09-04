@@ -2,89 +2,49 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AnimatedButton } from "@/components/ui/animated-button"
-import { Input } from "@/components/ui/input"
 import ProduitForm from "@/components/features/produits/produit-form"
-import { Copy, Edit, Trash2, DollarSign } from "lucide-react"
-import { Switch } from "@/components/ui/switch"
-import { ConfirmDialog } from "@/components/confirm-dialog"
-import VenteForm from "@/components/features/produits/vente-form"
-import type { Produit } from "@/types/database"
-import { useToast } from "@/components/ui/use-toast"
+import { Button } from "@/components/ui/button"
+import { VenteForm } from "@/components/features/produits/vente-form"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { EllipsisHorizontalIcon } from "@heroicons/react/20/solid"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { toast } from "@/components/ui/use-toast"
 import { useStore } from "@/lib/services/admin/store"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useDuplicateEntity } from "@/lib/utils/duplication" // Import du hook de duplication
+import { format } from "date-fns"
+import { fr } from "date-fns/locale"
+import { useDuplicateEntity } from "@/lib/hooks/use-duplicate-entity"
+import { Produit } from "@/types/database" 
 
 interface ProduitsListProps {
-  initialProduits: Produit[]
+  // initialProduits: Produit[] // Removed initialProduits as it's not directly used anymore
 }
 
-export default function ProduitsList({ initialProduits = [] }: ProduitsListProps) {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [deleteId, setDeleteId] = useState<string | null>(null)
+export function ProduitsList({}: ProduitsListProps) {
   const [editProduit, setEditProduit] = useState<Produit | null>(null)
   const [venteFormProduitId, setVenteFormProduitId] = useState<string | null>(null)
-  const { toast } = useToast()
-  const { deleteProduit, updateProduit, addProduit } = useStore() // Destructurer addProduit du store
-  const { duplicateEntity } = useDuplicateEntity<Produit>(); // Utilisation du hook générique
+  const { produits, deleteProduit, updateProduit, addProduit } = useStore()
 
-
-  const filteredProduits = initialProduits.filter((produit) => {
-    const searchLower = searchTerm.toLowerCase()
-    const nomMatch = (produit.nom || "").toLowerCase().includes(searchLower);
-    const commandeMatch = produit.commandeId?.toLowerCase().includes(searchLower) ?? false
-    return nomMatch || commandeMatch
-  })
-
-  const handleDelete = async (id: string) => {
-    try {
-      deleteProduit(id)
-      toast({
-        title: "Produit supprimé",
-        description: "Le produit a été supprimé avec succès.",
-      })
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la suppression.",
-      })
-    }
-    setDeleteId(null)
-  }
-
-  const handleToggleVendu = async (produit: Produit) => {
-    if (!produit.vendu) {
-      setVenteFormProduitId(produit.id)
-    } else {
-      try {
-        updateProduit(produit.id, {
-          vendu: false,
-          dateVente: undefined,
-          tempsEnLigne: undefined,
-          prixVente: undefined,
-          plateforme: undefined,
-        })
-        toast({
-          title: "Statut mis à jour",
-          description: "Le statut du produit a été mis à jour avec succès.",
-        })
-      } catch (error) {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Une erreur est survenue lors de la mise à jour du statut.",
-        })
-      }
-    }
-  }
-
-  // Fonction pour dupliquer un produit
   const handleDuplicate = (produit: Produit) => {
+    const { duplicateEntity } = useDuplicateEntity<Produit>(); // Explicitly define generic type
     duplicateEntity({
       entity: produit,
-      transform: (p) => ({
+      transform: (p: Produit) => ({
         ...p,
         nom: `${p.nom} (copie)`,
       }),
@@ -93,144 +53,118 @@ export default function ProduitsList({ initialProduits = [] }: ProduitsListProps
     });
   };
 
+  const handleSaveVente = (produitId: string, venteData: Partial<Produit>) => {
+    updateProduit(produitId, venteData);
+    setVenteFormProduitId(null);
+    toast({
+      title: "Vente enregistrée",
+      description: "Le produit a été marqué comme vendu.",
+    });
+  };
 
   return (
-    <>
-      <div className="flex flex-col sm:flex-row items-center gap-4 py-4">
-        <Input
-          placeholder="Rechercher des produits..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
-        />
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Mes Produits</CardTitle>
+        <Button onClick={() => setEditProduit({} as Produit)}>Ajouter un produit</Button>
+      </CardHeader>
+      <CardContent>
+        {produits.length === 0 ? (
+          <p className="text-center text-muted-foreground">Aucun produit enregistré.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nom</TableHead>
+                  <TableHead className="hidden md:table-cell">Détails</TableHead>
+                  <TableHead className="text-right">Prix Achat</TableHead>
+                  <TableHead className="text-right">Prix Vente</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="hidden md:table-cell">Date Création</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <AnimatePresence>
+                  {produits.map((produit) => (
+                    <motion.tr
+                      key={produit.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <TableCell className="font-medium">{produit.nom || "-"}</TableCell>
+                      <TableCell className="hidden md:table-cell max-w-[200px] truncate">
+                        {produit.details ?? "-"}
+                      </TableCell>
+                      <TableCell className="text-right">{(produit.prixArticle ?? 0).toFixed(2)} €</TableCell>
+                      <TableCell className="text-right">
+                        {produit.vendu ? (
+                          (produit.prixVente ?? 0).toFixed(2) + " €"
+                        ) : (
+                          <Badge variant="outline">Non vendu</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {produit.vendu ? (
+                          <Badge className="bg-green-500 hover:bg-green-600">Vendu</Badge>
+                        ) : (
+                          <Badge variant="secondary">En stock</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {produit.createdAt ? format(new Date(produit.createdAt), "PPP", { locale: fr }) : "-"}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              aria-haspopup="true"
+                              size="icon"
+                              variant="ghost"
+                            >
+                              <EllipsisHorizontalIcon className="h-4 w-4" />
+                              <span className="sr-only">Toggle menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => setEditProduit(produit)}>Modifier</DropdownMenuItem>
+                            {!produit.vendu && (
+                                <DropdownMenuItem onClick={() => setVenteFormProduitId(produit.id)}>Enregistrer vente</DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => handleDuplicate(produit)}>Dupliquer</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => deleteProduit(produit.id)}>Supprimer</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+
+      {editProduit && (
         <ProduitForm
           className="w-full sm:w-auto sm:ml-auto"
           editProduit={editProduit}
           onClose={() => setEditProduit(null)}
         />
-      </div>
-
-      <div className="rounded-md border shadow-sm overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID Commande</TableHead>
-              <TableHead>Nom</TableHead>
-              <TableHead className="hidden md:table-cell">Détails</TableHead>
-              <TableHead>Prix Article (€)</TableHead>
-              <TableHead className="hidden md:table-cell">Livraison (€)</TableHead>
-              <TableHead>Vendu</TableHead>
-              <TableHead>Prix de vente (€)</TableHead>
-              <TableHead>Bénéfice (€)</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <AnimatePresence>
-              {filteredProduits.map((produit) => (
-                <motion.tr
-                  key={produit.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <TableCell>{produit.commandeId || "-"}</TableCell>
-                  <TableCell className="font-medium">{produit.nom || "-"}</TableCell>
-                  <TableCell className="hidden md:table-cell max-w-[200px] truncate">
-                    {produit.details || "-"}
-                  </TableCell>
-                  <TableCell>{(produit.prixArticle || 0).toFixed(2)} €</TableCell>
-                  <TableCell className="hidden md:table-cell">{(produit.prixLivraison || 0).toFixed(2)} €</TableCell>
-                  <TableCell>
-                    <Switch checked={produit.vendu || false} onCheckedChange={() => handleToggleVendu(produit)} />
-                  </TableCell>
-                  <TableCell>
-                    {produit.vendu ? (
-                      <div className="flex items-center">
-                        {produit.prixVente ? `${produit.prixVente.toFixed(2)} €` : "-"}
-                        <AnimatedButton
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 ml-1"
-                          onClick={() => setEditProduit(produit)}
-                          ripple={true}
-                          haptic={true}
-                          screenReaderDescription="Modifier le prix de vente"
-                        >
-                          <DollarSign className="h-3 w-3" />
-                        </AnimatedButton>
-                      </div>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {produit.benefices ? (
-                      <span className={produit.benefices > 0 ? "text-green-600" : "text-red-600"}>
-                        {produit.benefices.toFixed(2)} €
-                      </span>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <AnimatedButton 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => setEditProduit(produit)}
-                      ripple={true}
-                      haptic={true}
-                      screenReaderDescription="Modifier le produit"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </AnimatedButton>
-                    <AnimatedButton 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleDuplicate(produit)}
-                      ripple={true}
-                      haptic={true}
-                      screenReaderDescription="Dupliquer le produit"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </AnimatedButton>
-                    <AnimatedButton 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => setDeleteId(produit.id)}
-                      ripple={true}
-                      haptic={true}
-                      screenReaderDescription="Supprimer le produit"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </AnimatedButton>
-                  </TableCell>
-                </motion.tr>
-              ))}
-            </AnimatePresence>
-            {filteredProduits.length === 0 && (
-              <TableRow key="no-produits-row">
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                  Aucun produit trouvé
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <ConfirmDialog
-        open={!!deleteId}
-        onOpenChange={() => setDeleteId(null)}
-        onConfirm={() => deleteId && handleDelete(deleteId)}
-        title="Supprimer le produit"
-        description="Êtes-vous sûr de vouloir supprimer ce produit ? Cette action est irréversible."
-      />
+      )}
 
       {venteFormProduitId && (
-        <VenteForm produitId={venteFormProduitId} open={true} onClose={() => setVenteFormProduitId(null)} />
+        <VenteForm
+          produit={produits.find(p => p.id === venteFormProduitId)!}
+          onSave={(venteData) => handleSaveVente(venteFormProduitId, venteData)}
+          onCancel={() => setVenteFormProduitId(null)}
+        />
       )}
-    </>
+    </Card>
   )
 }

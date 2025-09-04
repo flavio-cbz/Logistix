@@ -3,7 +3,8 @@
  * Logs all HTTP requests and responses with performance metrics
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server'; // Import as non-type
 import { v4 as uuidv4 } from 'uuid';
 import { createRequestLogger, apiRequestLogger } from '@/lib/utils/logging';
 
@@ -11,10 +12,10 @@ interface RequestLogData {
   requestId: string;
   method: string;
   url: string;
-  userAgent?: string;
-  ip?: string;
+  userAgent?: string | undefined;
+  ip?: string | undefined;
   startTime: number;
-  userId?: string;
+  userId?: string | undefined;
 }
 
 /**
@@ -32,10 +33,10 @@ export function withRequestLogging<T extends any[]>(
       requestId,
       method: request.method,
       url: request.url,
-      userAgent: request.headers.get('user-agent') || undefined,
+      userAgent: request.headers.get('user-agent') ?? undefined,
       ip: request.headers.get('x-forwarded-for') || 
-          request.headers.get('x-real-ip') || 
-          'unknown',
+          request.headers.get('x-real-ip') ||
+          undefined, // Changed to undefined for consistency and correct operator precedence
       startTime,
       userId: extractUserIdFromRequest(request)
     };
@@ -44,7 +45,7 @@ export function withRequestLogging<T extends any[]>(
     const logger = createRequestLogger(requestId, logData.userId);
 
     // Log incoming request
-    logger.http(`Incoming ${logData.method} request`, {
+    logger.http?.(`Incoming ${logData.method} request`, {
       url: logData.url,
       userAgent: logData.userAgent,
       ip: logData.ip,
@@ -138,9 +139,9 @@ function sanitizeHeaders(headers: Headers): Record<string, string> {
 
   headers.forEach((value, key) => {
     if (sensitiveHeaders.includes(key.toLowerCase())) {
-      sanitized[key] = '[REDACTED]';
+      (sanitized as any)[key] = '[REDACTED]';
     } else {
-      sanitized[key] = value;
+      (sanitized as any)[key] = value;
     }
   });
 
@@ -171,7 +172,7 @@ export function withDatabaseLogging<T extends any[], R>(
       const result = await fn(...args);
       const duration = Date.now() - startTime;
 
-      logger.performance(`DB_${operation}`, duration, {
+      logger.performance?.(`DB_${operation}`, duration, {
         success: true,
         resultType: typeof result
       });
@@ -208,7 +209,7 @@ export function withServiceLogging<T extends any[], R>(
       const result = await fn(...args);
       const duration = Date.now() - startTime;
 
-      logger.performance(`${serviceName}_${operationName}`, duration, {
+      logger.performance?.(`${serviceName}_${operationName}`, duration, {
         service: serviceName,
         operation: operationName,
         success: true,
@@ -237,7 +238,7 @@ export function withServiceLogging<T extends any[], R>(
 export function withPerformanceLogging<T extends any[], R>(
   operationName: string,
   fn: (...args: T) => R | Promise<R>,
-  threshold: number = 1000 // Log if operation takes longer than 1 second
+  _threshold: number = 1000 // Log if operation takes longer than 1 second
 ) {
   return async (...args: T): Promise<R> => {
     const startTime = Date.now();
@@ -247,18 +248,18 @@ export function withPerformanceLogging<T extends any[], R>(
       const result = await fn(...args);
       const duration = Date.now() - startTime;
 
-      if (duration > threshold) {
+      if (duration > _threshold) {
         logger.warn(`Slow operation detected: ${operationName}`, {
           operation: operationName,
           duration,
-          threshold,
+          _threshold,
           args: args.length
         });
       }
 
-      logger.performance(operationName, duration, {
+      logger.performance?.(operationName, duration, {
         success: true,
-        slow: duration > threshold
+        slow: duration > _threshold
       });
 
       return result;

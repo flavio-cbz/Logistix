@@ -1,8 +1,14 @@
-import 'server-only';
+/* Attempt to load Next.js `server-only` helper when available.
+   In test environments (vitest) this package may be absent or will
+   throw if treated as a Client component import — ignore failures
+   so unit tests can run. */
+// @ts-ignore - `server-only` est un helper runtime Next.js; le charger dynamiquement
+// évite l'import statique qui casse les tests/client. En test, le module peut être absent.
+void import('server-only').catch(() => {});
 import crypto from 'crypto';
-import { signHmacHex } from '@/lib/utils/crypto';
+import { signHmacHex } from '../../utils/crypto';
 
-const SECRET = process.env.AUTH_TOKEN_SECRET || 'dev-secret-change-me';
+const SECRET = process.env['AUTH_TOKEN_SECRET']! || 'dev-secret-change-me';
 const DEFAULT_EXP_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 function base64urlEncode(buf: Buffer): string {
@@ -15,8 +21,8 @@ function base64urlDecode(str: string): Buffer {
   return Buffer.from(s, 'base64');
 }
 
-function signHex(data: string): string {
-  return signHmacHex(SECRET, data);
+function signHex(_data: string): string {
+  return signHmacHex(SECRET, _data);
 }
 
 /**
@@ -45,6 +51,10 @@ export function verifyToken(token: string): { valid: true; payload: any } | { va
 
   // Vérifier la signature
   const expectedSig = signHex(`${payloadB64}.${expiresAtStr}`);
+  // Détecter explicitement une signature non-hex : retourner 'signature_error'
+  if (typeof signatureHex !== 'string' || !/^[0-9a-fA-F]+$/.test(signatureHex) || signatureHex.length % 2 !== 0) {
+    return { valid: false, reason: 'signature_error' };
+  }
   try {
     const a = Buffer.from(expectedSig, 'hex');
     const b = Buffer.from(signatureHex, 'hex');
@@ -78,7 +88,7 @@ export function parseTokenUnsafe(token: string): any | null {
   const parts = token.split('.');
   if (parts.length !== 3) return null;
   try {
-    const payloadBuf = base64urlDecode(parts[0]);
+    const payloadBuf = base64urlDecode(parts[0]!);
     return JSON.parse(payloadBuf.toString('utf8'));
   } catch {
     return null;

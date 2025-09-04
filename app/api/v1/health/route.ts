@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { vintedSessionManager } from "@/lib/services/auth/vinted-session-manager"
 import { createNonDatabaseHandler } from "@/lib/utils/api-route-optimization"
 import { formatApiError } from "@/lib/utils/error-handler";
@@ -103,7 +103,7 @@ async function healthHandler(): Promise<NextResponse> {
         {
           status: "error",
           code: "HEALTH_CHECK_FAILED",
-          message: "Health check failed",
+          _message: "Health check failed",
           responseTime,
           timestamp: new Date().toISOString()
         }

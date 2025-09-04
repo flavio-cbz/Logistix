@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { runMarketAnalysisInference } from "./inference-client";
 import { AIAnalysisError, AIErrorCode } from "./ai-errors";
-import { VintedAnalysisResult } from "@/types/vinted-market-analysis";
-import { AdvancedMetrics } from "@/lib/analytics/advanced-analytics-engine";
+import type { VintedAnalysisResult } from "@/types/vinted-market-analysis";
+import type { AdvancedMetrics } from "@/lib/analytics/advanced-analytics-engine";
+import { getErrorMessage, toError } from '@/lib/utils/error-utils';
 
 // Schémas Zod pour la validation des recommandations de prix
 const PricingRecommendationSchema = z.object({
@@ -114,7 +115,8 @@ export class RecommendationEngine {
         },
       });
 
-      const rawRecommendation = this.extractPricingRecommendation(response.choices[0].text);
+      const choiceText = response?.choices?.[0]?.text ?? '';
+      const rawRecommendation = this.extractPricingRecommendation(choiceText);
       
       // Validation avec Zod
       const validatedRecommendation = PricingRecommendationSchema.parse(rawRecommendation);
@@ -123,17 +125,17 @@ export class RecommendationEngine {
     } catch (error) {
       if (error instanceof z.ZodError) {
         throw new AIAnalysisError(
-          `Format de recommandation de prix invalide: ${error.message}`,
+          `Format de recommandation de prix invalide: ${getErrorMessage(error)}`,
           AIErrorCode.INVALID_RESPONSE,
           { retryable: true, fallbackAvailable: true, context: { zodError: error.errors } }
         );
       }
       
-      throw new AIAnalysisError(
-        `Erreur lors de la génération des recommandations de prix: ${error.message}`,
-        AIErrorCode.INFERENCE_FAILED,
-        { retryable: true, fallbackAvailable: true, cause: error }
-      );
+        throw new AIAnalysisError(
+          `Erreur lors de la génération des recommandations de prix: ${getErrorMessage(error)}`,
+          AIErrorCode.INFERENCE_FAILED,
+          { retryable: true, fallbackAvailable: true, cause: toError(error) }
+        );
     }
   }
 
@@ -156,7 +158,8 @@ export class RecommendationEngine {
         },
       });
 
-      const rawOpportunities = this.extractOpportunities(response.choices[0].text);
+      const oppChoiceText = response?.choices?.[0]?.text ?? '';
+      const rawOpportunities = this.extractOpportunities(oppChoiceText);
       
       // Validation et tri par potentiel de profit
       const validatedOpportunities = rawOpportunities.map(opp => 
@@ -170,17 +173,17 @@ export class RecommendationEngine {
     } catch (error) {
       if (error instanceof z.ZodError) {
         throw new AIAnalysisError(
-          `Format d'opportunité invalide: ${error.message}`,
+          `Format d'opportunité invalide: ${getErrorMessage(error)}`,
           AIErrorCode.INVALID_RESPONSE,
           { retryable: true, fallbackAvailable: true, context: { zodError: error.errors } }
         );
       }
       
-      throw new AIAnalysisError(
-        `Erreur lors de l'identification des opportunités: ${error.message}`,
-        AIErrorCode.INFERENCE_FAILED,
-        { retryable: true, fallbackAvailable: true, cause: error }
-      );
+        throw new AIAnalysisError(
+          `Erreur lors de l'identification des opportunités: ${getErrorMessage(error)}`,
+          AIErrorCode.INFERENCE_FAILED,
+          { retryable: true, fallbackAvailable: true, cause: toError(error) }
+        );
     }
   }
 
@@ -238,11 +241,11 @@ export class RecommendationEngine {
 
     // Priorité (25% du score)
     const priorityWeights = { critical: 1, high: 0.8, medium: 0.5, low: 0.2 };
-    score += priorityWeights[opportunity.priority] * 0.25;
+    score += priorityWeights[opportunity.priority]! * 0.25;
 
     // Effort inversé (20% du score) - moins d'effort = meilleur score
     const effortWeights = { low: 1, medium: 0.6, high: 0.2 };
-    score += effortWeights[opportunity.effort] * 0.2;
+    score += effortWeights[opportunity.effort]! * 0.2;
 
     // Confiance (10% du score)
     score += opportunity.confidence * 0.1;
@@ -295,8 +298,8 @@ export class RecommendationEngine {
     const ranges = priceDistribution.ranges;
 
     for (let i = 0; i < ranges.length - 1; i++) {
-      const current = ranges[i];
-      const next = ranges[i + 1];
+      const current = ranges[i]!;
+      const next = ranges[i + 1]!;
       
       // Gap significatif si moins de 5% du marché dans cette tranche
       if (current.percentage < 5 && next.max - current.min > 5) {
@@ -329,7 +332,7 @@ export class RecommendationEngine {
   /**
    * Identifie les gaps de taille sous-représentées
    */
-  private identifySizeGaps(sizeDistribution: Record<string, number>, analysisResult: VintedAnalysisResult): MarketOpportunity[] {
+  private identifySizeGaps(sizeDistribution: Record<string, number>, _analysisResult: VintedAnalysisResult): MarketOpportunity[] {
     const gaps: MarketOpportunity[] = [];
     const totalItems = Object.values(sizeDistribution).reduce((sum, count) => sum + count, 0);
     
@@ -337,7 +340,7 @@ export class RecommendationEngine {
     const popularSizes = ['38', '39', '40', '41', '42'];
     
     popularSizes.forEach(size => {
-      const count = sizeDistribution[size] || 0;
+      const count = sizeDistribution[size]! || 0;
       const percentage = (count / totalItems) * 100;
       
       // Si une taille populaire est sous-représentée (< 15%)
@@ -430,7 +433,8 @@ export class RecommendationEngine {
         },
       });
 
-      const rawActionPlan = this.extractActionPlan(response.choices[0].text);
+      const actionPlanChoiceText = response?.choices?.[0]?.text ?? '';
+      const rawActionPlan = this.extractActionPlan(actionPlanChoiceText);
       
       // Validation avec Zod
       const validatedActionPlan = ActionPlanSchema.parse(rawActionPlan);
@@ -442,17 +446,17 @@ export class RecommendationEngine {
     } catch (error) {
       if (error instanceof z.ZodError) {
         throw new AIAnalysisError(
-          `Format de plan d'action invalide: ${error.message}`,
+          `Format de plan d'action invalide: ${getErrorMessage(error)}`,
           AIErrorCode.INVALID_RESPONSE,
           { retryable: true, fallbackAvailable: true, context: { zodError: error.errors } }
         );
       }
       
-      throw new AIAnalysisError(
-        `Erreur lors de la création du plan d'action: ${error.message}`,
-        AIErrorCode.INFERENCE_FAILED,
-        { retryable: true, fallbackAvailable: true, cause: error }
-      );
+        throw new AIAnalysisError(
+          `Erreur lors de la création du plan d'action: ${getErrorMessage(error)}`,
+          AIErrorCode.INFERENCE_FAILED,
+          { retryable: true, fallbackAvailable: true, cause: toError(error) }
+        );
     }
   }
 
@@ -482,7 +486,7 @@ export class RecommendationEngine {
     actionPlan.immediate = this.generateImmediateActions(prioritizedOpportunities, preferences);
 
     // Générer les actions court terme
-    actionPlan.shortTerm = this.generateShortTermActions(prioritizedOpportunities, preferences);
+    actionPlan.shortTerm = this.generateShortTermActions(prioritizedOpportunities);
 
     // Générer les stratégies long terme
     actionPlan.longTerm = this.generateLongTermStrategies(prioritizedOpportunities, preferences);
@@ -565,13 +569,13 @@ export class RecommendationEngine {
         
         if (preferences.objectives.includes('speed')) {
           const timeframeWeights = { immediate: 1, short_term: 0.7, medium_term: 0.4, long_term: 0.1 };
-          scoreA += timeframeWeights[a.timeframe] * 0.3;
-          scoreB += timeframeWeights[b.timeframe] * 0.3;
+          scoreA += timeframeWeights[a.timeframe]! * 0.3;
+          scoreB += timeframeWeights[b.timeframe]! * 0.3;
         }
         
         const priorityWeights = { critical: 1, high: 0.8, medium: 0.5, low: 0.2 };
-        scoreA += priorityWeights[a.priority] * 0.3;
-        scoreB += priorityWeights[b.priority] * 0.3;
+        scoreA += priorityWeights[a.priority]! * 0.3;
+        scoreB += priorityWeights[b.priority]! * 0.3;
         
         return scoreB - scoreA;
       });
@@ -584,26 +588,27 @@ export class RecommendationEngine {
     opportunities: MarketOpportunity[],
     preferences: UserPreferences
   ): ActionPlan['immediate'] {
-    const immediateActions: ActionPlan['immediate'] = [];
-    
+  const immediateActions: any[] = [];
+
     let filteredOpportunities = opportunities.filter(opp => opp.timeframe === 'immediate');
-    
+
     // Filtrer selon la tolérance au risque
     if (preferences.riskTolerance === 'conservative') {
       filteredOpportunities = filteredOpportunities.filter(opp => opp.effort === 'low');
     }
-    
+
     filteredOpportunities
       .slice(0, 5) // Limiter à 5 actions immédiates
       .forEach(opp => {
-        opp.actionItems.forEach((item, index) => {
+        opp.actionItems.forEach((_item, index) => {
+          const prev = opp.actionItems?.[index - 1];
           immediateActions.push({
-            action: item,
+            action: _item,
             priority: this.mapOpportunityPriorityToActionPriority(opp.priority),
             effort: opp.effort,
             expectedImpact: `Potentiel: ${opp.profitPotential}€ - ${opp.description}`,
             timeline: this.generateTimelineFromOpportunity(opp, 'immediate'),
-            dependencies: index > 0 ? [opp.actionItems[index - 1]] : []
+            dependencies: prev ? [prev] : []
           });
         });
       });
@@ -616,9 +621,8 @@ export class RecommendationEngine {
    */
   private generateShortTermActions(
     opportunities: MarketOpportunity[],
-    preferences: UserPreferences
   ): ActionPlan['shortTerm'] {
-    const shortTermActions: ActionPlan['shortTerm'] = [];
+  const shortTermActions: any[] = [];
     
     opportunities
       .filter(opp => ['short_term', 'medium_term'].includes(opp.timeframe))
@@ -643,24 +647,24 @@ export class RecommendationEngine {
     opportunities: MarketOpportunity[],
     preferences: UserPreferences
   ): ActionPlan['longTerm'] {
-    const longTermStrategies: ActionPlan['longTerm'] = [];
-    
+  const longTermStrategies: any[] = [];
+
     // Grouper les opportunités par type pour créer des stratégies cohérentes
     const opportunitiesByType = opportunities.reduce((acc, opp) => {
-      if (!acc[opp.type]) acc[opp.type] = [];
-      acc[opp.type].push(opp);
+  const key = String(opp.type);
+  if (!acc[key]) (acc as any)[key] = [];
+  (acc as any)[key].push(opp);
       return acc;
     }, {} as Record<string, MarketOpportunity[]>);
 
     Object.entries(opportunitiesByType).forEach(([type, opps]) => {
-      const totalPotential = opps.reduce((sum, opp) => sum + opp.profitPotential, 0);
-      
+      // Removed unused 'totalPotential' variable as it's not referenced elsewhere
       longTermStrategies.push({
-        strategy: this.generateStrategyFromType(type, opps),
+        strategy: this.generateStrategyFromType(type),
         goals: this.generateGoalsFromOpportunities(opps, preferences),
-        metrics: this.generateLongTermMetrics(type, preferences),
+        metrics: this.generateLongTermMetrics(type),
         timeline: this.generateLongTermTimeline(preferences),
-        resources: this.generateRequiredResources(opps, preferences)
+        resources: this.generateRequiredResources(opps)
       });
     });
 
@@ -691,7 +695,10 @@ export class RecommendationEngine {
         );
         
         if (implementationActions.length > 0 && action.dependencies.length === 0) {
-          action.dependencies.push(implementationActions[0].action);
+          const impl = implementationActions[0]!;
+          if (impl && impl.action) {
+            action.dependencies.push(impl.action);
+          }
         }
       }
     });
@@ -701,16 +708,15 @@ export class RecommendationEngine {
 
   private mapOpportunityPriorityToActionPriority(priority: MarketOpportunity['priority']): 'high' | 'medium' | 'low' {
     const mapping = { critical: 'high' as const, high: 'high' as const, medium: 'medium' as const, low: 'low' as const };
-    return mapping[priority];
+    return mapping[priority]!;
   }
-
   private generateTimelineFromOpportunity(opportunity: MarketOpportunity, phase: string): string {
     const timeframes = {
       immediate: { immediate: '24-48h', short_term: '1-2 semaines', medium_term: '2-4 semaines', long_term: '1-2 mois' },
       short_term: { immediate: '1 semaine', short_term: '2-4 semaines', medium_term: '1-2 mois', long_term: '2-3 mois' }
     };
     
-    return timeframes[phase as keyof typeof timeframes]?.[opportunity.timeframe] || '1-2 semaines';
+    return timeframes[phase as keyof typeof timeframes]!?.[opportunity.timeframe] || '1-2 semaines';
   }
 
   private generateMetricsFromOpportunity(opportunity: MarketOpportunity): string[] {
@@ -730,17 +736,16 @@ export class RecommendationEngine {
     }
   }
 
-  private generateStrategyFromType(type: string, opportunities: MarketOpportunity[]): string {
+  private generateStrategyFromType(type: string): string {
     const strategies = {
       pricing: 'Optimisation de la stratégie de prix pour maximiser la rentabilité',
       timing: 'Exploitation des opportunités temporelles pour augmenter les ventes',
       positioning: 'Amélioration du positionnement concurrentiel sur le marché',
       market_gap: 'Expansion dans les segments de marché sous-exploités'
     };
-    
-    return strategies[type as keyof typeof strategies] || 'Stratégie de croissance générale';
-  }
 
+    return strategies[type as keyof typeof strategies]! || 'Stratégie de croissance générale';
+  }
   private generateGoalsFromOpportunities(opportunities: MarketOpportunity[], preferences: UserPreferences): string[] {
     const goals: string[] = [];
     const totalPotential = opportunities.reduce((sum, opp) => sum + opp.profitPotential, 0);
@@ -763,19 +768,18 @@ export class RecommendationEngine {
     return goals.slice(0, 4); // Limiter à 4 objectifs
   }
 
-  private generateLongTermMetrics(type: string, preferences: UserPreferences): string[] {
+  private generateLongTermMetrics(type: string): string[] {
     const commonMetrics = ['ROI annuel', 'Croissance du chiffre d\'affaires', 'Part de marché'];
-    
+
     const specificMetrics = {
       pricing: ['Marge bénéficiaire moyenne', 'Élasticité prix-demande'],
       timing: ['Saisonnalité des ventes', 'Taux de conversion par période'],
       positioning: ['Indice de satisfaction client', 'Reconnaissance de marque'],
       market_gap: ['Taux de pénétration', 'Coût d\'acquisition client']
     };
-    
-    return [...commonMetrics, ...(specificMetrics[type as keyof typeof specificMetrics] || [])].slice(0, 5);
-  }
 
+    return [...commonMetrics, ...(specificMetrics[type as keyof typeof specificMetrics]! || [])].slice(0, 5);
+  }
   private generateLongTermTimeline(preferences: UserPreferences): string {
     switch (preferences.timeHorizon) {
       case 'immediate':
@@ -790,9 +794,9 @@ export class RecommendationEngine {
     }
   }
 
-  private generateRequiredResources(opportunities: MarketOpportunity[], preferences: UserPreferences): string[] {
+  private generateRequiredResources(opportunities: MarketOpportunity[]): string[] {
     const resources: Set<string> = new Set();
-    
+
     opportunities.forEach(opp => {
       switch (opp.effort) {
         case 'low':
@@ -808,7 +812,7 @@ export class RecommendationEngine {
           resources.add('Outils et technologies spécialisés');
           break;
       }
-      
+
       if (opp.type === 'pricing') {
         resources.add('Outils d\'analyse de prix');
       }
@@ -817,17 +821,16 @@ export class RecommendationEngine {
         resources.add('Développement produit');
       }
     });
-    
+
     return Array.from(resources).slice(0, 5); // Limiter à 5 ressources
   }
-
   private createDefaultActionPlan(opportunities: MarketOpportunity[]): ActionPlan {
     return {
       immediate: opportunities
         .filter(opp => opp.timeframe === 'immediate')
         .slice(0, 3)
         .map(opp => ({
-          action: opp.actionItems[0] || opp.title,
+          action: opp.actionItems[0]! || opp.title,
           priority: this.mapOpportunityPriorityToActionPriority(opp.priority),
           effort: opp.effort,
           expectedImpact: opp.description,
@@ -912,11 +915,12 @@ Assurez-vous que:
   }
 
   /**
+  /**
    * Construit le prompt pour l'identification d'opportunités
    */
   private buildOpportunityPrompt(context: RecommendationContext): string {
-    const { analysisResult, advancedMetrics, userPreferences } = context;
-    
+    const { analysisResult, advancedMetrics } = context;
+
     return `
 Analysez les données de marché et identifiez les opportunités avec leur potentiel de profit:
 
@@ -955,7 +959,6 @@ Concentrez-vous sur:
 4. Gaps de marché non exploités
 `;
   }
-
   /**
    * Construit le prompt pour le plan d'action
    */
@@ -1028,10 +1031,10 @@ Assurez-vous que:
         throw new Error('Aucun JSON trouvé dans la réponse');
       }
       
-      return JSON.parse(jsonMatch[0]);
+      return JSON.parse(jsonMatch[0]!);
     } catch (error) {
       throw new AIAnalysisError(
-        `Impossible d'extraire la recommandation de prix: ${error.message}`,
+        `Impossible d'extraire la recommandation de prix: ${getErrorMessage(error)}`,
         AIErrorCode.INVALID_RESPONSE,
         { retryable: true, context: { response } }
       );
@@ -1049,10 +1052,10 @@ Assurez-vous que:
         throw new Error('Aucun JSON array trouvé dans la réponse');
       }
       
-      return JSON.parse(jsonMatch[0]);
+      return JSON.parse(jsonMatch[0]!);
     } catch (error) {
       throw new AIAnalysisError(
-        `Impossible d'extraire les opportunités: ${error.message}`,
+        `Impossible d'extraire les opportunités: ${getErrorMessage(error)}`,
         AIErrorCode.INVALID_RESPONSE,
         { retryable: true, context: { response } }
       );
@@ -1070,10 +1073,10 @@ Assurez-vous que:
         throw new Error('Aucun JSON trouvé dans la réponse');
       }
       
-      return JSON.parse(jsonMatch[0]);
+      return JSON.parse(jsonMatch[0]!);
     } catch (error) {
       throw new AIAnalysisError(
-        `Impossible d'extraire le plan d'action: ${error.message}`,
+        `Impossible d'extraire le plan d'action: ${getErrorMessage(error)}`,
         AIErrorCode.INVALID_RESPONSE,
         { retryable: true, context: { response } }
       );

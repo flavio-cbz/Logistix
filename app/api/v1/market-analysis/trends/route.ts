@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/services/auth/auth';
 import { db } from '@/lib/services/database/drizzle-client';
-import { marketAnalyses, users, marketTrends, trackedProducts } from '@/lib/services/database/drizzle-schema';
-import { and, eq, or } from 'drizzle-orm';
+import { marketTrends, trackedProducts } from '@/lib/services/database/drizzle-schema';
+import { and, eq } from 'drizzle-orm';
 import { logger } from '@/lib/utils/logging/logger';
 
 export async function GET(request: Request) {

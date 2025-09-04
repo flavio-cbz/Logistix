@@ -52,7 +52,7 @@ export function useMobileNavigation({
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (!enableSwipeGestures || !isMobile) return
     
-    const touch = e.touches[0]
+    const touch = e.touches[0]!
     setTouchStart({ x: touch.clientX, y: touch.clientY })
     setIsSwipeActive(true)
     startTimeRef.current = Date.now()
@@ -62,7 +62,7 @@ export function useMobileNavigation({
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!enableSwipeGestures || !touchStart || !isSwipeActive) return
 
-    const touch = e.touches[0]
+    const touch = e.touches[0]!
     const deltaX = touch.clientX - touchStart.x
     const deltaY = touch.clientY - touchStart.y
 
@@ -76,7 +76,7 @@ export function useMobileNavigation({
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     if (!enableSwipeGestures || !touchStart || !isSwipeActive) return
 
-    const touch = e.changedTouches[0]
+    const touch = e.changedTouches[0]!
     const deltaX = touch.clientX - touchStart.x
     const deltaY = touch.clientY - touchStart.y
     const deltaTime = Date.now() - startTimeRef.current

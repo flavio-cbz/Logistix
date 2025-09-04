@@ -19,7 +19,7 @@ export function ResponsiveGrid({
   minItemWidth = 280,
   gap = 'md'
 }: ResponsiveGridProps) {
-  const { isMobile, isTablet, deviceType } = useMobileNavigation()
+  const { isMobile, isTablet } = useMobileNavigation()
 
   const getGridClasses = () => {
     const gapClasses = {
@@ -28,7 +28,7 @@ export function ResponsiveGrid({
       lg: 'gap-6'
     }
 
-    const baseClasses = `grid ${gapClasses[gap]}`
+    const baseClasses = `grid ${gapClasses[gap]!}`
 
     switch (variant) {
       case 'dashboard':
@@ -120,7 +120,7 @@ export function ResponsiveContainer({
       '2xl': 'max-w-2xl',
       full: 'max-w-full'
     }
-    return maxWidthClasses[maxWidth]
+    return maxWidthClasses[maxWidth]!
   }
 
   const getPaddingClass = () => {
@@ -131,7 +131,7 @@ export function ResponsiveContainer({
       md: isMobile ? 'px-4 py-4' : isTablet ? 'px-6 py-6' : 'px-8 py-8',
       lg: isMobile ? 'px-6 py-6' : isTablet ? 'px-8 py-8' : 'px-12 py-12'
     }
-    return paddingClasses[padding]
+    return paddingClasses[padding]!
   }
 
   return (
@@ -165,7 +165,7 @@ export function ResponsiveCard({
   interactive = false,
   ...props
 }: ResponsiveCardProps & React.HTMLAttributes<HTMLDivElement>) {
-  const { isMobile, isTablet, getTouchSpacing } = useMobileNavigation()
+  const { isMobile, isTablet } = useMobileNavigation()
 
   const getPaddingClasses = () => {
     const variantClasses = {
@@ -173,7 +173,7 @@ export function ResponsiveCard({
       compact: isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5',
       expanded: isMobile ? 'p-6' : isTablet ? 'p-8' : 'p-10'
     }
-    return variantClasses[variant]
+    return variantClasses[variant]!
   }
 
   // Map responsive variants to EnhancedCard variants
@@ -244,9 +244,9 @@ export function ResponsiveTypography({
       }
     }
 
-    if (isMobile) return variants[variant].mobile
-    if (isTablet) return variants[variant].tablet
-    return variants[variant].desktop
+    if (isMobile) return variants[variant]!!.mobile
+    if (isTablet) return variants[variant]!!.tablet
+    return variants[variant]!!.desktop
   }
 
   const getDefaultElement = () => {
@@ -258,7 +258,7 @@ export function ResponsiveTypography({
       body: 'p',
       caption: 'span'
     }
-    return elementMap[variant] as keyof JSX.IntrinsicElements
+    return elementMap[variant]! as keyof JSX.IntrinsicElements
   }
 
   const Component = as || getDefaultElement()

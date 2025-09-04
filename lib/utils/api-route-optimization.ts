@@ -1,11 +1,12 @@
 import 'server-only';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { 
   withDatabaseInitialization, 
   getExecutionContext, 
   requiresDatabaseInitialization,
   ExecutionContext,
-  type DatabaseInitializationOptions 
+  // type DatabaseInitializationOptions
 } from '@/lib/middlewares/database-initialization';
 import { databaseService } from '@/lib/services/database/db';
 
@@ -358,12 +359,12 @@ export function getApiOptimizationStats(): {
   const databaseInitializationRate = (databaseInitializedCount / totalRequests) * 100;
 
   const contextDistribution = performanceMetrics.reduce((acc, metric) => {
-    acc[metric.context] = (acc[metric.context] || 0) + 1;
+    (acc as any)[metric.context] = (acc[metric.context]! || 0) + 1;
     return acc;
   }, {} as Record<ExecutionContext, number>);
 
   const methodDistribution = performanceMetrics.reduce((acc, metric) => {
-    acc[metric.method] = (acc[metric.method] || 0) + 1;
+    (acc as any)[metric.method] = (acc[metric.method]! || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 

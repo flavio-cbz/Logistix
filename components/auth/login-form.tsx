@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, LogIn } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { motion } from "framer-motion"
+// import { motion } from "framer-motion" // Removed framer-motion import
 
 // Remplacer LogistixPRO par Logistix et moderniser le formulaire
 export default function LoginForm() {
@@ -28,10 +28,8 @@ export default function LoginForm() {
       const timer = setTimeout(() => {
         window.location.href = "/dashboard"
       }, 500)
-
       return () => clearTimeout(timer)
     }
-
     // Retour explicite pour assurer que tous les chemins retournent une valeur (utile pour le lint/TS)
     return undefined
   }, [loginSuccess])
@@ -42,10 +40,9 @@ export default function LoginForm() {
     setErrors({})
 
     try {
-      const formElement = event.currentTarget
-      const username = formElement.username.value
-      const password = formElement.password.value
-
+      const formElement = event.currentTarget as HTMLFormElement
+      const username = ((formElement['username']!) as HTMLInputElement).value
+      const password = ((formElement['password']!) as HTMLInputElement).value
 
       // Utiliser fetch pour appeler l'API de connexion
       const response = await fetch("/api/v1/auth/login", {
@@ -63,7 +60,6 @@ export default function LoginForm() {
           title: "Connexion réussie",
           description: "Vous êtes maintenant connecté à votre compte.",
         })
-
         // Marquer le login comme réussi pour déclencher la redirection
         setLoginSuccess(true)
       } else {
@@ -75,7 +71,6 @@ export default function LoginForm() {
         } else {
           setErrors({ general: result.message || "Une erreur est survenue lors de la connexion" })
         }
-
         toast({
           variant: "destructive",
           title: "Erreur de connexion",
@@ -96,22 +91,22 @@ export default function LoginForm() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+    <div /* initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} */> {/* Removed motion.div */}
       <Card className="w-full max-w-md shadow-lg border-opacity-50">
         <CardHeader>
           <CardTitle className="text-2xl">Connexion</CardTitle>
           <CardDescription>Connectez-vous à votre compte Logistix</CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit!}>
           <CardContent className="space-y-4">
             {errors.general && (
               <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">{errors.general}</div>
             )}
-            <motion.div
+            <div
               className="space-y-2"
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.3 }}
+              // initial={{ x: -20, opacity: 0 }} // Removed motion props
+              // animate={{ x: 0, opacity: 1 }} // Removed motion props
+              // transition={{ delay: 0.1, duration: 0.3 }} // Removed motion props
             >
               <label htmlFor="username" className="block text-sm font-medium">
                 Nom d'utilisateur
@@ -125,12 +120,12 @@ export default function LoginForm() {
                 className={errors.username ? "border-destructive" : ""}
               />
               {errors.username && <p className="text-destructive text-sm mt-1">{errors.username}</p>}
-            </motion.div>
-            <motion.div
+            </div>
+            <div
               className="space-y-2"
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.3 }}
+              // initial={{ x: -20, opacity: 0 }} // Removed motion props
+              // animate={{ x: 0, opacity: 1 }} // Removed motion props
+              // transition={{ delay: 0.2, duration: 0.3 }} // Removed motion props
             >
               <label htmlFor="password" className="block text-sm font-medium">
                 Mot de passe
@@ -143,10 +138,10 @@ export default function LoginForm() {
                 className={errors.password ? "border-destructive" : ""}
               />
               {errors.password && <p className="text-destructive text-sm mt-1">{errors.password}</p>}
-            </motion.div>
+            </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <motion.div className="w-full" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <div className="w-full" /* whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} */> {/* Removed motion props */}
               <Button type="submit" disabled={loading} className="w-full">
                 {loading ? (
                   <>
@@ -160,11 +155,10 @@ export default function LoginForm() {
                   </>
                 )}
               </Button>
-            </motion.div>
+            </div>
           </CardFooter>
         </form>
       </Card>
-    </motion.div>
+    </div>
   )
 }
-

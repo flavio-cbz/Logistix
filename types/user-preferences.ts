@@ -19,15 +19,15 @@ export interface UserPreferences {
 export interface UserAction {
   id?: string;
   userId: string;
-  actionType: 'view_insight' | 'follow_recommendation' | 'ignore_recommendation' | 'export_analysis' | 'save_analysis' | 'share_analysis';
+  actionType: 'view_insight' | 'follow_recommendation' | 'ignore_recommendation' | 'export_analysis' | 'save_analysis' | 'share_analysis' | 'feedback';
   actionData: Record<string, any>;
   timestamp: string;
   context?: {
     analysisId?: string;
     insightType?: string;
     recommendationType?: string;
-feedbackType?: string;
-rating?: string;
+    feedbackType?: string;
+    rating?: string;
   };
 }
 

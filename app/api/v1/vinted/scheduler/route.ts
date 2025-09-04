@@ -51,16 +51,16 @@ export async function POST(req: NextRequest) {
     switch (action) {
       case 'start':
         tokenRefreshScheduler.start(intervalMinutes);
-        return NextResponse.json({ success: true, message: 'Scheduler démarré' });
+        return NextResponse.json({ success: true, _message: 'Scheduler démarré' });
       
       case 'stop':
         tokenRefreshScheduler.stop();
-        return NextResponse.json({ success: true, message: 'Scheduler arrêté' });
+        return NextResponse.json({ success: true, _message: 'Scheduler arrêté' });
       
       case 'restart':
         tokenRefreshScheduler.stop();
         tokenRefreshScheduler.start(intervalMinutes);
-        return NextResponse.json({ success: true, message: 'Scheduler redémarré' });
+        return NextResponse.json({ success: true, _message: 'Scheduler redémarré' });
       
       default:
         return NextResponse.json(

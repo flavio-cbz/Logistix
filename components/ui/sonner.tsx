@@ -6,11 +6,12 @@ import { Toaster as Sonner } from "sonner"
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  // Correction TS6133 : suppression de la variable inutilisée si warning
+  const { theme } = useTheme() // Supprimé la valeur par défaut ici, car elle sera gérée par le cast
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={theme as "dark" | "light" | "system"} // Cast explicitement le thème
       className="toaster group"
       toastOptions={{
         classNames: {

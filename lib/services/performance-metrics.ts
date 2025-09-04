@@ -3,43 +3,32 @@
  * Comprehensive performance monitoring and metrics collection
  */
 
-import { performanceLogger, getLogger } from '@/lib/utils/logging';
+import { getLogger } from '@/lib/utils/logging';
 import { auditPerformanceEvent } from '@/lib/services/audit-logger';
 
 interface MetricData {
   name: string;
   value: number;
   unit: 'ms' | 'bytes' | 'count' | 'percentage' | 'ratio';
-  tags?: Record<string, string>;
+  tags: Record<string, string> | undefined;
   timestamp: Date;
-  context?: Record<string, any>;
+  context: Record<string, any> | undefined;
 }
 
 interface PerformanceThreshold {
   operation: string;
   warningThreshold: number;
   errorThreshold: number;
-  unit: 'ms' | 'bytes' | 'count';
+  unit: 'ms' | 'bytes' | 'count' | 'percentage';
 }
 
-interface SystemMetrics {
-  memory: {
-    used: number;
-    total: number;
-    percentage: number;
-  };
-  cpu: {
-    usage: number;
-  };
-  uptime: number;
-  timestamp: Date;
-}
+// SystemMetrics interface removed (unused)
 
 class PerformanceMetricsService {
   private logger = getLogger('PERFORMANCE_METRICS');
   private metrics: MetricData[] = [];
   private thresholds: Map<string, PerformanceThreshold> = new Map();
-  private systemMetricsInterval?: NodeJS.Timeout;
+  private systemMetricsInterval: NodeJS.Timeout | undefined;
 
   constructor() {
     this.initializeDefaultThresholds();
@@ -55,12 +44,12 @@ class PerformanceMetricsService {
       { operation: 'database_query', warningThreshold: 500, errorThreshold: 2000, unit: 'ms' },
       { operation: 'file_operation', warningThreshold: 200, errorThreshold: 1000, unit: 'ms' },
       { operation: 'external_api', warningThreshold: 2000, errorThreshold: 10000, unit: 'ms' },
-      { operation: 'memory_usage', warningThreshold: 80, errorThreshold: 95, unit: 'count' },
+  { operation: 'memory_usage', warningThreshold: 80, errorThreshold: 95, unit: 'percentage' },
       { operation: 'response_size', warningThreshold: 1048576, errorThreshold: 10485760, unit: 'bytes' } // 1MB, 10MB
     ];
 
-    defaultThresholds.forEach(threshold => {
-      this.thresholds.set(threshold.operation, threshold);
+    defaultThresholds.forEach(_threshold => {
+  this.thresholds.set(_threshold.operation, _threshold);
     });
   }
 
@@ -130,18 +119,19 @@ class PerformanceMetricsService {
     // Check performance threshold and log to audit if needed
     const threshold = this.thresholds.get(operation) || this.thresholds.get('api_request');
     if (threshold && duration > threshold.warningThreshold) {
+      const auditOpts: { userId?: string; sessionId?: string; requestId?: string } = {};
+      if (context?.userId) auditOpts.userId = context.userId;
+      if (context?.sessionId) auditOpts.sessionId = context.sessionId;
+      if (context?.requestId) auditOpts.requestId = context.requestId;
+
       auditPerformanceEvent(
         {
           operation,
           duration,
           threshold: threshold.warningThreshold,
-          metadata: context?.metadata
+          metadata: context?.metadata ?? {}
         },
-        {
-          userId: context?.userId,
-          sessionId: context?.sessionId,
-          requestId: context?.requestId
-        }
+        auditOpts
       );
     }
   }
@@ -345,7 +335,7 @@ class PerformanceMetricsService {
       : 0;
 
     const slowOperations = durationMetrics.filter(metric => {
-      const operationType = metric.tags?.operation || 'api_request';
+    const operationType = metric.tags?.['operation'] || 'api_request';
       const threshold = this.thresholds.get(operationType);
       return threshold && metric.value > threshold.warningThreshold;
     });
@@ -360,7 +350,7 @@ class PerformanceMetricsService {
       totalMetrics: periodMetrics.length,
       averageDuration,
       slowOperations,
-      errorCount: periodMetrics.filter(metric => metric.tags?.success === 'false').length,
+    errorCount: periodMetrics.filter(metric => metric.tags?.['success'] === 'false').length,
       memoryPeaks
     };
   }
@@ -388,7 +378,7 @@ class PerformanceMetricsService {
    * Check metric against thresholds
    */
   private checkThreshold(metric: MetricData): void {
-    const operationType = metric.tags?.operation || metric.name;
+  const operationType = metric.tags?.['operation'] || metric.name;
     const threshold = this.thresholds.get(operationType);
 
     if (!threshold || metric.unit !== threshold.unit) {
@@ -398,7 +388,7 @@ class PerformanceMetricsService {
     if (metric.value > threshold.errorThreshold) {
       this.logger.error(`Performance threshold exceeded: ${metric.name}`, undefined, {
         value: metric.value,
-        threshold: threshold.errorThreshold,
+        _threshold: threshold.errorThreshold,
         unit: metric.unit,
         tags: metric.tags,
         context: metric.context
@@ -406,7 +396,7 @@ class PerformanceMetricsService {
     } else if (metric.value > threshold.warningThreshold) {
       this.logger.warn(`Performance threshold warning: ${metric.name}`, {
         value: metric.value,
-        threshold: threshold.warningThreshold,
+        _threshold: threshold.warningThreshold,
         unit: metric.unit,
         tags: metric.tags,
         context: metric.context
@@ -443,7 +433,7 @@ class PerformanceMetricsService {
         const start = process.hrtime();
         setImmediate(() => {
           const delta = process.hrtime(start);
-          const lag = delta[0] * 1000 + delta[1] * 1e-6;
+          const lag = delta[0]! * 1000 + delta[1]! * 1e-6;
           this.recordMetric('event_loop_lag', lag, 'ms', { type: 'event_loop' });
         });
       }
@@ -526,7 +516,7 @@ export const recordFileOperation = performanceMetrics.recordFileOperation.bind(p
 // Performance monitoring decorator
 export function monitorPerformance(
   operation: string,
-  threshold?: number
+  _threshold?: number
 ) {
   return function (
     target: any,

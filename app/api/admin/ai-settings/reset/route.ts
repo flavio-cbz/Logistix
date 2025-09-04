@@ -24,14 +24,14 @@ export async function POST() {
     return NextResponse.json({
       success: true,
       settings: safeSettings,
-      message: 'Paramètres réinitialisés aux valeurs par défaut'
+      _message: 'Paramètres réinitialisés aux valeurs par défaut'
     });
   } catch (error) {
     console.error('Erreur lors de la réinitialisation des paramètres AI:', error);
     return NextResponse.json(
       { 
         success: false, 
-        message: error instanceof Error ? error.message : 'Erreur serveur' 
+        _message: error instanceof Error ? error.message : 'Erreur serveur' 
       },
       { status: 500 }
     );

@@ -89,9 +89,9 @@ export function useFocusManagement(options: UseFocusManagementOptions = {}) {
     }
 
     return () => {
-      if (trapFocus) {
-        document.removeEventListener('keydown', handleEscape)
-        disableFocusTrap()
+      if (trapCleanupRef.current) {
+        trapCleanupRef.current()
+        trapCleanupRef.current = null
       }
       
       if (restoreOnUnmount) {
@@ -158,6 +158,7 @@ export function useMenuFocus() {
       container.addEventListener('keydown', handleMenuKeyDown)
       return () => container.removeEventListener('keydown', handleMenuKeyDown)
     }
+    return () => {}
   }, [handleMenuKeyDown])
 
   return {

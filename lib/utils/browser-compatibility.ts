@@ -36,7 +36,7 @@ export function detectBrowserCapabilities(): BrowserCapabilities {
     }
   }
 
-  const testElement = document.createElement('div')
+  // const testElement = document.createElement('div')
   
   return {
     supportsGrid: CSS.supports('display', 'grid'),
@@ -100,7 +100,7 @@ export function getBrowserInfo() {
   let version = 'Unknown'
   const versionMatch = userAgent.match(new RegExp(`${name}/(\\d+\\.\\d+)`))
   if (versionMatch) {
-    version = versionMatch[1] || 'Unknown'
+    version = versionMatch[1]! || 'Unknown'
   }
 
   return {
@@ -213,7 +213,7 @@ export function applyPolyfills() {
     // Simple focus-visible polyfill
     let hadKeyboardEvent = false
 
-    const keyboardThrottledEventListener = (e: KeyboardEvent) => {
+    const keyboardThrottledEventListener = () => {
       hadKeyboardEvent = true
       setTimeout(() => {
         hadKeyboardEvent = false
@@ -250,8 +250,8 @@ export function applyPolyfills() {
     const glassElements = document.querySelectorAll('.glass-effect')
     glassElements.forEach(element => {
       const htmlElement = element as HTMLElement
-      htmlElement.style.background = 'rgba(255, 255, 255, 0.9)'
-      htmlElement.style.border = '1px solid rgba(0, 0, 0, 0.1)'
+      htmlElement.style.background = 'hsl(var(--glass-bg))'
+      htmlElement.style.border = '1px solid hsl(var(--glass-border, var(--muted)))'
     })
   }
 }

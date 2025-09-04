@@ -56,7 +56,7 @@ export function BrandSelector({
           <CommandInput
             placeholder="Rechercher une marque..."
             value={search}
-            onValueChange={setSearch}
+            onValueChange={setSearch!}
           />
           <CommandList>
             <CommandEmpty>Aucune marque trouvée.</CommandEmpty>

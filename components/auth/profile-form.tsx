@@ -1,229 +1,143 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-import { useToast } from "@/components/ui/use-toast"
-import { Loader2 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { VintedTokenConfig } from "./vinted-token-config"
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { toast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { logger } from '@/lib/utils/logging/logger';
+import { useSession } from 'next-auth/react';
 
 const profileFormSchema = z.object({
-  username: z
-    .string()
-    .min(2, {
-      message: "Le nom d'utilisateur doit faire au moins 2 caractères.",
-    })
-    .max(30, {
-      message: "Le nom d'utilisateur ne peut pas dépasser 30 caractères.",
-    }),
-  password: z.string().optional(),
-  language: z.string({
-    required_error: "Veuillez sélectionner une langue.",
-  }),
-  theme: z.string({
-    required_error: "Veuillez sélectionner un thème.",
-  }),
-  avatar: z.string().optional(),
-})
+  username: z.string().min(2, "Le nom d'utilisateur doit contenir au moins 2 caractères.").max(50, "Le nom d'utilisateur ne peut pas dépasser 50 caractères.").optional(),
+  email: z.string().email("Adresse email invalide").optional(),
+  password: z.string().min(4, "Le mot de passe doit contenir au moins 4 caractères.").optional(),
+  confirmPassword: z.string().optional(),
+}).refine((data) => {
+  if (data.password && data.confirmPassword && data.password !== data.confirmPassword) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"],
+});
 
-export type ProfileFormValues = z.infer<typeof profileFormSchema>
+type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 interface ProfileFormProps {
-  initialData: ProfileFormValues
+  initialData: {
+    username: string;
+    email?: string; // Rend la propriété email optionnelle
+    language: string;
+    theme: string;
+    avatar?: string; // Rend la propriété avatar optionnelle
+  };
 }
 
 export function ProfileForm({ initialData }: ProfileFormProps) {
-  const { toast } = useToast()
-  const [loading, setLoading] = useState(false)
-  const [avatarUrl, setAvatarUrl] = useState(initialData.avatar || "")
-
+  const { data: session, update } = useSession();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues: initialData,
-  })
+    defaultValues: {
+      username: initialData.username || '',
+      email: initialData.email || '',
+    },
+  });
 
-  async function onSubmit(data: ProfileFormValues) {
-    setLoading(true)
+  async function onSubmit(_data: ProfileFormValues) {
+    setIsSubmitting(true);
     try {
-
-      const response = await fetch("/api/profile/update", {
-        method: "POST",
+      // Simulate API call
+      logger.info("Updating profile with data:", _data);
+      const response = await fetch('/api/v1/profile/update', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...data, avatar: avatarUrl }),
-      })
+        body: JSON.stringify({ ..._data, avatar: session?.user?.image }),
+      });
 
       if (!response.ok) {
-        console.error("Erreur HTTP:", response.status, response.statusText)
-        throw new Error(`Erreur HTTP: ${response.status}`)
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erreur lors de la mise à jour du profil');
       }
 
-      const result = await response.json()
+      await update({
+        name: _data.username,
+        email: _data.email,
+      });
 
-      if (result.success) {
-        toast({
-          title: "Profil mis à jour",
-          description: "Vos modifications ont été enregistrées avec succès.",
-        })
-      } else {
-        console.error("Erreur lors de la mise à jour du profil:", result.message)
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: result.message || "Une erreur est survenue lors de la mise à jour du profil.",
-        })
-      }
-    } catch (error: any) {
-      console.error("Exception lors de la mise à jour du profil:", error)
       toast({
-        variant: "destructive",
+        title: "Profil mis à jour",
+        description: "Votre profil a été mis à jour avec succès.",
+      });
+    } catch (error: any) {
+      logger.error("Erreur mise à jour profil:", error);
+      toast({
         title: "Erreur",
-        description: `Une erreur est survenue: ${error.message}`,
-      })
+        description: error.message || "Une erreur est survenue lors de la mise à jour du profil.",
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setAvatarUrl(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+      setIsSubmitting(false);
     }
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Photo de profil</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={avatarUrl} />
-              <AvatarFallback>AD</AvatarFallback>
-            </Avatar>
-            <div>
-              <Input type="file" accept="image/*" onChange={handleAvatarChange} className="max-w-[400px]" />
-              <p className="text-sm text-muted-foreground mt-2">JPG, GIF ou PNG. Taille maximale de 2MB.</p>
-            </div>
+    <Card className="w-full max-w-lg">
+      <CardHeader>
+        <CardTitle>Mon Profil</CardTitle>
+        <CardDescription>Mettez à jour vos informations de profil et votre mot de passe.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div>
+            <Label htmlFor="username">Nom d'utilisateur</Label>
+            <Input id="username" {...form.register("username")} />
+            {form.formState.errors.username && (
+              <p className="text-destructive text-sm mt-1">{form.formState.errors.username.message}</p>
+            )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Configuration Vinted */}
-      <VintedTokenConfig />
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Informations personnelles</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nom d'utilisateur</FormLabel>
-                    <FormControl>
-                      <Input {...field} autoComplete="username" />
-                    </FormControl>
-                    <FormDescription>C'est votre nom public. Il peut être votre vrai nom ou un pseudonyme.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mot de passe (optionnel)</FormLabel>
-                    <FormControl>
-                      <Input type="password" autoComplete="new-password" placeholder="Laissez vide pour ne pas modifier" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Laissez ce champ vide si vous ne souhaitez pas changer votre mot de passe.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="language"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Langue</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionnez une langue" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="fr">Français</SelectItem>
-                        <SelectItem value="en">English</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>La langue utilisée dans l'interface.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="theme"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Thème</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionnez un thème" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="light">Clair</SelectItem>
-                        <SelectItem value="dark">Sombre</SelectItem>
-                        <SelectItem value="system">Système</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>Le thème de l'interface utilisateur.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Mise à jour en cours...
-                  </>
-                ) : (
-                  "Mettre à jour le profil"
-                )}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
-  )
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" {...form.register("email")} />
+            {form.formState.errors.email && (
+              <p className="text-destructive text-sm mt-1">{form.formState.errors.email.message}</p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="password">Nouveau mot de passe</Label>
+            <Input id="password" type="password" {...form.register("password")} />
+            {form.formState.errors.password && (
+              <p className="text-destructive text-sm mt-1">{form.formState.errors.password.message}</p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+            <Input id="confirmPassword" type="password" {...form.register("confirmPassword")} />
+            {form.formState.errors.confirmPassword && (
+              <p className="text-destructive text-sm mt-1">{form.formState.errors.confirmPassword.message}</p>
+            )}
+          </div>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Mise à jour...
+              </>
+            ) : (
+              'Sauvegarder les changements'
+            )}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
 }

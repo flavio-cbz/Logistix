@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache"
 import { databaseService, generateId, getCurrentTimestamp } from "./database/db"
 import { requireAuth, createUser, verifyCredentials, createSession, signOut as authSignOut, UserSession } from "./auth/auth"
 import { z } from "zod"
+import { ZodError } from "zod"
 import { calculerBenefices } from "@/lib/utils/formatting/calculations" // Import de calculerBenefices
-import { ProfileFormValues } from "@/components/auth/profile-form"
-import { Parcelle, Produit, DashboardConfig } from "@/types/index"
+import type { Parcelle, Produit, DashboardConfig } from '@/types/index'
+import { getErrorMessage } from '@/lib/utils/error-utils';
 
 // Schémas de validation
 const userSchema = z.object({
@@ -33,10 +34,10 @@ const produitSchema = z.object({
   poids: z.number().min(1, "Le poids doit être positif"),
   parcelleId: z.string().min(1, "La parcelle est requise"),
   vendu: z.boolean().optional(),
-  dateVente: z.string().optional(),
-  tempsEnLigne: z.string().optional(),
-  prixVente: z.number().optional(),
-  plateforme: z.string().optional(),
+  dateVente: z.string().optional().nullable(),
+  tempsEnLigne: z.string().optional().nullable(),
+  prixVente: z.number().optional().nullable(),
+  plateforme: z.string().optional().nullable(),
 })
 
 // Actions d'authentification
@@ -47,27 +48,27 @@ export async function signUp(formData: FormData) {
 
   if (!username || !password) {
     console.error("Données d'inscription incomplètes")
-    return { success: false, message: "Tous les champs sont requis" }
+    return { success: false, _message: "Tous les champs sont requis" }
   }
 
   try {
     const validatedData = userSchema.parse({ username, password })
 
     const user = await createUser(validatedData.username, validatedData.password)
-
-    const sessionId = await createSession(user.id)
-
-    return { success: true, message: "Inscription réussie" }
-  } catch (error: any) {
+ 
+    await createSession(user.id)
+ 
+    return { success: true, _message: "Inscription réussie" }
+  } catch (error: unknown) {
     console.error("Erreur lors de l'inscription:", error)
-
+  
     // Gestion spécifique des erreurs de validation Zod
-    if (error.errors) {
+    if (error instanceof ZodError) {
       const errorMessages = error.errors.map((err: any) => err.message).join(", ")
-      return { success: false, message: errorMessages }
+      return { success: false, _message: errorMessages }
     }
-
-    return { success: false, message: error.message || "Une erreur s'est produite lors de l'inscription" }
+  
+    return { success: false, _message: getErrorMessage(error) || "Une erreur s'est produite lors de l'inscription" }
   }
 }
 
@@ -80,18 +81,18 @@ export async function signIn(formData: FormData) {
     const validatedData = loginSchema.parse({ password })
 
     if (!username) {
-      return { success: false, message: "Le nom d'utilisateur est requis" }
+      return { success: false, _message: "Le nom d'utilisateur est requis" }
     }
 
     // Vérifier si la table users existe
     try {
       await databaseService.queryOne("SELECT 1 FROM users LIMIT 1", [], 'signIn-check')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erreur lors de l'accès à la table users:", error)
-      if (error.message.includes("no such table")) {
+      if (getErrorMessage(error).includes("no such table")) {
         return {
           success: false,
-          message: "Erreur de base de données: la table users n'existe pas. Veuillez contacter l'administrateur.",
+          _message: "Erreur de base de données: la table users n'existe pas. Veuillez contacter l'administrateur.",
         }
       }
     }
@@ -99,14 +100,14 @@ export async function signIn(formData: FormData) {
     const user = await verifyCredentials(username, validatedData.password)
 
     if (!user) {
-      return { success: false, message: "Mot de passe incorrect" }
+      return { success: false, _message: "Mot de passe incorrect" }
     }
 
 
     // Supprimer toute session existante pour cet utilisateur
     try {
-      const result = await databaseService.execute("DELETE FROM sessions WHERE user_id = ?", [user.id], 'signIn-cleanup')
-    } catch (error) {
+      await databaseService.execute("DELETE FROM sessions WHERE user_id = ?", [user.id], 'signIn-cleanup')
+    } catch (error: unknown) {
       console.error("Erreur lors de la suppression des sessions existantes:", error)
     }
 
@@ -120,21 +121,21 @@ export async function signIn(formData: FormData) {
         [sessionId, user.id, expiresAt],
         'signIn-createSession'
       )
-
-
+  
+  
       // Retourner le sessionId pour que le client puisse le définir
       return {
         success: true,
-        message: "Connexion réussie",
+        _message: "Connexion réussie",
         sessionId: sessionId,
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Erreur lors de la création de la session:", error)
-      return { success: false, message: "Erreur lors de la création de la session" }
+      return { success: false, _message: getErrorMessage(error) }
     }
-  } catch (error: any) {
-    console.error("Erreur dans l'action signIn:", error)
-    return { success: false, message: error.message }
+  } catch (error: unknown) {
+    console.error("Erreur lors de la connexion:", error)
+    return { success: false, _message: getErrorMessage(error) }
   }
 }
 
@@ -155,7 +156,7 @@ export async function getParcelles(): Promise<Parcelle[]> {
     )
 
     return parcelles
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erreur lors de la récupération des parcelles:", error)
     return []
   }
@@ -192,9 +193,9 @@ export async function addParcelle(formData: FormData) {
     revalidatePath("/dashboard")
     revalidatePath("/statistiques")
 
-    return { success: true, message: "Parcelle ajoutée avec succès" }
-  } catch (error: any) {
-    return { success: false, message: error.message }
+    return { success: true, _message: "Parcelle ajoutée avec succès" }
+  } catch (error: unknown) {
+    return { success: false, _message: getErrorMessage(error) }
   }
 }
 
@@ -245,9 +246,9 @@ export async function updateParcelle(id: string, formData: FormData) {
     revalidatePath("/dashboard")
     revalidatePath("/statistiques")
 
-    return { success: true, message: "Parcelle mise à jour avec succès" }
-  } catch (error: any) {
-    return { success: false, message: error.message }
+    return { success: true, _message: "Parcelle mise à jour avec succès" }
+  } catch (error: unknown) {
+    return { success: false, _message: getErrorMessage(error) }
   }
 }
 
@@ -265,7 +266,7 @@ export async function deleteParcelle(id: string) {
     if ((produits?.count ?? 0) > 0) {
       return {
         success: false,
-        message: "Impossible de supprimer cette parcelle car des produits y sont associés",
+        _message: "Impossible de supprimer cette parcelle car des produits y sont associés",
       }
     }
 
@@ -279,9 +280,9 @@ export async function deleteParcelle(id: string) {
     revalidatePath("/dashboard")
     revalidatePath("/statistiques")
 
-    return { success: true, message: "Parcelle supprimée avec succès" }
-  } catch (error: any) {
-    return { success: false, message: error.message }
+    return { success: true, _message: "Parcelle supprimée avec succès" }
+  } catch (error: unknown) {
+    return { success: false, _message: getErrorMessage(error) }
   }
 }
 
@@ -297,7 +298,7 @@ export async function getProduits(): Promise<Produit[]> {
     `, [user.id])
 
     return produits
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erreur lors de la récupération des produits:", error)
     return []
   }
@@ -325,7 +326,7 @@ export async function addProduit(formData: FormData) {
       parcelleId,
       vendu,
     })
-
+    
     // Récupérer le prix par gramme de la parcelle
     const parcelle = await databaseService.queryOne<{ prixParGramme: number }>(`
       SELECT prixParGramme FROM parcelles
@@ -333,7 +334,7 @@ export async function addProduit(formData: FormData) {
     `, [validatedData.parcelleId, user.id])
 
     if (!parcelle) {
-      return { success: false, message: "Parcelle introuvable" }
+      return { success: false, _message: "Parcelle introuvable" }
     }
 
     const prixLivraison = validatedData.poids * parcelle.prixParGramme
@@ -362,7 +363,7 @@ export async function addProduit(formData: FormData) {
       const tempsEnLigne = formData.get("tempsEnLigne") as string
       const prixVente = Number(formData.get("prixVente"))
       const plateforme = formData.get("plateforme") as string
-
+    
       // Calculer les bénéfices en utilisant la fonction centralisée
       const { benefices, pourcentageBenefice } = calculerBenefices({
         prixVente,
@@ -397,9 +398,9 @@ export async function addProduit(formData: FormData) {
     revalidatePath("/dashboard")
     revalidatePath("/statistiques")
 
-    return { success: true, message: "Produit ajouté avec succès" }
-  } catch (error: any) {
-    return { success: false, message: error.message }
+    return { success: true, _message: "Produit ajouté avec succès" }
+  } catch (error: unknown) {
+    return { success: false, _message: getErrorMessage(error) }
   }
 }
 
@@ -433,7 +434,7 @@ export async function updateProduit(id: string, formData: FormData) {
     `, [validatedData.parcelleId, user.id])
 
     if (!parcelle) {
-      return { success: false, message: "Parcelle introuvable" }
+      return { success: false, _message: "Parcelle introuvable" }
     }
 
     const prixLivraison = validatedData.poids * parcelle.prixParGramme
@@ -458,7 +459,7 @@ export async function updateProduit(id: string, formData: FormData) {
       const tempsEnLigne = formData.get("tempsEnLigne") as string
       const prixVente = Number(formData.get("prixVente"))
       const plateforme = formData.get("plateforme") as string
-
+    
       // Calculer les bénéfices en utilisant la fonction centralisée
       const { benefices, pourcentageBenefice } = calculerBenefices({
         prixVente,
@@ -489,7 +490,7 @@ export async function updateProduit(id: string, formData: FormData) {
 
     // Construire la requête SQL dynamiquement
     const setClause = Object.keys(updateData)
-      .map((key) => `${key} = ?`)
+      .map((_key) => `${_key} = ?`)
       .join(", ")
     const values = [...Object.values(updateData), id, user.id]
 
@@ -503,9 +504,9 @@ export async function updateProduit(id: string, formData: FormData) {
     revalidatePath("/dashboard")
     revalidatePath("/statistiques")
 
-    return { success: true, message: "Produit mis à jour avec succès" }
-  } catch (error: any) {
-    return { success: false, message: error.message }
+    return { success: true, _message: "Produit mis à jour avec succès" }
+  } catch (error: unknown) {
+    return { success: false, _message: getErrorMessage(error) }
   }
 }
 
@@ -522,34 +523,34 @@ export async function deleteProduit(id: string) {
     revalidatePath("/dashboard")
     revalidatePath("/statistiques")
 
-    return { success: true, message: "Produit supprimé avec succès" }
-  } catch (error: any) {
-    return { success: false, message: error.message }
+    return { success: true, _message: "Produit supprimé avec succès" }
+  } catch (error: unknown) {
+    return { success: false, _message: getErrorMessage(error) }
   }
 }
 
 // Actions pour le profil utilisateur
-export async function updateAppProfile(data: ProfileFormValues) {
+export async function updateAppProfile(_data: Record<string, unknown>) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/profile/update`, {
+    const response = await fetch(`${process.env['NEXT_PUBLIC_BASE_URL']!}/api/profile/update`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(_data),
     })
 
     if (!response.ok) {
       const errorData = await response.json()
-      return { success: false, message: errorData.message || "Erreur lors de la mise à jour du profil." }
+      return { success: false, _message: errorData.message || "Erreur lors de la mise à jour du profil." }
     }
 
     const result = await response.json()
     revalidatePath("/profile")
-    return { success: result.success, message: result.message }
-  } catch (error: any) {
+    return { success: result.success, _message: result.message }
+  } catch (error: unknown) {
     console.error("Erreur lors de la mise à jour du profil:", error)
-    return { success: false, message: error.message || "Une erreur s'est produite lors de la mise à jour du profil." }
+    return { success: false, _message: getErrorMessage(error) || "Une erreur s'est produite lors de la mise à jour du profil." }
   }
 }
 
@@ -615,7 +616,7 @@ export async function getDashboardConfig(): Promise<DashboardConfig> {
     }
 
     return JSON.parse(config.config) as DashboardConfig
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erreur lors de la récupération de la configuration du dashboard:", error)
     // Configuration par défaut en cas d'erreur
     return {
@@ -672,9 +673,9 @@ export async function updateDashboardConfig(config: DashboardConfig) { // Typage
     }
 
     revalidatePath("/dashboard")
-    return { success: true, message: "Configuration mise à jour avec succès" }
-  } catch (error: any) {
-    return { success: false, message: error.message }
+    return { success: true, _message: "Configuration mise à jour avec succès" }
+  } catch (error: unknown) {
+    return { success: false, _message: getErrorMessage(error) }
   }
 }
 
@@ -687,6 +688,7 @@ export async function getStatistiques() {
     const produits = await databaseService.query<Produit>(`
       SELECT * FROM produits
       WHERE user_id = ?
+      ORDER BY created_at DESC
     `, [user.id])
 
     // Récupérer les parcelles
@@ -707,7 +709,7 @@ export async function getStatistiques() {
       beneficesTotaux,
       nombreParcelles,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erreur lors de la récupération des statistiques:", error)
     return {
       produitsVendus: 0,

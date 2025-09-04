@@ -1,6 +1,6 @@
 // lib/constants/config.ts
 
-import { TestConfiguration, ProductTestCase, TimeoutSettings } from "@/lib/services/validation/types";
+import { ProductTestCase, TimeoutSettings } from "@/lib/services/validation/types";
 
 // Logging Constants
 export enum LogLevel {
@@ -10,7 +10,7 @@ export enum LogLevel {
   INFO = 3,
   DEBUG = 4,
 }
-export const NODE_ENV = typeof process !== 'undefined' ? process.env.NODE_ENV || 'development' : 'development';
+export const NODE_ENV = typeof process !== 'undefined' ? process.env['NODE_ENV'] || 'development' : 'development';
 export const LOG_LEVEL = NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG;
 
 // Validation & Test Constants
@@ -125,9 +125,9 @@ export const VINTED_API_CONFIG = {
 };
 
 // Authentication Constants
-export const JWT_SECRET = process.env.JWT_SECRET || "votre_secret_jwt_tres_securise_a_changer_en_production";
-export const COOKIE_NAME = process.env.COOKIE_NAME || "logistix_session";
-export const COOKIE_MAX_AGE = Number(process.env.COOKIE_MAX_AGE) || 604800; // 7 days
+export const JWT_SECRET = process.env['JWT_SECRET'] || "votre_secret_jwt_tres_securise_a_changer_en_production";
+export const COOKIE_NAME = process.env['COOKIE_NAME'] || "logistix_session";
+export const COOKIE_MAX_AGE = Number(process.env['COOKIE_MAX_AGE']) || 604800; // 7 days
 
 // Scheduler Constants
 export const SCHEDULE_CONFIG = {

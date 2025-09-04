@@ -1,4 +1,6 @@
-import React, { useEffect } from "react";
+"use client"
+
+import { useEffect } from "react"; // Removed React import
 import { useMarketAnalysisStore } from "@/lib/store";
 import MarketAnalysisDashboard from "./market-analysis-dashboard";
 import ResultsDashboard from "./results-dashboard";

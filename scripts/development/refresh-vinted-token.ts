@@ -25,20 +25,16 @@ async function refreshExpiredTokenFromDB() {
             return;
         }
 
-        // Afficher toutes les sessions
-        sessions.forEach((session, index) => {
-            if (session.refreshErrorMessage) {
-            }
-        });
+        // Suppression de la boucle forEach vide (variables inutilisées)
 
         // Sélectionner la session à traiter
-        const targetSession = sessions.find(s => s.sessionCookie) || sessions[0];
+        const targetSession = sessions.find((s: any) => s.sessionCookie) || sessions[0]!;
 
         if (!targetSession) {
             return;
         }
 
-        if (!targetSession.session_cookie) {
+        if (!targetSession.sessionCookie) {
             return;
         }
 
@@ -46,7 +42,7 @@ async function refreshExpiredTokenFromDB() {
         // 2. Déchiffrement du cookie
         let decryptedCookie: string;
         try {
-            decryptedCookie = await vintedCredentialService.decrypt(targetSession.session_cookie);
+            decryptedCookie = await vintedCredentialService.decrypt(targetSession.sessionCookie);
         } catch (error: any) {
             return;
         }
@@ -54,7 +50,7 @@ async function refreshExpiredTokenFromDB() {
         // 3. Analyse du cookie déchiffré
         const hasAccessToken = decryptedCookie.includes('access_token_web=');
         const hasRefreshToken = decryptedCookie.includes('refresh_token_web=');
-        const hasSession = decryptedCookie.includes('_vinted_fr_session=');
+        // const hasSession = decryptedCookie.includes('_vinted_fr_session=');
 
 
         if (!hasAccessToken || !hasRefreshToken) {
@@ -162,7 +158,7 @@ async function refreshExpiredTokenFromDB() {
 
                     await db.update(vintedSessions)
                         .set({
-                            session_cookie: encryptedNewCookie,
+                            sessionCookie: encryptedNewCookie,
                             status: 'active',
                             lastValidatedAt: now,
                             updatedAt: now,

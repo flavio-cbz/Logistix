@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 /**
  * Debug Logger Validation Script
  * 
@@ -5,94 +8,117 @@
  * Run with: npx tsx lib/services/validation/debug-logger-validation.ts
  */
 
-function validateDebugLogger() {
+function validateDebugLogger(): boolean {
+  console.log('🚀 Démarrage de la validation du DebugLogger...');
 
   try {
-    // Test 1: Module import
+    // Test 1: Module import et existence de la classe/instance
+    let DebugLogger: unknown;
+    let debugLogger: unknown;
     try {
-      const { DebugLogger, debugLogger } = require('./debug-logger');
-    } catch (error) {
+      const module = require('./debug-logger');
+      DebugLogger = module.DebugLogger;
+      debugLogger = module.debugLogger;
+
+      if (typeof DebugLogger !== 'function' || typeof debugLogger === 'undefined') {
+        console.error('❌ Test 1 échoué: DebugLogger ou son instance debugLogger n\'est pas correctement exporté.');
+        return false;
+      }
+      console.log('✅ Test 1 réussi: Module DebugLogger importé.');
+    } catch (error: unknown) {
+      console.error(`❌ Test 1 échoué: Impossible d'importer DebugLogger. ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
 
-    // Test 2: Type definitions
+    // Test 2: Définitions de types
     try {
-      const types = require('./types');
+      const typesModule = require('./types');
       const requiredTypes = [
         'DebugReport',
         'ApiCallLog',
-        'DatabaseOperationLog', 
+        'DatabaseOperationLog',
         'CalculationLog',
         'ErrorLog'
       ];
-
-      requiredTypes.forEach(typeName => {
-      });
-
-    } catch (error) {
+      const missingTypes = requiredTypes.filter(type => !(type in typesModule));
+      if (missingTypes.length > 0) {
+        console.error(`❌ Test 2 échoué: Types manquants dans 'types.ts': ${missingTypes.join(', ')}`);
+        return false;
+      }
+      console.log('✅ Test 2 réussi: Tous les types requis sont définis.');
+    } catch (error: unknown) {
+      console.error(`❌ Test 2 échoué: Impossible de charger les types. ${error instanceof Error ? error.message : String(error)}`);
+      return false;
     }
 
-    // Test 3: Index export
+    // Test 3: Export de l'index
     try {
-      const validationIndex = require('./index');
-      const hasDebugLogger = 'DebugLogger' in validationIndex;
-      const hasDebugLoggerInstance = 'debugLogger' in validationIndex;
-    } catch (error) {
+      const indexModule = require('./index');
+      if (Object.keys(indexModule).length === 0) {
+        console.error('❌ Test 3 échoué: Le fichier index.ts n\'exporte rien.');
+        return false;
+      }
+      console.log('✅ Test 3 réussi: Fichier index.ts exporte des éléments.');
+    } catch (error: unknown) {
+      console.error(`❌ Test 3 échoué: Impossible de charger le fichier index.ts. ${error instanceof Error ? error.message : String(error)}`);
+      return false;
     }
 
-    // Test 4: Requirements coverage
-    
+    // Test 4: Couverture des exigences (simple vérification de la présence des méthodes)
+    // Instancier DebugLogger si c'est une classe, sinon utiliser l'instance exportée
+    const loggerInstance = typeof DebugLogger === 'function' ? new (DebugLogger as new () => any)() : debugLogger;
+
     const requirements = {
-      '4.2': 'Debug mode activation - enableDebugMode method',
-      '4.3': 'Detailed logging (TRACE/DEBUG) - comprehensive logging methods',
-      '4.4': 'API/DB/Calculation logging - logApiRequest, logDatabaseOperation, logCalculation methods',
-      '4.5': 'Debug report generation - generateDebugReport method'
+      '4.2': { method: 'enableDebugMode', message: 'Debug mode activation' },
+      '4.3': { method: 'log', message: 'Detailed logging (TRACE/DEBUG)' }, // Assuming 'log' is the comprehensive method
+      '4.4': { method: 'logApiRequest', message: 'API/DB/Calculation logging' },
+      '4.5': { method: 'generateDebugReport', message: 'Debug report generation' }
     };
 
-    Object.entries(requirements).forEach(([req, description]) => {
-    });
+    for (const [reqId, { method, message }] of Object.entries(requirements)) {
+      if (typeof loggerInstance[method] !== 'function') {
+        console.error(`❌ Test 4 échoué (${reqId}): Méthode requise "${method}" pour "${message}" est manquante ou n'est pas une fonction.`);
+        return false;
+      }
+      console.log(`✅ Test 4 réussi (${reqId}): Méthode "${method}" présente.`);
+    }
 
-    // Test 5: Core functionality validation
-    
-    const coreFeatures = [
-      'Singleton pattern implementation',
-      'Debug mode management (enable/disable)',
-      'API request/response logging with payload capture',
-      'Database operation logging with state tracking',
-      'Calculation step logging for market metrics',
-      'Error logging with comprehensive details',
-      'Debug report generation',
-      'Session statistics tracking',
-      'Log clearing functionality',
-      'Scoped logger creation',
-      'Header sanitization for security',
-      'JSON export functionality'
+    // Test 5: Core functionality validation (vérifier la présence des méthodes clés)
+    const coreFeaturesMethods = [
+      'enableDebugMode', 'disableDebugMode', 'log', 'logApiRequest', 'logDatabaseOperation',
+      'logCalculation', 'logError', 'generateDebugReport', 'clearLogs', 'getScopedLogger', 'sanitizeHeaders', 'exportToJson'
     ];
 
-    coreFeatures.forEach(feature => {
-    });
+    for (const method of coreFeaturesMethods) {
+      if (typeof loggerInstance[method] !== 'function') {
+        console.error(`❌ Test 5 échoué: Méthode de fonctionnalité principale "${method}" est manquante ou n'est pas une fonction.`);
+        return false;
+      }
+    }
+    console.log('✅ Test 5 réussi: Toutes les méthodes de fonctionnalité principale sont présentes.');
 
     // Test 6: File structure validation
-    const fs = require('fs');
-    const path = require('path');
-    
     const requiredFiles = [
       'debug-logger.ts',
-      '__tests__/debug-logger.test.ts',
+      path.join('__tests__', 'debug-logger.test.ts'),
       'types.ts',
       'index.ts'
     ];
 
-    requiredFiles.forEach(file => {
+    for (const file of requiredFiles) {
       const filePath = path.join(__dirname, file);
-      const exists = fs.existsSync(filePath);
-    });
+      if (!fs.existsSync(filePath)) {
+        console.error(`❌ Test 6 échoué: Fichier requis manquant: ${file} (chemin: ${filePath})`);
+        return false;
+      }
+      console.log(`✅ Test 6 réussi: Fichier ${file} trouvé.`);
+    }
 
-
+    console.log('\n🎉 Tous les tests de validation du DebugLogger ont réussi !');
     return true;
 
-  } catch (error) {
-    console.error('\n❌ Validation failed:', error);
+  } catch (error: unknown) {
+    console.error('\n❌ Validation générale échouée:', error instanceof Error ? error.message : String(error));
     return false;
   }
 }

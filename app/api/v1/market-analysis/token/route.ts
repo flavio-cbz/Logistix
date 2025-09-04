@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/services/auth";
 import { ApiError, createApiErrorResponse } from "@/lib/utils/validation";
 import { logger } from "@/lib/utils/logging/logger";
@@ -7,7 +7,7 @@ import { logger } from "@/lib/utils/logging/logger";
  * GET /api/v1/market-analysis/token
  * Retourne un access_token_web Vinted valide pour l'utilisateur courant.
  */
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const user = await getSessionUser();
     if (!user) {
@@ -18,12 +18,12 @@ export async function GET(req: NextRequest) {
     }
 
     // Appel interne à la nouvelle API d'authentification Vinted
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/v1/vinted/auth`, {
+    const res = await fetch(`${process.env['NEXT_PUBLIC_BASE_URL']! || ""}/api/v1/vinted/auth`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         // On peut ajouter ici un header d'authentification si nécessaire
-        // "Cookie": req.headers.get("cookie") ?? ""
+        // "Cookie": req?.headers?.get?.("cookie") ?? ""
       },
       cache: "no-store",
       credentials: "include",

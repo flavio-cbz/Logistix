@@ -1,28 +1,10 @@
 import { logger } from '@/lib/utils/logging/logger';
-import { VintedAnalysisResult, AIInsights, AIRecommendations, TrendPrediction, AnomalyDetection, VintedAnalysisResultSchema } from '@/types/vinted-market-analysis';
-import { AdvancedMetrics } from '@/lib/analytics/advanced-analytics-engine';
+import { getErrorMessage } from '@/lib/utils/error-utils'; // Utilisation de la version centrale
+import type { VintedAnalysisResult, EnhancedVintedAnalysisResult } from '@/types/vinted-market-analysis';
+import type { AdvancedMetrics } from '@/lib/analytics/advanced-analytics-engine';
 import { generateReport, generateEnhancedReport } from './report-generator';
-import { normalizeTitle } from './title-normalizer';
-import { isAnomaly } from './anomaly-detector';
-import { marketAnalysisConfig } from './market-analysis-config';
 import { AIAnalysisError, AIErrorCode } from './ai-errors';
-import { z } from 'zod';
 
-// Type strict pour l'analyse, déduit du schéma Zod
-type StrictVintedAnalysisResult = z.infer<typeof VintedAnalysisResultSchema>;
-
-/**
- * Fonction utilitaire pour extraire un message d'erreur
- */
-function getErrorMessage(error: unknown): string {
-  if (!error) return String(error);
-  if (error instanceof Error) return error.message;
-  try {
-    return String(error);
-  } catch {
-    return 'unknown error';
-  }
-}
 
 /**
  * Service de fallback pour l'IA qui fournit des analyses de base
@@ -44,59 +26,64 @@ export class AIFallbackService {
   async generateFallbackReport(
     analysisData: VintedAnalysisResult,
     advancedMetrics?: AdvancedMetrics
-  ): Promise<any> {
+  ): Promise<EnhancedVintedAnalysisResult | VintedAnalysisResult> {
     try {
       logger.info('[AIFallback] Génération de rapport de fallback');
       
-      // Construction stricte de toutes les propriétés requises, sans spread
-      const patchedBase = {
-        salesVolume: typeof analysisData.salesVolume === 'number' ? analysisData.salesVolume : 0,
-        avgPrice: typeof analysisData.avgPrice === 'number' ? analysisData.avgPrice : 0,
-        priceRange: {
-          min: analysisData.priceRange && typeof analysisData.priceRange.min === 'number'
-            ? analysisData.priceRange.min
-            : 0,
-          max: analysisData.priceRange && typeof analysisData.priceRange.max === 'number'
-            ? analysisData.priceRange.max
-            : 0,
-        },
-        brandInfo: analysisData.brandInfo && typeof analysisData.brandInfo.id === 'number' && typeof analysisData.brandInfo.name === 'string'
-          ? { id: analysisData.brandInfo.id, name: analysisData.brandInfo.name }
-          : { id: 0, name: '' },
-        catalogInfo: analysisData.catalogInfo && typeof analysisData.catalogInfo.id === 'number' && typeof analysisData.catalogInfo.name === 'string'
-          ? { id: analysisData.catalogInfo.id, name: analysisData.catalogInfo.name }
-          : { id: 0, name: '' },
-        rawItems: Array.isArray(analysisData.rawItems) ? analysisData.rawItems : [],
-        analysisDate: typeof analysisData.analysisDate === 'string' ? analysisData.analysisDate : new Date().toISOString(),
-        items: Array.isArray(analysisData.items) ? analysisData.items : [],
-        enrichedItems: Array.isArray((analysisData as any).enrichedItems) ? (analysisData as any).enrichedItems : [],
-        brandDistribution: analysisData.brandDistribution && typeof analysisData.brandDistribution === 'object'
-          ? analysisData.brandDistribution
-          : {},
-        modelDistribution: analysisData.modelDistribution && typeof analysisData.modelDistribution === 'object'
-          ? analysisData.modelDistribution
-          : {},
-        advancedMetrics: analysisData.advancedMetrics ?? null,
+      const baseAnalysis: VintedAnalysisResult = {
+        salesVolume: analysisData.salesVolume,
+        avgPrice: analysisData.avgPrice,
+        priceRange: analysisData.priceRange,
+        brandInfo: analysisData.brandInfo,
+        catalogInfo: analysisData.catalogInfo,
+        rawItems: analysisData.rawItems,
+        analysisDate: analysisData.analysisDate,
+        items: analysisData.items,
+        enrichedItems: analysisData.enrichedItems,
+        brandDistribution: analysisData.brandDistribution,
+        modelDistribution: analysisData.modelDistribution,
+        advancedMetrics: analysisData.advancedMetrics,
+        input: analysisData.input,
       };
       
       // Essayer d'abord le générateur de rapport avancé
-      // Amélioration : gestion plus robuste des erreurs et logs enrichis
       try {
-        const enhancedReport = await generateEnhancedReport(patchedBase, advancedMetrics);
-        return { ...patchedBase, ...enhancedReport };
+        const enhancedReport = await generateEnhancedReport(baseAnalysis, advancedMetrics);
+        // Retourner un EnhancedVintedAnalysisResult complet
+        return {
+          ...baseAnalysis,
+          ...enhancedReport,
+          processingMetadata: {
+            aiProcessingTime: 0,
+            llmProvider: 'fallback',
+            modelVersion: 'N/A',
+            confidence: 0.3,
+            lastProcessed: new Date().toISOString(),
+            fallbackUsed: true,
+          },
+          dataQuality: {
+            score: 0.5,
+            issues: ['Fallback report generated'],
+            recommendations: [],
+          }
+        } as unknown as EnhancedVintedAnalysisResult; // Cast via unknown to satisfy TS
       } catch (enhancedError: unknown) {
         logger.warn('[AIFallback] Échec du rapport avancé, utilisation du rapport simple', {
           error: getErrorMessage(enhancedError),
-          input: { patchedBase, advancedMetrics },
+          input: { baseAnalysis, advancedMetrics },
         });
 
         try {
-          const simpleReport = await generateReport(patchedBase);
-          return simpleReport;
+          const simpleReport = await generateReport(baseAnalysis);
+          // S'assurer que le rapport simple contient toutes les propriétés requises
+          return {
+            ...baseAnalysis,
+            ...simpleReport,
+          } as VintedAnalysisResult;
         } catch (simpleError: unknown) {
           logger.error('[AIFallback] Échec du rapport simple après l\'échec du rapport avancé', {
             error: getErrorMessage(simpleError),
-            input: { patchedBase },
+            input: { baseAnalysis },
           });
           throw new AIAnalysisError('Impossible de générer un rapport AI', AIErrorCode.INFERENCE_FAILED);
         }
@@ -108,12 +95,13 @@ export class AIFallbackService {
 
       // Retourner un rapport minimal
       return {
-        summary: 'Analyse de base disponible avec des données limitées.',
-        recommendations: [
-          'Collecter plus de données pour une analyse approfondie',
-          'Surveiller les tendances du marché',
-          'Ajuster les prix selon la demande',
-        ],
+        salesVolume: 0,
+        avgPrice: 0,
+        priceRange: { min: 0, max: 0 },
+        brandInfo: null,
+        catalogInfo: { id: 0, name: 'Fallback' },
+        rawItems: [],
+        analysisDate: new Date().toISOString(),
       };
     }
   }

@@ -7,6 +7,7 @@
 
 import { enhancedDb } from './enhanced-database-service';
 import { initializationManager } from './initialization-manager';
+import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'; // Importez BetterSQLite3Database directement
 
 // Exemple 1: Route API qui vérifie l'initialisation avant d'accéder aux données
 export async function exampleApiRoute() {
@@ -18,7 +19,7 @@ export async function exampleApiRoute() {
       'api-users-list'
     );
     
-    return { success: true, data: users };
+    return { success: true, _data: users };
   } catch (error) {
     return { success: false, error: 'Database error' };
   }
@@ -60,9 +61,9 @@ export async function exampleInitStatus() {
 // Exemple 4: Route API avec transaction
 export async function exampleTransaction() {
   try {
-    const result = await enhancedDb.transaction((db) => {
+    const result = await enhancedDb.transaction((db: BetterSQLite3Database) => { // Type 'db' explicitement
       // Créer une nouvelle parcelle
-      const parcelleStmt = db.prepare(`
+      const parcelleStmt = (db as any).client.prepare(`
         INSERT INTO parcelles (id, user_id, numero, transporteur, prixAchat, poids, prixTotal, prixParGramme)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
@@ -79,7 +80,7 @@ export async function exampleTransaction() {
       );
       
       // Créer un produit associé
-      const produitStmt = db.prepare(`
+      const produitStmt = (db as any).client.prepare(`
         INSERT INTO produits (id, user_id, parcelleId, commandeId, nom, prixArticle, poids, prixLivraison)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
@@ -101,7 +102,7 @@ export async function exampleTransaction() {
       };
     }, 'api-create-parcelle-with-product');
     
-    return { success: true, data: result };
+    return { success: true, _data: result };
   } catch (error) {
     return { success: false, error: 'Transaction failed' };
   }

@@ -16,7 +16,7 @@ export async function GET() {
   } catch (error) {
     console.error('Erreur lors de la récupération des stats du cache:', error);
     return NextResponse.json(
-      { success: false, message: 'Erreur serveur' },
+      { success: false, _message: 'Erreur serveur' },
       { status: 500 }
     );
   }

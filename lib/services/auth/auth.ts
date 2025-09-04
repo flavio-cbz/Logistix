@@ -1,19 +1,25 @@
-import { databaseService, generateId, getCurrentTimestamp } from "@/lib/services/database/db"
-import { cookies } from "next/headers"
-import { NextRequest } from "next/server"
-import { SimpleLogger as Logger } from "@/lib/utils/logging";
-import { AuthServiceInstrumentation } from "../logging-instrumentation";
-import { authLogger, PerformanceTimer } from "@/lib/utils/logging";
-import { getAdminPassword, isAdminUsingDefaultPassword } from "@/lib/services/admin"
-import { hashPassword as bcryptHashPassword, comparePassword as bcryptComparePassword } from "@/lib/utils/crypto";
+import { cookies } from 'next/headers';
+import { v4 as uuidv4 } from 'uuid'; // Importation de uuidv4 pour generateId si nécessaire
+import { hash as bcryptHashPassword, compare as bcryptComparePassword } from 'bcrypt'; // Correction: bcryptjs en bcrypt
+import { NextRequest } from 'next/server'; // Import NextRequest
 
-const logger = new Logger("lib/auth")
+// Importations des modules de logging
+import { getLogger, PerformanceTimer, authLogger as importedAuthLogger } from '@/lib/utils/logging';
+const logger = getLogger("lib/auth"); // Utilisation de getLogger pour créer une instance de logger
+
+// Importations des autres services et utilitaires
+import { enhancedDb } from '@/lib/services/database/enhanced-database-service'; // Correction: databaseService en enhancedDb
+import { getCurrentTimestamp } from '@/lib/utils/formatting/calculations'; // Assurez-vous que le chemin est correct
+import { authInstrumentationCollector } from '@/lib/services/auth/auth-instrumentation'; // Import du collecteur d'instrumentation
+
 
 // Interfaces pour les types de données de la base de données
 interface User {
   id: string
   username: string
   password_hash: string
+  encryption_secret?: string // Make optional if not always present
+  email?: string
   bio?: string
   avatar?: string
   language?: string
@@ -29,6 +35,7 @@ interface Session {
   
   avatar?: string
   language?: string
+  mfa_enabled?: boolean // Example of a new field
   theme?: string
   ai_config?: string // Ajout du champ ai_config
 }
@@ -36,7 +43,7 @@ interface Session {
 export interface UserSession {
   id: string
   username: string
-  
+  email?: string
   avatar?: string
   language?: string
   theme?: string
@@ -46,19 +53,20 @@ export interface UserSession {
 
 // Fonction pour créer un utilisateur
 export async function createUser(username: string, password: string) {
-  const timer = new PerformanceTimer('AUTH_CREATE_USER', authLogger);
+  const timer = new PerformanceTimer('AUTH_CREATE_USER', importedAuthLogger); // Utilisation de importedAuthLogger
   
-  authLogger.info('Creating new user', { username });
+  importedAuthLogger.info('Creating new user', { username }); // Utilisation de importedAuthLogger
   
   try {
-    const id = generateId()
-    const passwordHash = await bcryptHashPassword(password)
-    const timestamp = getCurrentTimestamp()
+    const id = uuidv4(); // Utilisation de uuidv4 pour générer l'ID
+    const passwordHash = await bcryptHashPassword(password, 10); // Ajout du saltRounds
+    const encryptionSecret = uuidv4(); // Utilisation de uuidv4 pour générer le secret
+    const timestamp = getCurrentTimestamp();
 
-    await databaseService.execute(
-      `INSERT INTO users (id, username, password_hash, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?)`,
-      [id, username, passwordHash, timestamp, timestamp],
+    await enhancedDb.execute( // Correction: databaseService en enhancedDb
+      `INSERT INTO users (id, username, password_hash, encryption_secret, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, username, passwordHash, encryptionSecret, timestamp, timestamp],
       'createUser'
     )
 
@@ -70,11 +78,11 @@ export async function createUser(username: string, password: string) {
       username
     });
     
-    authLogger.info('User created successfully', { userId: id, username });
+    importedAuthLogger.info('User created successfully', { userId: id, username }); // Utilisation de importedAuthLogger
     
     return result;
-  } catch (error) {
-    authLogger.error('Failed to create user', error as Error);
+  } catch (error: unknown) { // Correction: error: any
+    importedAuthLogger.error('Failed to create user', error as Error); // Utilisation de importedAuthLogger
     timer.endWithError(error as Error, { username });
     throw error;
   }
@@ -82,10 +90,9 @@ export async function createUser(username: string, password: string) {
 
 // Fonction pour vérifier les identifiants — maintenant par username + password
 export async function verifyCredentials(username: string, password: string) {
-  return AuthServiceInstrumentation.instrumentLogin(
-    async () => {
+  try {
       // Récupérer l'utilisateur par nom d'utilisateur fourni
-      const user = await databaseService.queryOne<User>(
+      const user = await enhancedDb.queryOne<User>( // Correction: databaseService en enhancedDb
         `SELECT id, username, password_hash FROM users WHERE username = ?`,
         [username],
         'verifyCredentials'
@@ -108,25 +115,23 @@ export async function verifyCredentials(username: string, password: string) {
         id: user.id,
         username: user.username,
       }
-    },
-    { username, password }
-  ).catch(_error => {
+  } catch (_error: unknown) { // <-- correction : syntaxe valide pour le catch
     // Return null for authentication failures to maintain existing behavior
     return null;
-  });
+  }
 }
 
 // Fonction pour créer une session
 export async function createSession(userId: string) {
-  const timer = new PerformanceTimer('AUTH_CREATE_SESSION', authLogger);
+  const timer = new PerformanceTimer('AUTH_CREATE_SESSION', importedAuthLogger); // Utilisation de importedAuthLogger
   
-  authLogger.info('Creating new session', { userId });
+  importedAuthLogger.info('Creating new session', { userId }); // Utilisation de importedAuthLogger
   
   try {
-    const sessionId = generateId()
+    const sessionId = uuidv4(); // Utilisation de uuidv4 pour générer l'ID
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 jours
 
-    await databaseService.execute(
+    await enhancedDb.execute( // Correction: databaseService en enhancedDb
       `INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)`,
       [sessionId, userId, expiresAt],
       'createSession'
@@ -139,11 +144,11 @@ export async function createSession(userId: string) {
       expiresAt
     });
     
-    authLogger.info('Session created successfully', { userId, sessionId });
+    importedAuthLogger.info('Session created successfully', { userId, sessionId }); // Utilisation de importedAuthLogger
     
     return sessionId;
-  } catch (error) {
-    authLogger.error('Failed to create session', error as Error);
+  } catch (error: unknown) { // Correction: error: any
+    importedAuthLogger.error('Failed to create session', error as Error); // Utilisation de importedAuthLogger
     timer.endWithError(error as Error, { userId });
     throw error;
   }
@@ -151,35 +156,48 @@ export async function createSession(userId: string) {
 
 // Fonction pour supprimer la session
 export async function signOut() {
-  const timer = new PerformanceTimer('AUTH_SIGN_OUT', authLogger);
+  const timer = new PerformanceTimer('AUTH_SIGN_OUT', importedAuthLogger); // Utilisation de importedAuthLogger
   const cookieStore = cookies()
   const sessionId = cookieStore.get("session_id")?.value
 
   if (sessionId) {
-    authLogger.info('User signing out', { sessionId });
+    importedAuthLogger.info('User signing out', { sessionId }); // Utilisation de importedAuthLogger
     
     try {
-      await databaseService.execute(
+      // Récupérer le user_id avant de supprimer la session
+      const sessionToDelete = await enhancedDb.queryOne<{ user_id: string }>(
+        `SELECT user_id FROM sessions WHERE id = ?`,
+        [sessionId],
+        'signOut-getUserId'
+      );
+
+      await enhancedDb.execute( // Correction: databaseService en enhancedDb
         `DELETE FROM sessions WHERE id = ?`,
         [sessionId],
         'signOut'
       )
       cookieStore.delete("session_id")
       
-      AuthServiceInstrumentation.instrumentLogout('unknown', sessionId);
+      authInstrumentationCollector.recordEvent({ // Utilisation de recordEvent
+        id: sessionId,
+        type: 'session_destroy',
+        timestamp: Date.now(),
+        userId: sessionToDelete?.user_id, // Utiliser le user_id récupéré
+        success: true,
+      });
       
       timer.end({
         success: true,
         sessionId
       });
       
-      authLogger.info('User signed out successfully', { sessionId });
-    } catch (error) {
-      authLogger.error('Failed to sign out user', error as Error);
+      importedAuthLogger.info('User signed out successfully', { sessionId }); // Utilisation de importedLogger
+    } catch (error: unknown) { // Correction: error: any
+      importedAuthLogger.error('Failed to sign out user', error as Error); // Utilisation de importedLogger
       timer.endWithError(error as Error, { sessionId });
     }
   } else {
-    authLogger.debug('Sign out called but no session found');
+    importedAuthLogger.debug('Sign out called but no session found'); // Utilisation de importedLogger
     timer.end({ success: true, noSession: true });
   }
 }
@@ -194,7 +212,7 @@ export async function requireAuth(): Promise<UserSession> {
       throw new Error("Non authentifié")
     }
 
-    const session = await databaseService.queryOne<Session>(
+    const session = await enhancedDb.queryOne<Session>( // Correction: databaseService en enhancedDb
       `SELECT s.id as session_id, s.user_id, s.expires_at, u.username, u.ai_config FROM sessions s
        JOIN users u ON s.user_id = u.id
        WHERE s.id = ?`,
@@ -203,6 +221,8 @@ export async function requireAuth(): Promise<UserSession> {
     )
 
     if (!session) {
+      // Supprimer le cookie si la session n'existe pas
+      // cookieStore.delete("session_id")
       throw new Error("Session invalide")
     }
 
@@ -212,18 +232,18 @@ export async function requireAuth(): Promise<UserSession> {
       expiresAt = new Date(session.expires_at)
       if (isNaN(expiresAt.getTime())) {
         // Date invalide, supprimer la session
-        await databaseService.execute("DELETE FROM sessions WHERE id = ?", [sessionId], 'requireAuth-cleanup')
+        await enhancedDb.execute("DELETE FROM sessions WHERE id = ?", [sessionId], 'requireAuth-cleanup') // Correction: databaseService en enhancedDb
         throw new Error("Session invalide")
       }
-    } catch (dateError) {
+    } catch (dateError: unknown) { // Correction: dateError: any
       logger.error("Erreur lors du parsing de la date d'expiration:", dateError)
-      await databaseService.execute("DELETE FROM sessions WHERE id = ?", [sessionId], 'requireAuth-cleanup')
+      await enhancedDb.execute("DELETE FROM sessions WHERE id = ?", [sessionId], 'requireAuth-cleanup') // Correction: databaseService en enhancedDb
       throw new Error("Session invalide")
     }
 
     if (expiresAt < new Date()) {
       // Supprimer la session expirée
-      await databaseService.execute("DELETE FROM sessions WHERE id = ?", [sessionId], 'requireAuth-cleanup')
+      await enhancedDb.execute("DELETE FROM sessions WHERE id = ?", [sessionId], 'requireAuth-cleanup') // Correction: databaseService en enhancedDb
       // cookieStore.delete("session_id")
       throw new Error("Session expirée")
     }
@@ -234,7 +254,7 @@ export async function requireAuth(): Promise<UserSession> {
       isAdmin: session.username === "admin",
       aiConfig: session.ai_config ? JSON.parse(session.ai_config) : undefined,
     }
-  } catch (error) {
+  } catch (error: unknown) { // Correction: error: any
     // Re-throw known authentication errors
     if (error instanceof Error && (
       error.message === "Non authentifié" || 
@@ -260,7 +280,7 @@ export async function requireAdmin() {
 }
 
 // Fonction pour valider une session depuis une requête NextRequest
-export async function validateSession(request: NextRequest): Promise<{ success: boolean; user: UserSession | null; message?: string }> {
+export async function validateSession(_request: NextRequest): Promise<{ success: boolean; user: UserSession | null; message?: string }> { // Correction: _request
   try {
     const user = await getSessionUser();
     
@@ -268,7 +288,7 @@ export async function validateSession(request: NextRequest): Promise<{ success: 
       return {
         success: false,
         user: null,
-        message: 'Non authentifié'
+          message: 'Non authentifié'
       };
     }
     
@@ -276,7 +296,7 @@ export async function validateSession(request: NextRequest): Promise<{ success: 
       success: true,
       user
     };
-  } catch (error) {
+  } catch (error: unknown) { // Correction: error: any
     logger.error("Erreur lors de la validation de la session:", error);
     return {
       success: false,
@@ -291,12 +311,11 @@ export async function getSessionUser(): Promise<UserSession | null> {
   try {
     const cookieStore = cookies()
     const sessionId = cookieStore.get("session_id")?.value
-
     if (!sessionId || typeof sessionId !== 'string' || sessionId.trim().length === 0) {
       return null
     }
 
-    const session = await databaseService.queryOne<Session>(
+    const session = await enhancedDb.queryOne<Session>( // Correction: databaseService en enhancedDb
       `SELECT s.id as session_id, s.user_id, s.expires_at, u.username, u.ai_config FROM sessions s
        JOIN users u ON s.user_id = u.id
        WHERE s.id = ?`,
@@ -316,18 +335,18 @@ export async function getSessionUser(): Promise<UserSession | null> {
       expiresAt = new Date(session.expires_at)
       if (isNaN(expiresAt.getTime())) {
         // Date invalide, supprimer la session
-        await databaseService.execute("DELETE FROM sessions WHERE id = ?", [sessionId], 'getSessionUser-cleanup')
+        await enhancedDb.execute("DELETE FROM sessions WHERE id = ?", [sessionId], 'getSessionUser-cleanup') // Correction: databaseService en enhancedDb
         return null
       }
-    } catch (dateError) {
+    } catch (dateError: unknown) { // Correction: dateError: any
       logger.error("Erreur lors du parsing de la date d'expiration:", dateError)
-      await databaseService.execute("DELETE FROM sessions WHERE id = ?", [sessionId], 'getSessionUser-cleanup')
+      await enhancedDb.execute("DELETE FROM sessions WHERE id = ?", [sessionId], 'getSessionUser-cleanup') // Correction: databaseService en enhancedDb
       return null
     }
 
     if (expiresAt < new Date()) {
       // Supprimer la session expirée
-      await databaseService.execute("DELETE FROM sessions WHERE id = ?", [sessionId], 'getSessionUser-cleanup')
+      await enhancedDb.execute("DELETE FROM sessions WHERE id = ?", [sessionId], 'getSessionUser-cleanup') // Correction: databaseService en enhancedDb
       // cookieStore.delete("session_id")
       return null
     }
@@ -338,7 +357,7 @@ export async function getSessionUser(): Promise<UserSession | null> {
       isAdmin: session.username === "admin",
       aiConfig: session.ai_config ? JSON.parse(session.ai_config) : undefined,
     }
-  } catch (error) {
+  } catch (error: unknown) { // Correction: error: any
     logger.error("Erreur lors de la récupération de l'utilisateur de la session:", error)
     return null
   }

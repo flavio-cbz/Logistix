@@ -28,10 +28,10 @@ function getCurrentTimestamp() {
     return Math.floor(Date.now() / 1000);
 }
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
     const user = await getSessionUser();
     if (!user) {
-        return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
+        return NextResponse.json({ success: false, _message: 'Non authentifié' }, { status: 401 });
     }
 
     const id = params.id;
@@ -39,14 +39,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     if (produit) {
         return NextResponse.json(produit);
     } else {
-        return NextResponse.json({ success: false, message: 'Produit non trouvé' }, { status: 404 });
+        return NextResponse.json({ success: false, _message: 'Produit non trouvé' }, { status: 404 });
     }
 }
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
     const user = await getSessionUser();
     if (!user) {
-        return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
+        return NextResponse.json({ success: false, _message: 'Non authentifié' }, { status: 401 });
     }
 
     const id = params.id;
@@ -58,7 +58,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         const existingProduit = await databaseService.queryOne<Produit>('SELECT * FROM produits WHERE id = ? AND user_id = ?', [id, user.id]);
 
         if (!existingProduit) {
-            return NextResponse.json({ success: false, message: 'Produit non trouvé ou non autorisé' }, { status: 404 });
+            return NextResponse.json({ success: false, _message: 'Produit non trouvé ou non autorisé' }, { status: 404 });
         }
 
         // Fusionner les données existantes avec les nouvelles données validées
@@ -71,7 +71,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
             ? finalData.prixVente - (finalData.prixArticle + finalData.prixLivraison)
             : null;
 
-        const totalCost = finalData.prixArticle + finalData.prixLivraison;
+        const totalCost = (finalData.prixArticle ?? 0) + (finalData.prixLivraison ?? 0);
         const pourcentageBenefice = (benefices !== null && totalCost > 0)
             ? (benefices / totalCost) * 100
             : null;
@@ -114,23 +114,23 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return NextResponse.json({ success: false, message: 'Erreur de validation', errors: error.errors }, { status: 400 });
+            return NextResponse.json({ success: false, _message: 'Erreur de validation', errors: error.errors }, { status: 400 });
         }
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        return NextResponse.json({ success: false, message: 'Erreur lors de la mise à jour du produit', error: errorMessage }, { status: 500 });
+        return NextResponse.json({ success: false, _message: 'Erreur lors de la mise à jour du produit', error: errorMessage }, { status: 500 });
     }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
     const user = await getSessionUser();
     if (!user) {
-        return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
+        return NextResponse.json({ success: false, _message: 'Non authentifié' }, { status: 401 });
     }
 
     const id = params.id;
 
     if (!id) {
-        return NextResponse.json({ success: false, message: 'ID de produit manquant' }, { status: 400 });
+        return NextResponse.json({ success: false, _message: 'ID de produit manquant' }, { status: 400 });
     }
 
     try {
@@ -138,12 +138,12 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
         const info = await databaseService.execute('DELETE FROM produits WHERE id = ? AND user_id = ?', [id, user.id]);
 
         if ((info?.changes ?? 0) === 0) {
-            return NextResponse.json({ success: false, message: 'Produit non trouvé ou non autorisé' }, { status: 404 });
+            return NextResponse.json({ success: false, _message: 'Produit non trouvé ou non autorisé' }, { status: 404 });
         }
 
         return new NextResponse(null, { status: 204 });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        return NextResponse.json({ success: false, message: 'Erreur lors de la suppression du produit', error: errorMessage }, { status: 500 });
+        return NextResponse.json({ success: false, _message: 'Erreur lors de la suppression du produit', error: errorMessage }, { status: 500 });
     }
 }

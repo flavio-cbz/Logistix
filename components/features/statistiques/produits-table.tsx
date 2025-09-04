@@ -29,9 +29,9 @@ export function ProduitsTable({ produits }: ProduitsTableProps) {
             {produits.map((produit) => (
               <TableRow key={produit.id}>
                 <TableCell className="font-medium">{produit.nom}</TableCell>
-                <TableCell className="text-right">{(produit.prixVente || 0).toFixed(2)} €</TableCell>
-                <TableCell className="text-right">{(produit.benefices || 0).toFixed(2)} €</TableCell>
-                <TableCell className="text-right">{(produit.pourcentageBenefice || 0).toFixed(1)}%</TableCell>
+                <TableCell className="text-right">{(produit.prixVente ?? 0).toFixed(2)} €</TableCell>
+                <TableCell className="text-right">{(produit.benefices ?? 0).toFixed(2)} €</TableCell>
+                <TableCell className="text-right">{(produit.pourcentageBenefice ?? 0).toFixed(1)}%</TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -19,7 +19,7 @@ export default function ManualValidationPage() {
             Avant de commencer, veuillez consulter le guide de validation manuelle détaillé. Ce guide contient toutes les informations nécessaires pour mener à bien les tests.
           </p>
           <Link href="/docs/MANUAL_VALIDATION_GUIDE.md" passHref>
-            <a className="text-blue-500 hover:underline mt-2 inline-block" target="_blank" rel="noopener noreferrer">
+            <a className="text-[hsl(var(--primary-foreground))] hover:underline mt-2 inline-block" target="_blank" rel="noopener noreferrer">
               Ouvrir le guide de validation manuelle
             </a>
           </Link>

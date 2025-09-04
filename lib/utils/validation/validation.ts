@@ -1,4 +1,6 @@
 import { z } from "zod"
+import { ApiError, ValidationError } from '@/lib/services/validation/error-types';
+export { ValidationError, ApiError };
 
 // Enhanced error handling types
 export interface ValidationErrorDetail {
@@ -119,14 +121,14 @@ export const PaginatedResponseSchema = z.object({
 })
 
 // Enhanced validation helper functions with better error handling
-export function validateCreateMarketAnalysis(data: unknown) {
+export function validateCreateMarketAnalysis(_data: unknown) {
   try {
-    return CreateMarketAnalysisSchema.parse(data)
+    return CreateMarketAnalysisSchema.parse(_data)
   } catch (error) {
     if (error instanceof z.ZodError) {
       const validationErrors: ValidationErrorDetail[] = error.errors.map(err => ({
         field: err.path.join('.'),
-        message: err.message,
+  message: err.message,
         code: err.code
       }))
       throw new ValidationError("Données d'analyse de marché invalides", validationErrors)
@@ -152,7 +154,7 @@ export function validatePagination(searchParams: URLSearchParams) {
     if (error instanceof z.ZodError) {
       const validationErrors: ValidationErrorDetail[] = error.errors.map(err => ({
         field: err.path.join('.'),
-        message: err.message,
+  message: err.message,
         code: err.code
       }))
       throw new ValidationError("Paramètres de pagination invalides", validationErrors)
@@ -168,7 +170,7 @@ export function validateTaskId(id: string) {
     if (error instanceof z.ZodError) {
       const validationErrors: ValidationErrorDetail[] = error.errors.map(err => ({
         field: err.path.join('.'),
-        message: err.message,
+  message: err.message,
         code: err.code
       }))
       throw new ValidationError("ID de tâche invalide", validationErrors)
@@ -178,63 +180,41 @@ export function validateTaskId(id: string) {
 }
 
 // Custom error classes for better error handling
-export class ValidationError extends Error {
-  public errors: ValidationErrorDetail[]
-  public code: string
 
-  constructor(message: string, errors: ValidationErrorDetail[] = [], code: string = "VALIDATION_ERROR") {
-    super(message)
-    this.name = "ValidationError"
-    this.errors = errors
-    this.code = code
-  }
-}
-
-export class ApiError extends Error {
-  public statusCode: number
-  public code: string
-  public errors?: ValidationErrorDetail[]
-
-  constructor(message: string, statusCode: number = 500, code: string = "API_ERROR", errors?: ValidationErrorDetail[]) {
-    super(message)
-    this.name = "ApiError"
-    this.statusCode = statusCode
-    this.code = code
-    this.errors = errors
-  }
-}
 
 // Error formatting utilities
-export function formatValidationErrors(errors: ValidationErrorDetail[]): string {
-  if (errors.length === 0) return "Erreur de validation"
-  if (errors.length === 1) return errors[0].message
+export function formatValidationErrors(errors: ValidationErrorDetail[] | undefined): string {
+  if (!errors || errors.length === 0) return "Erreur de validation"
+  if (errors.length === 1) return errors[0]!!.message
   return `${errors.length} erreurs de validation: ${errors.map(e => e.message).join(', ')}`
 }
 
 export function createApiErrorResponse(error: unknown): { message: string; errors?: ValidationErrorDetail[]; code?: string } {
   if (error instanceof ValidationError) {
-    return {
-      message: error.message,
-      errors: error.errors,
-      code: error.code
-    }
+    const resp: { message: string; errors?: ValidationErrorDetail[]; code?: string } = {
+      message: error.message
+    };
+    if (error.errors !== undefined) resp.errors = error.errors;
+    if (error.code !== undefined) resp.code = error.code;
+    return resp;
   }
-  
+
   if (error instanceof ApiError) {
-    return {
-      message: error.message,
-      errors: error.errors,
-      code: error.code
-    }
+    const resp: { message: string; errors?: ValidationErrorDetail[]; code?: string } = {
+      message: error.message
+    };
+    if (error.errors !== undefined) resp.errors = error.errors;
+    if (error.code !== undefined) resp.code = error.code;
+    return resp;
   }
-  
+
   if (error instanceof Error) {
     return {
       message: error.message,
       code: "UNKNOWN_ERROR"
     }
   }
-  
+
   return {
     message: "Une erreur inconnue s'est produite",
     code: "UNKNOWN_ERROR"

@@ -5,7 +5,7 @@
 
 import { auditLogger, auditUserAction, auditFailedUserAction } from '@/lib/services/audit-logger';
 import { performanceMetrics, recordOperationDuration } from '@/lib/services/performance-metrics';
-import { trackError } from '@/lib/services/error-tracking';
+import { errorTrackingService } from '@/lib/services/error-tracking'; // Changed import
 import { getLogger } from '@/lib/utils/logging';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -36,8 +36,8 @@ interface UserSession {
   startTime: Date;
   lastActivity: Date;
   actions: ActionDetails[];
-  ip?: string;
-  userAgent?: string;
+  ip?: string | undefined;
+  userAgent?: string | undefined;
 }
 
 class UserActionLoggerService {
@@ -66,28 +66,30 @@ class UserActionLoggerService {
     }
 
     // Log to audit system
+    // Construction conditionnelle pour éviter les propriétés undefined (TS2379/TS2375)
+    const auditContext: any = { };
+    if (context.sessionId !== undefined) auditContext.sessionId = context.sessionId;
+    if (context.ip !== undefined) auditContext.ip = context.ip;
+    if (context.userAgent !== undefined) auditContext.userAgent = context.userAgent;
+    if (context.requestId !== undefined) auditContext.requestId = context.requestId;
+
     await auditUserAction(
       context.userId,
       {
         action: details.action,
         resource: details.resource,
-        resourceId: details.resourceId,
+        ...(details.resourceId !== undefined ? { resourceId: details.resourceId } : {}),
         details: {
           ...details.metadata,
-          method: details.method,
-          url: details.url,
-          statusCode: details.statusCode,
-          duration: details.duration,
+          ...(details.method !== undefined ? { method: details.method } : {}),
+          ...(details.url !== undefined ? { url: details.url } : {}),
+          ...(details.statusCode !== undefined ? { statusCode: details.statusCode } : {}),
+          ...(details.duration !== undefined ? { duration: details.duration } : {}),
           actionId,
           timestamp: timestamp.toISOString()
         }
       },
-      {
-        sessionId: context.sessionId,
-        ip: context.ip,
-        userAgent: context.userAgent,
-        requestId: context.requestId
-      }
+      auditContext
     );
 
     // Record performance metrics
@@ -97,8 +99,8 @@ class UserActionLoggerService {
         details.duration,
         {
           userId: context.userId,
-          sessionId: context.sessionId,
-          requestId: context.requestId,
+          ...(context.sessionId !== undefined ? { sessionId: context.sessionId } : {}),
+          ...(context.requestId !== undefined ? { requestId: context.requestId } : {}),
           metadata: {
             resource: details.resource,
             success: details.success,
@@ -156,47 +158,48 @@ class UserActionLoggerService {
     }
 
     // Log to audit system
+    // Construction conditionnelle pour éviter les propriétés undefined (TS2379/TS2375)
+    const auditFailedContext: any = { };
+    if (context.sessionId !== undefined) auditFailedContext.sessionId = context.sessionId;
+    if (context.ip !== undefined) auditFailedContext.ip = context.ip;
+    if (context.userAgent !== undefined) auditFailedContext.userAgent = context.userAgent;
+    if (context.requestId !== undefined) auditFailedContext.requestId = context.requestId;
+
     await auditFailedUserAction(
       context.userId,
       {
         action: details.action,
         resource: details.resource,
-        resourceId: details.resourceId,
+        ...(details.resourceId !== undefined ? { resourceId: details.resourceId } : {}),
         details: {
           ...details.metadata,
-          method: details.method,
-          url: details.url,
-          statusCode: details.statusCode,
-          duration: details.duration,
+          ...(details.method !== undefined ? { method: details.method } : {}),
+          ...(details.url !== undefined ? { url: details.url } : {}),
+          ...(details.statusCode !== undefined ? { statusCode: details.statusCode } : {}),
+          ...(details.duration !== undefined ? { duration: details.duration } : {}),
           actionId,
           timestamp: timestamp.toISOString(),
           error: error.message
         }
       },
       error,
-      {
-        sessionId: context.sessionId,
-        ip: context.ip,
-        userAgent: context.userAgent,
-        requestId: context.requestId
-      }
+      auditFailedContext
     );
 
     // Track the error
-    await trackError(error, {
-      userId: context.userId,
-      sessionId: context.sessionId,
-      requestId: context.requestId,
-      ip: context.ip,
-      userAgent: context.userAgent,
-      url: details.url,
-      method: details.method
-    }, {
-      action: details.action,
-      resource: details.resource,
-      resourceId: details.resourceId,
-      userAction: true
-    });
+    // Construction conditionnelle pour éviter les propriétés undefined (TS2379/TS2375)
+    const errorContext: any = { userId: context.userId };
+    if (context.sessionId !== undefined) errorContext.sessionId = context.sessionId;
+    if (context.requestId !== undefined) errorContext.requestId = context.requestId;
+    if (context.ip !== undefined) errorContext.ip = context.ip;
+    if (context.userAgent !== undefined) errorContext.userAgent = context.userAgent;
+    if (details.url !== undefined) errorContext.url = details.url;
+    if (details.method !== undefined) errorContext.method = details.method;
+
+    const errorMeta: any = { action: details.action, resource: details.resource, userAction: true };
+    if (details.resourceId !== undefined) errorMeta.resourceId = details.resourceId;
+
+    errorTrackingService.captureException(error, { ...errorContext, ...errorMeta }); // Changed to use errorTrackingService
 
     // Record performance metrics for failed actions
     if (details.duration) {
@@ -205,8 +208,8 @@ class UserActionLoggerService {
         details.duration,
         {
           userId: context.userId,
-          sessionId: context.sessionId,
-          requestId: context.requestId,
+          ...(context.sessionId !== undefined ? { sessionId: context.sessionId } : {}),
+          ...(context.requestId !== undefined ? { requestId: context.requestId } : {}),
           metadata: {
             resource: details.resource,
             success: false,
@@ -267,27 +270,28 @@ class UserActionLoggerService {
     }
 
     // Log authentication event
+    // Construction conditionnelle pour éviter les propriétés undefined (TS2379/TS2375)
+    const authContext: any = { userId: context.userId };
+    if (context.sessionId !== undefined) authContext.sessionId = context.sessionId;
+    if (context.ip !== undefined) authContext.ip = context.ip;
+    if (context.userAgent !== undefined) authContext.userAgent = context.userAgent;
+    if (context.requestId !== undefined) authContext.requestId = context.requestId;
+
     await auditLogger.logSecurityEvent(
       {
         type: event === 'login_failed' ? 'failed_login' : 'login',
         severity: event === 'login_failed' ? 'medium' : 'low',
         details: {
           event,
-          reason: details?.reason,
-          method: details?.method,
-          provider: details?.provider,
+          ...(details?.reason !== undefined ? { reason: details?.reason } : {}),
+          ...(details?.method !== undefined ? { method: details?.method } : {}),
+          ...(details?.provider !== undefined ? { provider: details?.provider } : {}),
           actionId,
           timestamp: timestamp.toISOString(),
-          ...details?.metadata
+          ...(details?.metadata ? { ...details.metadata } : {})
         }
       },
-      {
-        userId: context.userId,
-        sessionId: context.sessionId,
-        ip: context.ip,
-        userAgent: context.userAgent,
-        requestId: context.requestId
-      }
+      authContext
     );
 
     // Log detailed authentication information
@@ -347,30 +351,32 @@ class UserActionLoggerService {
     const sanitizedDetails = this.sanitizeDataAccessDetails(details);
 
     // Log data access event
+    // Construction conditionnelle pour éviter les propriétés undefined (TS2379/TS2375)
+    const dataAccessContext: any = {};
+    if (context.sessionId !== undefined) dataAccessContext.sessionId = context.sessionId;
+    if (context.ip !== undefined) dataAccessContext.ip = context.ip;
+    if (context.userAgent !== undefined) dataAccessContext.userAgent = context.userAgent;
+    if (context.requestId !== undefined) dataAccessContext.requestId = context.requestId;
+
     await auditUserAction(
       context.userId,
       {
         action: `DATA_${operation.toUpperCase()}`,
         resource,
-        resourceId,
+        ...(resourceId !== undefined ? { resourceId } : {}),
         details: {
           operation,
-          fields: sanitizedDetails?.fields,
-          oldValues: sanitizedDetails?.oldValues,
-          newValues: sanitizedDetails?.newValues,
-          query: sanitizedDetails?.query,
+          ...(sanitizedDetails?.fields !== undefined ? { fields: sanitizedDetails.fields } : {}),
+          ...(sanitizedDetails?.oldValues !== undefined ? { oldValues: sanitizedDetails.oldValues } : {}),
+          ...(sanitizedDetails?.newValues !== undefined ? { newValues: sanitizedDetails.newValues } : {}),
+          ...(sanitizedDetails?.query !== undefined ? { query: sanitizedDetails.query } : {}),
           actionId,
           timestamp: timestamp.toISOString(),
           dataAccess: true,
-          ...sanitizedDetails?.metadata
+          ...(sanitizedDetails?.metadata ? { ...sanitizedDetails.metadata } : {})
         }
       },
-      {
-        sessionId: context.sessionId,
-        ip: context.ip,
-        userAgent: context.userAgent,
-        requestId: context.requestId
-      }
+      dataAccessContext
     );
 
     // Log detailed data access information
@@ -438,7 +444,7 @@ class UserActionLoggerService {
     let lastActivity: Date | null = null;
 
     userActions.forEach(({ context, details }) => {
-      actionsByType[details.action] = (actionsByType[details.action] || 0) + 1;
+      (actionsByType as any)[details.action] = (actionsByType[details.action]! || 0) + 1;
       
       if (details.success) {
         successfulActions++;
@@ -585,13 +591,14 @@ class UserActionLoggerService {
             resource: details.resource
           }
         },
-        {
-          userId: context.userId,
-          sessionId: context.sessionId,
-          ip: context.ip,
-          userAgent: context.userAgent,
-          requestId: context.requestId
-        }
+        Object.assign(
+          {},
+          context.userId !== undefined ? { userId: context.userId } : {},
+          context.sessionId !== undefined ? { sessionId: context.sessionId } : {},
+          context.ip !== undefined ? { ip: context.ip } : {},
+          context.userAgent !== undefined ? { userAgent: context.userAgent } : {},
+          context.requestId !== undefined ? { requestId: context.requestId } : {}
+        )
       );
     }
 
@@ -610,13 +617,14 @@ class UserActionLoggerService {
             resource: details.resource
           }
         },
-        {
-          userId: context.userId,
-          sessionId: context.sessionId,
-          ip: context.ip,
-          userAgent: context.userAgent,
-          requestId: context.requestId
-        }
+        Object.assign(
+          {},
+          context.userId !== undefined ? { userId: context.userId } : {},
+          context.sessionId !== undefined ? { sessionId: context.sessionId } : {},
+          context.ip !== undefined ? { ip: context.ip } : {},
+          context.userAgent !== undefined ? { userAgent: context.userAgent } : {},
+          context.requestId !== undefined ? { requestId: context.requestId } : {}
+        )
       );
     }
   }
@@ -656,19 +664,34 @@ class UserActionLoggerService {
     const sanitizeObject = (obj: Record<string, any>): Record<string, any> => {
       const sanitized = { ...obj };
       sensitiveFields.forEach(field => {
-        if (sanitized[field]) {
-          sanitized[field] = '[REDACTED]';
+        if (sanitized[field]!) {
+          (sanitized as any)[field] = '[REDACTED]';
         }
       });
       return sanitized;
     };
 
-    return {
-      ...details,
-      oldValues: details.oldValues ? sanitizeObject(details.oldValues) : undefined,
-      newValues: details.newValues ? sanitizeObject(details.newValues) : undefined,
-      query: details.query ? details.query.replace(/password\s*=\s*'[^']*'/gi, "password = '[REDACTED]'") : undefined
-    };
+    const sanitized: typeof details = { ...details };
+
+    if (details.oldValues) {
+      sanitized.oldValues = sanitizeObject(details.oldValues);
+    } else {
+      delete sanitized.oldValues;
+    }
+
+    if (details.newValues) {
+      sanitized.newValues = sanitizeObject(details.newValues);
+    } else {
+      delete sanitized.newValues;
+    }
+
+    if (details.query) {
+      sanitized.query = details.query.replace(/password\s*=\s*'[^']*'/gi, "password = '[REDACTED]'");
+    } else {
+      delete sanitized.query;
+    }
+
+    return sanitized;
   }
 }
 

@@ -3,16 +3,6 @@
 import React, { createContext, useContext, useCallback, useRef, useEffect, useState } from 'react'
 
 // Types pour le contexte d'accessibilité
-export interface KeyboardShortcut {
-  key: string
-  description: string
-  category: string
-  action: () => void
-  ctrlKey?: boolean
-  altKey?: boolean
-  shiftKey?: boolean
-}
-
 export interface AccessibilityPreferences {
   reducedMotion: boolean
   highContrast: boolean
@@ -29,21 +19,12 @@ export interface FocusManagement {
   focusLast: (container: HTMLElement) => void
 }
 
-export interface KeyboardNavigation {
-  registerShortcut: (shortcut: KeyboardShortcut) => () => void
-  getShortcuts: () => KeyboardShortcut[]
-  handleKeyDown: (event: KeyboardEvent) => boolean
-}
-
 export interface AccessibilityContextType {
   // Annonces pour lecteurs d'écran
-  announceToScreenReader: (message: string, priority?: 'polite' | 'assertive') => void
+  announceToScreenReader: (_message: string, priority?: 'polite' | 'assertive') => void
   
   // Gestion du focus
   focusManagement: FocusManagement
-  
-  // Navigation clavier
-  keyboardNavigation: KeyboardNavigation
   
   // Préférences utilisateur
   preferences: AccessibilityPreferences
@@ -116,7 +97,6 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
   const [announcements, setAnnouncements] = useState<Array<{ id: string; message: string; priority: 'polite' | 'assertive'; timestamp: number }>>([])
   
   const focusHistoryRef = useRef<HTMLElement[]>([])
-  const shortcutsRef = useRef<Map<string, KeyboardShortcut>>(new Map())
   const liveRegionRef = useRef<HTMLDivElement>(null)
   const assertiveRegionRef = useRef<HTMLDivElement>(null)
 
@@ -172,8 +152,10 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
         }
       } catch (error) {
         console.warn('Error setting up media query listeners:', error)
+        return undefined // Ensure a return in catch block
       }
     }
+    return undefined // Ensure a return for the main useEffect if window.matchMedia is false
   }, [mounted])
 
   // Fonction d'annonce pour lecteurs d'écran
@@ -257,36 +239,6 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     }, []),
   }
 
-  // Navigation clavier
-  const keyboardNavigation: KeyboardNavigation = {
-    registerShortcut: useCallback((shortcut: KeyboardShortcut) => {
-      const key = `${shortcut.ctrlKey ? 'ctrl+' : ''}${shortcut.altKey ? 'alt+' : ''}${shortcut.shiftKey ? 'shift+' : ''}${shortcut.key.toLowerCase()}`
-      shortcutsRef.current.set(key, shortcut)
-
-      return () => {
-        shortcutsRef.current.delete(key)
-      }
-    }, []),
-
-    getShortcuts: useCallback(() => {
-      return Array.from(shortcutsRef.current.values())
-    }, []),
-
-    handleKeyDown: useCallback((event: KeyboardEvent) => {
-if (!event.key) return false
-      const key = `${event.ctrlKey ? 'ctrl+' : ''}${event.altKey ? 'alt+' : ''}${event.shiftKey ? 'shift+' : ''}${event.key.toLowerCase()}`
-      const shortcut = shortcutsRef.current.get(key)
-      
-      if (shortcut) {
-        event.preventDefault()
-        shortcut.action()
-        return true
-      }
-      
-      return false
-    }, []),
-  }
-
   // Mise à jour des préférences
   const updatePreferences = useCallback((newPreferences: Partial<AccessibilityPreferences>) => {
     setPreferences(prev => ({ ...prev, ...newPreferences }))
@@ -319,19 +271,15 @@ if (!event.key) return false
       if (event.key === 'Tab') {
         setPreferences(prev => ({ ...prev, keyboardNavigation: true }))
       }
-
-      // Gérer les raccourcis globaux
-      keyboardNavigation.handleKeyDown(event)
     }
 
     document.addEventListener('keydown', handleGlobalKeyDown)
     return () => document.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [keyboardNavigation])
+  }, [])
 
   const contextValue: AccessibilityContextType = {
     announceToScreenReader,
     focusManagement,
-    keyboardNavigation,
     preferences,
     updatePreferences,
     isScreenReaderActive,

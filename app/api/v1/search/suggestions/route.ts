@@ -1,123 +1,89 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { databaseService } from '@/lib/services/database/db'
-import { validateSession } from '@/lib/services/auth'
+import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/services/auth";
+import { vintedSearchService as searchService } from "@/lib/services/search-service"; // Corrected import
+import { ApiError, createApiErrorResponse } from "@/lib/utils/validation";
+import { logger } from "@/lib/utils/logging/logger";
 
-
-interface Suggestion {
-  text: string
-  type: 'parcelle' | 'produit' | 'page'
-  count?: number
-}
-
-export async function GET(request: NextRequest) {
+// GET /api/v1/search/suggestions : Obtenir des suggestions de recherche
+export async function GET(req: Request) {
   try {
-    // Validate session
-    const sessionResult = await validateSession(request)
-    if (!sessionResult.success || !sessionResult.user) {
+    const user = await getSessionUser();
+    if (!user) {
       return NextResponse.json(
-        { success: false, message: 'Non authentifié' },
+        createApiErrorResponse(new ApiError("Authentification requise", 401, "AUTH_REQUIRED")),
         { status: 401 }
-      )
+      );
     }
 
-    const { searchParams } = new URL(request.url)
-    const query = searchParams.get('q') || ''
-    const limit = Math.min(parseInt(searchParams.get('limit') || '5'), 10)
+    const { searchParams } = new URL(req.url);
+    const query = searchParams.get('query') || '';
+    const type = searchParams.get('type') || 'all'; // 'all', 'brands', 'categories', 'products', 'users'
 
-    if (!query.trim()) {
-      return NextResponse.json({
-        success: true,
-        suggestions: []
-      })
+    if (!query) {
+      return NextResponse.json(
+        createApiErrorResponse(new ApiError("Le paramètre 'query' est requis", 400, "MISSING_QUERY")),
+        { status: 400 }
+      );
     }
 
-    const db = databaseService
-    const userId = sessionResult.user.id
-    const searchTerm = `${query.toLowerCase()}%`
+    logger.info(`[API Search Suggestions] Requête pour '${query}' de type '${type}' par l'utilisateur ${user.id}`);
 
-    const suggestions: Suggestion[] = []
+    let suggestions: any[] = [];
 
-    // Get parcelle suggestions
-    const parcelleQuery = `
-      SELECT DISTINCT transporteur, COUNT(*) as count
-      FROM parcelles 
-      WHERE user_id = ? AND LOWER(transporteur) LIKE ?
-      GROUP BY transporteur
-      ORDER BY count DESC
-      LIMIT ?
-    `
-    
-    const parcelleSuggestions = await db.query(parcelleQuery, [
-      userId, searchTerm, limit
-    ])
+    switch (type) {
+      case 'brands':
+        suggestions = await searchService.getBrandSuggestions(query);
+        break;
+      case 'categories':
+        suggestions = await searchService.getCategorySuggestions(query);
+        break;
+      case 'products':
+        suggestions = await searchService.getProductSuggestions(query);
+        break;
+      case 'transporteurs':
+        suggestions = await searchService.getTransporteurSuggestions(query);
+        return NextResponse.json({
+          suggestions: suggestions.map((suggestion: any) => ({
+            text: suggestion.transporteur,
+            count: suggestion.count
+          }))
+        });
+      case 'users':
+        suggestions = await searchService.getUserSuggestions(query);
+        return NextResponse.json({
+          suggestions: suggestions.map((suggestion: any) => ({
+            text: suggestion.nom,
+            count: suggestion.count
+          }))
+        });
+      case 'all':
+      default:
+        const [brandSuggestions, categorySuggestions, productSuggestions, transporteurSuggestions, userSuggestions] = await Promise.all([
+          searchService.getBrandSuggestions(query),
+          searchService.getCategorySuggestions(query),
+          searchService.getProductSuggestions(query),
+          searchService.getTransporteurSuggestions(query),
+          searchService.getUserSuggestions(query),
+        ]);
 
-    parcelleSuggestions.forEach((item: any) => {
-      suggestions.push({
-        text: item.transporteur,
-        type: 'parcelle',
-        count: item.count
-      })
-    })
+        suggestions = [
+          ...brandSuggestions.map((suggestion: any) => ({ type: 'brand', text: suggestion.brand, count: suggestion.count })),
+          ...categorySuggestions.map((suggestion: any) => ({ type: 'category', text: suggestion.category, count: suggestion.count })),
+          ...productSuggestions.map((suggestion: any) => ({ type: 'product', text: suggestion.product, count: suggestion.count })),
+          ...transporteurSuggestions.map((suggestion: any) => ({ type: 'transporteur', text: suggestion.transporteur, count: suggestion.count })),
+          ...userSuggestions.map((suggestion: any) => ({ type: 'user', text: suggestion.nom, count: suggestion.count })),
+        ];
+        break;
+    }
 
-    // Get produit suggestions
-    const produitQuery = `
-      SELECT DISTINCT nom, COUNT(*) as count
-      FROM produits 
-      WHERE user_id = ? AND LOWER(nom) LIKE ?
-      GROUP BY nom
-      ORDER BY count DESC
-      LIMIT ?
-    `
-    
-    const produitSuggestions = await db.query(produitQuery, [
-      userId, searchTerm, limit
-    ])
+    logger.info(`[API Search Suggestions] ${suggestions.length} suggestions trouvées pour '${query}'`);
+    return NextResponse.json({ suggestions });
 
-    produitSuggestions.forEach((item: any) => {
-      suggestions.push({
-        text: item.nom,
-        type: 'produit',
-        count: item.count
-      })
-    })
-
-    // Add page suggestions
-    const pages = [
-      'Tableau de bord',
-      'Parcelles',
-      'Produits', 
-      'Statistiques',
-      'Analyse de Marché',
-      'Profil'
-    ]
-
-    pages.forEach(page => {
-      if (page.toLowerCase().startsWith(query.toLowerCase())) {
-        suggestions.push({
-          text: page,
-          type: 'page'
-        })
-      }
-    })
-
-    // Sort by relevance and count
-    suggestions.sort((a, b) => {
-      if (a.count && b.count) return b.count - a.count
-      if (a.count) return -1
-      if (b.count) return 1
-      return 0
-    })
-
-    return NextResponse.json({
-      success: true,
-      suggestions: suggestions.slice(0, limit)
-    })
-
-  } catch (error) {
-    console.error('Suggestions error:', error)
+  } catch (error: any) {
+    logger.error("[API Search Suggestions] Erreur lors de la récupération des suggestions:", error);
     return NextResponse.json(
-      { success: false, message: 'Erreur lors de la génération des suggestions' },
+      createApiErrorResponse(new ApiError("Erreur lors de la récupération des suggestions", 500, "SUGGESTIONS_ERROR")),
       { status: 500 }
-    )
+    );
   }
 }

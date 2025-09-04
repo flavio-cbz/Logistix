@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/services/auth";
 import { optimizedApiGet } from "@/lib/utils/api-route-optimization";
 
-async function metadataHandler(request: NextRequest): Promise<NextResponse> {
+async function metadataHandler(_request: NextRequest): Promise<NextResponse> {
   try {
     const user = await getSessionUser();
     if (!user) {

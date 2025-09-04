@@ -7,7 +7,7 @@ export async function GET() {
     
     if (!user) {
       return NextResponse.json(
-        { success: false, message: "Non authentifié" },
+        { success: false, _message: "Non authentifié" },
         { status: 401 }
       )
     }
@@ -22,7 +22,7 @@ export async function GET() {
   } catch (error) {
     console.error("Erreur dans l'API me:", error)
     return NextResponse.json(
-      { success: false, message: "Erreur interne du serveur" },
+      { success: false, _message: "Erreur interne du serveur" },
       { status: 500 }
     )
   }

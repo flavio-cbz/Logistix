@@ -5,7 +5,7 @@ import { getVintedConfig } from '@/lib/config/vinted-config';
 export interface VintedTokens {
   accessToken: string;
   refreshToken: string;
-  expiresAt?: Date;
+  expiresAt?: string;
 }
 
 export class VintedAuthService {
@@ -20,7 +20,7 @@ export class VintedAuthService {
    */
   public static extractAccessTokenFromCookie(cookie: string): string | null {
     const match = cookie.match(/access_token_web=([^;]+)/);
-    return match ? (match[1] ?? null) : null;
+    return match ? (match[1]! ?? null) : null;
   }
 
   /**
@@ -28,7 +28,7 @@ export class VintedAuthService {
    */
   public static extractRefreshTokenFromCookie(cookie: string): string | null {
     const match = cookie.match(/refresh_token_web=([^;]+)/);
-    return match ? (match[1] ?? null) : null;
+    return match ? (match[1]! ?? null) : null;
   }
 
   /**
@@ -92,7 +92,7 @@ export class VintedAuthService {
       });
 
       // Chercher les nouveaux cookies dans les headers de réponse
-      const setCookie = response.headers['set-cookie'];
+      const setCookie = response.headers['set-cookie']!;
       let accessToken: string | null = null;
       let refreshToken: string | null = null;
 

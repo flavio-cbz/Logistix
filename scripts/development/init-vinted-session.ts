@@ -18,7 +18,7 @@ async function initVintedSession() {
   try {
     // Utiliser une session par défaut ou demander à l'utilisateur
     const defaultSession = 'session_par_defaut_a_remplacer';
-    const vintedSession = process.env.VINTED_SESSION || defaultSession;
+    const vintedSession = process.env['VINTED_SESSION']! || defaultSession;
 
     if (vintedSession === defaultSession) {
     } else {
@@ -28,8 +28,7 @@ async function initVintedSession() {
     // Vérifier les sessions existantes
     const existingSessions = await db.select().from(vintedSessions);
 
-    existingSessions.forEach((session, index) => {
-    });
+    // Suppression de la boucle forEach vide (variables inutilisées)
 
     // Récupérer l'ID de l'utilisateur admin
     const adminUser = await db.query.users.findFirst({
@@ -41,7 +40,7 @@ async function initVintedSession() {
     }
 
     const adminUserId = adminUser.id;
-    const existingAdminSession = existingSessions.find(s => s.userId === adminUserId);
+    const existingAdminSession = existingSessions.find((s: any) => s.userId === adminUserId);
 
     if (existingAdminSession) {
       
@@ -78,7 +77,7 @@ async function initVintedSession() {
 
     // Vérification finale
     const finalSessions = await db.select().from(vintedSessions);
-    const adminSession = finalSessions.find(s => s.userId === adminUserId);
+    const adminSession = finalSessions.find((s: any) => s.userId === adminUserId);
 
     if (adminSession && adminSession.sessionCookie) {
     } else {
