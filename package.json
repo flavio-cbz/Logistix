@@ -71,7 +71,7 @@
     "audit:legacy:products": "node scripts/audit-legacy-product-fields.js"
   },
   "dependencies": {
-    "@auth/core": "^0.34.2",
+    "@auth/core": "^0.41.0",
     "@databases/sqlite": "^4.0.2",
     "@hello-pangea/dnd": "^16.1.1",
     "@hookform/resolvers": "^3.3.2",
