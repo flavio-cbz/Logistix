@@ -1,0 +1,171 @@
+{
+  "unifiedDatabaseService": {
+    "enabled": false,
+    "rolloutPercentage": 0,
+    "userGroups": ["developers"],
+    "excludeUserGroups": [],
+    "description": "Use the new unified database service instead of legacy database clients",
+    "metadata": {
+      "phase": "development",
+      "riskLevel": "high"
+    }
+  },
+  
+  "standardizedApiRoutes": {
+    "enabled": false,
+    "rolloutPercentage": 0,
+    "userGroups": ["developers"],
+    "excludeUserGroups": [],
+    "description": "Use standardized API routes with new middleware and validation",
+    "metadata": {
+      "phase": "development",
+      "riskLevel": "high"
+    }
+  },
+  
+  "newAuthenticationSystem": {
+    "enabled": false,
+    "rolloutPercentage": 0,
+    "userGroups": ["developers"],
+    "excludeUserGroups": [],
+    "description": "Use the new authentication service and middleware",
+    "metadata": {
+      "phase": "development",
+      "riskLevel": "high"
+    }
+  },
+  
+  "enhancedErrorHandling": {
+    "enabled": false,
+    "rolloutPercentage": 10,
+    "userGroups": ["developers", "beta-testers"],
+    "excludeUserGroups": [],
+    "description": "Use the new error handling system with custom error classes",
+    "metadata": {
+      "phase": "beta",
+      "riskLevel": "medium"
+    }
+  },
+  
+  "centralizedConfiguration": {
+    "enabled": true,
+    "rolloutPercentage": 100,
+    "userGroups": [],
+    "excludeUserGroups": [],
+    "description": "Use the centralized configuration service",
+    "metadata": {
+      "phase": "production",
+      "riskLevel": "low"
+    }
+  },
+  
+  "databaseQueryOptimization": {
+    "enabled": false,
+    "rolloutPercentage": 25,
+    "userGroups": ["developers", "beta-testers"],
+    "excludeUserGroups": [],
+    "description": "Enable database query optimization and monitoring",
+    "metadata": {
+      "phase": "beta",
+      "riskLevel": "medium"
+    }
+  },
+  
+  "cachingLayer": {
+    "enabled": false,
+    "rolloutPercentage": 0,
+    "userGroups": ["developers"],
+    "excludeUserGroups": [],
+    "description": "Enable caching layer for frequently accessed data",
+    "metadata": {
+      "phase": "development",
+      "riskLevel": "medium"
+    }
+  },
+  
+  "performanceMonitoring": {
+    "enabled": true,
+    "rolloutPercentage": 100,
+    "userGroups": [],
+    "excludeUserGroups": [],
+    "description": "Enable performance monitoring and metrics collection",
+    "metadata": {
+      "phase": "production",
+      "riskLevel": "low"
+    }
+  },
+  
+  "alignedTypeDefinitions": {
+    "enabled": false,
+    "rolloutPercentage": 50,
+    "userGroups": ["developers", "beta-testers"],
+    "excludeUserGroups": [],
+    "description": "Use aligned TypeScript type definitions between frontend and backend",
+    "metadata": {
+      "phase": "beta",
+      "riskLevel": "low"
+    }
+  },
+  
+  "standardizedFormValidation": {
+    "enabled": false,
+    "rolloutPercentage": 30,
+    "userGroups": ["developers", "beta-testers"],
+    "excludeUserGroups": [],
+    "description": "Use standardized form validation aligned with API schemas",
+    "metadata": {
+      "phase": "beta",
+      "riskLevel": "medium"
+    }
+  },
+  
+  "newProductFormUi": {
+    "enabled": true,
+    "rolloutPercentage": 50,
+    "userGroups": [],
+    "excludeUserGroups": ["legacy-users"],
+    "description": "A/B test for new product form UI design",
+    "metadata": {
+      "phase": "ab-test",
+      "riskLevel": "low",
+      "testDuration": "30 days"
+    }
+  },
+  
+  "enhancedMarketAnalysis": {
+    "enabled": true,
+    "rolloutPercentage": 25,
+    "userGroups": [],
+    "excludeUserGroups": [],
+    "description": "A/B test for enhanced market analysis features",
+    "metadata": {
+      "phase": "ab-test",
+      "riskLevel": "low",
+      "testDuration": "45 days"
+    }
+  },
+  
+  "debugMode": {
+    "enabled": true,
+    "rolloutPercentage": 0,
+    "userGroups": ["developers", "testers"],
+    "excludeUserGroups": [],
+    "description": "Enable debug mode with additional logging and error details",
+    "metadata": {
+      "phase": "development",
+      "riskLevel": "low"
+    }
+  },
+  
+  "maintenanceMode": {
+    "enabled": false,
+    "rolloutPercentage": 0,
+    "userGroups": [],
+    "excludeUserGroups": [],
+    "description": "Enable maintenance mode to prevent certain operations",
+    "metadata": {
+      "phase": "maintenance",
+      "riskLevel": "high"
+    }
+  }
+}

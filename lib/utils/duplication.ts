@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { useState, useCallback } from "react";
+import { v4 as uuidv4 } from "uuid";
 
 interface DuplicateEntityOptions<T> {
   entity: T;
@@ -13,7 +13,12 @@ export function useDuplicateEntity<T extends { id: string }>() {
   const [error, setError] = useState<string | null>(null);
 
   const duplicateEntity = useCallback(
-    ({ entity, transform, addFunction, entityName = 'entity' }: DuplicateEntityOptions<T>) => {
+    ({
+      entity,
+      transform,
+      addFunction,
+      entityName = "entity",
+    }: DuplicateEntityOptions<T>) => {
       setIsDuplicating(true);
       setError(null);
       try {
@@ -32,7 +37,7 @@ export function useDuplicateEntity<T extends { id: string }>() {
         setIsDuplicating(false);
       }
     },
-    []
+    [],
   );
 
   return { duplicateEntity, isDuplicating, error };

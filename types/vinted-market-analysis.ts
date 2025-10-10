@@ -1,8 +1,62 @@
-// Types pour l'analyse de marché Vinted
+ // Types pour l'analyse de marché Vinted
 
 import { z } from 'zod';
+import type { AIAnnotation as CanonicalAIAnnotation, InteractiveElement as CanonicalInteractiveElement } from '../lib/types/ai-annotation';
+
+/**
+ * Types et schémas pour l'analyse de marché Vinted.
+ * - Typages stricts (unknown au lieu de any)
+ * - Schémas Zod alignés avec les types TS
+ * - Unions centralisées réutilisables pour robustesse/compatibilité
+ */
+
+// Unions centralisées et types associés
+export const ANALYSIS_STATUS = ['completed', 'pending', 'failed'] as const;
+export type AnalysisStatus = (typeof ANALYSIS_STATUS)[number];
+
+export const INSIGHT_TYPES = ['opportunity', 'risk', 'trend', 'anomaly'] as const;
+export type InsightType = (typeof INSIGHT_TYPES)[number];
+
+export const IMPACT_LEVELS = ['low', 'medium', 'high'] as const;
+export type ImpactLevel = (typeof IMPACT_LEVELS)[number];
+
+export const SEVERITY_LEVELS = ['low', 'medium', 'high'] as const;
+export type SeverityLevel = (typeof SEVERITY_LEVELS)[number];
+
+export const ANOMALY_TYPES = ['price', 'volume', 'timing', 'quality'] as const;
+export type AnomalyType = (typeof ANOMALY_TYPES)[number];
+
+export const TIMEFRAMES = ['1week', '1month', '3months'] as const;
+export type Timeframe = (typeof TIMEFRAMES)[number];
+
+export const METRICS = ['price', 'volume', 'demand'] as const;
+export type Metric = (typeof METRICS)[number];
+
+export const DIRECTIONS = ['up', 'down', 'stable'] as const;
+export type Direction = (typeof DIRECTIONS)[number];
+
+export const ANNOTATION_TYPES = ['insight', 'recommendation', 'warning', 'opportunity'] as const;
+export type AnnotationType = (typeof ANNOTATION_TYPES)[number];
+
+export const INTERACTIVE_TRIGGERS = ['hover', 'click'] as const;
+export type InteractiveTrigger = (typeof INTERACTIVE_TRIGGERS)[number];
+
+export const INTERACTIVE_ACTIONS = ['show-detail', 'highlight-related', 'show-recommendation'] as const;
+export type InteractiveAction = (typeof INTERACTIVE_ACTIONS)[number];
+
+export const CHART_TYPES = ['price-distribution', 'trend-analysis', 'competitive-position', 'opportunity-map'] as const;
+export type ChartType = (typeof CHART_TYPES)[number];
+
+export const PRICE_POSITION = ['below', 'average', 'above'] as const;
+export type PricePosition = (typeof PRICE_POSITION)[number];
+
+export const MARKET_POSITION = ['low', 'average', 'high'] as const;
+export type MarketPosition = (typeof MARKET_POSITION)[number];
 
 // --- Schémas Zod pour validation ---
+/**
+ * Article vendu tel que retourné par l'API Vinted (forme minimale utilisée).
+ */
 export const VintedSoldItemSchema = z.object({
   title: z.string(),
   price: z.object({
@@ -18,6 +72,22 @@ export const VintedSoldItemSchema = z.object({
   sold_at: z.string().optional(),
 });
 
+/**
+ * Requête pour lancer une analyse de marché Vinted.
+ */
+export const MarketAnalysisRequestSchema = z.object({
+  productName: z.string().min(3, "Le nom du produit doit contenir au moins 3 caractères"),
+  catalogId: z.number().int().positive("L'ID de catalogue doit être un nombre positif"),
+  categoryName: z.string().min(2, "Le nom de catégorie doit contenir au moins 2 caractères").optional(),
+  brandId: z.number().int().positive("L'ID de la marque doit être un nombre positif").optional(),
+  maxProducts: z.number().int().positive("Le nombre de produits doit être positif").optional(),
+  advancedParams: z.record(z.unknown()).optional(), // Placeholder pour paramètres avancés
+  itemStates: z.array(z.number()).optional(), // États des articles sélectionnés (nombres)
+});
+
+/**
+ * Résultat d'analyse Vinted agrégé et normalisé.
+ */
 export const VintedAnalysisResultSchema = z.object({
   salesVolume: z.number(),
   avgPrice: z.number(),
@@ -37,34 +107,31 @@ export const VintedAnalysisResultSchema = z.object({
   rawItems: z.array(VintedSoldItemSchema),
   // Alias/compatibilité: certains modules utilisent `items` ou `enrichedItems`
   items: z.array(VintedSoldItemSchema).optional(),
-  enrichedItems: z.array(z.any()).optional(),
+  enrichedItems: z.array(z.unknown()).optional(),
   // Distributions et métriques avancées (optionnelles, parfois calculées séparément)
   brandDistribution: z.record(z.number()).optional(),
   modelDistribution: z.record(z.number()).optional(),
-  advancedMetrics: z.any().optional(),
+  advancedMetrics: z.unknown().optional(),
   analysisDate: z.string(),
+  input: MarketAnalysisRequestSchema.optional(), // Correction ici
 });
 
-export const MarketAnalysisRequestSchema = z.object({
-  productName: z.string().min(3, "Le nom du produit doit contenir au moins 3 caractères"),
-  catalogId: z.number().int().positive("L'ID de catalogue doit être un nombre positif"),
-  categoryName: z.string().min(2, "Le nom de catégorie doit contenir au moins 2 caractères").optional(),
-  brandId: z.number().int().positive("L'ID de la marque doit être un nombre positif").optional(),
-  maxProducts: z.number().int().positive("Le nombre de produits doit être positif").optional(),
-  advancedParams: z.record(z.any()).optional(), // Placeholder pour paramètres avancés
-  itemStates: z.array(z.string()).optional(), // États des articles sélectionnés
-});
-
+/**
+ * Élément d'historique d'analyses.
+ */
 export const MarketAnalysisHistoryItemSchema = z.object({
   id: z.string(),
   productName: z.string(),
   salesVolume: z.number(),
   avgPrice: z.number(),
   createdAt: z.string(),
-  status: z.enum(['completed', 'pending', 'failed']),
+  status: z.enum(ANALYSIS_STATUS),
   error: z.string().optional(),
 });
 
+/**
+ * État global de l'espace d'analyse dans le front.
+ */
 export const MarketAnalysisStateSchema = z.object({
   currentAnalysis: VintedAnalysisResultSchema.nullable(),
   historicalData: z.array(MarketAnalysisHistoryItemSchema),
@@ -87,10 +154,15 @@ export type MarketAnalysisRequest = z.infer<typeof MarketAnalysisRequestSchema>;
 export type MarketAnalysisState = z.infer<typeof MarketAnalysisStateSchema>;
 
 // --- Types pour les composants ---
+/**
+ * Props du formulaire de lancement d'analyse.
+ */
 export interface AnalysisFormProps {
-  onSubmit: (data: MarketAnalysisRequest) => Promise<void>;
+  onSubmit: (_data: MarketAnalysisRequest) => Promise<void>;
   isLoading: boolean;
   error?: string | null;
+  initialValues?: Partial<MarketAnalysisRequest>;
+  onReset?: () => void;
 }
 
 export interface ResultsDashboardProps {
@@ -112,7 +184,7 @@ export interface MarketAnalysisHistoryItem {
   salesVolume: number;
   avgPrice: number;
   createdAt: string;
-  status: 'completed' | 'pending' | 'failed';
+  status: AnalysisStatus;
   error?: string;
 }
 
@@ -128,7 +200,7 @@ export interface ApiErrorResponse {
   error: {
     message: string;
     code: string;
-    details?: any;
+    details?: unknown;
   };
   timestamp: string;
   path: string;
@@ -146,6 +218,9 @@ export interface TokenValidationResponse {
 }
 
 // --- Types pour les métriques avancées ---
+/**
+ * Métriques d'analyse additionnelles (compatibles rétro).
+ */
 export interface AdvancedMetrics {
   priceDistribution: {
     ranges: Array<{
@@ -166,12 +241,12 @@ export interface AdvancedMetrics {
   competitorAnalysis?: {
     totalCompetitors?: number;
     averageCompetitorPrice?: number;
-    pricePosition?: 'below' | 'average' | 'above';
+    pricePosition?: PricePosition;
   };
   competitiveAnalysis?: {
     totalCompetitors?: number;
     averageCompetitorPrice?: number;
-    pricePosition?: 'below' | 'average' | 'above';
+    pricePosition?: PricePosition;
   };
 }
 
@@ -224,16 +299,11 @@ export interface SeasonalityData {
   }>;
 }
 
-export interface CyclicalPattern {
-  period: number;
-  amplitude: number;
-  phase: number;
-  confidence: number;
-  description: string;
-}
-
-export interface TrendData {
-  direction: 'up' | 'down' | 'stable';
+/**
+ * Résumé des tendances (sortie de l'analyse).
+ */
+export interface TrendSummary {
+  direction: Direction;
   strength: number;
   duration: number;
   slope: number;
@@ -246,9 +316,16 @@ export interface TrendData {
   }>;
 }
 
+// Ajout de l'interface CyclicalPattern
+export interface CyclicalPattern {
+  period: string;
+  strength: number;
+  description: string;
+}
+
 export interface TemporalAnalysis {
   seasonality: SeasonalityData;
-  trends: TrendData;
+  trends: TrendSummary;
   cyclicalPatterns: CyclicalPattern[];
   volatility: {
     overall: number;
@@ -261,7 +338,7 @@ export interface TemporalAnalysis {
 }
 
 export interface CompetitiveAnalysis {
-  marketPosition: 'low' | 'average' | 'high';
+  marketPosition: MarketPosition;
   competitorDensity: number;
   priceGaps: Array<{
     min: number;
@@ -314,9 +391,13 @@ export interface AnalysisFilters {
   productName?: string;
   dateFrom?: string;
   dateTo?: string;
-  status?: 'completed' | 'pending' | 'failed';
+  status?: AnalysisStatus;
   minPrice?: number;
   maxPrice?: number;
+}
+
+export interface UserActionType { // Added UserActionType interface
+  type: 'view_insight' | 'follow_recommendation' | 'ignore_recommendation' | 'export_analysis' | 'save_analysis' | 'share_analysis' | 'feedback';
 }
 
 // --- Types pour l'export ---
@@ -346,11 +427,11 @@ export interface AnalysisNotification {
 
 // Types pour les insights IA
 export interface AIInsight {
-  type: 'opportunity' | 'risk' | 'trend' | 'anomaly';
+  type: InsightType;
   title: string;
   description: string;
   confidence: number;
-  impact: 'low' | 'medium' | 'high';
+  impact: ImpactLevel;
   evidence: string[];
   priority?: 'high' | 'medium' | 'low';
 }
@@ -407,7 +488,7 @@ export interface OpportunityRecommendation {
 export interface RiskMitigation {
   type: 'risk';
   risk: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: SeverityLevel;
   mitigation: string;
   preventionSteps: string[];
   confidence: number;
@@ -448,30 +529,30 @@ export interface AIRecommendations {
 // Types pour les anomalies de marché
 export interface AnomalyDetection {
   id: string;
-  type: 'price' | 'volume' | 'timing' | 'quality';
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  type: AnomalyType;
+  severity: SeverityLevel;
   description: string;
   affectedItems: string[];
   suggestedAction: string;
   confidence: number;
   detectedAt: string;
   evidence?: string[];
-  impact?: 'low' | 'medium' | 'high';
+  impact?: ImpactLevel;
 }
 
 // Types pour les prédictions de tendances
 export interface TrendPrediction {
-  timeframe: '1week' | '1month' | '3months';
+  timeframe: Timeframe;
   predictions: Array<{
-    metric: 'price' | 'volume' | 'demand';
-    direction: 'up' | 'down' | 'stable';
+    metric: Metric;
+    direction: Direction;
     magnitude: number;
     confidence: number;
     factors: string[];
   }>;
   scenarios: Array<{
     name: string;
-    probability: number;
+    probability: number; // Correction: z.number() en z.number
     description: string;
     impact: string;
   }>;
@@ -479,25 +560,16 @@ export interface TrendPrediction {
 }
 
 // Types pour les graphiques enrichis
-export interface AIAnnotation {
-  position: { x: number; y: number };
-  type: 'insight' | 'recommendation' | 'warning' | 'opportunity';
-  title: string;
-  description: string;
-  confidence: number;
-}
+ // Canonical AIAnnotation type imported from lib/types/ai-annotation.ts
+ export type AIAnnotation = CanonicalAIAnnotation;
 
-export interface InteractiveElement {
-  trigger: 'hover' | 'click';
-  element: string;
-  action: 'show-detail' | 'highlight-related' | 'show-recommendation';
-  data: any;
-}
+ // Canonical InteractiveElement type imported from lib/types/ai-annotation.ts
+ export type InteractiveElement = CanonicalInteractiveElement;
 
 export interface EnhancedChart {
   id: string;
-  type: 'price-distribution' | 'trend-analysis' | 'competitive-position' | 'opportunity-map';
-  chartData: any;
+  type: ChartType;
+  chartData: unknown;
   aiAnnotations: AIAnnotation[];
   interactiveElements: InteractiveElement[];
   generatedAt: string;
@@ -537,11 +609,11 @@ export interface EnhancedVintedAnalysisResult extends VintedAnalysisResult {
 
 // Schémas Zod pour validation des nouvelles structures
 export const AIInsightSchema = z.object({
-  type: z.enum(['opportunity', 'risk', 'trend', 'anomaly']),
+  type: z.enum(INSIGHT_TYPES),
   title: z.string(),
   description: z.string(),
   confidence: z.number().min(0).max(1),
-  impact: z.enum(['low', 'medium', 'high']),
+  impact: z.enum(IMPACT_LEVELS),
   evidence: z.array(z.string()),
   priority: z.enum(['high', 'medium', 'low']).optional(),
 });
@@ -568,15 +640,15 @@ export const AIInsightsSchema = z.object({
 
 export const AnomalyDetectionSchema = z.object({
   id: z.string(),
-  type: z.enum(['price', 'volume', 'timing', 'quality']),
-  severity: z.enum(['low', 'medium', 'high', 'critical']),
+  type: z.enum(ANOMALY_TYPES),
+  severity: z.enum(SEVERITY_LEVELS),
   description: z.string(),
   affectedItems: z.array(z.string()),
   suggestedAction: z.string(),
   confidence: z.number().min(0).max(1),
   detectedAt: z.string(),
   evidence: z.array(z.string()).optional(),
-  impact: z.enum(['low', 'medium', 'high']).optional(),
+  impact: z.enum(IMPACT_LEVELS).optional(),
 });
 
 // Schémas Zod pour les recommandations IA
@@ -617,7 +689,7 @@ export const OpportunityRecommendationSchema = z.object({
 export const RiskMitigationSchema = z.object({
   type: z.literal('risk'),
   risk: z.string(),
-  severity: z.enum(['low', 'medium', 'high', 'critical']),
+  severity: z.enum(SEVERITY_LEVELS),
   mitigation: z.string(),
   preventionSteps: z.array(z.string()),
   confidence: z.number().min(0).max(1),
@@ -630,6 +702,11 @@ export const ActionItemSchema = z.object({
   expectedImpact: z.string(),
   timeline: z.string(),
   dependencies: z.array(z.string()).optional(),
+  // Champs additionnels parfois utilisés dans le UI
+  expectedOutcome: z.string().optional(),
+  strategy: z.string().optional(),
+  goals: z.array(z.string()).optional(),
+  metrics: z.array(z.string()).optional(),
 });
 
 export const ActionPlanSchema = z.object({
@@ -650,72 +727,99 @@ export const AIRecommendationsSchema = z.object({
   lastUpdated: z.string(),
 });
 
-// Schémas Zod pour les graphiques enrichis
-export const AIAnnotationSchema = z.object({
-  position: z.object({
-    x: z.number(),
-    y: z.number(),
-  }),
-  type: z.enum(['insight', 'recommendation', 'warning', 'opportunity']),
-  title: z.string(),
-  description: z.string(),
-  confidence: z.number().min(0).max(1),
-});
-
-export const InteractiveElementSchema = z.object({
-  trigger: z.enum(['hover', 'click']),
-  element: z.string(),
-  action: z.enum(['show-detail', 'highlight-related', 'show-recommendation']),
-  data: z.any(),
-});
-
-export const EnhancedChartSchema = z.object({
-  id: z.string(),
-  type: z.enum(['price-distribution', 'trend-analysis', 'competitive-position', 'opportunity-map']),
-  chartData: z.any(),
-  aiAnnotations: z.array(AIAnnotationSchema),
-  interactiveElements: z.array(InteractiveElementSchema),
-  generatedAt: z.string(),
-});
-
 // Schémas Zod pour les prédictions de tendances
 export const TrendPredictionSchema = z.object({
-  timeframe: z.enum(['1week', '1month', '3months']),
+  timeframe: z.enum(TIMEFRAMES),
   predictions: z.array(z.object({
-    metric: z.enum(['price', 'volume', 'demand']),
-    direction: z.enum(['up', 'down', 'stable']),
+    metric: z.enum(METRICS),
+    direction: z.enum(DIRECTIONS),
     magnitude: z.number(),
     confidence: z.number().min(0).max(1),
     factors: z.array(z.string()),
   })),
   scenarios: z.array(z.object({
     name: z.string(),
-    probability: z.number().min(0).max(1),
+    probability: z.number().min(0).max(1), // Correction: z.number() en z.number().min(0).max(1)
     description: z.string(),
     impact: z.string(),
   })),
   generatedAt: z.string(),
 });
 
+// Schémas Zod pour les graphiques enrichis
+export const AIAnnotationSchema = z.object({
+  position: z.object({
+    x: z.number(),
+    y: z.number(),
+  }),
+  type: z.enum(ANNOTATION_TYPES),
+  title: z.string(),
+  description: z.string(),
+  confidence: z.number().min(0).max(1),
+});
+
+export const InteractiveElementSchema = z.object({
+  trigger: z.enum(INTERACTIVE_TRIGGERS),
+  element: z.string(),
+  action: z.enum(INTERACTIVE_ACTIONS),
+  data: z.unknown(),
+});
+
+export const EnhancedChartSchema = z.object({
+  id: z.string(),
+  type: z.enum(CHART_TYPES),
+  chartData: z.unknown(),
+  aiAnnotations: z.array(AIAnnotationSchema),
+  interactiveElements: z.array(InteractiveElementSchema),
+  generatedAt: z.string(),
+});
+
+export const AIProcessingMetadataSchema = z.object({
+  aiProcessingTime: z.number(),
+  llmProvider: z.string(),
+  modelVersion: z.string(),
+  confidence: z.number().min(0).max(1),
+  lastProcessed: z.string(),
+  tokensUsed: z.number().optional(),
+  estimatedCost: z.number().optional(),
+  fallbackUsed: z.boolean().optional(),
+});
+
+// Extension du VintedAnalysisResult avec les données IA
 export const EnhancedVintedAnalysisResultSchema = VintedAnalysisResultSchema.extend({
   aiInsights: AIInsightsSchema.optional(),
   aiRecommendations: AIRecommendationsSchema.optional(),
   enhancedCharts: z.array(EnhancedChartSchema).optional(),
   anomalies: z.array(AnomalyDetectionSchema).optional(),
   trendPredictions: TrendPredictionSchema.optional(),
-  processingMetadata: z.object({
-    aiProcessingTime: z.number(),
-    llmProvider: z.string(),
-    modelVersion: z.string(),
-    confidence: z.number().min(0).max(1),
-    lastProcessed: z.string(),
-    tokensUsed: z.number().optional(),
-    estimatedCost: z.number().optional(),
-    fallbackUsed: z.boolean().optional(),
-  }),
+  processingMetadata: AIProcessingMetadataSchema, // Correction: Utilisation du schéma Zod pour AIProcessingMetadata
   dataQuality: z.object({
     score: z.number().min(0).max(1),
     issues: z.array(z.string()),
     recommendations: z.array(z.string()),
   }).optional(),
 });
+
+ // Backwards-compatibility aliases expected by legacy imports in lib/services
+ // These map the new canonical names to the legacy identifiers used across the codebase.
+ 
+ export type SoldItem = VintedSoldItem;
+ 
+ export interface Catalog {
+   id: number;
+   name?: string;
+   // allow nested catalogs for compatibility with older code
+   catalogs?: Catalog[];
+ }
+ 
+ export type EnrichedSoldItem = VintedSoldItem & {
+   normalizedData?: {
+     brand?: string | null;
+     model?: string | null;
+     year?: number | null;
+     attributes?: string[];
+   };
+ };
+ 
+ // Legacy alias (non-conflicting) for modules expecting a differently named export
+ export type EnhancedVintedAnalysisResultLegacy = EnhancedVintedAnalysisResult;

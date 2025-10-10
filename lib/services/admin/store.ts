@@ -1,7 +1,13 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { Parcelle, Produit } from "@/types/database"
+import type { Parcelle, Product } from "@/lib/database/schema"
 import type { DashboardConfig } from "@/types/features/dashboard"
+
+// Extended Product type for store operations that includes calculated fields
+interface ExtendedProduct extends Omit<Product, 'coutLivraison'> {
+  benefices?: number | null;
+  coutLivraison?: number | null;
+}
 // Simple logger disabled
 // import { Logger } from "@/lib/utils/simple-logger.js"
 import { calculerBenefices, calculPrixLivraison } from "@/lib/utils/formatting/calculations" // Import des fonctions utilitaires
@@ -62,9 +68,9 @@ const defaultDashboardConfig: DashboardConfig = {
 
 interface StoreState {
   parcelles: Parcelle[]
-  produits: Produit[]
+  produits: ExtendedProduct[]
   dashboardConfig: DashboardConfig
-  notifications: { id: string; type: "success" | "error" | "warning" | "info"; message: string }[]
+    notifications: { id: string; type: "success" | "error" | "warning" | "info"; message: string; timestamp?: string }[]
 
   // Actions
   initializeStore: () => void
@@ -76,10 +82,10 @@ interface StoreState {
 
   // Produits
   addProduit: (
-    produit: Omit<Produit, "id" | "createdAt" | "updatedAt" | "prixLivraison" | "benefices" | "pourcentageBenefice">,
+    produit: Omit<ExtendedProduct, "id" | "createdAt" | "updatedAt">,
   ) => void
-  updateProduit: (id: string, data: Partial<Produit>) => void
-  updateProduitVente: (id: string, data: Partial<Produit>) => void
+  updateProduit: (id: string, data: Partial<ExtendedProduct>) => void
+  updateProduitVente: (id: string, data: Partial<ExtendedProduct>) => void
   deleteProduit: (id: string) => void
 
   // Dashboard
@@ -90,8 +96,8 @@ interface StoreState {
   clearNotification: (id: string) => void
 
   // Import/Export
-  importData: (data: any) => void
-  exportData: () => { parcelles: Parcelle[]; produits: Produit[]; dashboardConfig: DashboardConfig }
+  importData: (data: { parcelles?: Parcelle[]; produits?: ExtendedProduct[]; dashboardConfig?: DashboardConfig }) => void
+  exportData: () => { parcelles: Parcelle[]; produits: ExtendedProduct[]; dashboardConfig: DashboardConfig }
 
   syncWithDatabase: () => Promise<boolean>
   loadFromDatabase: () => Promise<boolean>
@@ -111,7 +117,9 @@ export const useStore = create<StoreState>()(
 
       // Parcelles
       addParcelle: (parcelle) => {
-        const prixParGramme = parcelle.poids > 0 ? parcelle.prixTotal / parcelle.poids : 0
+        const prixParGramme = (parcelle.poids && parcelle.prixTotal && parcelle.poids > 0) 
+          ? parcelle.prixTotal / parcelle.poids 
+          : 0
 
         const newParcelle: Parcelle = {
           ...parcelle,
@@ -141,7 +149,7 @@ export const useStore = create<StoreState>()(
           const prixTotal = data.prixTotal ?? currentParcelle.prixTotal
           const poids = data.poids ?? currentParcelle.poids
 
-          const prixParGramme = poids > 0 ? prixTotal / poids : 0
+          const prixParGramme = (poids && prixTotal && poids > 0) ? prixTotal / poids : 0
 
           updateData = {
             ...data,
@@ -165,15 +173,18 @@ export const useStore = create<StoreState>()(
           produitsAMettreAJour.forEach((produit) => {
             const prixLivraison = calculPrixLivraison(produit.poids, parcelles, id)
 
-            const { benefices, pourcentageBenefice } = calculerBenefices({
-              ...produit,
-              prixLivraison,
+            const { benefices } = calculerBenefices({
+              id: produit.id,
+              vendu: produit.vendu,
+              prixVente: null,
+              price: produit.price,
+              coutLivraison: prixLivraison,
             })
 
             get().updateProduit(produit.id, {
-              prixLivraison,
+              coutLivraison: prixLivraison,
               benefices,
-              pourcentageBenefice,
+              // pourcentageBenefice not available in Product interface
             })
           })
         }
@@ -196,32 +207,50 @@ export const useStore = create<StoreState>()(
       addProduit: (produit) => {
         const { parcelles } = get()
         const parcelleAssociee = parcelles.find((p) => p.id === produit.parcelleId)
-        const prixLivraison = parcelleAssociee ? calculPrixLivraison(produit.poids, parcelles, produit.parcelleId) : 0
+        const prixLivraison = parcelleAssociee && produit.parcelleId ? calculPrixLivraison(produit.poids, parcelles, produit.parcelleId) : 0
 
-        const { benefices, pourcentageBenefice } = calculerBenefices({
-          ...produit,
-          prixLivraison,
+        const { benefices } = calculerBenefices({
+          id: crypto.randomUUID(),
+          vendu: produit.vendu || "0",
+          prixVente: null,
+          price: produit.price,
+          coutLivraison: prixLivraison,
         })
 
-        const newProduit: Produit = {
+        const newProduit: ExtendedProduct = {
           id: crypto.randomUUID(),
-          userId: produit.userId || '', // Add userId field
-          commandeId: produit.commandeId,
-          nom: produit.nom,
-          details: produit.details,
-          prixArticle: produit.prixArticle,
-          poids: produit.poids,
-          parcelleId: produit.parcelleId,
-          vendu: produit.vendu,
-          prixLivraison,
+          userId: produit.userId || '',
+          name: produit.name || '',
+          brand: produit.brand || null,
+          category: produit.category || null,
+          subcategory: produit.subcategory || null,
+          size: produit.size || null,
+          color: produit.color || null,
+          poids: produit.poids || 0,
+          price: produit.price || 0,
+          currency: 'EUR',
+          parcelleId: produit.parcelleId ?? null,
+          sellingPrice: produit.sellingPrice || null,
+          prixVente: produit.prixVente || null,
+          plateforme: produit.plateforme || null,
+          vintedItemId: produit.vintedItemId || null,
+          externalId: produit.externalId || null,
+          url: produit.url || null,
+          photoUrl: produit.photoUrl || null,
+          vendu: produit.vendu || "0",
+          status: 'draft' as const,
+          dateMiseEnLigne: produit.dateMiseEnLigne || null,
+          listedAt: produit.listedAt || null,
+          dateVente: produit.dateVente || null,
+          soldAt: produit.soldAt || null,
+          coutLivraison: prixLivraison,
           benefices,
-          pourcentageBenefice,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }
         
         set((state) => ({ produits: [...state.produits, newProduit] }))
-        get().addNotification("success", `Le produit ${produit.nom} a été ajouté avec succès.`)
+        get().addNotification("success", `Le produit ${produit.name} a été ajouté avec succès.`)
 
         // Synchroniser avec la base de données
         get().syncWithDatabase()
@@ -235,37 +264,36 @@ export const useStore = create<StoreState>()(
 
         let updateData = { ...data }
 
-        // Recalculer prixLivraison, benefices et pourcentageBenefice si des champs pertinents changent
+        // Recalculer coutLivraison, benefices si des champs pertinents changent
         if (
           data.poids !== undefined ||
           data.parcelleId !== undefined ||
-          data.prixArticle !== undefined ||
+          data.price !== undefined ||
           data.prixVente !== undefined ||
           data.vendu !== undefined
         ) {
           const parcelleId = data.parcelleId ?? currentProduit.parcelleId
           const poids = data.poids ?? currentProduit.poids
-          const prixArticle = data.prixArticle ?? currentProduit.prixArticle
+          const price = data.price ?? currentProduit.price
           const prixVente = data.prixVente ?? currentProduit.prixVente
           const vendu = data.vendu ?? currentProduit.vendu
 
           const parcelleAssociee = parcelles.find((p) => p.id === parcelleId)
-          const prixLivraison = parcelleAssociee ? calculPrixLivraison(poids, parcelles, parcelleId) : 0
+          const coutLivraison = parcelleAssociee && parcelleId ? calculPrixLivraison(poids, parcelles, parcelleId) : 0
 
-          const { benefices, pourcentageBenefice } = calculerBenefices({
+          const { benefices } = calculerBenefices({
             ...currentProduit,
             ...data,
-            prixLivraison,
-            prixArticle,
+            coutLivraison,
+            price,
             prixVente,
-            vendu,
+            vendu: typeof vendu === 'boolean' ? (vendu ? '1' : '0') : vendu,
           })
 
           updateData = {
             ...data,
-            prixLivraison,
-            benefices,
-            pourcentageBenefice,
+            coutLivraison,
+            benefices: benefices ?? null,
           }
         }
 
@@ -293,10 +321,15 @@ export const useStore = create<StoreState>()(
           updatedAt: new Date().toISOString(),
         }
 
-        const { benefices, pourcentageBenefice } = calculerBenefices(updatedProduit)
+        const { benefices } = calculerBenefices({
+          id: updatedProduit.id,
+          vendu: updatedProduit.vendu,
+          prixVente: null,
+          price: updatedProduit.price,
+          coutLivraison: updatedProduit.coutLivraison ?? null,
+        })
 
-        updatedProduit.benefices = benefices
-        updatedProduit.pourcentageBenefice = pourcentageBenefice
+        updatedProduit.benefices = benefices ?? null
 
         set((state) => ({
           produits: state.produits.map((p) => (p.id === id ? updatedProduit : p)),
@@ -324,11 +357,12 @@ export const useStore = create<StoreState>()(
       },
 
       // Notifications
-      addNotification: (type, message) => {
+      addNotification: (type: string, message: string) => {
         const newNotification = {
           id: crypto.randomUUID(),
-          type,
+          type: type as "success" | "error" | "warning" | "info",
           message,
+          timestamp: new Date().toISOString(),
         }
         set((state) => ({
           notifications: [newNotification, ...state.notifications.slice(0, 9)],
@@ -347,7 +381,7 @@ export const useStore = create<StoreState>()(
       },
 
       // Import/Export
-      importData: (data) => {
+      importData: (data: { parcelles?: Parcelle[]; produits?: ExtendedProduct[]; dashboardConfig?: DashboardConfig }) => {
         // Fonctionnalité temporairement désactivée
         logger.warn("Tentative d'utilisation de la fonctionnalité d'importation désactivée.", { data })
         get().addNotification("warning", "La fonctionnalité d'importation est temporairement désactivée.")
@@ -369,12 +403,12 @@ export const useStore = create<StoreState>()(
       // Améliorer la synchronisation avec la base de données
       syncWithDatabase: async () => {
         // Empêcher les synchronisations concurrentes en utilisant un verrou interne (_syncInProgress)
-        const storeAny: any = get() as any
-        if (storeAny._syncInProgress) {
+        const storeState = get() as StoreState & { _syncInProgress?: boolean; _syncPromise?: Promise<boolean> }
+        if (storeState._syncInProgress) {
           logger.info("Synchronisation déjà en cours, attente de la première requête")
-          return storeAny._syncPromise || false
+          return storeState._syncPromise || false
         }
-        storeAny._syncInProgress = true
+        storeState._syncInProgress = true
 
         const syncPromise = (async () => {
           try {
@@ -411,12 +445,12 @@ export const useStore = create<StoreState>()(
             return false
           } finally {
             // Libérer le verrou et supprimer la promesse interne
-            storeAny._syncInProgress = false
-            try { delete storeAny._syncPromise } catch { /* ignore */ }
+            storeState._syncInProgress = false
+            try { delete storeState._syncPromise } catch { /* ignore */ }
           }
         })()
 
-        storeAny._syncPromise = syncPromise
+        storeState._syncPromise = syncPromise
         return syncPromise
       },
 
@@ -444,7 +478,7 @@ export const useStore = create<StoreState>()(
             }
             set({
               parcelles: result.data.parcelles.filter((p: Parcelle) => p.id),
-              produits: result.data.produits.filter((p: Produit) => p.id),
+              produits: result.data.produits.filter((p: Product) => p.id),
             })
             return true;
           } else {

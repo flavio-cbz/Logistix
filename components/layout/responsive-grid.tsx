@@ -1,189 +1,187 @@
-"use client"
+"use client";
 
-import React from "react"
-import { cn } from "@/lib/utils"
-import { useMobileNavigation } from "@/lib/hooks/use-mobile-navigation"
+import React from "react";
+import { cn } from "@/lib/utils";
+import { useMobileNavigation } from "@/lib/hooks/use-mobile-navigation";
 
 interface ResponsiveGridProps {
-  children: React.ReactNode
-  className?: string
-  variant?: 'dashboard' | 'cards' | 'list' | 'gallery'
-  minItemWidth?: number
-  gap?: 'sm' | 'md' | 'lg'
+  children: React.ReactNode;
+  className?: string;
+  variant?: "dashboard" | "cards" | "list" | "gallery";
+  minItemWidth?: number;
+  gap?: "sm" | "md" | "lg";
 }
 
 export function ResponsiveGrid({
   children,
   className,
-  variant = 'dashboard',
+  variant = "dashboard",
   minItemWidth = 280,
-  gap = 'md'
+  gap = "md",
 }: ResponsiveGridProps) {
-  const { isMobile, isTablet, deviceType } = useMobileNavigation()
+  const { isMobile, isTablet } = useMobileNavigation();
 
   const getGridClasses = () => {
     const gapClasses = {
-      sm: 'gap-2',
-      md: 'gap-4',
-      lg: 'gap-6'
-    }
+      sm: "gap-2",
+      md: "gap-4",
+      lg: "gap-6",
+    };
 
-    const baseClasses = `grid ${gapClasses[gap]}`
+    const baseClasses = `grid ${gapClasses[gap]!}`;
 
     switch (variant) {
-      case 'dashboard':
+      case "dashboard":
         if (isMobile) {
-          return `${baseClasses} grid-cols-1`
+          return `${baseClasses} grid-cols-1`;
         } else if (isTablet) {
-          return `${baseClasses} grid-cols-2 lg:grid-cols-3`
+          return `${baseClasses} grid-cols-2 lg:grid-cols-3`;
         } else {
-          return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`
+          return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`;
         }
 
-      case 'cards':
+      case "cards":
         if (isMobile) {
-          return `${baseClasses} grid-cols-1`
+          return `${baseClasses} grid-cols-1`;
         } else if (isTablet) {
-          return `${baseClasses} grid-cols-2`
+          return `${baseClasses} grid-cols-2`;
         } else {
-          return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`
+          return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`;
         }
 
-      case 'list':
+      case "list":
         if (isMobile) {
-          return `${baseClasses} grid-cols-1`
+          return `${baseClasses} grid-cols-1`;
         } else if (isTablet) {
-          return `${baseClasses} grid-cols-1`
+          return `${baseClasses} grid-cols-1`;
         } else {
-          return `${baseClasses} grid-cols-1 lg:grid-cols-2`
+          return `${baseClasses} grid-cols-1 lg:grid-cols-2`;
         }
 
-      case 'gallery':
+      case "gallery":
         if (isMobile) {
-          return `${baseClasses} grid-cols-2`
+          return `${baseClasses} grid-cols-2`;
         } else if (isTablet) {
-          return `${baseClasses} grid-cols-3 lg:grid-cols-4`
+          return `${baseClasses} grid-cols-3 lg:grid-cols-4`;
         } else {
-          return `${baseClasses} grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6`
+          return `${baseClasses} grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6`;
         }
 
       default:
-        return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`
+        return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`;
     }
-  }
+  };
 
   const getAutoFitClasses = () => {
-    if (variant === 'dashboard' && minItemWidth) {
-      return `grid-cols-[repeat(auto-fit,minmax(${minItemWidth}px,1fr))]`
+    if (variant === "dashboard" && minItemWidth) {
+      return `grid-cols-[repeat(auto-fit,minmax(${minItemWidth}px,1fr))]`;
     }
-    return ''
-  }
+    return "";
+  };
 
   return (
     <div
-      className={cn(
-        getGridClasses(),
-        getAutoFitClasses(),
-        className
-      )}
-      style={{
-        '--min-item-width': `${minItemWidth}px`
-      } as React.CSSProperties}
+      className={cn(getGridClasses(), getAutoFitClasses(), className)}
+      style={
+        {
+          "--min-item-width": `${minItemWidth}px`,
+        } as React.CSSProperties
+      }
     >
       {children}
     </div>
-  )
+  );
 }
 
 // Responsive container for different screen sizes
 interface ResponsiveContainerProps {
-  children: React.ReactNode
-  className?: string
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full'
-  padding?: 'none' | 'sm' | 'md' | 'lg'
+  children: React.ReactNode;
+  className?: string;
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
+  padding?: "none" | "sm" | "md" | "lg";
 }
 
 export function ResponsiveContainer({
   children,
   className,
-  maxWidth = 'full',
-  padding = 'md'
+  maxWidth = "full",
+  padding = "md",
 }: ResponsiveContainerProps) {
-  const { isMobile, isTablet } = useMobileNavigation()
+  const { isMobile, isTablet } = useMobileNavigation();
 
   const getMaxWidthClass = () => {
     const maxWidthClasses = {
-      sm: 'max-w-sm',
-      md: 'max-w-md',
-      lg: 'max-w-lg',
-      xl: 'max-w-xl',
-      '2xl': 'max-w-2xl',
-      full: 'max-w-full'
-    }
-    return maxWidthClasses[maxWidth]
-  }
+      sm: "max-w-sm",
+      md: "max-w-md",
+      lg: "max-w-lg",
+      xl: "max-w-xl",
+      "2xl": "max-w-2xl",
+      full: "max-w-full",
+    };
+    return maxWidthClasses[maxWidth]!;
+  };
 
   const getPaddingClass = () => {
-    if (padding === 'none') return ''
-    
+    if (padding === "none") return "";
+
     const paddingClasses = {
-      sm: isMobile ? 'px-2 py-2' : isTablet ? 'px-3 py-3' : 'px-4 py-4',
-      md: isMobile ? 'px-4 py-4' : isTablet ? 'px-6 py-6' : 'px-8 py-8',
-      lg: isMobile ? 'px-6 py-6' : isTablet ? 'px-8 py-8' : 'px-12 py-12'
-    }
-    return paddingClasses[padding]
-  }
+      sm: isMobile ? "px-2 py-2" : isTablet ? "px-3 py-3" : "px-4 py-4",
+      md: isMobile ? "px-4 py-4" : isTablet ? "px-6 py-6" : "px-8 py-8",
+      lg: isMobile ? "px-6 py-6" : isTablet ? "px-8 py-8" : "px-12 py-12",
+    };
+    return paddingClasses[padding]!;
+  };
 
   return (
     <div
       className={cn(
-        'mx-auto w-full',
+        "mx-auto w-full",
         getMaxWidthClass(),
         getPaddingClass(),
-        className
+        className,
       )}
     >
       {children}
     </div>
-  )
+  );
 }
 
-import { EnhancedCard } from "@/components/ui/enhanced-card"
+import { EnhancedCard } from "@/components/ui/enhanced-card";
 
 // Responsive card component optimized for different screen sizes
 interface ResponsiveCardProps {
-  children: React.ReactNode
-  className?: string
-  variant?: 'default' | 'compact' | 'expanded'
-  interactive?: boolean
+  children: React.ReactNode;
+  className?: string;
+  variant?: "default" | "compact" | "expanded";
+  interactive?: boolean;
 }
 
 export function ResponsiveCard({
   children,
   className,
-  variant = 'default',
+  variant = "default",
   interactive = false,
   ...props
 }: ResponsiveCardProps & React.HTMLAttributes<HTMLDivElement>) {
-  const { isMobile, isTablet, getTouchSpacing } = useMobileNavigation()
+  const { isMobile, isTablet } = useMobileNavigation();
 
   const getPaddingClasses = () => {
     const variantClasses = {
-      default: isMobile ? 'p-4' : isTablet ? 'p-5' : 'p-6',
-      compact: isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5',
-      expanded: isMobile ? 'p-6' : isTablet ? 'p-8' : 'p-10'
-    }
-    return variantClasses[variant]
-  }
+      default: isMobile ? "p-4" : isTablet ? "p-5" : "p-6",
+      compact: isMobile ? "p-3" : isTablet ? "p-4" : "p-5",
+      expanded: isMobile ? "p-6" : isTablet ? "p-8" : "p-10",
+    };
+    return variantClasses[variant]!;
+  };
 
   // Map responsive variants to EnhancedCard variants
   const getEnhancedVariant = () => {
-    if (interactive) return 'elevated'
-    return 'default'
-  }
+    if (interactive) return "elevated";
+    return "default";
+  };
 
   return (
-    <EnhancedCard 
+    <EnhancedCard
       variant={getEnhancedVariant()}
       interactive={interactive}
       className={cn(getPaddingClasses(), className)}
@@ -191,81 +189,81 @@ export function ResponsiveCard({
     >
       {children}
     </EnhancedCard>
-  )
+  );
 }
 
 // Responsive typography component
 interface ResponsiveTypographyProps {
-  children: React.ReactNode
-  variant: 'h1' | 'h2' | 'h3' | 'h4' | 'body' | 'caption'
-  className?: string
-  as?: keyof JSX.IntrinsicElements
+  children: React.ReactNode;
+  variant: "h1" | "h2" | "h3" | "h4" | "body" | "caption";
+  className?: string;
+  as?: keyof JSX.IntrinsicElements;
 }
 
 export function ResponsiveTypography({
   children,
   variant,
   className,
-  as
+  as,
 }: ResponsiveTypographyProps) {
-  const { isMobile, isTablet } = useMobileNavigation()
+  const { isMobile, isTablet } = useMobileNavigation();
 
   const getTypographyClasses = () => {
     const variants = {
       h1: {
-        mobile: 'text-2xl font-bold leading-tight',
-        tablet: 'text-3xl font-bold leading-tight',
-        desktop: 'text-4xl font-bold leading-tight'
+        mobile: "text-2xl font-bold leading-tight",
+        tablet: "text-3xl font-bold leading-tight",
+        desktop: "text-4xl font-bold leading-tight",
       },
       h2: {
-        mobile: 'text-xl font-semibold leading-tight',
-        tablet: 'text-2xl font-semibold leading-tight',
-        desktop: 'text-3xl font-semibold leading-tight'
+        mobile: "text-xl font-semibold leading-tight",
+        tablet: "text-2xl font-semibold leading-tight",
+        desktop: "text-3xl font-semibold leading-tight",
       },
       h3: {
-        mobile: 'text-lg font-semibold leading-snug',
-        tablet: 'text-xl font-semibold leading-snug',
-        desktop: 'text-2xl font-semibold leading-snug'
+        mobile: "text-lg font-semibold leading-snug",
+        tablet: "text-xl font-semibold leading-snug",
+        desktop: "text-2xl font-semibold leading-snug",
       },
       h4: {
-        mobile: 'text-base font-medium leading-snug',
-        tablet: 'text-lg font-medium leading-snug',
-        desktop: 'text-xl font-medium leading-snug'
+        mobile: "text-base font-medium leading-snug",
+        tablet: "text-lg font-medium leading-snug",
+        desktop: "text-xl font-medium leading-snug",
       },
       body: {
-        mobile: 'text-sm leading-relaxed',
-        tablet: 'text-base leading-relaxed',
-        desktop: 'text-base leading-relaxed'
+        mobile: "text-sm leading-relaxed",
+        tablet: "text-base leading-relaxed",
+        desktop: "text-base leading-relaxed",
       },
       caption: {
-        mobile: 'text-xs leading-normal',
-        tablet: 'text-sm leading-normal',
-        desktop: 'text-sm leading-normal'
-      }
-    }
+        mobile: "text-xs leading-normal",
+        tablet: "text-sm leading-normal",
+        desktop: "text-sm leading-normal",
+      },
+    };
 
-    if (isMobile) return variants[variant].mobile
-    if (isTablet) return variants[variant].tablet
-    return variants[variant].desktop
-  }
+    if (isMobile) return variants[variant]!!.mobile;
+    if (isTablet) return variants[variant]!!.tablet;
+    return variants[variant]!!.desktop;
+  };
 
   const getDefaultElement = () => {
     const elementMap = {
-      h1: 'h1',
-      h2: 'h2',
-      h3: 'h3',
-      h4: 'h4',
-      body: 'p',
-      caption: 'span'
-    }
-    return elementMap[variant] as keyof JSX.IntrinsicElements
-  }
+      h1: "h1",
+      h2: "h2",
+      h3: "h3",
+      h4: "h4",
+      body: "p",
+      caption: "span",
+    };
+    return elementMap[variant]! as keyof JSX.IntrinsicElements;
+  };
 
-  const Component = as || getDefaultElement()
+  const Component = as || getDefaultElement();
 
   return (
     <Component className={cn(getTypographyClasses(), className)}>
       {children}
     </Component>
-  )
+  );
 }

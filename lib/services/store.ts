@@ -1,53 +1,62 @@
 import { create } from "zustand";
-import { VintedAnalysisResult, MarketAnalysisHistoryItem, MarketAnalysisRequest } from "@/types/vinted-market-analysis";
 
-interface MarketAnalysisStore {
-  currentAnalysis: VintedAnalysisResult | null;
-  historicalData: MarketAnalysisHistoryItem[];
-  isLoading: boolean;
-  error: string | null;
-  tokenConfigured: boolean | null;
+interface MarketAnalysisState {
+  currentAnalysis: any | null;
+  analysisHistory: any[];
+  historicalData: any[];
   pagination: {
     page: number;
-    totalPages: number;
-    hasMore: boolean;
+    limit: number;
+    total: number;
   };
-  setCurrentAnalysis: (analysis: VintedAnalysisResult | null) => void;
-  setHistoricalData: (data: MarketAnalysisHistoryItem[]) => void;
-  setIsLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  setTokenConfigured: (configured: boolean | null) => void;
-  setPagination: (pagination: MarketAnalysisStore["pagination"]) => void;
-  reset: () => void;
+  isLoading: boolean;
+  error: string | null;
 }
 
+interface MarketAnalysisActions {
+  setCurrentAnalysis: (analysis: any) => void;
+  addToHistory: (analysis: any) => void;
+  setHistoricalData: (data: any[]) => void;
+  setPagination: (pagination: {
+    page: number;
+    limit: number;
+    total: number;
+  }) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  clearError: () => void;
+}
+
+type MarketAnalysisStore = MarketAnalysisState & MarketAnalysisActions;
+
 export const useMarketAnalysisStore = create<MarketAnalysisStore>((set) => ({
+  // État initial
   currentAnalysis: null,
+  analysisHistory: [],
   historicalData: [],
-  isLoading: false,
-  error: null,
-  tokenConfigured: null,
   pagination: {
     page: 1,
-    totalPages: 1,
-    hasMore: false,
+    limit: 10,
+    total: 0,
   },
-  setCurrentAnalysis: (analysis) => set({ currentAnalysis: analysis }),
-  setHistoricalData: (data) => set({ historicalData: data }),
-  setIsLoading: (loading) => set({ isLoading: loading }),
-  setError: (error) => set({ error }),
-  setTokenConfigured: (configured) => set({ tokenConfigured: configured }),
-  setPagination: (pagination) => set({ pagination }),
-  reset: () =>
-    set({
-      currentAnalysis: null,
-      historicalData: [],
-      isLoading: false,
-      error: null,
-      tokenConfigured: null,
-      pagination: { page: 1, totalPages: 1, hasMore: false },
-    }),
-}));
+  isLoading: false,
+  error: null,
 
-// Re-export the main store for backward compatibility
-export { useStore } from "@/lib/services/admin/store";
+  // Actions
+  setCurrentAnalysis: (analysis) => set({ currentAnalysis: analysis }),
+
+  addToHistory: (analysis) =>
+    set((state) => ({
+      analysisHistory: [analysis, ...state.analysisHistory].slice(0, 10), // Garder les 10 dernières
+    })),
+
+  setHistoricalData: (data) => set({ historicalData: data }),
+
+  setPagination: (pagination) => set({ pagination }),
+
+  setLoading: (loading) => set({ isLoading: loading }),
+
+  setError: (error) => set({ error }),
+
+  clearError: () => set({ error: null }),
+}));

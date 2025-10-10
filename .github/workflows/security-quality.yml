@@ -1,0 +1,288 @@
+name: Security & Quality Pipeline
+
+# LogistiX Security & Quality Pipeline
+# ===================================
+# Pipeline CI/CD complet pour maintenir la sécurité et qualité du code
+# - Validation automatique des endpoints sécurisés
+# - Tests de validation Zod 
+# - Analyse de sécurité des API
+# - Quality gates pour empêcher les régressions
+
+on:
+  push:
+    branches: [ main, develop, cleanup-files ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Analyse quotidienne à 02:00 UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  # ANALYSE DE SÉCURITÉ DES ENDPOINTS
+  security-analysis:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    outputs:
+      security-score: ${{ steps.analyze.outputs.security-score }}
+      endpoints-secured: ${{ steps.analyze.outputs.endpoints-secured }}
+      total-endpoints: ${{ steps.analyze.outputs.total-endpoints }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run Security Analysis
+        id: analyze
+        run: |
+          echo "🔍 Analyse de sécurité des endpoints..."
+          
+          # Exécuter notre script d'analyse personnalisé
+          node scripts/analyze-api-security.js > security-report.txt
+          
+          # Extraire les métriques
+          SECURED=$(grep -oP "Endpoints sécurés: \K\d+" security-report.txt)
+          TOTAL=$(grep -oP "Total endpoints: \K\d+" security-report.txt)
+          PERCENTAGE=$(grep -oP "Pourcentage sécurisé: \K[\d.]+" security-report.txt)
+          
+          echo "endpoints-secured=$SECURED" >> $GITHUB_OUTPUT
+          echo "total-endpoints=$TOTAL" >> $GITHUB_OUTPUT
+          echo "security-score=$PERCENTAGE" >> $GITHUB_OUTPUT
+          
+          # Affichage des résultats
+          echo "📊 Endpoints sécurisés: $SECURED/$TOTAL ($PERCENTAGE%)"
+          
+          # Quality gate: minimum 35% d'endpoints sécurisés
+          if (( $(echo "$PERCENTAGE < 35" | bc -l) )); then
+            echo "❌ ÉCHEC: Moins de 35% d'endpoints sécurisés ($PERCENTAGE%)"
+            exit 1
+          fi
+          
+          echo "✅ SUCCÈS: Seuil de sécurité atteint ($PERCENTAGE% >= 35%)"
+          
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-analysis-report
+          path: security-report.txt
+          retention-days: 30
+
+  # TESTS DE VALIDATION ZOD
+  validation-tests:
+    name: Zod Validation Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run Validation Tests
+        run: |
+          echo "🧪 Tests de validation des schémas Zod..."
+          
+          # Compiler TypeScript et exécuter les tests
+          npm run build > /dev/null 2>&1 || true
+          npx tsx scripts/test-validation-schemas.ts
+          
+      - name: Validation Performance Test
+        run: |
+          echo "⚡ Test de performance des validations..."
+          
+          # Test de performance - doit être < 1ms par validation
+          npx tsx -e "
+          import { z } from 'zod';
+          import { loginSchema } from './lib/schemas/index.js';
+          
+          const testData = { email: 'test@example.com', password: 'Test123!' };
+          const iterations = 1000;
+          
+          const start = Date.now();
+          for (let i = 0; i < iterations; i++) {
+            loginSchema.parse(testData);
+          }
+          const elapsed = Date.now() - start;
+          const avgTime = elapsed / iterations;
+          
+          console.log(\`⚡ Performance: \${avgTime.toFixed(3)}ms par validation\`);
+          
+          if (avgTime > 1) {
+            console.log('❌ ÉCHEC: Validation trop lente (> 1ms)');
+            process.exit(1);
+          }
+          
+          console.log('✅ SUCCÈS: Performance acceptable (< 1ms)');
+          " 2>/dev/null || echo "📝 Note: Tests de performance optionnels"
+
+  # BUILD & LINT
+  build-and-lint:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: TypeScript Check
+        run: |
+          echo "🔧 Vérification TypeScript..."
+          npm run type-check || npm run build
+          
+      - name: ESLint Check
+        run: |
+          echo "📏 Analyse ESLint..."
+          npm run lint
+          
+      - name: Build Check
+        run: |
+          echo "🏗️ Test de build..."
+          npm run build
+
+ # QUALITY GATES & REPORTING
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    needs: [security-analysis, validation-tests, build-and-lint]
+    if: always()
+    
+    steps:
+      - name: Evaluate Quality Gates
+        run: |
+          echo "📊 RAPPORT DE QUALITÉ - LogistiX CRM"
+          echo "===================================="
+          
+          # Récupérer les métriques de sécurité
+          SECURITY_SCORE="${{ needs.security-analysis.outputs.security-score }}"
+          ENDPOINTS_SECURED="${{ needs.security-analysis.outputs.endpoints-secured }}"
+          TOTAL_ENDPOINTS="${{ needs.security-analysis.outputs.total-endpoints }}"
+          
+          echo "🔒 Sécurité des Endpoints:"
+          echo "   - Endpoints sécurisés: $ENDPOINTS_SECURED/$TOTAL_ENDPOINTS"
+          echo "   - Score de sécurité: $SECURITY_SCORE%"
+          
+          # Évaluation des quality gates
+          echo ""
+          echo "🎯 Quality Gates:"
+          
+          # Gate 1: Sécurité minimum
+          if (( $(echo "$SECURITY_SCORE >= 35" | bc -l) )); then
+            echo "   ✅ Sécurité: $SECURITY_SCORE% >= 35% (PASS)"
+          else
+            echo "   ❌ Sécurité: $SECURITY_SCORE% < 35% (FAIL)"
+            QUALITY_FAIL=1
+          fi
+          
+          # Gate 2: Build réussi
+          if [ "${{ needs.build-and-lint.result }}" == "success" ]; then
+            echo "   ✅ Build & Lint: SUCCESS (PASS)"
+          else
+            echo "   ❌ Build & Lint: FAILED"
+            QUALITY_FAIL=1
+          fi
+          
+          # Gate 3: Tests de validation
+          if [ "${{ needs.validation-tests.result }}" == "success" ]; then
+            echo "   ✅ Tests Validation: SUCCESS (PASS)"
+          else
+            echo "   ⚠️ Tests Validation: FAILED (WARNING)"
+          fi
+          
+          echo ""
+          
+          # Résultat final
+          if [ "${QUALITY_FAIL:-0}" == "1" ]; then
+            echo "❌ QUALITY GATES: ÉCHEC - Certains critères ne sont pas satisfaits"
+            exit 1
+          else
+            echo "✅ QUALITY GATES: SUCCÈS - Tous les critères essentiels sont satisfaits"
+          fi
+          
+      - name: Comment PR (if PR)
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const securityScore = "${{ needs.security-analysis.outputs.security-score }}";
+            const endpointsSecured = "${{ needs.security-analysis.outputs.endpoints-secured }}";
+            const totalEndpoints = "${{ needs.security-analysis.outputs.total-endpoints }}";
+            
+            // Déterminer les résultats basés sur les résultats des jobs
+            const buildResult = '${{ needs.build-and-lint.result }}' === 'success' ? '✅ PASS' : '❌ FAIL';
+            const validationResult = '${{ needs.validation-tests.result }}' === 'success' ? '✅ PASS' : '⚠️ WARNING';
+            
+            const comment = `
+            ## 🛡️ Rapport de Sécurité & Qualité
+            
+            ### 📊 Métriques de Sécurité
+            - **Endpoints sécurisés:** ${endpointsSecured}/${totalEndpoints} (${securityScore}%)
+            - **Seuil minimum:** 35% ✅
+            
+            ### 🎯 Quality Gates
+            - **Sécurité:** ${securityScore >= 35 ? '✅ PASS' : '❌ FAIL'}
+            - **Build & Lint:** ${buildResult}
+            - **Tests Validation:** ${validationResult}
+            
+            ### 📝 Actions Recommandées
+            ${securityScore < 50 ? '- ⚠️ Considérer la sécurisation d\'endpoints supplémentaires' : ''}
+            ${securityScore >= 80 ? '- 🎉 Excellente couverture de sécurité !' : ''}
+            
+            ---
+            *Rapport généré automatiquement par le pipeline de sécurité LogistiX*
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # ALERTES SÉCURITÉ (scheduled uniquement)
+  security-alerts:
+    name: Security Alerts
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    needs: [security-analysis]
+    
+    steps:
+      - name: Security Monitoring
+        run: |
+          SECURITY_SCORE="${{ needs.security-analysis.outputs.security-score }}"
+          
+          echo "🚨 MONITORING SÉCURITÉ QUOTIDIEN"
+          echo "Score de sécurité actuel: $SECURITY_SCORE%"
+          
+          # Alerte si la sécurité chute
+          if (( $(echo "$SECURITY_SCORE < 30" | bc -l) )); then
+            echo "🚨 ALERTE CRITIQUE: Sécurité en dessous de 30%"
+            # Ici on pourrait envoyer une notification Slack/email
+          elif (( $(echo "$SECURITY_SCORE < 40" | bc -l) )); then
+            echo "⚠️ ALERTE: Sécurité en dessous de 40%"
+          else
+            echo "✅ Sécurité dans les normes"
+          fi

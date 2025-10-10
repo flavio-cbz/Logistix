@@ -3,10 +3,14 @@
  * Remplace les variables d'environnement par une configuration dynamique
  */
 
+import { databaseService } from "@/lib/services/database/db";
+
+// Déclaration pour étendre l'interface ProcessEnv et inclure les variables d'environnement personnalisées
+
 export interface AISettings {
   // Configuration générale
   enabled: boolean;
-  
+
   // Configuration des insights
   insights: {
     enabled: boolean;
@@ -15,95 +19,95 @@ export interface AISettings {
     model: string;
     temperature: number;
   };
-  
+
   // Configuration des recommandations
   recommendations: {
     enabled: boolean;
     maxRetries: number;
     timeout: number;
   };
-  
+
   // Configuration de la qualité
   quality: {
     minDataPoints: number;
     minConfidence: number;
     maxProcessingTime: number;
   };
-  
+
   // Configuration du cache (en mémoire)
   caching: {
     enabled: boolean;
     ttl: number; // en secondes
     maxSize: number;
   };
-  
+
   // Configuration du fallback
   fallback: {
     enabled: boolean;
     timeout: number;
   };
-  
+
   // Configuration des coûts
   costs: {
     maxTokensPerRequest: number;
     maxCostPerRequest: number;
     dailyTokenLimit: number;
   };
-  
+
   // Configuration OpenAI
   openai: {
     apiKey: string;
-    baseURL?: string;
-    organization?: string;
+    baseURL: string | undefined;
+    organization: string | undefined;
   };
 }
 
 // Configuration par défaut
 export const DEFAULT_AI_SETTINGS: AISettings = {
   enabled: true,
-  
+
   insights: {
     enabled: true,
     maxRetries: 3,
     timeout: 30000,
-    model: 'gpt-4',
-    temperature: 0.3
+    model: "gpt-4",
+    temperature: 0.3,
   },
-  
+
   recommendations: {
     enabled: true,
     maxRetries: 2,
-    timeout: 25000
+    timeout: 25000,
   },
-  
+
   quality: {
     minDataPoints: 5,
     minConfidence: 0.6,
-    maxProcessingTime: 30000
+    maxProcessingTime: 30000,
   },
-  
+
   caching: {
     enabled: true,
     ttl: 3600, // 1 heure
-    maxSize: 1000
+    maxSize: 1000,
   },
-  
+
   fallback: {
     enabled: true,
-    timeout: 5000
+    timeout: 5000,
   },
-  
+
   costs: {
     maxTokensPerRequest: 3000,
     maxCostPerRequest: 0.15,
-    dailyTokenLimit: 100000
+    dailyTokenLimit: 100000,
   },
-  
+
   openai: {
-    apiKey: process.env.OPENAI_API_KEY || '',
-    baseURL: process.env.OPENAI_BASE_URL,
-    organization: process.env.OPENAI_ORGANIZATION
-  }
+    apiKey: process.env.OPENAI_API_KEY || "",
+    baseURL: process.env.OPENAI_BASE_URL || undefined,
+    organization: process.env.OPENAI_ORGANIZATION || undefined,
+  },
 };
 
 // Cache en mémoire pour les paramètres
@@ -145,12 +149,15 @@ export class AISettingsManager {
       ...newSettings,
       // Merge nested objects
       insights: { ...this.settings.insights, ...newSettings.insights },
-      recommendations: { ...this.settings.recommendations, ...newSettings.recommendations },
+      recommendations: {
+        ...this.settings.recommendations,
+        ...newSettings.recommendations,
+      },
       quality: { ...this.settings.quality, ...newSettings.quality },
       caching: { ...this.settings.caching, ...newSettings.caching },
       fallback: { ...this.settings.fallback, ...newSettings.fallback },
       costs: { ...this.settings.costs, ...newSettings.costs },
-      openai: { ...this.settings.openai, ...newSettings.openai }
+      openai: { ...this.settings.openai, ...newSettings.openai },
     };
 
     // Valider les paramètres
@@ -199,30 +206,41 @@ export class AISettingsManager {
 
     // Validation des timeouts
     if (settings.insights.timeout < 5000 || settings.insights.timeout > 60000) {
-      errors.push('Le timeout des insights doit être entre 5 et 60 secondes');
+      errors.push("Le timeout des insights doit être entre 5 et 60 secondes");
     }
 
-    if (settings.recommendations.timeout < 5000 || settings.recommendations.timeout > 45000) {
-      errors.push('Le timeout des recommandations doit être entre 5 et 45 secondes');
+    if (
+      settings.recommendations.timeout < 5000 ||
+      settings.recommendations.timeout > 45000
+    ) {
+      errors.push(
+        "Le timeout des recommandations doit être entre 5 et 45 secondes",
+      );
     }
 
     // Validation de la température
-    if (settings.insights.temperature < 0 || settings.insights.temperature > 2) {
-      errors.push('La température doit être entre 0 et 2');
+    if (
+      settings.insights.temperature < 0 ||
+      settings.insights.temperature > 2
+    ) {
+      errors.push("La température doit être entre 0 et 2");
     }
 
     // Validation des coûts
-    if (settings.costs.maxCostPerRequest < 0.01 || settings.costs.maxCostPerRequest > 1.0) {
-      errors.push('Le coût maximum par requête doit être entre 0.01 et 1.0');
+    if (
+      settings.costs.maxCostPerRequest < 0.01 ||
+      settings.costs.maxCostPerRequest > 1.0
+    ) {
+      errors.push("Le coût maximum par requête doit être entre 0.01 et 1.0");
     }
 
     // Validation de la clé API
     if (settings.enabled && !settings.openai.apiKey) {
-      errors.push('La clé API OpenAI est requise quand l\'IA est activée');
+      errors.push("La clé API OpenAI est requise quand l'IA est activée");
     }
 
     if (errors.length > 0) {
-      throw new Error(`Erreurs de validation: ${errors.join(', ')}`);
+      throw new Error(`Erreurs de validation: ${errors.join(", ")}`);
     }
   }
 
@@ -231,27 +249,35 @@ export class AISettingsManager {
    */
   private async loadFromDatabase(): Promise<void> {
     try {
-      const { db } = await import('@/lib/services/database/drizzle-client');
-      
-      // Créer la table si elle n'existe pas
-      await db.execute(`
+      // Utiliser le service de base de données centralisé (compatibilité API)
+      const dbService = databaseService;
+
+      // Créer la table si elle n'existe pas (stockage JSON dans TEXT pour SQLite)
+      await dbService.execute(`
         CREATE TABLE IF NOT EXISTS ai_settings (
           id INTEGER PRIMARY KEY DEFAULT 1,
-          settings JSONB NOT NULL,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          settings TEXT NOT NULL,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
           CONSTRAINT single_row CHECK (id = 1)
         );
       `);
 
-      const result = await db.execute('SELECT settings FROM ai_settings WHERE id = 1');
-      
-      if (result.rows && result.rows.length > 0) {
-        const savedSettings = result.rows[0].settings as AISettings;
+      const result = await dbService.queryOne<{ settings: string }>(
+        "SELECT settings FROM ai_settings WHERE id = 1",
+      );
+
+      if (result && (result as any).settings) {
+        const savedSettings = JSON.parse(
+          (result as any).settings,
+        ) as AISettings;
         this.settings = { ...DEFAULT_AI_SETTINGS, ...savedSettings };
         currentSettings = { ...this.settings };
       }
     } catch (error) {
-      console.warn('Impossible de charger les paramètres AI depuis la base:', error);
+      console.warn(
+        "Impossible de charger les paramètres AI depuis la base:",
+        error,
+      );
       // Utiliser les paramètres par défaut
     }
   }
@@ -261,17 +287,20 @@ export class AISettingsManager {
    */
   private async saveToDatabase(settings: AISettings): Promise<void> {
     try {
-      const { db } = await import('@/lib/services/database/drizzle-client');
-      
-      await db.execute(`
+      const dbService = databaseService;
+
+      await dbService.execute(
+        `
         INSERT INTO ai_settings (id, settings, updated_at) 
         VALUES (1, $1, CURRENT_TIMESTAMP)
         ON CONFLICT (id) 
         DO UPDATE SET settings = $1, updated_at = CURRENT_TIMESTAMP
-      `, [JSON.stringify(settings)]);
+      `,
+        [JSON.stringify(settings)],
+      );
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde des paramètres AI:', error);
-      throw new Error('Impossible de sauvegarder les paramètres');
+      console.error("Erreur lors de la sauvegarde des paramètres AI:", error);
+      throw new Error("Impossible de sauvegarder les paramètres");
     }
   }
 
@@ -279,11 +308,11 @@ export class AISettingsManager {
    * Notifier les listeners des changements
    */
   private notifyListeners(): void {
-    this.listeners.forEach(listener => {
+    this.listeners.forEach((listener) => {
       try {
         listener(this.settings);
       } catch (error) {
-        console.error('Erreur dans un listener de configuration AI:', error);
+        console.error("Erreur dans un listener de configuration AI:", error);
       }
     });
   }
@@ -306,6 +335,8 @@ export function isAIEnabled(): boolean {
 /**
  * Fonction utilitaire pour vérifier si un service spécifique est activé
  */
-export function isServiceEnabled(service: 'insights' | 'recommendations'): boolean {
-  return isAIEnabled() && currentSettings[service].enabled;
+export function isServiceEnabled(
+  service: "insights" | "recommendations",
+): boolean {
+  return isAIEnabled() && (currentSettings as any)[service].enabled;
 }

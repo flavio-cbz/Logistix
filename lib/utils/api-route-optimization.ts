@@ -1,18 +1,19 @@
-import 'server-only';
-import { NextRequest, NextResponse } from 'next/server';
-import { 
-  withDatabaseInitialization, 
-  getExecutionContext, 
+import "server-only";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import {
+  withDatabaseInitialization,
+  getExecutionContext,
   requiresDatabaseInitialization,
   ExecutionContext,
-  type DatabaseInitializationOptions 
-} from '@/lib/middlewares/database-initialization';
-import { databaseService } from '@/lib/services/database/db';
+  // type DatabaseInitializationOptions
+} from "@/lib/middlewares/database-initialization";
+import { databaseService } from "@/lib/services/database/db";
 
 // Logger pour l'optimisation des routes API
-import { getLogger } from '@/lib/utils/logging/simple-logger';
+import { getLogger } from "@/lib/utils/logging/simple-logger";
 
-const logger = getLogger('APIOptimization');
+const logger = getLogger("APIOptimization");
 
 /**
  * Configuration pour l'optimisation des routes API
@@ -48,7 +49,7 @@ const MAX_METRICS_CACHE = 100;
  */
 function addPerformanceMetric(metric: ApiPerformanceMetrics): void {
   performanceMetrics.push(metric);
-  
+
   // Maintenir la taille du cache
   if (performanceMetrics.length > MAX_METRICS_CACHE) {
     performanceMetrics.shift();
@@ -58,7 +59,9 @@ function addPerformanceMetric(metric: ApiPerformanceMetrics): void {
 /**
  * Récupère les métriques de performance récentes
  */
-export function getRecentPerformanceMetrics(limit: number = 50): ApiPerformanceMetrics[] {
+export function getRecentPerformanceMetrics(
+  limit: number = 50,
+): ApiPerformanceMetrics[] {
   return performanceMetrics.slice(-limit);
 }
 
@@ -67,49 +70,46 @@ export function getRecentPerformanceMetrics(limit: number = 50): ApiPerformanceM
  */
 export function optimizedApiGet(
   handler: (request: NextRequest) => Promise<NextResponse>,
-  config: ApiRouteConfig = {}
+  config: ApiRouteConfig = {},
 ) {
-  return async function optimizedGetHandler(request: NextRequest): Promise<NextResponse> {
+  return async function optimizedGetHandler(
+    request: NextRequest,
+  ): Promise<NextResponse> {
     const startTime = Date.now();
     const pathname = request.nextUrl.pathname;
     const context = getExecutionContext();
-    
+
     const {
       requiresDatabase = requiresDatabaseInitialization(pathname),
       skipInitializationCheck = false,
       enableHealthCheck = true,
       logPerformance = true,
-      cacheHeaders = false
+      cacheHeaders = false,
     } = config;
 
     try {
-
       // Vérification de santé de la base de données si nécessaire
       if (requiresDatabase && enableHealthCheck && !skipInitializationCheck) {
         const isHealthy = await databaseService.healthCheck();
         if (!isHealthy) {
-          logger.warn('Database health check failed', { pathname });
+          logger.warn("Database health check failed", { pathname });
           return NextResponse.json(
-            { error: 'Database temporarily unavailable' },
-            { status: 503 }
+            { error: "Database temporarily unavailable" },
+            { status: 503 },
           );
         }
       }
 
       // Exécuter le handler avec initialisation conditionnelle
-      const response = await withDatabaseInitialization(
-        () => handler(request),
-        {
-          skipInitialization: !requiresDatabase || skipInitializationCheck,
-          context,
-          logInitialization: requiresDatabase
-        }
-      );
+      const response = await withDatabaseInitialization(() => handler(request));
 
       // Ajouter des headers de cache si configuré
       if (cacheHeaders && response.status === 200) {
-        response.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
-        response.headers.set('X-Database-Context', context);
+        response.headers.set(
+          "Cache-Control",
+          "public, max-age=300, stale-while-revalidate=60",
+        );
+        response.headers.set("X-Database-Context", context);
       }
 
       // Log des métriques de performance
@@ -117,40 +117,39 @@ export function optimizedApiGet(
         const executionTime = Date.now() - startTime;
         addPerformanceMetric({
           routePath: pathname,
-          method: 'GET',
+          method: "GET",
           executionTime,
-          databaseInitialized: databaseService.getInitializationState() === 'completed',
+          databaseInitialized:
+            databaseService.getInitializationState() === "completed",
           context,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
-
       }
 
       return response;
-
     } catch (error) {
       const executionTime = Date.now() - startTime;
-      logger.error('GET request failed', {
+      logger.error("GET request failed", {
         pathname,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        executionTime: `${executionTime}ms`
+        error: error instanceof Error ? error.message : "Unknown error",
+        executionTime: `${executionTime}ms`,
       });
 
       // Log de l'erreur dans les métriques
       if (logPerformance) {
         addPerformanceMetric({
           routePath: pathname,
-          method: 'GET',
+          method: "GET",
           executionTime,
           databaseInitialized: false,
           context,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
 
       return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
+        { error: "Internal server error" },
+        { status: 500 },
       );
     }
   };
@@ -161,83 +160,76 @@ export function optimizedApiGet(
  */
 export function optimizedApiPost(
   handler: (request: NextRequest) => Promise<NextResponse>,
-  config: ApiRouteConfig = {}
+  config: ApiRouteConfig = {},
 ) {
-  return async function optimizedPostHandler(request: NextRequest): Promise<NextResponse> {
+  return async function optimizedPostHandler(
+    request: NextRequest,
+  ): Promise<NextResponse> {
     const startTime = Date.now();
     const pathname = request.nextUrl.pathname;
     const context = getExecutionContext();
-    
+
     const {
       requiresDatabase = requiresDatabaseInitialization(pathname),
       skipInitializationCheck = false,
       enableHealthCheck = true,
-      logPerformance = true
+      logPerformance = true,
     } = config;
 
     try {
-
       // Vérification de santé de la base de données si nécessaire
       if (requiresDatabase && enableHealthCheck && !skipInitializationCheck) {
         const isHealthy = await databaseService.healthCheck();
         if (!isHealthy) {
-          logger.warn('Database health check failed for POST', { pathname });
+          logger.warn("Database health check failed for POST", { pathname });
           return NextResponse.json(
-            { error: 'Database temporarily unavailable' },
-            { status: 503 }
+            { error: "Database temporarily unavailable" },
+            { status: 503 },
           );
         }
       }
 
       // Exécuter le handler avec initialisation conditionnelle
-      const response = await withDatabaseInitialization(
-        () => handler(request),
-        {
-          skipInitialization: !requiresDatabase || skipInitializationCheck,
-          context,
-          logInitialization: requiresDatabase
-        }
-      );
+      const response = await withDatabaseInitialization(() => handler(request));
 
       // Log des métriques de performance
       if (logPerformance) {
         const executionTime = Date.now() - startTime;
         addPerformanceMetric({
           routePath: pathname,
-          method: 'POST',
+          method: "POST",
           executionTime,
-          databaseInitialized: databaseService.getInitializationState() === 'completed',
+          databaseInitialized:
+            databaseService.getInitializationState() === "completed",
           context,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
-
       }
 
       return response;
-
     } catch (error) {
       const executionTime = Date.now() - startTime;
-      logger.error('POST request failed', {
+      logger.error("POST request failed", {
         pathname,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        executionTime: `${executionTime}ms`
+        error: error instanceof Error ? error.message : "Unknown error",
+        executionTime: `${executionTime}ms`,
       });
 
       // Log de l'erreur dans les métriques
       if (logPerformance) {
         addPerformanceMetric({
           routePath: pathname,
-          method: 'POST',
+          method: "POST",
           executionTime,
           databaseInitialized: false,
           context,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
 
       return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
+        { error: "Internal server error" },
+        { status: 500 },
       );
     }
   };
@@ -253,7 +245,7 @@ export function optimizedApiHandler(
     PUT?: (request: NextRequest) => Promise<NextResponse>;
     DELETE?: (request: NextRequest) => Promise<NextResponse>;
   },
-  config: ApiRouteConfig = {}
+  config: ApiRouteConfig = {},
 ) {
   const optimizedHandlers: any = {};
 
@@ -281,18 +273,18 @@ export function optimizedApiHandler(
  */
 export function shouldOptimizeForBuild(pathname: string): boolean {
   const context = getExecutionContext();
-  
+
   // Pendant le build, optimiser seulement les routes critiques
   if (context === ExecutionContext.BUILD_TIME) {
     const criticalRoutes = [
-      '/api/v1/health',
-      '/api/v1/auth/session',
-      '/api/v1/metadata'
+      "/api/v1/health",
+      "/api/v1/auth/session",
+      "/api/v1/metadata",
     ];
-    
-    return criticalRoutes.some(route => pathname.startsWith(route));
+
+    return criticalRoutes.some((route) => pathname.startsWith(route));
   }
-  
+
   return true;
 }
 
@@ -300,32 +292,30 @@ export function shouldOptimizeForBuild(pathname: string): boolean {
  * Crée un handler optimisé pour les routes qui n'ont pas besoin de base de données
  */
 export function createNonDatabaseHandler(
-  handler: (request: NextRequest) => Promise<NextResponse>
+  handler: (request: NextRequest) => Promise<NextResponse>,
 ) {
   return optimizedApiGet(handler, {
     requiresDatabase: false,
     skipInitializationCheck: true,
     enableHealthCheck: false,
-    cacheHeaders: true
+    cacheHeaders: true,
   });
 }
 
 /**
  * Crée un handler optimisé pour les routes critiques de base de données
  */
-export function createCriticalDatabaseHandler(
-  handlers: {
-    GET?: (request: NextRequest) => Promise<NextResponse>;
-    POST?: (request: NextRequest) => Promise<NextResponse>;
-    PUT?: (request: NextRequest) => Promise<NextResponse>;
-    DELETE?: (request: NextRequest) => Promise<NextResponse>;
-  }
-) {
+export function createCriticalDatabaseHandler(handlers: {
+  GET?: (request: NextRequest) => Promise<NextResponse>;
+  POST?: (request: NextRequest) => Promise<NextResponse>;
+  PUT?: (request: NextRequest) => Promise<NextResponse>;
+  DELETE?: (request: NextRequest) => Promise<NextResponse>;
+}) {
   return optimizedApiHandler(handlers, {
     requiresDatabase: true,
     skipInitializationCheck: false,
     enableHealthCheck: true,
-    logPerformance: true
+    logPerformance: true,
   });
 }
 
@@ -340,38 +330,51 @@ export function getApiOptimizationStats(): {
   methodDistribution: Record<string, number>;
 } {
   const totalRequests = performanceMetrics.length;
-  
+
   if (totalRequests === 0) {
     return {
       totalRequests: 0,
       averageExecutionTime: 0,
       databaseInitializationRate: 0,
       contextDistribution: {} as Record<ExecutionContext, number>,
-      methodDistribution: {}
+      methodDistribution: {},
     };
   }
 
-  const totalExecutionTime = performanceMetrics.reduce((sum, metric) => sum + metric.executionTime, 0);
+  const totalExecutionTime = performanceMetrics.reduce(
+    (sum, metric) => sum + metric.executionTime,
+    0,
+  );
   const averageExecutionTime = totalExecutionTime / totalRequests;
-  
-  const databaseInitializedCount = performanceMetrics.filter(m => m.databaseInitialized).length;
-  const databaseInitializationRate = (databaseInitializedCount / totalRequests) * 100;
 
-  const contextDistribution = performanceMetrics.reduce((acc, metric) => {
-    acc[metric.context] = (acc[metric.context] || 0) + 1;
-    return acc;
-  }, {} as Record<ExecutionContext, number>);
+  const databaseInitializedCount = performanceMetrics.filter(
+    (m) => m.databaseInitialized,
+  ).length;
+  const databaseInitializationRate =
+    (databaseInitializedCount / totalRequests) * 100;
 
-  const methodDistribution = performanceMetrics.reduce((acc, metric) => {
-    acc[metric.method] = (acc[metric.method] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const contextDistribution = performanceMetrics.reduce(
+    (acc, metric) => {
+      (acc as any)[metric.context] = (acc[metric.context]! || 0) + 1;
+      return acc;
+    },
+    {} as Record<ExecutionContext, number>,
+  );
+
+  const methodDistribution = performanceMetrics.reduce(
+    (acc, metric) => {
+      (acc as any)[metric.method] = (acc[metric.method]! || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   return {
     totalRequests,
     averageExecutionTime: Math.round(averageExecutionTime * 100) / 100,
-    databaseInitializationRate: Math.round(databaseInitializationRate * 100) / 100,
+    databaseInitializationRate:
+      Math.round(databaseInitializationRate * 100) / 100,
     contextDistribution,
-    methodDistribution
+    methodDistribution,
   };
 }

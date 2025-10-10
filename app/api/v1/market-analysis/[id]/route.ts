@@ -1,214 +1,210 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getSessionUser } from "@/lib/services/auth"
-import { db } from "@/lib/services/database/drizzle-client"
-import { marketAnalyses } from "@/lib/services/database/drizzle-schema"
-import { eq, and } from "drizzle-orm"
-import { 
-  validateTaskId, 
-  ValidationError, 
-  ApiError, 
-  createApiErrorResponse 
-} from "@/lib/utils/validation"
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/services/auth/auth";
+import { databaseService } from "@/lib/services/database/db";
 
-// GET /api/v1/market-analysis/{task_id} : Statut et résultat d'une analyse
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+// DELETE /api/v1/market-analysis/[id] - Suppression d'une analyse
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: { id: string } },
+) {
   try {
-    // Authentication check with detailed error handling
-    const user = await getSessionUser()
+    const user = await getSessionUser();
     if (!user) {
       return NextResponse.json(
-        createApiErrorResponse(new ApiError("Authentification requise", 401, "AUTH_REQUIRED")),
-        { status: 401 }
-      )
-    }
-    
-    // Parameter validation
-    const { id } = params
-    if (!id || typeof id !== 'string' || id.trim().length === 0) {
-      return NextResponse.json(
-        createApiErrorResponse(new ApiError("ID de tâche manquant ou invalide", 400, "MISSING_TASK_ID")),
-        { status: 400 }
-      )
+        {
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Non authentifié" },
+        },
+        { status: 401 },
+      );
     }
 
-    // Validate task ID format with enhanced error handling
-    try {
-      validateTaskId(id.trim())
-    } catch (e) {
-      const errorResponse = createApiErrorResponse(e)
-      return NextResponse.json(errorResponse, { status: 400 })
+    const { id } = params;
+
+    // Vérification que l'analyse existe et appartient à l'utilisateur
+    const analysis = await databaseService.queryOne(
+      `
+      SELECT id, productName FROM market_analyses 
+      WHERE id = ? AND userId = ?
+    `,
+      [id, user.id],
+      "check-analysis-ownership",
+    );
+
+    if (!analysis) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: { code: "NOT_FOUND", message: "Analyse non trouvée" },
+        },
+        { status: 404 },
+      );
     }
 
-    // Database query with error handling
-    let task
-    try {
-      task = await db.query.marketAnalyses.findFirst({
-        where: and(eq(marketAnalyses.id, id.trim()), eq(marketAnalyses.userId, user.id)),
-      })
-    } catch (dbError) {
-      console.error("Database query error in GET /api/v1/market-analysis/[id]:", dbError)
-      return NextResponse.json(
-        createApiErrorResponse(new ApiError("Erreur lors de l'accès aux données", 500, "DATABASE_ERROR")),
-        { status: 500 }
-      )
-    }
+    // Suppression en cascade des données liées
+    await databaseService.transaction(async (db) => {
+      // Suppression des vues de tendances
+      (db as any).client
+        .prepare("DELETE FROM trend_views WHERE analysisId = ?")
+        .run(id);
 
-    if (!task) {
-      return NextResponse.json(
-        createApiErrorResponse(new ApiError("Tâche introuvable ou non autorisée", 404, "TASK_NOT_FOUND")),
-        { status: 404 }
-      )
-    }
+      // Suppression des comparaisons contenant cette analyse
+      const comparisons = (db as any).client
+        .prepare(
+          `
+        SELECT id, analysisIds FROM market_comparisons 
+        WHERE analysisIds LIKE ?
+      `,
+        )
+        .all(`%"${id}"%`);
 
-    // Validate task data structure
-    if (!task.id || !task.status || !task.createdAt) {
-      console.error("Invalid task data structure:", task)
-      return NextResponse.json(
-        createApiErrorResponse(new ApiError("Données de tâche corrompues", 500, "CORRUPTED_DATA")),
-        { status: 500 }
-      )
-    }
-    
+      for (const comp of comparisons) {
+        try {
+          const analysisIds = JSON.parse(comp.analysisIds);
+          if (analysisIds.includes(id)) {
+            (db as any).client
+              .prepare("DELETE FROM market_comparisons WHERE id = ?")
+              .run(comp.id);
+          }
+        } catch (e) {
+          // Ignore les erreurs de parsing JSON
+        }
+      }
+
+      // Suppression de l'analyse principale
+      (db as any).client
+        .prepare("DELETE FROM market_analyses WHERE id = ?")
+        .run(id);
+    }, "delete-analysis-cascade");
+
     return NextResponse.json({
-      ...task,
-      message: "Tâche récupérée avec succès"
-    })
-
-  } catch (error: any) {
-    console.error("Unexpected error in GET /api/v1/market-analysis/[id]:", error)
-    
-    // Handle known error types
-    if (error instanceof ApiError) {
-      const errorResponse = createApiErrorResponse(error)
-      return NextResponse.json(errorResponse, { status: error.statusCode })
-    }
-    
-    if (error instanceof ValidationError) {
-      const errorResponse = createApiErrorResponse(error)
-      return NextResponse.json(errorResponse, { status: 400 })
-    }
-    
-    // Handle authentication errors
-    if (error?.message?.includes("authentif")) {
-      return NextResponse.json(
-        createApiErrorResponse(new ApiError("Erreur d'authentification", 401, "AUTH_ERROR")),
-        { status: 401 }
-      )
-    }
-    
-    // Generic error fallback
+      success: true,
+      data: {
+        message: `Analyse "${analysis.productName}" supprimée avec succès`,
+        deletedAnalysisId: id,
+      },
+    });
+  } catch (error) {
+    console.error("Erreur lors de la suppression de l'analyse:", error);
     return NextResponse.json(
-      createApiErrorResponse(new ApiError("Erreur interne du serveur", 500, "INTERNAL_ERROR")),
-      { status: 500 }
-    )
+      {
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Erreur interne du serveur",
+        },
+      },
+      { status: 500 },
+    );
   }
 }
 
-// DELETE /api/v1/market-analysis/{task_id} : Supprimer une analyse
-export async function DELETE({ params }: { params: { id: string } }) {
+// GET /api/v1/market-analysis/[id] - Récupération d'une analyse spécifique
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: { id: string } },
+) {
   try {
-    // Authentication check with detailed error handling
-    const user = await getSessionUser()
+    const user = await getSessionUser();
     if (!user) {
       return NextResponse.json(
-        createApiErrorResponse(new ApiError("Authentification requise", 401, "AUTH_REQUIRED")),
-        { status: 401 }
-      )
+        {
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Non authentifié" },
+        },
+        { status: 401 },
+      );
     }
-    
-    // Parameter validation
-    const { id } = params
-    if (!id || typeof id !== 'string' || id.trim().length === 0) {
+
+    const { id } = params;
+
+    // Récupération de l'analyse complète
+    const analysis = await databaseService.queryOne(
+      `
+      SELECT 
+        id,
+        productName,
+        category,
+        averagePrice,
+        minPrice,
+        maxPrice,
+        marketScore,
+        competitionLevel,
+        demandLevel,
+        profitabilityScore,
+        analysisData,
+        status,
+        progress,
+        createdAt,
+        updatedAt,
+        completedAt
+      FROM market_analyses 
+      WHERE id = ? AND userId = ?
+    `,
+      [id, user.id],
+      "get-single-analysis",
+    );
+
+    if (!analysis) {
       return NextResponse.json(
-        createApiErrorResponse(new ApiError("ID de tâche manquant ou invalide", 400, "MISSING_TASK_ID")),
-        { status: 400 }
-      )
+        {
+          success: false,
+          error: { code: "NOT_FOUND", message: "Analyse non trouvée" },
+        },
+        { status: 404 },
+      );
     }
 
-    // Validate task ID format with enhanced error handling
-    try {
-      validateTaskId(id.trim())
-    } catch (e) {
-      const errorResponse = createApiErrorResponse(e)
-      return NextResponse.json(errorResponse, { status: 400 })
-    }
+    // Récupération des données liées
+    const relatedData = {
+      comparisons: await databaseService.query(
+        `
+        SELECT id, comparisonData, createdAt 
+        FROM market_comparisons 
+        WHERE analysisIds LIKE ? AND userId = ?
+        ORDER BY createdAt DESC
+        LIMIT 5
+      `,
+        [`%"${id}"%`, user.id],
+        "get-related-comparisons",
+      ),
 
-    // Check if task exists and belongs to user
-    let task
-    try {
-      task = await db.query.marketAnalyses.findFirst({
-        where: and(eq(marketAnalyses.id, id.trim()), eq(marketAnalyses.userId, user.id)),
-      })
-    } catch (dbError) {
-      console.error("Database query error in DELETE /api/v1/market-analysis/[id]:", dbError)
-      return NextResponse.json(
-        createApiErrorResponse(new ApiError("Erreur lors de l'accès aux données", 500, "DATABASE_ERROR")),
-        { status: 500 }
-      )
-    }
+      trendViews: await databaseService.query(
+        `
+        SELECT viewedAt 
+        FROM trend_views 
+        WHERE analysisId = ? AND userId = ?
+        ORDER BY viewedAt DESC
+        LIMIT 10
+      `,
+        [id, user.id],
+        "get-trend-views",
+      ),
+    };
 
-    if (!task) {
-      return NextResponse.json(
-        createApiErrorResponse(new ApiError("Tâche introuvable ou non autorisée", 404, "TASK_NOT_FOUND")),
-        { status: 404 }
-      )
-    }
-
-    // Check if task can be deleted (business rule: don't delete running tasks)
-    if (task.status === "pending") {
-      return NextResponse.json(
-        createApiErrorResponse(new ApiError("Impossible de supprimer une analyse en cours", 409, "TASK_RUNNING")),
-        { status: 409 }
-      )
-    }
-
-    // Perform deletion with error handling
-    try {
-      const deleteResult = await db.delete(marketAnalyses).where(eq(marketAnalyses.id, id.trim()))
-      
-      // Verify deletion was successful
-      if (!deleteResult) {
-        throw new Error("Deletion failed - no rows affected")
-      }
-    } catch (dbError) {
-      console.error("Database deletion error:", dbError)
-      return NextResponse.json(
-        createApiErrorResponse(new ApiError("Erreur lors de la suppression", 500, "DELETE_ERROR")),
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({ 
-      message: "Analyse supprimée avec succès",
-      deletedTaskId: id.trim()
-    }, { status: 200 })
-
-  } catch (error: any) {
-    console.error("Unexpected error in DELETE /api/v1/market-analysis/[id]:", error)
-    
-    // Handle known error types
-    if (error instanceof ApiError) {
-      const errorResponse = createApiErrorResponse(error)
-      return NextResponse.json(errorResponse, { status: error.statusCode })
-    }
-    
-    if (error instanceof ValidationError) {
-      const errorResponse = createApiErrorResponse(error)
-      return NextResponse.json(errorResponse, { status: 400 })
-    }
-    
-    // Handle authentication errors
-    if (error?.message?.includes("authentif")) {
-      return NextResponse.json(
-        createApiErrorResponse(new ApiError("Erreur d'authentification", 401, "AUTH_ERROR")),
-        { status: 401 }
-      )
-    }
-    
-    // Generic error fallback
+    return NextResponse.json({
+      success: true,
+      data: {
+        analysis,
+        relatedData,
+        metadata: {
+          totalComparisons: relatedData.comparisons.length,
+          totalTrendViews: relatedData.trendViews.length,
+          lastViewed: relatedData.trendViews[0]?.viewedAt || null,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Erreur lors de la récupération de l'analyse:", error);
     return NextResponse.json(
-      createApiErrorResponse(new ApiError("Erreur interne du serveur", 500, "INTERNAL_ERROR")),
-      { status: 500 }
-    )
+      {
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Erreur interne du serveur",
+        },
+      },
+      { status: 500 },
+    );
   }
 }

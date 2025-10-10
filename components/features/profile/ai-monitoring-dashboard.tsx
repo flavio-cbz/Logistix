@@ -1,135 +1,213 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   PieChart,
   Pie,
-  Cell
-} from 'recharts'
-import { AlertTriangle, TrendingUp, DollarSign, Clock, CheckCircle, XCircle } from 'lucide-react'
+  Cell,
+} from "recharts";
+import {
+  AlertTriangle,
+  TrendingUp,
+  DollarSign,
+  Clock,
+  CheckCircle,
+} from "lucide-react";
 
 interface AIMetricsSummary {
-  totalRequests: number
-  successfulRequests: number
-  failedRequests: number
-  averageProcessingTime: number
-  totalTokensUsed: number
-  totalCost: number
-  averageConfidence: number
-  cacheHitRate: number
-  errorsByType: Record<string, number>
-  requestsByType: Record<string, number>
-  costByProvider: Record<string, number>
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  averageProcessingTime: number;
+  totalTokensUsed: number;
+  totalCost: number;
+  averageConfidence: number;
+  cacheHitRate: number;
+  errorsByType: Record<string, number>;
+  requestsByType: Record<string, number>;
+  costByProvider: Record<string, number>;
 }
 
 interface CostAlert {
-  type: 'warning' | 'critical'
-  message: string
-  currentCost: number
-  budgetLimit: number
-  percentage: number
+  type: "warning" | "critical";
+  message: string;
+  currentCost: number;
+  budgetLimit: number;
+  percentage: number;
 }
 
 interface PerformanceAlert {
-  type: 'warning' | 'critical'
-  message: string
-  metric: string
-  value: number
-  threshold: number
+  type: "warning" | "critical";
+  message: string;
+  metric: string;
+  value: number;
+  threshold: number;
 }
 
 export function AIMonitoringDashboard() {
-  const [metrics, setMetrics] = useState<AIMetricsSummary | null>(null)
-  const [costAlerts, setCostAlerts] = useState<CostAlert[]>([])
-  const [performanceAlerts, setPerformanceAlerts] = useState<PerformanceAlert[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [timeframe, setTimeframe] = useState<'hour' | 'day' | 'week' | 'month'>('day')
+  const [metrics, setMetrics] = useState<AIMetricsSummary | null>(null);
+  const [costAlerts, setCostAlerts] = useState<CostAlert[]>([]);
+  const [performanceAlerts, setPerformanceAlerts] = useState<
+    PerformanceAlert[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notification, setNotification] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+  const [timeframe, setTimeframe] = useState<"hour" | "day" | "week" | "month">(
+    "day",
+  );
 
   useEffect(() => {
-    fetchMetrics()
-    const interval = setInterval(fetchMetrics, 30000) // Refresh every 30 seconds
-    return () => clearInterval(interval)
-  }, [timeframe])
+    fetchMetrics();
+    const interval = setInterval(fetchMetrics, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, [timeframe]);
 
   const fetchMetrics = async () => {
     try {
-      setLoading(true)
-      const response = await fetch(`/api/v1/ai/metrics?timeframe=${timeframe}`)
+      setLoading(true);
+      const response = await fetch(`/api/v1/ai/metrics?timeframe=${timeframe}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch AI metrics')
+        throw new Error("Failed to fetch AI metrics");
       }
-      const data = await response.json()
-      setMetrics(data.metrics)
-      setCostAlerts(data.costAlerts || [])
-      setPerformanceAlerts(data.performanceAlerts || [])
-      setError("")
+      const data = await response.json();
+      setMetrics(data.metrics);
+      setCostAlerts(data.costAlerts || []);
+      setPerformanceAlerts(data.performanceAlerts || []);
+      setError("");
     } catch (err: any) {
-      setError(err.message || 'Failed to load AI metrics')
+      setError(err.message || "Failed to load AI metrics");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR",
       minimumFractionDigits: 2,
       maximumFractionDigits: 4,
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   const formatDuration = (ms: number) => {
-    if (ms < 1000) return `${ms}ms`
-    return `${(ms / 1000).toFixed(1)}s`
-  }
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
+
+  const handleClearCache = async () => {
+    setNotification(null);
+    try {
+      const response = await fetch("/api/v1/ai/metrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "clear_cache" }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to clear cache");
+      setNotification({ type: "success", message: "Cache vidé avec succès!" });
+    } catch (err: any) {
+      setNotification({
+        type: "error",
+        message: err.message || "Erreur lors du vidage du cache",
+      });
+    }
+  };
+
+  const handleExportMetrics = async () => {
+    setNotification(null);
+    try {
+      const response = await fetch("/api/v1/ai/metrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "export_metrics" }),
+      });
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || "Failed to export metrics");
+
+      const blob = new Blob([JSON.stringify(data._data, null, 2)], {
+        type: "application/json",
+      });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = data.filename || "ai-metrics.json";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setNotification({
+        type: "success",
+        message: "Exportation des métriques réussie!",
+      });
+    } catch (err: any) {
+      setNotification({
+        type: "error",
+        message: err.message || "Erreur lors de l'exportation",
+      });
+    }
+  };
 
   const getSuccessRate = () => {
-    if (!metrics || metrics.totalRequests === 0) return 0
-    return (metrics.successfulRequests / metrics.totalRequests) * 100
-  }
+    if (!metrics || metrics.totalRequests === 0) return 0;
+    return (metrics.successfulRequests / metrics.totalRequests) * 100;
+  };
 
   const prepareErrorChartData = () => {
-    if (!metrics?.errorsByType) return []
+    if (!metrics?.errorsByType) return [];
     return Object.entries(metrics.errorsByType).map(([type, count]) => ({
       name: type,
       value: count,
-    }))
-  }
+    }));
+  };
 
   const prepareRequestTypeChartData = () => {
-    if (!metrics?.requestsByType) return []
+    if (!metrics?.requestsByType) return [];
     return Object.entries(metrics.requestsByType).map(([type, count]) => ({
       name: type,
       value: count,
-    }))
-  }
+    }));
+  };
 
   const prepareCostByProviderData = () => {
-    if (!metrics?.costByProvider) return []
+    if (!metrics?.costByProvider) return [];
     return Object.entries(metrics.costByProvider).map(([provider, cost]) => ({
       name: provider,
       cost: cost,
-    }))
-  }
+    }));
+  };
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
+  // Use chart tokens so colors follow the global theme (chart-1..chart-5 defined in design tokens)
+  const COLORS = [
+    "hsl(var(--chart-1))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
+  ];
 
   if (loading && !metrics) {
     return (
@@ -140,11 +218,11 @@ export function AIMonitoringDashboard() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(var(--border))]"></div>
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (error) {
@@ -152,7 +230,9 @@ export function AIMonitoringDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Monitoring IA</CardTitle>
-          <CardDescription>Erreur lors du chargement des métriques</CardDescription>
+          <CardDescription>
+            Erreur lors du chargement des métriques
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
@@ -165,7 +245,7 @@ export function AIMonitoringDashboard() {
           </Button>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -177,41 +257,68 @@ export function AIMonitoringDashboard() {
             Monitoring IA
           </CardTitle>
           <CardDescription>
-            Surveillance des performances et coûts de l'intelligence artificielle
+            Surveillance des performances et coûts de l'intelligence
+            artificielle
           </CardDescription>
           <div className="flex gap-2">
-            {(['hour', 'day', 'week', 'month'] as const).map((tf) => (
+            {(["hour", "day", "week", "month"] as const).map((tf) => (
               <Button
                 key={tf}
-                variant={timeframe === tf ? 'default' : 'outline'}
+                variant={timeframe === tf ? "default" : "outline"}
                 size="sm"
                 onClick={() => setTimeframe(tf)}
               >
-                {tf === 'hour' ? '1h' : tf === 'day' ? '24h' : tf === 'week' ? '7j' : '30j'}
+                {tf === "hour"
+                  ? "1h"
+                  : tf === "day"
+                    ? "24h"
+                    : tf === "week"
+                      ? "7j"
+                      : "30j"}
               </Button>
             ))}
           </div>
         </CardHeader>
       </Card>
 
+      {notification && (
+        <Alert
+          variant={notification.type === "success" ? "default" : "destructive"}
+        >
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>
+            {notification.type === "success" ? "Succès" : "Erreur"}
+          </AlertTitle>
+          <AlertDescription>{notification.message}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Alerts */}
       {(costAlerts.length > 0 || performanceAlerts.length > 0) && (
         <div className="space-y-4">
           {costAlerts.map((alert, index) => (
-            <Alert key={`cost-${index}`} variant={alert.type === 'critical' ? 'destructive' : 'default'}>
+            <Alert
+              key={`cost-${index}`}
+              variant={alert.type === "critical" ? "destructive" : "default"}
+            >
               <DollarSign className="h-4 w-4" />
               <AlertTitle>Alerte de coût</AlertTitle>
               <AlertDescription>
-                {alert.message} ({alert.percentage.toFixed(1)}% du budget utilisé)
+                {alert.message} ({alert.percentage.toFixed(1)}% du budget
+                utilisé)
               </AlertDescription>
             </Alert>
           ))}
           {performanceAlerts.map((alert, index) => (
-            <Alert key={`perf-${index}`} variant={alert.type === 'critical' ? 'destructive' : 'default'}>
+            <Alert
+              key={`perf-${index}`}
+              variant={alert.type === "critical" ? "destructive" : "default"}
+            >
               <Clock className="h-4 w-4" />
               <AlertTitle>Alerte de performance</AlertTitle>
               <AlertDescription>
-                {alert.message} ({alert.metric}: {alert.value} &gt; {alert.threshold})
+                {alert.message} ({alert.metric}: {alert.value} {">"}{" "}
+                {alert.threshold})
               </AlertDescription>
             </Alert>
           ))}
@@ -222,13 +329,19 @@ export function AIMonitoringDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Requêtes totales</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Requêtes totales
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics?.totalRequests || 0}</div>
+            <div className="text-2xl font-bold">
+              {metrics?.totalRequests || 0}
+            </div>
             <div className="flex items-center gap-2 mt-2">
-              <Badge variant={getSuccessRate() > 95 ? 'default' : 'destructive'}>
+              <Badge
+                variant={getSuccessRate() > 95 ? "default" : "destructive"}
+              >
                 {getSuccessRate().toFixed(1)}% succès
               </Badge>
             </div>
@@ -241,7 +354,9 @@ export function AIMonitoringDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(metrics?.totalCost || 0)}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(metrics?.totalCost || 0)}
+            </div>
             <div className="text-xs text-muted-foreground mt-2">
               {metrics?.totalTokensUsed?.toLocaleString() || 0} tokens utilisés
             </div>
@@ -250,7 +365,9 @@ export function AIMonitoringDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Temps de traitement</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Temps de traitement
+            </CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -303,13 +420,18 @@ export function AIMonitoringDashboard() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }) =>
+                      `${name} ${(percent * 100).toFixed(0)}%`
+                    }
                     outerRadius={80}
-                    fill="#8884d8"
+                    fill="hsl(var(--chart-1))"
                     dataKey="value"
                   >
-                    {prepareRequestTypeChartData().map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    {prepareRequestTypeChartData().map((_, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -335,7 +457,7 @@ export function AIMonitoringDashboard() {
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="value" fill="#FF8042" />
+                    <Bar dataKey="value" fill="hsl(var(--chart-4))" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -364,8 +486,13 @@ export function AIMonitoringDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis tickFormatter={(value) => formatCurrency(value)} />
-                  <Tooltip formatter={(value) => [formatCurrency(value as number), 'Coût']} />
-                  <Bar dataKey="cost" fill="#00C49F" />
+                  <Tooltip
+                    formatter={(value) => [
+                      formatCurrency(value as number),
+                      "Coût",
+                    ]}
+                  />
+                  <Bar dataKey="cost" fill="hsl(var(--chart-2))" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -386,9 +513,14 @@ export function AIMonitoringDashboard() {
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span>Confiance moyenne</span>
-                <span>{((metrics?.averageConfidence || 0) * 100).toFixed(1)}%</span>
+                <span>
+                  {((metrics?.averageConfidence || 0) * 100).toFixed(1)}%
+                </span>
               </div>
-              <Progress value={(metrics?.averageConfidence || 0) * 100} className="h-2" />
+              <Progress
+                value={(metrics?.averageConfidence || 0) * 100}
+                className="h-2"
+              />
             </div>
             <div>
               <div className="flex justify-between text-sm mb-2">
@@ -402,7 +534,10 @@ export function AIMonitoringDashboard() {
                 <span>Efficacité du cache</span>
                 <span>{((metrics?.cacheHitRate || 0) * 100).toFixed(1)}%</span>
               </div>
-              <Progress value={(metrics?.cacheHitRate || 0) * 100} className="h-2" />
+              <Progress
+                value={(metrics?.cacheHitRate || 0) * 100}
+                className="h-2"
+              />
             </div>
           </div>
         </CardContent>
@@ -418,32 +553,18 @@ export function AIMonitoringDashboard() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
-            <Button 
-              variant="outline" 
-              onClick={fetchMetrics}
-              disabled={loading}
-            >
-              {loading ? 'Actualisation...' : 'Actualiser les métriques'}
+            <Button variant="outline" onClick={fetchMetrics} disabled={loading}>
+              {loading ? "Actualisation..." : "Actualiser les métriques"}
             </Button>
-            <Button 
-              variant="outline"
-              onClick={() => {
-                // TODO: Implement cache clearing
-              }}
-            >
+            <Button variant="outline" onClick={handleClearCache}>
               Vider le cache
             </Button>
-            <Button 
-              variant="outline"
-              onClick={() => {
-                // TODO: Implement metrics export
-              }}
-            >
+            <Button variant="outline" onClick={handleExportMetrics}>
               Exporter les métriques
             </Button>
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

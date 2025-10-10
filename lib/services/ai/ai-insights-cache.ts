@@ -1,22 +1,72 @@
-import { cacheService } from '@/app/api/v1/cache/cache-service';
-import { cacheManager } from '@/lib/services/cache-manager';
-import { logger } from '@/lib/utils/logging/logger';
-import { marketAnalysisConfig } from './market-analysis-config';
-import { sha256Hex } from '@/lib/utils/crypto';
-import { AIInsights, AIRecommendations, TrendPrediction, AnomalyDetection } from '@/types/vinted-market-analysis';
-import { VintedAnalysisResult } from '@/types/vinted-market-analysis';
+import { cacheService } from "@/app/api/v1/cache/cache-service";
+import { logger } from "@/lib/utils/logging/logger";
+import { marketAnalysisConfig } from "./market-analysis-config";
+import { sha256Hex } from "@/lib/utils/crypto";
+import type {
+  AIInsights,
+  AIRecommendations,
+  TrendPrediction,
+  AnomalyDetection,
+  VintedAnalysisResult,
+} from "@/types/vinted-market-analysis";
+import { getErrorMessage } from "@/lib/utils/error-utils";
 
 /**
- * Service de cache spécialisé pour les insights IA
- * Étend les services de cache existants avec des fonctionnalités spécifiques à l'IA
+ * Service de cache spécialisé pour les insights IA.
+ * - Typages stricts et validations basiques des données en cache
+ * - Journalisation robuste et métriques internes
+ * - TTL adapté au type d'artefact IA (insights, recommandations, tendances, anomalies)
+ * - Compatibilité ascendante: expose getStats() et clear() en plus des méthodes existantes
+ */
+
+type AnalysisType = "insights" | "recommendations" | "trends" | "anomalies";
+
+interface BaseCacheEntry {
+  timestamp: number;
+  version: "1.0";
+  configHash: string;
+}
+
+interface InsightsEntry extends BaseCacheEntry {
+  insights: AIInsights;
+}
+
+interface RecommendationsEntry extends BaseCacheEntry {
+  recommendations: AIRecommendations;
+}
+
+interface TrendsEntry extends BaseCacheEntry {
+  predictions: TrendPrediction;
+}
+
+interface AnomaliesEntry extends BaseCacheEntry {
+  anomalies: AnomalyDetection[];
+}
+
+type InternalMetrics = {
+  hits: number;
+  misses: number;
+  sets: number;
+  invalidations: number;
+  errors: number;
+};
+
+export interface CacheMetrics extends InternalMetrics {
+  hitRate: number;
+  totalRequests: number;
+}
+
+/**
+ * Service singleton de cache des insights IA
  */
 export class AIInsightsCacheService {
   private static instance: AIInsightsCacheService;
-  private readonly CACHE_PREFIX = 'ai_insights';
-  private readonly DEFAULT_TTL = 3600; // 1 heure
-  
+
+  private readonly CACHE_PREFIX = "ai_insights";
+  private readonly DEFAULT_TTL = 3600; // secondes
+
   // Métriques de cache
-  private metrics = {
+  private metrics: InternalMetrics = {
     hits: 0,
     misses: 0,
     sets: 0,
@@ -36,22 +86,47 @@ export class AIInsightsCacheService {
    */
   private generateInsightsCacheKey(
     analysisData: VintedAnalysisResult,
-    analysisType: 'insights' | 'recommendations' | 'trends' | 'anomalies'
+    analysisType: AnalysisType,
   ): string {
-    // Créer un hash basé sur les données critiques pour l'analyse
+    const items = Array.isArray(analysisData?.items) ? analysisData.items : [];
+
+    const prices = items.map((i) => {
+      const amt = (i as any)?.price?.amount;
+      const n = Number(amt);
+      return Number.isFinite(n) ? n : 0;
+    });
+    const minPrice = prices.length ? Math.min(...prices) : 0;
+    const maxPrice = prices.length ? Math.max(...prices) : 0;
+
+    const categories = Array.from(
+      new Set(
+        items
+          .map((i) => {
+            const c = (i as any)?.category;
+            return typeof c === "string" ? c : "";
+          })
+          .filter((c: string) => c && c.length > 0),
+      ),
+    ).sort();
+
+    const soldDates = items
+      .map((i) => (i as any)?.sold_at)
+      .filter(
+        (d: unknown): d is string => typeof d === "string" && d.length > 0,
+      );
+
+    const dateRange = {
+      start: soldDates[0]! ?? "",
+      end: soldDates.length ? soldDates[soldDates.length - 1]! : "",
+    };
+
+    // Inclure la configuration IA pour invalider le cache si elle change
     const keyData = {
       type: analysisType,
-      itemCount: analysisData.items?.length || 0,
-      priceRange: {
-        min: Math.min(...(analysisData.items?.map(i => Number(i.price?.amount) || 0) || [0])),
-        max: Math.max(...(analysisData.items?.map(i => Number(i.price?.amount) || 0) || [0])),
-      },
-      categories: [...new Set(analysisData.items?.map(i => (i as any).category).filter(Boolean) || [])].sort() as string[],
-      dateRange: {
-        start: analysisData.items?.[0]?.sold_at || '',
-        end: analysisData.items?.[analysisData.items.length - 1]?.sold_at || '',
-      },
-      // Inclure la configuration IA pour invalider le cache si elle change
+      itemCount: items.length,
+      priceRange: { min: minPrice, max: maxPrice },
+      categories,
+      dateRange,
       configHash: this.getConfigHash(),
     };
 
@@ -60,7 +135,7 @@ export class AIInsightsCacheService {
   }
 
   /**
-   * Génère un hash simple pour une chaîne
+   * Génère un hash pour une chaîne
    */
   private hashString(str: string): string {
     return sha256Hex(str);
@@ -75,50 +150,107 @@ export class AIInsightsCacheService {
   }
 
   /**
+   * Valide la forme d'une entrée "insights"
+   */
+  private isInsightsEntry(obj: unknown): obj is InsightsEntry {
+    if (!obj || typeof obj !== "object") return false;
+    const o = obj as Partial<InsightsEntry>;
+    return (
+      typeof o.timestamp === "number" &&
+      typeof o.configHash === "string" &&
+      (o.version === "1.0" || o.version === undefined) &&
+      Object.prototype.hasOwnProperty.call(o as object, "insights")
+    );
+  }
+
+  /**
+   * Valide la forme d'une entrée "recommendations"
+   */
+  private isRecommendationsEntry(obj: unknown): obj is RecommendationsEntry {
+    if (!obj || typeof obj !== "object") return false;
+    const o = obj as Partial<RecommendationsEntry>;
+    return (
+      typeof o.timestamp === "number" &&
+      typeof o.configHash === "string" &&
+      (o.version === "1.0" || o.version === undefined) &&
+      Object.prototype.hasOwnProperty.call(o as object, "recommendations")
+    );
+  }
+
+  /**
+   * Valide la forme d'une entrée "trends"
+   */
+  private isTrendsEntry(obj: unknown): obj is TrendsEntry {
+    if (!obj || typeof obj !== "object") return false;
+    const o = obj as Partial<TrendsEntry>;
+    return (
+      typeof o.timestamp === "number" &&
+      typeof o.configHash === "string" &&
+      (o.version === "1.0" || o.version === undefined) &&
+      Object.prototype.hasOwnProperty.call(o as object, "predictions")
+    );
+  }
+
+  /**
+   * Valide la forme d'une entrée "anomalies"
+   */
+  private isAnomaliesEntry(obj: unknown): obj is AnomaliesEntry {
+    if (!obj || typeof obj !== "object") return false;
+    const o = obj as Partial<AnomaliesEntry>;
+    return (
+      typeof o.timestamp === "number" &&
+      typeof o.configHash === "string" &&
+      (o.version === "1.0" || o.version === undefined) &&
+      Array.isArray(o.anomalies)
+    );
+  }
+
+  /**
    * Cache les insights IA
    */
   async cacheInsights(
     analysisData: VintedAnalysisResult,
     insights: AIInsights,
-    ttl?: number
+    ttl?: number,
   ): Promise<void> {
     try {
-      const cacheKey = this.generateInsightsCacheKey(analysisData, 'insights');
-      const cacheTTL = ttl || this.getCacheTTL('insights');
-      
-      // Utiliser le cache persistant pour les insights
-      await cacheService.set(cacheKey, {
+      const cacheKey = this.generateInsightsCacheKey(analysisData, "insights");
+      const cacheTTL = this.normalizeTTL(ttl ?? this.getCacheTTL("insights"));
+
+      const entry: InsightsEntry = {
         insights,
         timestamp: Date.now(),
-        version: '1.0',
+        version: "1.0",
         configHash: this.getConfigHash(),
-      }, cacheTTL);
+      };
 
+      await cacheService.set(cacheKey, entry, cacheTTL);
       this.metrics.sets++;
-      
     } catch (error) {
       this.metrics.errors++;
-      logger.error('[AIInsightsCache] Erreur lors de la mise en cache des insights', {
-        error: error.message,
-        analysisDataSize: analysisData.items?.length || 0,
-      });
+      logger.error(
+        "[AIInsightsCache] Erreur lors de la mise en cache des insights",
+        {
+          error: getErrorMessage(error),
+          analysisDataSize: Array.isArray(analysisData?.items)
+            ? analysisData.items.length
+            : 0,
+        },
+      );
     }
   }
 
   /**
    * Récupère les insights IA du cache
    */
-  async getInsights(analysisData: VintedAnalysisResult): Promise<AIInsights | null> {
+  async getInsights(
+    analysisData: VintedAnalysisResult,
+  ): Promise<AIInsights | null> {
     try {
-      const cacheKey = this.generateInsightsCacheKey(analysisData, 'insights');
-      const cached = await cacheService.get<{
-        insights: AIInsights;
-        timestamp: number;
-        version: string;
-        configHash: string;
-      }>(cacheKey);
+      const cacheKey = this.generateInsightsCacheKey(analysisData, "insights");
+      const cached = await cacheService.get<InsightsEntry>(cacheKey);
 
-      if (!cached) {
+      if (!cached || !this.isInsightsEntry(cached)) {
         this.metrics.misses++;
         return null;
       }
@@ -131,14 +263,15 @@ export class AIInsightsCacheService {
       }
 
       this.metrics.hits++;
-      
-
       return cached.insights;
     } catch (error) {
       this.metrics.errors++;
-      logger.error('[AIInsightsCache] Erreur lors de la récupération des insights', {
-        error: error.message,
-      });
+      logger.error(
+        "[AIInsightsCache] Erreur lors de la récupération des insights",
+        {
+          error: getErrorMessage(error),
+        },
+      );
       return null;
     }
   }
@@ -149,43 +282,51 @@ export class AIInsightsCacheService {
   async cacheRecommendations(
     analysisData: VintedAnalysisResult,
     recommendations: AIRecommendations,
-    ttl?: number
+    ttl?: number,
   ): Promise<void> {
     try {
-      const cacheKey = this.generateInsightsCacheKey(analysisData, 'recommendations');
-      const cacheTTL = ttl || this.getCacheTTL('recommendations');
-      
-      await cacheService.set(cacheKey, {
+      const cacheKey = this.generateInsightsCacheKey(
+        analysisData,
+        "recommendations",
+      );
+      const cacheTTL = this.normalizeTTL(
+        ttl ?? this.getCacheTTL("recommendations"),
+      );
+
+      const entry: RecommendationsEntry = {
         recommendations,
         timestamp: Date.now(),
-        version: '1.0',
+        version: "1.0",
         configHash: this.getConfigHash(),
-      }, cacheTTL);
+      };
 
+      await cacheService.set(cacheKey, entry, cacheTTL);
       this.metrics.sets++;
-      
     } catch (error) {
       this.metrics.errors++;
-      logger.error('[AIInsightsCache] Erreur lors de la mise en cache des recommandations', {
-        error: error.message,
-      });
+      logger.error(
+        "[AIInsightsCache] Erreur lors de la mise en cache des recommandations",
+        {
+          error: getErrorMessage(error),
+        },
+      );
     }
   }
 
   /**
    * Récupère les recommandations IA du cache
    */
-  async getRecommendations(analysisData: VintedAnalysisResult): Promise<AIRecommendations | null> {
+  async getRecommendations(
+    analysisData: VintedAnalysisResult,
+  ): Promise<AIRecommendations | null> {
     try {
-      const cacheKey = this.generateInsightsCacheKey(analysisData, 'recommendations');
-      const cached = await cacheService.get<{
-        recommendations: AIRecommendations;
-        timestamp: number;
-        version: string;
-        configHash: string;
-      }>(cacheKey);
+      const cacheKey = this.generateInsightsCacheKey(
+        analysisData,
+        "recommendations",
+      );
+      const cached = await cacheService.get<RecommendationsEntry>(cacheKey);
 
-      if (!cached) {
+      if (!cached || !this.isRecommendationsEntry(cached)) {
         this.metrics.misses++;
         return null;
       }
@@ -200,9 +341,12 @@ export class AIInsightsCacheService {
       return cached.recommendations;
     } catch (error) {
       this.metrics.errors++;
-      logger.error('[AIInsightsCache] Erreur lors de la récupération des recommandations', {
-        error: error.message,
-      });
+      logger.error(
+        "[AIInsightsCache] Erreur lors de la récupération des recommandations",
+        {
+          error: getErrorMessage(error),
+        },
+      );
       return null;
     }
   }
@@ -213,43 +357,43 @@ export class AIInsightsCacheService {
   async cacheTrendPredictions(
     analysisData: VintedAnalysisResult,
     predictions: TrendPrediction,
-    ttl?: number
+    ttl?: number,
   ): Promise<void> {
     try {
-      const cacheKey = this.generateInsightsCacheKey(analysisData, 'trends');
-      const cacheTTL = ttl || this.getCacheTTL('trends');
-      
-      await cacheService.set(cacheKey, {
+      const cacheKey = this.generateInsightsCacheKey(analysisData, "trends");
+      const cacheTTL = this.normalizeTTL(ttl ?? this.getCacheTTL("trends"));
+
+      const entry: TrendsEntry = {
         predictions,
         timestamp: Date.now(),
-        version: '1.0',
+        version: "1.0",
         configHash: this.getConfigHash(),
-      }, cacheTTL);
+      };
 
+      await cacheService.set(cacheKey, entry, cacheTTL);
       this.metrics.sets++;
-      
     } catch (error) {
       this.metrics.errors++;
-      logger.error('[AIInsightsCache] Erreur lors de la mise en cache des prédictions', {
-        error: error.message,
-      });
+      logger.error(
+        "[AIInsightsCache] Erreur lors de la mise en cache des prédictions",
+        {
+          error: getErrorMessage(error),
+        },
+      );
     }
   }
 
   /**
    * Récupère les prédictions de tendances du cache
    */
-  async getTrendPredictions(analysisData: VintedAnalysisResult): Promise<TrendPrediction | null> {
+  async getTrendPredictions(
+    analysisData: VintedAnalysisResult,
+  ): Promise<TrendPrediction | null> {
     try {
-      const cacheKey = this.generateInsightsCacheKey(analysisData, 'trends');
-      const cached = await cacheService.get<{
-        predictions: TrendPrediction;
-        timestamp: number;
-        version: string;
-        configHash: string;
-      }>(cacheKey);
+      const cacheKey = this.generateInsightsCacheKey(analysisData, "trends");
+      const cached = await cacheService.get<TrendsEntry>(cacheKey);
 
-      if (!cached) {
+      if (!cached || !this.isTrendsEntry(cached)) {
         this.metrics.misses++;
         return null;
       }
@@ -264,9 +408,12 @@ export class AIInsightsCacheService {
       return cached.predictions;
     } catch (error) {
       this.metrics.errors++;
-      logger.error('[AIInsightsCache] Erreur lors de la récupération des prédictions', {
-        error: error.message,
-      });
+      logger.error(
+        "[AIInsightsCache] Erreur lors de la récupération des prédictions",
+        {
+          error: getErrorMessage(error),
+        },
+      );
       return null;
     }
   }
@@ -277,43 +424,43 @@ export class AIInsightsCacheService {
   async cacheAnomalyDetections(
     analysisData: VintedAnalysisResult,
     anomalies: AnomalyDetection[],
-    ttl?: number
+    ttl?: number,
   ): Promise<void> {
     try {
-      const cacheKey = this.generateInsightsCacheKey(analysisData, 'anomalies');
-      const cacheTTL = ttl || this.getCacheTTL('anomalies');
-      
-      await cacheService.set(cacheKey, {
+      const cacheKey = this.generateInsightsCacheKey(analysisData, "anomalies");
+      const cacheTTL = this.normalizeTTL(ttl ?? this.getCacheTTL("anomalies"));
+
+      const entry: AnomaliesEntry = {
         anomalies,
         timestamp: Date.now(),
-        version: '1.0',
+        version: "1.0",
         configHash: this.getConfigHash(),
-      }, cacheTTL);
+      };
 
+      await cacheService.set(cacheKey, entry, cacheTTL);
       this.metrics.sets++;
-      
     } catch (error) {
       this.metrics.errors++;
-      logger.error('[AIInsightsCache] Erreur lors de la mise en cache des anomalies', {
-        error: error.message,
-      });
+      logger.error(
+        "[AIInsightsCache] Erreur lors de la mise en cache des anomalies",
+        {
+          error: getErrorMessage(error),
+        },
+      );
     }
   }
 
   /**
    * Récupère les détections d'anomalies du cache
    */
-  async getAnomalyDetections(analysisData: VintedAnalysisResult): Promise<AnomalyDetection[] | null> {
+  async getAnomalyDetections(
+    analysisData: VintedAnalysisResult,
+  ): Promise<AnomalyDetection[] | null> {
     try {
-      const cacheKey = this.generateInsightsCacheKey(analysisData, 'anomalies');
-      const cached = await cacheService.get<{
-        anomalies: AnomalyDetection[];
-        timestamp: number;
-        version: string;
-        configHash: string;
-      }>(cacheKey);
+      const cacheKey = this.generateInsightsCacheKey(analysisData, "anomalies");
+      const cached = await cacheService.get<AnomaliesEntry>(cacheKey);
 
-      if (!cached) {
+      if (!cached || !this.isAnomaliesEntry(cached)) {
         this.metrics.misses++;
         return null;
       }
@@ -328,9 +475,12 @@ export class AIInsightsCacheService {
       return cached.anomalies;
     } catch (error) {
       this.metrics.errors++;
-      logger.error('[AIInsightsCache] Erreur lors de la récupération des anomalies', {
-        error: error.message,
-      });
+      logger.error(
+        "[AIInsightsCache] Erreur lors de la récupération des anomalies",
+        {
+          error: getErrorMessage(error),
+        },
+      );
       return null;
     }
   }
@@ -339,168 +489,104 @@ export class AIInsightsCacheService {
    * Invalide les insights pour des données spécifiques
    */
   async invalidateInsights(analysisData: VintedAnalysisResult): Promise<void> {
-    try {
-      const cacheKey = this.generateInsightsCacheKey(analysisData, 'insights');
-      await cacheService.delete(cacheKey);
-      this.metrics.invalidations++;
-      
-    } catch (error) {
-      this.metrics.errors++;
-      logger.error('[AIInsightsCache] Erreur lors de l\'invalidation des insights', {
-        error: error.message,
-      });
-    }
+    await this.invalidateByType(analysisData, "insights");
   }
 
   /**
    * Invalide les recommandations pour des données spécifiques
    */
-  async invalidateRecommendations(analysisData: VintedAnalysisResult): Promise<void> {
-    try {
-      const cacheKey = this.generateInsightsCacheKey(analysisData, 'recommendations');
-      await cacheService.delete(cacheKey);
-      this.metrics.invalidations++;
-      
-    } catch (error) {
-      this.metrics.errors++;
-      logger.error('[AIInsightsCache] Erreur lors de l\'invalidation des recommandations', {
-        error: error.message,
-      });
-    }
+  async invalidateRecommendations(
+    analysisData: VintedAnalysisResult,
+  ): Promise<void> {
+    await this.invalidateByType(analysisData, "recommendations");
   }
 
   /**
    * Invalide les prédictions de tendances pour des données spécifiques
    */
-  async invalidateTrendPredictions(analysisData: VintedAnalysisResult): Promise<void> {
-    try {
-      const cacheKey = this.generateInsightsCacheKey(analysisData, 'trends');
-      await cacheService.delete(cacheKey);
-      this.metrics.invalidations++;
-      
-    } catch (error) {
-      this.metrics.errors++;
-      logger.error('[AIInsightsCache] Erreur lors de l\'invalidation des prédictions', {
-        error: error.message,
-      });
-    }
+  async invalidateTrendPredictions(
+    analysisData: VintedAnalysisResult,
+  ): Promise<void> {
+    await this.invalidateByType(analysisData, "trends");
   }
 
   /**
    * Invalide les détections d'anomalies pour des données spécifiques
    */
-  async invalidateAnomalyDetections(analysisData: VintedAnalysisResult): Promise<void> {
+  async invalidateAnomalyDetections(
+    analysisData: VintedAnalysisResult,
+  ): Promise<void> {
+    await this.invalidateByType(analysisData, "anomalies");
+  }
+
+  /**
+   * Invalide une clé par type
+   */
+  private async invalidateByType(
+    analysisData: VintedAnalysisResult,
+    type: AnalysisType,
+  ): Promise<void> {
     try {
-      const cacheKey = this.generateInsightsCacheKey(analysisData, 'anomalies');
+      const cacheKey = this.generateInsightsCacheKey(analysisData, type);
       await cacheService.delete(cacheKey);
       this.metrics.invalidations++;
-      
     } catch (error) {
       this.metrics.errors++;
-      logger.error('[AIInsightsCache] Erreur lors de l\'invalidation des anomalies', {
-        error: error.message,
-      });
+      logger.error(
+        `[AIInsightsCache] Erreur lors de l'invalidation (${type})`,
+        {
+          error: getErrorMessage(error),
+        },
+      );
     }
   }
 
   /**
-   * Invalide tous les caches IA
+   * Invalide tous les caches IA (mémoire + persistant)
    */
   async invalidateAll(): Promise<void> {
     try {
-      // Utiliser le cache manager pour nettoyer les entrées en mémoire
-      await cacheManager.clear();
-      
-      // Note: Pour le cache persistant, nous devrions idéalement avoir une méthode
-      // pour supprimer par préfixe, mais pour l'instant nous utilisons clear()
+      // Cache persistant
       await cacheService.clear();
-      
+
       this.metrics.invalidations++;
-      
-      logger.info('[AIInsightsCache] Tous les caches IA invalidés');
+      logger.info("[AIInsightsCache] Tous les caches IA invalidés");
     } catch (error) {
       this.metrics.errors++;
-      logger.error('[AIInsightsCache] Erreur lors de l\'invalidation complète', {
-        error: error.message,
+      logger.error("[AIInsightsCache] Erreur lors de l'invalidation complète", {
+        error: getErrorMessage(error),
       });
     }
   }
 
   /**
-   * Obtient le TTL approprié selon le type de cache
+   * Alias de compatibilité: clear() -> invalidateAll()
    */
-  private getCacheTTL(type: 'insights' | 'recommendations' | 'trends' | 'anomalies'): number {
-    const config = marketAnalysisConfig.getPerformanceConfig();
-    const baseTTL = config.cacheExpiry || this.DEFAULT_TTL;
-    
-    // Ajuster le TTL selon le type d'analyse
-    switch (type) {
-      case 'insights':
-        return baseTTL; // TTL standard pour les insights
-      case 'recommendations':
-        return baseTTL * 0.5; // TTL plus court pour les recommandations (plus volatiles)
-      case 'trends':
-        return baseTTL * 2; // TTL plus long pour les prédictions (plus stables)
-      case 'anomalies':
-        return baseTTL * 0.25; // TTL très court pour les anomalies (très volatiles)
-      default:
-        return baseTTL;
-    }
+  async clear(): Promise<void> {
+    return this.invalidateAll();
   }
 
   /**
-   * Préchauffe le cache pour des analyses fréquemment demandées
+   * Retourne les métriques du cache (lecture seule)
    */
-  async warmCache(
-    analysisData: VintedAnalysisResult,
-    insights?: AIInsights,
-    recommendations?: AIRecommendations,
-    trends?: TrendPrediction,
-    anomalies?: AnomalyDetection[]
-  ): Promise<void> {
-    const warmingPromises: Promise<void>[] = [];
-
-    if (insights) {
-      warmingPromises.push(this.cacheInsights(analysisData, insights));
-    }
-    
-    if (recommendations) {
-      warmingPromises.push(this.cacheRecommendations(analysisData, recommendations));
-    }
-    
-    if (trends) {
-      warmingPromises.push(this.cacheTrendPredictions(analysisData, trends));
-    }
-    
-    if (anomalies) {
-      warmingPromises.push(this.cacheAnomalyDetections(analysisData, anomalies));
-    }
-
-    try {
-      await Promise.all(warmingPromises);
-      logger.info('[AIInsightsCache] Cache préchauffé avec succès', {
-        itemsWarmed: warmingPromises.length,
-      });
-    } catch (error) {
-      logger.error('[AIInsightsCache] Erreur lors du préchauffage du cache', {
-        error: error.message,
-      });
-    }
-  }
-
-  /**
-   * Retourne les métriques du cache
-   */
-  getMetrics() {
-    const hitRate = this.metrics.hits + this.metrics.misses > 0 
-      ? this.metrics.hits / (this.metrics.hits + this.metrics.misses)
-      : 0;
+  getMetrics(): CacheMetrics {
+    const total = this.metrics.hits + this.metrics.misses;
+    const hitRateRaw = total > 0 ? this.metrics.hits / total : 0;
+    const hitRate =
+      Math.round(Math.max(0, Math.min(1, hitRateRaw)) * 100) / 100;
 
     return {
       ...this.metrics,
-      hitRate: Math.round(hitRate * 100) / 100,
-      totalRequests: this.metrics.hits + this.metrics.misses,
+      hitRate,
+      totalRequests: total,
     };
+  }
+
+  /**
+   * Alias de compatibilité: getStats() -> getMetrics()
+   */
+  getStats(): CacheMetrics {
+    return this.getMetrics();
   }
 
   /**
@@ -514,6 +600,90 @@ export class AIInsightsCacheService {
       invalidations: 0,
       errors: 0,
     };
+  }
+
+  /**
+   * Préchauffe le cache pour des analyses fréquemment demandées
+   */
+  async warmCache(
+    analysisData: VintedAnalysisResult,
+    insights?: AIInsights,
+    recommendations?: AIRecommendations,
+    trends?: TrendPrediction,
+    anomalies?: AnomalyDetection[],
+  ): Promise<void> {
+    const warmingPromises: Promise<void>[] = [];
+
+    if (insights) {
+      warmingPromises.push(this.cacheInsights(analysisData, insights));
+    }
+
+    if (recommendations) {
+      warmingPromises.push(
+        this.cacheRecommendations(analysisData, recommendations),
+      );
+    }
+
+    if (trends) {
+      warmingPromises.push(this.cacheTrendPredictions(analysisData, trends));
+    }
+
+    if (anomalies) {
+      warmingPromises.push(
+        this.cacheAnomalyDetections(analysisData, anomalies),
+      );
+    }
+
+    try {
+      await Promise.all(warmingPromises);
+      logger.info("[AIInsightsCache] Cache préchauffé avec succès", {
+        itemsWarmed: warmingPromises.length,
+      });
+    } catch (error) {
+      logger.error("[AIInsightsCache] Erreur lors du préchauffage du cache", {
+        error: getErrorMessage(error),
+      });
+    }
+  }
+
+  /**
+   * Calcule le TTL approprié selon le type de cache
+   */
+  private getCacheTTL(type: AnalysisType): number {
+    const perf = marketAnalysisConfig.getPerformanceConfig();
+    const baseTTL =
+      typeof (perf as any)?.cacheExpiry === "number" &&
+      isFinite((perf as any).cacheExpiry)
+        ? (perf as any).cacheExpiry
+        : this.DEFAULT_TTL;
+
+    let ttl = baseTTL;
+    switch (type) {
+      case "insights":
+        ttl = baseTTL; // standard
+        break;
+      case "recommendations":
+        ttl = baseTTL * 0.5; // plus volatile
+        break;
+      case "trends":
+        ttl = baseTTL * 2; // plus stable
+        break;
+      case "anomalies":
+        ttl = baseTTL * 0.25; // très volatile
+        break;
+      default:
+        ttl = baseTTL;
+        break;
+    }
+    return this.normalizeTTL(ttl);
+  }
+
+  /**
+   * Normalise un TTL (nombre entier >= 1)
+   */
+  private normalizeTTL(value: number): number {
+    if (!Number.isFinite(value) || value <= 0) return 1;
+    return Math.max(1, Math.floor(value));
   }
 }
 

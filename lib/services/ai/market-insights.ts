@@ -1,18 +1,18 @@
 import { z } from "zod";
 import { runMarketAnalysisInference } from "./inference-client";
-import { VintedAnalysisResult } from "../vinted-market-analysis";
-import { AdvancedMetrics } from "@/lib/analytics/advanced-analytics-engine";
+import type { VintedAnalysisResult } from "../vinted-market-analysis";
+import type { AdvancedMetrics } from "@/lib/analytics/advanced-analytics-engine";
 import { marketAnalysisConfig } from "./market-analysis-config";
-import { AIAnalysisError } from "./ai-errors";
+import { AIAnalysisError, AIErrorCode } from "./ai-errors";
+import { getErrorMessage, toError } from "@/lib/utils/error-utils";
 
 // Schémas pour les insights de marché
 const PricingRecommendationSchema = z.object({
-
   optimalPriceRange: z.object({
     min: z.number(),
     max: z.number(),
   }),
-  currentPricePosition: z.enum(['underpriced', 'optimal', 'overpriced']),
+  currentPricePosition: z.enum(["underpriced", "optimal", "overpriced"]),
   strategy: z.string(),
   expectedImpact: z.object({
     volumeChange: z.number(), // pourcentage
@@ -23,19 +23,24 @@ const PricingRecommendationSchema = z.object({
 });
 
 const MarketOpportunitySchema = z.object({
-  type: z.enum(['price_gap', 'demand_spike', 'competitor_weakness', 'seasonal_trend']),
+  type: z.enum([
+    "price_gap",
+    "demand_spike",
+    "competitor_weakness",
+    "seasonal_trend",
+  ]),
   title: z.string(),
   description: z.string(),
   potentialValue: z.number(), // en euros
-  effort: z.enum(['low', 'medium', 'high']),
-  timeframe: z.enum(['immediate', 'short_term', 'long_term']),
+  effort: z.enum(["low", "medium", "high"]),
+  timeframe: z.enum(["immediate", "short_term", "long_term"]),
   confidence: z.number().min(0).max(1),
-priority: z.enum(['low', 'medium', 'high', 'critical']),
+  priority: z.enum(["low", "medium", "high", "critical"]),
   actionSteps: z.array(z.string()),
 });
 
 const CompetitivePositionSchema = z.object({
-  position: z.enum(['leader', 'challenger', 'follower', 'niche']),
+  position: z.enum(["leader", "challenger", "follower", "niche"]),
   marketShare: z.object({
     estimated: z.number(),
     confidence: z.number().min(0).max(1),
@@ -44,31 +49,37 @@ const CompetitivePositionSchema = z.object({
   weaknesses: z.array(z.string()),
   threats: z.array(z.string()),
   opportunities: z.array(z.string()),
-  competitorAnalysis: z.array(z.object({
-    name: z.string(),
-    priceRange: z.object({ min: z.number(), max: z.number() }),
-    volume: z.number(),
-    differentiators: z.array(z.string()),
-  })),
+  competitorAnalysis: z.array(
+    z.object({
+      name: z.string(),
+      priceRange: z.object({ min: z.number(), max: z.number() }),
+      volume: z.number(),
+      differentiators: z.array(z.string()),
+    }),
+  ),
 });
 
 const MarketInsightsSchema = z.object({
   pricingRecommendations: z.array(PricingRecommendationSchema),
   marketOpportunities: z.array(MarketOpportunitySchema),
   competitivePosition: CompetitivePositionSchema,
-  marketTrends: z.array(z.object({
-    trend: z.string(),
-    direction: z.enum(['up', 'down', 'stable']),
-    strength: z.number().min(0).max(1),
-    timeframe: z.string(),
-    impact: z.enum(['low', 'medium', 'high']),
-  })),
-  riskFactors: z.array(z.object({
-    risk: z.string(),
-    probability: z.number().min(0).max(1),
-    impact: z.enum(['low', 'medium', 'high']),
-    mitigation: z.string(),
-  })),
+  marketTrends: z.array(
+    z.object({
+      trend: z.string(),
+      direction: z.enum(["up", "down", "stable"]),
+      strength: z.number().min(0).max(1),
+      timeframe: z.string(),
+      impact: z.enum(["low", "medium", "high"]),
+    }),
+  ),
+  riskFactors: z.array(
+    z.object({
+      risk: z.string(),
+      probability: z.number().min(0).max(1),
+      impact: z.enum(["low", "medium", "high"]),
+      mitigation: z.string(),
+    }),
+  ),
   confidence: z.number().min(0).max(1),
   lastUpdated: z.string(),
 });
@@ -165,10 +176,10 @@ Réponds uniquement avec un objet JSON valide au format suivant:
 
 // Interface pour les préférences utilisateur
 export interface UserPreferences {
-  objectives: Array<'profit' | 'volume' | 'market_share' | 'brand_building'>;
-  riskTolerance: 'conservative' | 'moderate' | 'aggressive';
-  timeframe: 'short_term' | 'medium_term' | 'long_term';
-  focusAreas: Array<'pricing' | 'competition' | 'trends' | 'opportunities'>;
+  objectives: Array<"profit" | "volume" | "market_share" | "brand_building">;
+  riskTolerance: "conservative" | "moderate" | "aggressive";
+  timeframe: "short_term" | "medium_term" | "long_term";
+  focusAreas: Array<"pricing" | "competition" | "trends" | "opportunities">;
 }
 
 // Service principal d'insights de marché
@@ -188,37 +199,43 @@ export class MarketInsightsService {
   async generateMarketInsights(
     analysisResult: VintedAnalysisResult,
     advancedMetrics?: AdvancedMetrics,
-    userPreferences?: UserPreferences
+    userPreferences?: UserPreferences,
   ): Promise<MarketInsights> {
     const config = marketAnalysisConfig.getConfig();
-    
+
     // Vérifier si les insights sont activés
     if (!config.insights.enabled) {
       throw new AIAnalysisError(
-        'Les insights de marché sont désactivés',
-        'FEATURE_DISABLED' as any,
-        { retryable: false, fallbackAvailable: true }
+        "Les insights de marché sont désactivés",
+        AIErrorCode.FEATURE_DISABLED,
+        { retryable: false, fallbackAvailable: true },
       );
     }
 
     // Valider la qualité des données
-    const dataQuality = marketAnalysisConfig.validateDataQuality(analysisResult.rawItems || []);
+    const dataQuality = marketAnalysisConfig.validateDataQuality(
+      analysisResult.rawItems || [],
+    );
     if (!dataQuality.valid) {
       throw new AIAnalysisError(
-        `Qualité des données insuffisante: ${dataQuality.issues.join(', ')}`,
-        'DATA_QUALITY_TOO_LOW' as any,
-        { retryable: false, fallbackAvailable: true, context: dataQuality }
+        `Qualité des données insuffisante: ${dataQuality.issues.join(", ")}`,
+        AIErrorCode.DATA_QUALITY_TOO_LOW,
+        { retryable: false, fallbackAvailable: true, context: dataQuality },
       );
     }
 
     const preferences = this.getDefaultPreferences(userPreferences);
-    
+
     try {
-      const prompt = this.buildPrompt(analysisResult, advancedMetrics, preferences);
-      
+      const prompt = this.buildPrompt(
+        analysisResult,
+        advancedMetrics,
+        preferences,
+      );
+
       const response = await runMarketAnalysisInference({
         prompt,
-        analysisType: 'insights',
+        analysisType: "insights",
         temperature: 0.3,
         max_tokens: 2000,
         context: {
@@ -228,20 +245,19 @@ export class MarketInsightsService {
         },
       });
 
-      const insights = this.parseInsightsResponse(response.choices[0].text);
-      
+      const insights = this.parseInsightsResponse(response.choices[0]!!.text);
+
       // Filtrer selon la configuration
       return this.filterInsightsByConfig(insights, config);
-      
     } catch (error) {
       if (error instanceof AIAnalysisError) {
         throw error;
       }
-      
+
       throw new AIAnalysisError(
-        `Erreur lors de la génération des insights: ${error.message}`,
-        'INFERENCE_FAILED' as any,
-        { retryable: true, fallbackAvailable: true, cause: error }
+        `Erreur lors de la génération des insights: ${getErrorMessage(error)}`,
+        "INFERENCE_FAILED" as any,
+        { retryable: true, fallbackAvailable: true, cause: toError(error) },
       );
     }
   }
@@ -251,17 +267,21 @@ export class MarketInsightsService {
    */
   async generatePricingRecommendations(
     analysisResult: VintedAnalysisResult,
-    advancedMetrics?: AdvancedMetrics
+    advancedMetrics?: AdvancedMetrics,
   ): Promise<PricingRecommendation[]> {
     const prompt = `
     Analyse les données de marché suivantes et génère des recommandations de prix optimales.
     
-    Données: ${JSON.stringify({
-      avgPrice: analysisResult.avgPrice,
-      priceRange: analysisResult.priceRange,
-      salesVolume: analysisResult.salesVolume,
-      competitorData: advancedMetrics?.competitiveAnalysis,
-    }, null, 2)}
+    Données: ${JSON.stringify(
+      {
+        avgPrice: analysisResult.avgPrice,
+        priceRange: analysisResult.priceRange,
+        salesVolume: analysisResult.salesVolume,
+        competitorData: advancedMetrics?.competitiveAnalysis,
+      },
+      null,
+      2,
+    )}
     
     Réponds avec un tableau JSON de recommandations de prix.
     `;
@@ -269,14 +289,15 @@ export class MarketInsightsService {
     try {
       const response = await runMarketAnalysisInference({
         prompt,
-        analysisType: 'recommendations',
+        analysisType: "recommendations",
         temperature: 0.2,
         max_tokens: 800,
       });
 
-      const recommendations: unknown[] = JSON.parse(response.choices[0].text);
-      return recommendations.map((rec): PricingRecommendation => PricingRecommendationSchema.parse(rec));
-      
+      const recommendations: unknown[] = JSON.parse(response.choices[0]!!.text);
+      return recommendations.map(
+        (rec): PricingRecommendation => PricingRecommendationSchema.parse(rec),
+      );
     } catch (error) {
       // Fallback vers recommandations basiques
       return this.generateBasicPricingRecommendations(analysisResult);
@@ -288,7 +309,7 @@ export class MarketInsightsService {
    */
   async identifyMarketOpportunities(
     analysisResult: VintedAnalysisResult,
-    advancedMetrics?: AdvancedMetrics
+    advancedMetrics?: AdvancedMetrics,
   ): Promise<MarketOpportunity[]> {
     const opportunities: MarketOpportunity[] = [];
 
@@ -297,17 +318,19 @@ export class MarketInsightsService {
       for (const gap of advancedMetrics.competitiveAnalysis.priceGaps) {
         if (gap.opportunity > 1.5) {
           opportunities.push({
-            type: 'price_gap',
+            type: "price_gap",
             title: `Gap de prix identifié`,
             description: `Opportunité de positionnement entre ${gap.min}€ et ${gap.max}€`,
-            potentialValue: (gap.max - gap.min) * analysisResult.salesVolume * 0.1,
-            effort: 'low',
-            timeframe: 'immediate',
+            potentialValue:
+              (gap.max - gap.min) * analysisResult.salesVolume * 0.1,
+            effort: "low",
+            timeframe: "immediate",
             confidence: gap.confidence,
+            priority: "medium",
             actionSteps: [
-              'Analyser la demande dans cette gamme de prix',
-              'Tester un positionnement prix dans ce segment',
-              'Monitorer la réaction concurrentielle'
+              "Analyser la demande dans cette gamme de prix",
+              "Tester un positionnement prix dans ce segment",
+              "Monitorer la réaction concurrentielle",
             ],
           });
         }
@@ -317,17 +340,19 @@ export class MarketInsightsService {
     // Analyser les tendances saisonnières
     if (advancedMetrics?.temporalAnalysis?.seasonality?.detected) {
       opportunities.push({
-        type: 'seasonal_trend',
-        title: 'Opportunité saisonnière détectée',
+        type: "seasonal_trend",
+        title: "Opportunité saisonnière détectée",
         description: `Pattern ${advancedMetrics.temporalAnalysis.seasonality.pattern} identifié`,
-        potentialValue: analysisResult.avgPrice * analysisResult.salesVolume * 0.15,
-        effort: 'medium',
-        timeframe: 'short_term',
+        potentialValue:
+          analysisResult.avgPrice * analysisResult.salesVolume * 0.15,
+        effort: "medium",
+        timeframe: "short_term",
         confidence: advancedMetrics.temporalAnalysis.seasonality.confidence,
+        priority: "medium",
         actionSteps: [
-          'Ajuster la stratégie selon le cycle saisonnier',
-          'Optimiser le stock pour les pics de demande',
-          'Adapter la communication marketing'
+          "Ajuster la stratégie selon le cycle saisonnier",
+          "Optimiser le stock pour les pics de demande",
+          "Adapter la communication marketing",
         ],
       });
     }
@@ -341,7 +366,7 @@ export class MarketInsightsService {
   private buildPrompt(
     analysisResult: VintedAnalysisResult,
     advancedMetrics?: AdvancedMetrics,
-    preferences?: UserPreferences
+    preferences?: UserPreferences,
   ): string {
     const marketData = {
       ...analysisResult,
@@ -349,13 +374,23 @@ export class MarketInsightsService {
       enrichedItems: undefined,
     };
 
-    return MARKET_INSIGHTS_PROMPT_TEMPLATE
-      .replace('{market_data}', JSON.stringify(marketData, null, 2))
-      .replace('{advanced_metrics}', advancedMetrics ? JSON.stringify(advancedMetrics, null, 2) : 'Non disponibles')
-      .replace('{objectives}', preferences?.objectives.join(', ') || 'profit, volume')
-      .replace('{risk_tolerance}', preferences?.riskTolerance || 'moderate')
-      .replace('{timeframe}', preferences?.timeframe || 'medium_term')
-      .replace('{timestamp}', new Date().toISOString());
+    return MARKET_INSIGHTS_PROMPT_TEMPLATE.replace(
+      "{market_data}",
+      JSON.stringify(marketData, null, 2),
+    )
+      .replace(
+        "{advanced_metrics}",
+        advancedMetrics
+          ? JSON.stringify(advancedMetrics, null, 2)
+          : "Non disponibles",
+      )
+      .replace(
+        "{objectives}",
+        preferences?.objectives.join(", ") || "profit, volume",
+      )
+      .replace("{risk_tolerance}", preferences?.riskTolerance || "moderate")
+      .replace("{timeframe}", preferences?.timeframe || "medium_term")
+      .replace("{timestamp}", new Date().toISOString());
   }
 
   /**
@@ -365,8 +400,8 @@ export class MarketInsightsService {
     const jsonString = responseText.match(/{[\s\S]*}/)?.[0];
     if (!jsonString) {
       throw new AIAnalysisError(
-        'Réponse IA invalide: pas de JSON trouvé',
-        'INVALID_RESPONSE' as any
+        "Réponse IA invalide: pas de JSON trouvé",
+        AIErrorCode.INVALID_RESPONSE,
       );
     }
 
@@ -375,9 +410,9 @@ export class MarketInsightsService {
       return MarketInsightsSchema.parse(parsed);
     } catch (error) {
       throw new AIAnalysisError(
-        `Erreur de parsing des insights: ${error.message}`,
-        'INVALID_RESPONSE' as any,
-        { cause: error }
+        `Erreur de parsing des insights: ${getErrorMessage(error)}`,
+        AIErrorCode.INVALID_RESPONSE,
+        { cause: toError(error) },
       );
     }
   }
@@ -385,14 +420,17 @@ export class MarketInsightsService {
   /**
    * Filtre les insights selon la configuration
    */
-  private filterInsightsByConfig(insights: MarketInsights, config: any): MarketInsights {
+  private filterInsightsByConfig(
+    insights: MarketInsights,
+    config: any,
+  ): MarketInsights {
     return {
       ...insights,
       pricingRecommendations: insights.pricingRecommendations
-        .filter(rec => rec.confidence >= config.insights.minConfidence)
+        .filter((rec) => rec.confidence >= config.insights.minConfidence)
         .slice(0, config.recommendations.maxRecommendations),
       marketOpportunities: insights.marketOpportunities
-        .filter(opp => opp.confidence >= config.insights.minConfidence)
+        .filter((opp) => opp.confidence >= config.insights.minConfidence)
         .slice(0, config.insights.maxInsights),
     };
   }
@@ -401,36 +439,47 @@ export class MarketInsightsService {
    * Génère des recommandations de prix basiques en fallback
    */
   private generateBasicPricingRecommendations(
-    analysisResult: VintedAnalysisResult
+    analysisResult: VintedAnalysisResult,
   ): PricingRecommendation[] {
     const currentPrice = analysisResult.avgPrice;
     const priceRange = analysisResult.priceRange;
-    
-    return [{
-      optimalPriceRange: {
-        min: Math.max(currentPrice * 0.95, priceRange.min),
-        max: Math.min(currentPrice * 1.05, priceRange.max),
+
+    return [
+      {
+        optimalPriceRange: {
+          min: Math.max(
+            currentPrice * 0.95,
+            priceRange.min ?? currentPrice * 0.95,
+          ),
+          max: Math.min(
+            currentPrice * 1.05,
+            priceRange.max ?? currentPrice * 1.05,
+          ),
+        },
+        currentPricePosition: "optimal",
+        strategy: "Maintenir le prix actuel avec ajustements mineurs",
+        expectedImpact: {
+          volumeChange: 0,
+          revenueChange: 2,
+        },
+        confidence: 0.6,
+        justification:
+          "Recommandation basique basée sur les données disponibles",
       },
-      currentPricePosition: 'optimal',
-      strategy: 'Maintenir le prix actuel avec ajustements mineurs',
-      expectedImpact: {
-        volumeChange: 0,
-        revenueChange: 2,
-      },
-      confidence: 0.6,
-      justification: 'Recommandation basique basée sur les données disponibles',
-    }];
+    ];
   }
 
   /**
    * Obtient les préférences par défaut
    */
-  private getDefaultPreferences(userPreferences?: UserPreferences): UserPreferences {
+  private getDefaultPreferences(
+    userPreferences?: UserPreferences,
+  ): UserPreferences {
     return {
-      objectives: userPreferences?.objectives || ['profit', 'volume'],
-      riskTolerance: userPreferences?.riskTolerance || 'moderate',
-      timeframe: userPreferences?.timeframe || 'medium_term',
-      focusAreas: userPreferences?.focusAreas || ['pricing', 'opportunities'],
+      objectives: userPreferences?.objectives || ["profit", "volume"],
+      riskTolerance: userPreferences?.riskTolerance || "moderate",
+      timeframe: userPreferences?.timeframe || "medium_term",
+      focusAreas: userPreferences?.focusAreas || ["pricing", "opportunities"],
     };
   }
 }

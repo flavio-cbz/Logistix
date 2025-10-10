@@ -1,29 +1,29 @@
 import { z } from "zod";
 import { runMarketAnalysisInference } from "./inference-client";
-import { VintedAnalysisResult } from "../vinted-market-analysis";
-import { AdvancedMetrics } from "@/lib/analytics/advanced-analytics-engine";
+import type { VintedAnalysisResult } from "../vinted-market-analysis";
+import type { AdvancedMetrics } from "@/lib/analytics/advanced-analytics-engine";
 
 // Schémas étendus pour les rapports avancés
 const InsightSchema = z.object({
-  type: z.enum(['opportunity', 'risk', 'trend', 'anomaly']),
+  type: z.enum(["opportunity", "risk", "trend", "anomaly"]),
   title: z.string(),
   description: z.string(),
   confidence: z.number().min(0).max(1),
-  impact: z.enum(['low', 'medium', 'high']),
+  impact: z.enum(["low", "medium", "high"]),
   evidence: z.array(z.string()),
   actionable: z.boolean(),
 });
 
 const TrendPredictionSchema = z.object({
-  timeframe: z.enum(['1week', '1month', '3months']),
-  direction: z.enum(['up', 'down', 'stable']),
+  timeframe: z.enum(["1week", "1month", "3months"]),
+  direction: z.enum(["up", "down", "stable"]),
   magnitude: z.number(),
   confidence: z.number().min(0).max(1),
   factors: z.array(z.string()),
 });
 
 const CompetitiveAnalysisSchema = z.object({
-  position: z.enum(['leader', 'challenger', 'follower', 'niche']),
+  position: z.enum(["leader", "challenger", "follower", "niche"]),
   strengths: z.array(z.string()),
   weaknesses: z.array(z.string()),
   opportunities: z.array(z.string()),
@@ -41,14 +41,12 @@ const EnhancedReportSchema = z.object({
     factors: z.array(z.string()),
   }),
   riskAssessment: z.object({
-    level: z.enum(['low', 'medium', 'high']),
+    level: z.enum(["low", "medium", "high"]),
     factors: z.array(z.string()),
   }),
 });
 
-export type Insight = z.infer<typeof InsightSchema>;
-export type TrendPrediction = z.infer<typeof TrendPredictionSchema>;
-export type CompetitiveAnalysis = z.infer<typeof CompetitiveAnalysisSchema>;
+// Types are now defined in the main types file to avoid duplication
 export type EnhancedReport = z.infer<typeof EnhancedReportSchema>;
 
 // Maintien de la compatibilité avec l'ancien type
@@ -127,7 +125,7 @@ Réponds uniquement avec un objet JSON valide au format suivant:
 // Fonction principale pour générer un rapport avancé
 export async function generateEnhancedReport(
   analysisResult: VintedAnalysisResult,
-  advancedMetrics?: AdvancedMetrics
+  advancedMetrics?: AdvancedMetrics,
 ): Promise<EnhancedReport> {
   // Préparer les données pour l'IA
   const dataForPrompt = {
@@ -137,14 +135,20 @@ export async function generateEnhancedReport(
     enrichedItems: undefined, // Ne pas envoyer les données enrichies
   };
 
-  const prompt = ENHANCED_REPORT_PROMPT_TEMPLATE
-    .replace("{analysis_data}", JSON.stringify(dataForPrompt, null, 2))
-    .replace("{advanced_metrics}", advancedMetrics ? JSON.stringify(advancedMetrics, null, 2) : "Non disponibles");
+  const prompt = ENHANCED_REPORT_PROMPT_TEMPLATE.replace(
+    "{analysis_data}",
+    JSON.stringify(dataForPrompt, null, 2),
+  ).replace(
+    "{advanced_metrics}",
+    advancedMetrics
+      ? JSON.stringify(advancedMetrics, null, 2)
+      : "Non disponibles",
+  );
 
   try {
     const response = await runMarketAnalysisInference({
       prompt: prompt,
-      analysisType: 'insights',
+      analysisType: "insights",
       temperature: 0.4,
       max_tokens: 1500,
       context: {
@@ -153,7 +157,7 @@ export async function generateEnhancedReport(
       },
     });
 
-    const jsonString = response.choices[0].text.match(/{[\s\S]*}/)?.[0];
+    const jsonString = response.choices[0]!!.text.match(/{[\s\S]*}/)?.[0];
     if (!jsonString) {
       throw new Error("La réponse de l'IA ne contient pas de JSON valide.");
     }
@@ -162,7 +166,10 @@ export async function generateEnhancedReport(
     const validationResult = EnhancedReportSchema.safeParse(parsed);
 
     if (!validationResult.success) {
-      console.warn("Validation du rapport avancé échouée:", validationResult.error.message);
+      console.warn(
+        "Validation du rapport avancé échouée:",
+        validationResult.error.message,
+      );
       // Fallback vers un rapport simple
       return generateFallbackReport(analysisResult);
     }
@@ -175,52 +182,60 @@ export async function generateEnhancedReport(
 }
 
 // Fonction de fallback pour générer un rapport simple
-async function generateFallbackReport(analysisResult: VintedAnalysisResult): Promise<EnhancedReport> {
+async function generateFallbackReport(
+  analysisResult: VintedAnalysisResult,
+): Promise<EnhancedReport> {
   try {
     const simpleReport = await generateReport(analysisResult);
-    
+
     // Convertir le rapport simple en format avancé
     return {
       summary: simpleReport.summary,
       keyInsights: [
         {
-          type: 'trend',
-          title: 'Analyse de base disponible',
+          type: "trend",
+          title: "Analyse de base disponible",
           description: simpleReport.summary,
           confidence: 0.6,
-          impact: 'medium',
+          impact: "medium",
           evidence: [`${analysisResult.salesVolume} ventes analysées`],
           actionable: true,
-        }
+        },
       ],
       recommendations: simpleReport.recommendations,
       trendPredictions: [
         {
-          timeframe: '1month',
-          direction: analysisResult.avgPrice > 50 ? 'stable' : 'up',
+          timeframe: "1month",
+          direction: analysisResult.avgPrice > 50 ? "stable" : "up",
           magnitude: 0.1,
           confidence: 0.5,
-          factors: ['Données limitées disponibles'],
-        }
+          factors: ["Données limitées disponibles"],
+        },
       ],
       competitiveAnalysis: {
-        position: 'follower',
-        strengths: ['Données de marché disponibles'],
-        weaknesses: ['Analyse limitée'],
-        opportunities: ['Améliorer la collecte de données'],
-        threats: ['Concurrence non analysée'],
+        position: "follower",
+        strengths: ["Données de marché disponibles"],
+        weaknesses: ["Analyse limitée"],
+        opportunities: ["Améliorer la collecte de données"],
+        threats: ["Concurrence non analysée"],
       },
       marketHealth: {
         score: Math.min(100, Math.max(0, analysisResult.salesVolume * 2)),
         factors: [`Volume de ventes: ${analysisResult.salesVolume}`],
       },
       riskAssessment: {
-        level: analysisResult.salesVolume < 10 ? 'high' : 'medium',
-        factors: analysisResult.salesVolume < 10 ? ['Échantillon trop petit'] : ['Données suffisantes'],
+        level: analysisResult.salesVolume < 10 ? "high" : "medium",
+        factors:
+          analysisResult.salesVolume < 10
+            ? ["Échantillon trop petit"]
+            : ["Données suffisantes"],
       },
     };
   } catch (error) {
-    console.error("Erreur lors de la génération du rapport de fallback:", error);
+    console.error(
+      "Erreur lors de la génération du rapport de fallback:",
+      error,
+    );
     return getEmptyReport();
   }
 }
@@ -233,25 +248,27 @@ function getEmptyReport(): EnhancedReport {
     recommendations: [],
     trendPredictions: [],
     competitiveAnalysis: {
-      position: 'niche',
+      position: "niche",
       strengths: [],
-      weaknesses: ['Données insuffisantes'],
+      weaknesses: ["Données insuffisantes"],
       opportunities: [],
       threats: [],
     },
     marketHealth: {
       score: 0,
-      factors: ['Erreur de génération'],
+      factors: ["Erreur de génération"],
     },
     riskAssessment: {
-      level: 'high',
-      factors: ['Analyse impossible'],
+      level: "high",
+      factors: ["Analyse impossible"],
     },
   };
 }
 
 // Maintien de la compatibilité avec l'ancienne fonction
-export async function generateReport(analysisResult: Partial<VintedAnalysisResult>): Promise<Report> {
+export async function generateReport(
+  analysisResult: Partial<VintedAnalysisResult>,
+): Promise<Report> {
   const dataForPrompt = {
     ...analysisResult,
     articlesAnalyses: `${analysisResult.enrichedItems?.length || analysisResult.rawItems?.length || 0} articles analysés`,
@@ -261,18 +278,18 @@ export async function generateReport(analysisResult: Partial<VintedAnalysisResul
 
   const prompt = SIMPLE_REPORT_PROMPT_TEMPLATE.replace(
     "{analysis_data}",
-    JSON.stringify(dataForPrompt, null, 2)
+    JSON.stringify(dataForPrompt, null, 2),
   );
 
   try {
     const response = await runMarketAnalysisInference({
       prompt: prompt,
-      analysisType: 'recommendations',
+      analysisType: "recommendations",
       temperature: 0.5,
       max_tokens: 500,
     });
 
-    const jsonString = response.choices[0].text.match(/{[\s\S]*}/)?.[0];
+    const jsonString = response.choices[0]!!.text.match(/{[\s\S]*}/)?.[0];
     if (!jsonString) {
       throw new Error("La réponse de l'IA ne contient pas de JSON valide.");
     }
@@ -281,7 +298,9 @@ export async function generateReport(analysisResult: Partial<VintedAnalysisResul
     const validationResult = ReportSchema.safeParse(parsed);
 
     if (!validationResult.success) {
-      throw new Error(`Validation Zod échouée: ${validationResult.error.message}`);
+      throw new Error(
+        `Validation Zod échouée: ${validationResult.error.message}`,
+      );
     }
 
     return validationResult.data;

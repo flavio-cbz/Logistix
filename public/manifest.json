@@ -1,7 +1,7 @@
 {
   "name": "Logistix",
   "short_name": "Logistix",
-  "description": "Application de gestion de logistique pour le suivi des parcelles et produits",
+  "description": "Application de gestion de logistique pour le suivi des colis et produits",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

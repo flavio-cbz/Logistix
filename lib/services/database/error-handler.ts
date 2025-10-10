@@ -1,56 +1,56 @@
-import 'server-only';
-import { ErrorCategory } from './retry-manager';
+import "server-only";
+import { ErrorCategory } from "./retry-manager";
 
 /**
  * Types d'erreurs SQLite étendus
  */
 export enum SQLiteErrorType {
   // Erreurs de verrou
-  BUSY = 'SQLITE_BUSY',
-  LOCKED = 'SQLITE_LOCKED',
-  
+  BUSY = "SQLITE_BUSY",
+  LOCKED = "SQLITE_LOCKED",
+
   // Erreurs I/O
-  IOERR = 'SQLITE_IOERR',
-  INTERRUPT = 'SQLITE_INTERRUPT',
-  
+  IOERR = "SQLITE_IOERR",
+  INTERRUPT = "SQLITE_INTERRUPT",
+
   // Erreurs de ressources
-  NOMEM = 'SQLITE_NOMEM',
-  FULL = 'SQLITE_FULL',
-  
+  NOMEM = "SQLITE_NOMEM",
+  FULL = "SQLITE_FULL",
+
   // Erreurs critiques
-  CORRUPT = 'SQLITE_CORRUPT',
-  NOTADB = 'SQLITE_NOTADB',
-  
+  CORRUPT = "SQLITE_CORRUPT",
+  NOTADB = "SQLITE_NOTADB",
+
   // Erreurs de configuration
-  READONLY = 'SQLITE_READONLY',
-  CANTOPEN = 'SQLITE_CANTOPEN',
-  PERM = 'SQLITE_PERM',
-  
+  READONLY = "SQLITE_READONLY",
+  CANTOPEN = "SQLITE_CANTOPEN",
+  PERM = "SQLITE_PERM",
+
   // Erreurs de protocole
-  PROTOCOL = 'SQLITE_PROTOCOL',
-  SCHEMA = 'SQLITE_SCHEMA',
-  
+  PROTOCOL = "SQLITE_PROTOCOL",
+  SCHEMA = "SQLITE_SCHEMA",
+
   // Erreurs génériques
-  ERROR = 'SQLITE_ERROR',
-  INTERNAL = 'SQLITE_INTERNAL',
+  ERROR = "SQLITE_ERROR",
+  INTERNAL = "SQLITE_INTERNAL",
 }
 
 /**
  * Stratégies de réponse aux erreurs
  */
 export enum ErrorResponseStrategy {
-  RETRY_WITH_BACKOFF = 'retry_with_backoff',
-  RETRY_IMMEDIATE = 'retry_immediate',
-  FAIL_FAST = 'fail_fast',
-  CIRCUIT_BREAK = 'circuit_break',
-  ESCALATE = 'escalate',
+  RETRY_WITH_BACKOFF = "retry_with_backoff",
+  RETRY_IMMEDIATE = "retry_immediate",
+  FAIL_FAST = "fail_fast",
+  CIRCUIT_BREAK = "circuit_break",
+  ESCALATE = "escalate",
 }
 
 /**
  * Informations détaillées sur une erreur
  */
 export interface ErrorInfo {
-  type: SQLiteErrorType | 'UNKNOWN';
+  type: SQLiteErrorType | "UNKNOWN";
   category: ErrorCategory;
   strategy: ErrorResponseStrategy;
   isRetryable: boolean;
@@ -78,7 +78,7 @@ interface ErrorStrategyConfig {
  */
 export class DatabaseErrorHandler {
   private static instance: DatabaseErrorHandler;
-  
+
   private readonly errorStrategies: ErrorStrategyConfig = {
     // Erreurs de verrou - retry avec backoff exponentiel
     [SQLiteErrorType.BUSY]: {
@@ -93,7 +93,7 @@ export class DatabaseErrorHandler {
       isRetryable: true,
       isCritical: false,
     },
-    
+
     // Erreurs I/O - retry immédiat avec limite
     [SQLiteErrorType.IOERR]: {
       category: ErrorCategory.RETRYABLE_IO,
@@ -107,7 +107,7 @@ export class DatabaseErrorHandler {
       isRetryable: true,
       isCritical: false,
     },
-    
+
     // Erreurs de ressources - retry avec délai long
     [SQLiteErrorType.NOMEM]: {
       category: ErrorCategory.RETRYABLE_RESOURCE,
@@ -121,7 +121,7 @@ export class DatabaseErrorHandler {
       isRetryable: true,
       isCritical: false,
     },
-    
+
     // Erreurs critiques - circuit breaker
     [SQLiteErrorType.CORRUPT]: {
       category: ErrorCategory.CRITICAL,
@@ -135,7 +135,7 @@ export class DatabaseErrorHandler {
       isRetryable: false,
       isCritical: true,
     },
-    
+
     // Erreurs de configuration - fail fast
     [SQLiteErrorType.READONLY]: {
       category: ErrorCategory.NON_RETRYABLE,
@@ -155,7 +155,7 @@ export class DatabaseErrorHandler {
       isRetryable: false,
       isCritical: false,
     },
-    
+
     // Erreurs de protocole - retry avec backoff
     [SQLiteErrorType.PROTOCOL]: {
       category: ErrorCategory.RETRYABLE_LOCK,
@@ -172,15 +172,15 @@ export class DatabaseErrorHandler {
   };
 
   private logger = {
-    debug: (msg: string, data?: any) => {
-      if (process.env.DB_DEBUG === 'true') {
+    debug: (_msg: string, _data?: any) => {
+      if ((process.env as any)["DB_DEBUG"] === "true") {
       }
     },
-    warn: (msg: string, data?: any) => {
-      console.warn(`[ErrorHandler] ${msg}`, data ? JSON.stringify(data) : '');
+    warn: (_msg: string, data?: any) => {
+      console.warn(`[ErrorHandler] ${_msg}`, data ? JSON.stringify(data) : "");
     },
-    error: (msg: string, data?: any) => {
-      console.error(`[ErrorHandler] ${msg}`, data ? JSON.stringify(data) : '');
+    error: (_msg: string, data?: any) => {
+      console.error(`[ErrorHandler] ${_msg}`, data ? JSON.stringify(data) : "");
     },
   };
 
@@ -201,12 +201,14 @@ export class DatabaseErrorHandler {
    */
   public analyzeError(error: any, context?: string): ErrorInfo {
     const errorType = this.identifyErrorType(error);
-    const strategy = this.errorStrategies[errorType] || {
+    const defaultStrategy = {
       category: ErrorCategory.NON_RETRYABLE,
       strategy: ErrorResponseStrategy.FAIL_FAST,
       isRetryable: false,
       isCritical: false,
     };
+    const strategy =
+      (this.errorStrategies as any)[errorType] ?? defaultStrategy;
 
     const errorInfo: ErrorInfo = {
       type: errorType,
@@ -214,24 +216,22 @@ export class DatabaseErrorHandler {
       strategy: strategy.strategy,
       isRetryable: strategy.isRetryable,
       isCritical: strategy.isCritical,
-      message: error?.message || 'Unknown database error',
+      message: error?.message || "Unknown database error",
       originalError: error,
-      context,
+      ...(context !== undefined ? { context } : {}),
       timestamp: new Date(),
     };
 
-
     return errorInfo;
   }
-
   /**
    * Identifie le type d'erreur SQLite
    */
-  private identifyErrorType(error: any): SQLiteErrorType | 'UNKNOWN' {
-    if (!error) return 'UNKNOWN';
+  private identifyErrorType(error: any): SQLiteErrorType | "UNKNOWN" {
+    if (!error) return "UNKNOWN";
 
     const code = error.code;
-    const message = error.message?.toLowerCase() || '';
+    const message = error.message?.toLowerCase() || "";
 
     // Vérifier d'abord le code d'erreur
     if (code && Object.values(SQLiteErrorType).includes(code)) {
@@ -239,27 +239,36 @@ export class DatabaseErrorHandler {
     }
 
     // Fallback sur l'analyse du message d'erreur
-    if (message.includes('database is locked')) return SQLiteErrorType.LOCKED;
-    if (message.includes('database is busy')) return SQLiteErrorType.BUSY;
-    if (message.includes('disk i/o error')) return SQLiteErrorType.IOERR;
-    if (message.includes('interrupted')) return SQLiteErrorType.INTERRUPT;
-    if (message.includes('out of memory')) return SQLiteErrorType.NOMEM;
-    if (message.includes('database or disk is full')) return SQLiteErrorType.FULL;
-    if (message.includes('database disk image is malformed')) return SQLiteErrorType.CORRUPT;
-    if (message.includes('file is not a database')) return SQLiteErrorType.NOTADB;
-    if (message.includes('readonly database')) return SQLiteErrorType.READONLY;
-    if (message.includes('unable to open database file')) return SQLiteErrorType.CANTOPEN;
-    if (message.includes('access permission denied')) return SQLiteErrorType.PERM;
-    if (message.includes('database schema has changed')) return SQLiteErrorType.SCHEMA;
+    if (message.includes("database is locked")) return SQLiteErrorType.LOCKED;
+    if (message.includes("database is busy")) return SQLiteErrorType.BUSY;
+    if (message.includes("disk i/o error")) return SQLiteErrorType.IOERR;
+    if (message.includes("interrupted")) return SQLiteErrorType.INTERRUPT;
+    if (message.includes("out of memory")) return SQLiteErrorType.NOMEM;
+    if (message.includes("database or disk is full"))
+      return SQLiteErrorType.FULL;
+    if (message.includes("database disk image is malformed"))
+      return SQLiteErrorType.CORRUPT;
+    if (message.includes("file is not a database"))
+      return SQLiteErrorType.NOTADB;
+    if (message.includes("readonly database")) return SQLiteErrorType.READONLY;
+    if (message.includes("unable to open database file"))
+      return SQLiteErrorType.CANTOPEN;
+    if (message.includes("access permission denied"))
+      return SQLiteErrorType.PERM;
+    if (message.includes("database schema has changed"))
+      return SQLiteErrorType.SCHEMA;
 
-    return 'UNKNOWN';
+    return "UNKNOWN";
   }
 
   /**
    * Détermine si une erreur doit déclencher le circuit breaker
    */
   public shouldTriggerCircuitBreaker(errorInfo: ErrorInfo): boolean {
-    return errorInfo.strategy === ErrorResponseStrategy.CIRCUIT_BREAK || errorInfo.isCritical;
+    return (
+      errorInfo.strategy === ErrorResponseStrategy.CIRCUIT_BREAK ||
+      errorInfo.isCritical
+    );
   }
 
   /**
@@ -268,22 +277,22 @@ export class DatabaseErrorHandler {
   public generateUserMessage(errorInfo: ErrorInfo): string {
     switch (errorInfo.category) {
       case ErrorCategory.RETRYABLE_LOCK:
-        return 'Database is temporarily busy. The operation will be retried automatically.';
-      
+        return "Database is temporarily busy. The operation will be retried automatically.";
+
       case ErrorCategory.RETRYABLE_IO:
-        return 'Temporary I/O error occurred. Retrying operation...';
-      
+        return "Temporary I/O error occurred. Retrying operation...";
+
       case ErrorCategory.RETRYABLE_RESOURCE:
-        return 'System resources are temporarily unavailable. Please try again in a moment.';
-      
+        return "System resources are temporarily unavailable. Please try again in a moment.";
+
       case ErrorCategory.CRITICAL:
-        return 'A critical database error occurred. Please contact support if the problem persists.';
-      
+        return "A critical database error occurred. Please contact support if the problem persists.";
+
       case ErrorCategory.NON_RETRYABLE:
-        return 'Database operation failed due to configuration or permission issues.';
-      
+        return "Database operation failed due to configuration or permission issues.";
+
       default:
-        return 'An unexpected database error occurred.';
+        return "An unexpected database error occurred.";
     }
   }
 
@@ -297,7 +306,7 @@ export class DatabaseErrorHandler {
       errorInfo.category,
       errorInfo.strategy,
       errorInfo.originalError,
-      errorInfo.context
+      errorInfo.context,
     );
   }
 
@@ -316,11 +325,20 @@ export class DatabaseErrorHandler {
     };
 
     if (errorInfo.isCritical) {
-      this.logger.error(`Critical database error: ${errorInfo.message}`, logData);
+      this.logger.error(
+        `Critical database error: ${errorInfo.message}`,
+        logData,
+      );
     } else if (!errorInfo.isRetryable) {
-      this.logger.error(`Non-retryable database error: ${errorInfo.message}`, logData);
+      this.logger.error(
+        `Non-retryable database error: ${errorInfo.message}`,
+        logData,
+      );
     } else {
-      this.logger.warn(`Retryable database error: ${errorInfo.message}`, logData);
+      this.logger.warn(
+        `Retryable database error: ${errorInfo.message}`,
+        logData,
+      );
     }
   }
 }
@@ -330,15 +348,15 @@ export class DatabaseErrorHandler {
  */
 export class DatabaseError extends Error {
   constructor(
-    message: string,
-    public readonly type: SQLiteErrorType | 'UNKNOWN',
+    _message: string,
+    public readonly type: SQLiteErrorType | "UNKNOWN",
     public readonly category: ErrorCategory,
     public readonly strategy: ErrorResponseStrategy,
     public readonly originalError?: any,
-    public readonly context?: string
+    public readonly context?: string,
   ) {
-    super(message);
-    this.name = 'DatabaseError';
+    super(_message);
+    this.name = "DatabaseError";
   }
 
   /**
@@ -361,7 +379,7 @@ export class DatabaseError extends Error {
   toJSON(): object {
     return {
       name: this.name,
-      message: this.message,
+      _message: this.message,
       type: this.type,
       category: this.category,
       strategy: this.strategy,

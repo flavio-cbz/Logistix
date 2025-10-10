@@ -1,33 +1,41 @@
-export interface Parcelle {
-  id: string
-  userId: string
-  numero: string
-  transporteur: string
-  poids: number
-  prixAchat: number
-  prixTotal: number
-  prixParGramme: number // Calculé : prixTotal / poids
-  createdAt?: string
-  updatedAt?: string
-}
+// Re-export shared types for backward compatibility
+export type {
+  Parcelle,
+  CreateProductInput,
+  UpdateProductInput,
+  CreateParcelleInput,
+  UpdateParcelleInput,
+  CreateParcelleInput as CreateParcelleData,
+  UpdateParcelleInput as UpdateParcelleData,
+} from '../lib/types/entities';
 
-export interface Produit {
-  id: string
-  userId: string;
-  commandeId: string
-  nom: string | null
-  details?: string
-  prixArticle: number // En euros uniquement
-  poids: number
-  prixLivraison: number // En euros uniquement
-  vendu: boolean
-  dateVente?: string
-  tempsEnLigne?: string
-  prixVente?: number // En euros uniquement
-  plateforme?: string
-  parcelleId: string
-  benefices?: number // En euros uniquement
-  pourcentageBenefice?: number
-  createdAt?: string
-  updatedAt?: string
+// Local import used to build a compatibility alias below
+import type { Product } from '../lib/types/entities';
+
+// Legacy interface for backward compatibility
+/**
+ * Legacy `Produit` kept for backward compatibility.
+ *
+ * Many parts of the codebase still import `Produit`. To allow a safe, incremental
+ * migration to the modern `Product` interface (see `lib/types/entities.ts`), we
+ * expose `Produit` as a compatibility type that extends `Product` and adds the
+ * legacy field names as optional aliases. This keeps the build working while new
+ * code can prefer `Product`.
+ */
+export type Produit = Product & {
+  // Legacy aliases (optional). When present they should mirror the modern fields:
+  // - `nom` === `name`
+  // - `prixArticle` === `price`
+  // - `prixLivraison` === `coutLivraison`
+  // - `prixVente` already exists on Product as `prixVente`
+  nom?: string | undefined;
+  details?: string | undefined;
+  prixArticle?: number | undefined;
+  prixLivraison?: number | undefined;
+  // Historical / legacy fields kept for tests and older modules
+  dateAchat?: string | undefined;
+  tempsEnLigne?: string | undefined;
+  pourcentageBenefice?: number | undefined;
+  // parcelleId stays compatible (Product.parcelleId is optional/nullable)
+  parcelleId: string;
 }

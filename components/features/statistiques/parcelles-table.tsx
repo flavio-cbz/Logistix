@@ -1,5 +1,14 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { MapPin, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -8,160 +17,187 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Parcelle } from "@/types/database";
-import { Button } from "@/components/ui/button";
-import { PencilIcon, Trash2Icon, CopyIcon } from "lucide-react";
-import { useDuplicateEntity } from "@/lib/utils/duplication";
-import { useStore } from "@/lib/services/admin/store";
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import ParcelleForm from "@/components/features/parcelles/parcelle-form"; // Correction: import par défaut
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface ParcellesTableProps {
-  parcelles: Parcelle[];
+interface ColisStat {
+  id: string;
+  nom: string;
+  surface: number;
+  utilisation: number; // Pourcentage d'utilisation
+  revenus: number;
+  couts: number;
+  benefice: number;
+  rendementParM2: number;
+  tendance: "up" | "down" | "stable";
+  statut: "active" | "inactive" | "maintenance";
+  derniereMaj: string;
 }
 
-export function ParcellesTable({ parcelles }: ParcellesTableProps) {
-  const { addParcelle, updateParcelle, deleteParcelle } = useStore();
-  const { duplicateEntity } = useDuplicateEntity<Parcelle>();
-  const [editingParcelle, setEditingParcelle] = useState<Parcelle | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+interface ColisTableProps {
+  data?: ColisStat[];
+  colis?: any[]; // Support legacy prop
+  loading?: boolean;
+  className?: string;
+}
 
-  const handleDuplicate = (parcelle: Parcelle) => {
-    duplicateEntity({
-      entity: parcelle,
-      transform: (p) => ({
-        ...p,
-        numero: `${p.numero ?? ""}-copie`, // Exemple: ajouter "-copie" au numéro
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }),
-      addFunction: addParcelle,
-      entityName: "Parcelle",
-    });
+export function ColisTable({
+  data,
+  colis = [],
+  loading = false,
+  className,
+}: ColisTableProps) {
+  const [sortedData, setSortedData] = useState<ColisStat[]>([]);
+
+  // Use colis if provided, otherwise use data
+  const inputData = colis && colis.length > 0 ? colis : (data || []);
+
+  useEffect(() => {
+    // Trier par bénéfice décroissant par défaut
+    const sorted = [...inputData].sort(
+      (a, b) => (b.benefice || 0) - (a.benefice || 0),
+    );
+    setSortedData(sorted);
+  }, [inputData]);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR",
+    }).format(amount);
   };
 
-  const handleEdit = (parcelle: Parcelle) => {
-    setEditingParcelle(parcelle);
-    setIsFormOpen(true);
+  const formatDate = (dateString: string) => {
+    return new Intl.DateTimeFormat("fr-FR", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(new Date(dateString));
   };
 
-  const handleDeleteConfirm = async (id: string) => {
-    await deleteParcelle(id);
-    setDeleteId(null);
+  const getStatutBadge = (statut: string) => {
+    switch (statut) {
+      case "active":
+        return <Badge variant="default">Active</Badge>;
+      case "maintenance":
+        return <Badge variant="secondary">Maintenance</Badge>;
+      case "inactive":
+        return <Badge variant="outline">Inactive</Badge>;
+      default:
+        return <Badge variant="outline">{statut}</Badge>;
+    }
   };
 
-  const handleFormClose = () => {
-    setEditingParcelle(null);
-    setIsFormOpen(false);
+  const getTendanceIcon = (tendance: string) => {
+    switch (tendance) {
+      case "up":
+        return <TrendingUp className="h-4 w-4 text-green-500" />;
+      case "down":
+        return <TrendingDown className="h-4 w-4 text-red-500" />;
+      default:
+        return <Minus className="h-4 w-4 text-gray-500" />;
+    }
   };
+
+  if (loading) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
-        <CardTitle>Liste des Parcelles</CardTitle>
-        <CardDescription>
-          Gérez et visualisez toutes vos parcelles.
-        </CardDescription>
+        <div className="flex items-center space-x-2">
+          <MapPin className="h-5 w-5 text-primary" />
+          <div>
+            <CardTitle>Performance des Colis</CardTitle>
+            <CardDescription>
+              Analyse de la rentabilité et utilisation de l'espace
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Numéro</TableHead>
-              <TableHead>Transporteur</TableHead>
-              <TableHead>Poids (g)</TableHead>
-              <TableHead>Prix Achat (€)</TableHead>
-              <TableHead>Prix/Gramme (€)</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {parcelles.length === 0 ? (
+        {sortedData.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Aucune donnée de parcelle disponible
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="text-center">
-                  Aucune parcelle trouvée.
-                </TableCell>
+                <TableHead>Parcelle</TableHead>
+                <TableHead className="text-right">Surface</TableHead>
+                <TableHead className="text-right">Utilisation</TableHead>
+                <TableHead className="text-right">Revenus</TableHead>
+                <TableHead className="text-right">Coûts</TableHead>
+                <TableHead className="text-right">Bénéfice</TableHead>
+                <TableHead className="text-right">€/m²</TableHead>
+                <TableHead className="text-center">Tendance</TableHead>
+                <TableHead className="text-center">Statut</TableHead>
+                <TableHead className="text-center">Dernière MAJ</TableHead>
               </TableRow>
-            ) : (
-              parcelles.map((parcelle) => (
+            </TableHeader>
+            <TableBody>
+              {sortedData.map((parcelle) => (
                 <TableRow key={parcelle.id}>
-                  <TableCell className="font-medium">
-                    {parcelle.numero ?? ""}
-                  </TableCell>
-                  <TableCell>{parcelle.transporteur ?? "N/A"}</TableCell>
-                  <TableCell>{parcelle.poids ?? 0}</TableCell>
-                  <TableCell>{(parcelle.prixAchat ?? 0).toFixed(2)}</TableCell>
-                  <TableCell>{(parcelle.prixParGramme ?? 0).toFixed(2)}</TableCell>
+                  <TableCell className="font-medium">{parcelle.nom}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(parcelle)}
-                      className="mr-1"
+                    {parcelle.surface?.toFixed(1)} m²
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Badge
+                      variant={
+                        parcelle.utilisation >= 80 ? "default" : "outline"
+                      }
                     >
-                      <PencilIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDuplicate(parcelle)}
-                      className="mr-1"
-                    >
-                      <CopyIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteId(parcelle.id)}
-                    >
-                      <Trash2Icon className="h-4 w-4" />
-                    </Button>
+                      {parcelle.utilisation?.toFixed(0)}%
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-green-600">
+                    {formatCurrency(parcelle.revenus || 0)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-red-600">
+                    {formatCurrency(parcelle.couts || 0)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono font-semibold">
+                    {formatCurrency(parcelle.benefice || 0)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {formatCurrency(parcelle.rendementParM2 || 0)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {getTendanceIcon(parcelle.tendance)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {getStatutBadge(parcelle.statut)}
+                  </TableCell>
+                  <TableCell className="text-center text-sm text-muted-foreground">
+                    {parcelle.derniereMaj
+                      ? formatDate(parcelle.derniereMaj)
+                      : "-"}
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
-
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingParcelle ? "Modifier la parcelle" : "Ajouter une parcelle"}
-            </DialogTitle>
-          </DialogHeader>
-          {editingParcelle && (
-            <ParcelleForm
-              editParcelle={editingParcelle}
-              onClose={handleFormClose}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <ConfirmDialog
-        open={!!deleteId}
-        onOpenChange={() => setDeleteId(null)}
-        onConfirm={() => deleteId && handleDeleteConfirm(deleteId)}
-        title="Supprimer la parcelle"
-        description="Êtes-vous sûr de vouloir supprimer cette parcelle ? Cette action est irréversible."
-      />
     </Card>
   );
 }
+
+export default ColisTable;

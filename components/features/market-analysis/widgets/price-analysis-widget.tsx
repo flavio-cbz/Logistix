@@ -1,47 +1,106 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { BarChart3, TrendingUp, TrendingDown } from "lucide-react"
-import type { VintedAnalysisResult } from "@/types/vinted-market-analysis"
+import { memo, useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { BarChart3, TrendingUp, TrendingDown } from "lucide-react";
+import type { VintedAnalysisResult } from "@/types/vinted-market-analysis";
 
 interface PriceAnalysisWidgetProps {
   analysis: VintedAnalysisResult;
 }
 
-const formatPrice = (price: number) => `${price.toFixed(2)} €`
+// Helpers de formatage avec garde stricte
+const formatPrice = (price: number): string => {
+  const value = Number.isFinite(price) ? price : 0;
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+};
 
-export default function PriceAnalysisWidget({ analysis }: PriceAnalysisWidgetProps) {
-  const priceRange = analysis.priceRange.max - analysis.priceRange.min
-  const averageVsMin = ((analysis.avgPrice - analysis.priceRange.min) / analysis.priceRange.min * 100)
-  const averageVsMax = ((analysis.priceRange.max - analysis.avgPrice) / analysis.priceRange.max * 100)
+const clampToFinite = (value: number): number =>
+  Number.isFinite(value) ? value : 0;
+
+export default memo(function PriceAnalysisWidget({
+  analysis,
+}: Readonly<PriceAnalysisWidgetProps>) {
+  // Calcule les métriques dérivées avec garde contre NaN/undefined
+  const {
+    minPrice,
+    maxPrice,
+    priceRange,
+    averageVsMinPct,
+    averageVsMaxPct,
+    isAvgBelowMidpoint,
+  } = useMemo(() => {
+    const min = clampToFinite(Number(analysis?.priceRange?.min));
+    const max = clampToFinite(Number(analysis?.priceRange?.max));
+    const avg = clampToFinite(Number(analysis?.avgPrice));
+
+    const range = Math.max(0, max - min);
+    const vsMin = min > 0 ? ((avg - min) / min) * 100 : 0;
+    const vsMax = max > 0 ? ((max - avg) / max) * 100 : 0;
+    const midpoint = (min + max) / 2;
+
+    return {
+      minPrice: min,
+      maxPrice: max,
+      avgPrice: avg,
+      priceRange: range,
+      averageVsMinPct: clampToFinite(vsMin),
+      averageVsMaxPct: clampToFinite(vsMax),
+      isAvgBelowMidpoint: avg < midpoint,
+    };
+  }, [
+    analysis?.avgPrice,
+    analysis?.priceRange?.min,
+    analysis?.priceRange?.max,
+  ]);
+
+  const averageVsMinLabel = `+${Math.round(averageVsMinPct)}% vs min`;
+  const averageVsMaxLabel = `-${Math.round(averageVsMaxPct)}% vs max`;
 
   return (
-    <Card>
+    <Card role="region" aria-label="Analyse des prix">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5" />
-          Analyse des prix
+          <BarChart3 className="h-5 w-5" aria-hidden="true" focusable="false" />
+          <span>Analyse des prix</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <span className="text-sm">Fourchette de prix</span>
-            <Badge variant="outline">
+            <Badge
+              variant="outline"
+              aria-label={`Fourchette: ${formatPrice(minPrice)} à ${formatPrice(maxPrice)} (${formatPrice(priceRange)} d'écart)`}
+              title={`De ${formatPrice(minPrice)} à ${formatPrice(maxPrice)}`}
+            >
               {formatPrice(priceRange)} d'écart
             </Badge>
           </div>
-          
+
           <div className="flex justify-between items-center">
             <span className="text-sm">Position du prix moyen</span>
             <div className="flex gap-2">
-              <Badge variant={averageVsMin < 50 ? "default" : "secondary"}>
-                +{averageVsMin.toFixed(0)}% vs min
+              <Badge
+                variant={averageVsMinPct < 50 ? "default" : "secondary"}
+                aria-label={`Prix moyen ${averageVsMinLabel}`}
+                title={averageVsMinLabel}
+              >
+                {averageVsMinLabel}
               </Badge>
-              <Badge variant={averageVsMax < 50 ? "default" : "secondary"}>
-                -{averageVsMax.toFixed(0)}% vs max
+              <Badge
+                variant={averageVsMaxPct < 50 ? "default" : "secondary"}
+                aria-label={`Prix moyen ${averageVsMaxLabel}`}
+                title={averageVsMaxLabel}
+              >
+                {averageVsMaxLabel}
               </Badge>
             </div>
           </div>
@@ -52,20 +111,28 @@ export default function PriceAnalysisWidget({ analysis }: PriceAnalysisWidgetPro
         <div className="space-y-2">
           <h4 className="text-sm font-medium">Recommandation de prix</h4>
           <div className="text-sm text-muted-foreground">
-            {analysis.avgPrice < (analysis.priceRange.min + analysis.priceRange.max) / 2 ? (
-              <div className="flex items-center gap-2 text-green-600">
-                <TrendingUp className="h-4 w-4" />
-                Prix moyen plutôt bas, potentiel d'augmentation
+            {isAvgBelowMidpoint ? (
+              <div className="flex items-center gap-2 text-[hsl(var(--success-foreground))]">
+                <TrendingUp
+                  className="h-4 w-4"
+                  aria-hidden="true"
+                  focusable="false"
+                />
+                <span>Prix moyen plutôt bas, potentiel d'augmentation</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-orange-600">
-                <TrendingDown className="h-4 w-4" />
-                Prix moyen élevé, marché compétitif
+              <div className="flex items-center gap-2 text-[hsl(var(--warning-foreground))]">
+                <TrendingDown
+                  className="h-4 w-4"
+                  aria-hidden="true"
+                  focusable="false"
+                />
+                <span>Prix moyen élevé, marché compétitif</span>
               </div>
             )}
           </div>
         </div>
       </CardContent>
     </Card>
-  )
-}
+  );
+});

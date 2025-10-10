@@ -1,23 +1,32 @@
-import React, { useState } from "react";
+import { useState } from "react"; // Removed React import
 import { useMarketAnalysisStore } from "@/lib/store";
 import HistoricalDataView from "./historical-data-view";
 import { Button } from "@/components/ui/button";
 import NewAnalysisModal from "./new-analysis-modal";
 import { useMarketAnalysisData } from "@/lib/hooks/use-market-analysis-data";
-import type { MarketAnalysisHistoryItem, VintedAnalysisResult } from "@/types/vinted-market-analysis";
+import type {
+  MarketAnalysisHistoryItem,
+  VintedAnalysisResult,
+} from "@/types/vinted-market-analysis";
 import ComparativeAnalysisView from "./comparative-analysis-view";
 
 export default function MarketAnalysisDashboard() {
-  const { historicalData, isLoading, pagination, setCurrentAnalysis } = useMarketAnalysisStore();
+  const { historicalData, isLoading, pagination, setCurrentAnalysis } =
+    useMarketAnalysisStore();
   const { onRefresh } = useMarketAnalysisData();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedForComparison, setSelectedForComparison] = useState<string[]>([]);
-  const [comparisonResult, setComparisonResult] = useState<{ a: VintedAnalysisResult, b: VintedAnalysisResult } | null>(null);
+  const [selectedForComparison, setSelectedForComparison] = useState<string[]>(
+    [],
+  );
+  const [comparisonResult, setComparisonResult] = useState<{
+    a: VintedAnalysisResult;
+    b: VintedAnalysisResult;
+  } | null>(null);
 
   const handleToggleCompare = (analysisId: string) => {
-    setSelectedForComparison(prev => {
+    setSelectedForComparison((prev) => {
       if (prev.includes(analysisId)) {
-        return prev.filter(id => id !== analysisId);
+        return prev.filter((id) => id !== analysisId);
       }
       if (prev.length < 2) {
         return [...prev, analysisId];
@@ -30,33 +39,45 @@ export default function MarketAnalysisDashboard() {
     if (selectedForComparison.length !== 2) return;
     // Pour cette démo, nous utilisons les données partielles de l'historique.
     // Idéalement, il faudrait fetch les analyses complètes.
-    const analysisA = historicalData.find(h => h.id === selectedForComparison[0]);
-    const analysisB = historicalData.find(h => h.id === selectedForComparison[1]);
+    const analysisA = historicalData.find(
+      (h) => h.id === selectedForComparison[0],
+    );
+    const analysisB = historicalData.find(
+      (h) => h.id === selectedForComparison[1],
+    );
 
     if (analysisA && analysisB) {
-      const mockFullAnalysis = (h: MarketAnalysisHistoryItem): VintedAnalysisResult => ({
+      const mockFullAnalysis = (
+        h: MarketAnalysisHistoryItem,
+      ): VintedAnalysisResult => ({
         avgPrice: h.avgPrice,
         salesVolume: h.salesVolume,
         priceRange: { min: h.avgPrice * 0.8, max: h.avgPrice * 1.2 },
         analysisDate: h.createdAt,
-        catalogInfo: { id: 0, name: 'Unknown' },
+        catalogInfo: { id: 0, name: "Unknown" },
         brandInfo: null,
-        rawItems: []
+        rawItems: [],
       });
-      setComparisonResult({ a: mockFullAnalysis(analysisA), b: mockFullAnalysis(analysisB) });
+      setComparisonResult({
+        a: mockFullAnalysis(analysisA),
+        b: mockFullAnalysis(analysisB),
+      });
     }
   };
 
   const handleRowClick = (analysis: MarketAnalysisHistoryItem) => {
-    if (analysis.status === 'completed') {
+    if (analysis.status === "completed") {
       const partialAnalysis = {
         avgPrice: analysis.avgPrice,
         salesVolume: analysis.salesVolume,
-        priceRange: { min: analysis.avgPrice * 0.8, max: analysis.avgPrice * 1.2 },
+        priceRange: {
+          min: analysis.avgPrice * 0.8,
+          max: analysis.avgPrice * 1.2,
+        },
         analysisDate: analysis.createdAt,
-        catalogInfo: { id: 0, name: 'Unknown' },
+        catalogInfo: { id: 0, name: "Unknown" },
         brandInfo: null,
-        rawItems: []
+        rawItems: [],
       };
       setCurrentAnalysis(partialAnalysis);
     }
@@ -65,8 +86,13 @@ export default function MarketAnalysisDashboard() {
   if (comparisonResult) {
     return (
       <div className="space-y-6">
-        <Button onClick={() => setComparisonResult(null)}>Retour à l'historique</Button>
-        <ComparativeAnalysisView analysisA={comparisonResult.a} analysisB={comparisonResult.b} />
+        <Button onClick={() => setComparisonResult(null)}>
+          Retour à l'historique
+        </Button>
+        <ComparativeAnalysisView
+          analysisA={comparisonResult.a}
+          analysisB={comparisonResult.b}
+        />
       </div>
     );
   }
@@ -77,17 +103,17 @@ export default function MarketAnalysisDashboard() {
         <h2 className="text-xl font-bold">Historique des analyses</h2>
         <div className="flex gap-2">
           {selectedForComparison.length === 2 && (
-            <Button onClick={handleCompare}>Comparer ({selectedForComparison.length})</Button>
+            <Button onClick={handleCompare}>
+              Comparer ({selectedForComparison.length})
+            </Button>
           )}
-          <Button onClick={() => setIsModalOpen(true)}>
-            Nouvelle Analyse
-          </Button>
+          <Button onClick={() => setIsModalOpen(true)}>Nouvelle Analyse</Button>
         </div>
       </div>
 
       <HistoricalDataView
         analyses={historicalData}
-        hasMore={pagination.hasMore}
+        hasMore={pagination.page * pagination.limit < pagination.total}
         isLoading={isLoading}
         onLoadMore={() => onRefresh()}
         onReload={() => onRefresh()}
@@ -96,9 +122,9 @@ export default function MarketAnalysisDashboard() {
         selectedForComparison={selectedForComparison}
       />
 
-      <NewAnalysisModal 
-        open={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <NewAnalysisModal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
       />
     </div>
   );

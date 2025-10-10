@@ -1,53 +1,71 @@
 // Configuration avancée pour l'analyse de marché IA
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // Schémas de validation pour la configuration
 export const MarketAnalysisConfigSchema = z.object({
   // Configuration des insights
-  insights: z.object({
-    enabled: z.boolean().default(true),
-    minConfidence: z.number().min(0).max(1).default(0.7),
-    maxInsights: z.number().min(1).max(20).default(10),
-    categories: z.array(z.enum(['opportunity', 'risk', 'trend', 'anomaly'])).default(['opportunity', 'risk', 'trend']),
-  }).default({}),
-  
+  insights: z
+    .object({
+      enabled: z.boolean().default(true),
+      minConfidence: z.number().min(0).max(1).default(0.7),
+      maxInsights: z.number().min(1).max(20).default(10),
+      categories: z
+        .array(z.enum(["opportunity", "risk", "trend", "anomaly"]))
+        .default(["opportunity", "risk", "trend"]),
+    })
+    .default({}),
+
   // Configuration des recommandations
-  recommendations: z.object({
-    enabled: z.boolean().default(true),
-    maxRecommendations: z.number().min(1).max(10).default(5),
-    includeActionPlan: z.boolean().default(true),
-    priorityLevels: z.array(z.enum(['high', 'medium', 'low'])).default(['high', 'medium', 'low']),
-  }).default({}),
-  
+  recommendations: z
+    .object({
+      enabled: z.boolean().default(true),
+      maxRecommendations: z.number().min(1).max(10).default(5),
+      includeActionPlan: z.boolean().default(true),
+      priorityLevels: z
+        .array(z.enum(["high", "medium", "low"]))
+        .default(["high", "medium", "low"]),
+    })
+    .default({}),
+
   // Configuration des prédictions
-  predictions: z.object({
-    enabled: z.boolean().default(true),
-    timeframes: z.array(z.enum(['1week', '1month', '3months'])).default(['1week', '1month']),
-    includeScenarios: z.boolean().default(true),
-    minConfidence: z.number().min(0).max(1).default(0.6),
-  }).default({}),
-  
+  predictions: z
+    .object({
+      enabled: z.boolean().default(true),
+      timeframes: z
+        .array(z.enum(["1week", "1month", "3months"]))
+        .default(["1week", "1month"]),
+      includeScenarios: z.boolean().default(true),
+      minConfidence: z.number().min(0).max(1).default(0.6),
+    })
+    .default({}),
+
   // Configuration de la qualité des données
-  dataQuality: z.object({
-    minSampleSize: z.number().min(1).default(10),
-    maxAge: z.number().min(1).default(90), // jours
-    requiredFields: z.array(z.string()).default(['price', 'title', 'date']),
-  }).default({}),
-  
+  dataQuality: z
+    .object({
+      minSampleSize: z.number().min(1).default(10),
+      maxAge: z.number().min(1).default(90), // jours
+      requiredFields: z.array(z.string()).default(["price", "title", "date"]),
+    })
+    .default({}),
+
   // Configuration des coûts
-  costLimits: z.object({
-    maxCostPerAnalysis: z.number().min(0).default(1.0), // en euros
-    maxMonthlyBudget: z.number().min(0).default(100.0),
-    alertThreshold: z.number().min(0).max(1).default(0.8), // 80% du budget
-  }).default({}),
-  
+  costLimits: z
+    .object({
+      maxCostPerAnalysis: z.number().min(0).default(1.0), // en euros
+      maxMonthlyBudget: z.number().min(0).default(100.0),
+      alertThreshold: z.number().min(0).max(1).default(0.8), // 80% du budget
+    })
+    .default({}),
+
   // Configuration de performance
-  performance: z.object({
-    maxProcessingTime: z.number().min(1000).default(30000), // ms
-    enableCaching: z.boolean().default(true),
-    cacheExpiry: z.number().min(300).default(3600), // secondes
-  }).default({}),
+  performance: z
+    .object({
+      maxProcessingTime: z.number().min(1000).default(30000), // ms
+      enableCaching: z.boolean().default(true),
+      cacheExpiry: z.number().min(300).default(3600), // secondes
+    })
+    .default({}),
 });
 
 export type MarketAnalysisConfig = z.infer<typeof MarketAnalysisConfigSchema>;
@@ -58,24 +76,24 @@ export const DEFAULT_MARKET_ANALYSIS_CONFIG: MarketAnalysisConfig = {
     enabled: true,
     minConfidence: 0.7,
     maxInsights: 10,
-    categories: ['opportunity', 'risk', 'trend'],
+    categories: ["opportunity", "risk", "trend"],
   },
   recommendations: {
     enabled: true,
     maxRecommendations: 5,
     includeActionPlan: true,
-    priorityLevels: ['high', 'medium', 'low'],
+    priorityLevels: ["high", "medium", "low"],
   },
   predictions: {
     enabled: true,
-    timeframes: ['1week', '1month'],
+    timeframes: ["1week", "1month"],
     includeScenarios: true,
     minConfidence: 0.6,
   },
   dataQuality: {
     minSampleSize: 10,
     maxAge: 90,
-    requiredFields: ['price', 'title', 'date'],
+    requiredFields: ["price", "title", "date"],
   },
   costLimits: {
     maxCostPerAnalysis: 1.0,
@@ -115,20 +133,25 @@ export class MarketAnalysisConfigService {
     this.config = validated;
   }
 
-  public validateDataQuality(data: any[]): { valid: boolean; issues: string[] } {
+  public validateDataQuality(_data: any[]): {
+    valid: boolean;
+    issues: string[];
+  } {
     const issues: string[] = [];
     const { minSampleSize, maxAge, requiredFields } = this.config.dataQuality;
 
     // Vérifier la taille de l'échantillon
-    if (data.length < minSampleSize) {
-      issues.push(`Échantillon trop petit: ${data.length} < ${minSampleSize}`);
+    if (_data.length < minSampleSize) {
+      // Correction: data en _data
+      issues.push(`Échantillon trop petit: ${_data.length} < ${minSampleSize}`); // Correction: data en _data
     }
 
     // Vérifier les champs requis
-    if (data.length > 0) {
-      const firstItem = data[0];
+    if (_data.length > 0) {
+      // Correction: data en _data
+      const firstItem = _data[0]!; // Correction: data en _data
       for (const field of requiredFields) {
-        if (!(field in firstItem) || firstItem[field] == null) {
+        if (!(field in firstItem) || (firstItem as any)[field] == null) {
           issues.push(`Champ requis manquant: ${field}`);
         }
       }
@@ -137,13 +160,19 @@ export class MarketAnalysisConfigService {
     // Vérifier l'âge des données
     const now = new Date();
     const maxAgeMs = maxAge * 24 * 60 * 60 * 1000;
-    const oldItems = data.filter(item => {
-      const itemDate = new Date(item.date || item.created_at || item.sold_at);
-      return (now.getTime() - itemDate.getTime()) > maxAgeMs;
+    const oldItems = _data.filter((_item) => {
+      // Correction: data en _data
+      const itemDate = new Date(
+        _item.date || _item.created_at || _item.sold_at,
+      ); // Correction: item en _item
+      return now.getTime() - itemDate.getTime() > maxAgeMs;
     });
 
-    if (oldItems.length > data.length * 0.5) {
-      issues.push(`Trop de données anciennes: ${oldItems.length}/${data.length}`);
+    if (oldItems.length > _data.length * 0.5) {
+      // Correction: data en _data
+      issues.push(
+        `Trop de données anciennes: ${oldItems.length}/${_data.length}`,
+      ); // Correction: data en _data
     }
 
     return {
@@ -153,14 +182,14 @@ export class MarketAnalysisConfigService {
   }
 
   public shouldEnableFeature(feature: keyof MarketAnalysisConfig): boolean {
-    const featureConfig = this.config[feature];
-    return typeof featureConfig === 'object' && 'enabled' in featureConfig 
-      ? featureConfig.enabled 
+    const featureConfig = this.config[feature]!;
+    return typeof featureConfig === "object" && "enabled" in featureConfig
+      ? featureConfig.enabled
       : true;
   }
 
-  public getCostLimit(type: 'analysis' | 'monthly'): number {
-    return type === 'analysis' 
+  public getCostLimit(type: "analysis" | "monthly"): number {
+    return type === "analysis"
       ? this.config.costLimits.maxCostPerAnalysis
       : this.config.costLimits.maxMonthlyBudget;
   }

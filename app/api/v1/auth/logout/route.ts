@@ -1,21 +1,16 @@
-import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
+import { POST as handleLogout } from '@/lib/application/handlers/logout.handler';
 
+/**
+ * POST /api/v1/auth/logout
+ * 
+ * Déconnecte l'utilisateur en supprimant la session et en effaçant le cookie.
+ * 
+ * Route migrée vers l'architecture clean (use-case + handler).
+ * 
+ * @see lib/application/use-cases/logout-user.use-case.ts
+ * @see lib/application/handlers/logout.handler.ts
+ * @see tests/integration/auth-handlers.test.ts
+ */
 export async function POST() {
-  try {
-    // Supprimer le cookie de session
-    const cookieStore = cookies()
-    cookieStore.delete('session_id')
-
-    return NextResponse.json({
-      success: true,
-      message: "Déconnexion réussie"
-    })
-  } catch (error) {
-    console.error("Erreur dans l'API logout:", error)
-    return NextResponse.json(
-      { success: false, message: "Erreur interne du serveur" },
-      { status: 500 }
-    )
-  }
+  return handleLogout();
 }

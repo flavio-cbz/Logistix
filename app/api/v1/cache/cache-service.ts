@@ -2,9 +2,9 @@ import { databaseService } from "@/lib/services/database/db";
 // Simple logger disabled
 // import { Logger } from "@/lib/utils/logging/simple-logger";
 
-import { getLogger } from '@/lib/utils/logging/simple-logger';
+import { getLogger } from "@/lib/utils/logging/simple-logger";
 
-const logger = getLogger('CacheService');
+const logger = getLogger("CacheService");
 
 interface CacheEntry {
   key: string;
@@ -29,13 +29,17 @@ class CacheService {
 
   private async initializeCacheTable() {
     try {
-      await databaseService.execute(`
+      await databaseService.execute(
+        `
         CREATE TABLE IF NOT EXISTS ${this.tableName} (
           key TEXT PRIMARY KEY,
           value TEXT NOT NULL,
           expires_at INTEGER NOT NULL
         )
-      `, [], 'cache-init');
+      `,
+        [],
+        "cache-init",
+      );
       logger.info(`Table de cache '${this.tableName}' créée ou existante.`);
     } catch (error) {
       logger.error(`Erreur lors de la création de la table de cache: ${error}`);
@@ -43,14 +47,14 @@ class CacheService {
     }
   }
 
-  public async get<T>(key: string): Promise<T | null> {
+  public async get<T>(_key: string): Promise<T | null> {
     try {
       await this.ensureInitialized();
-      
+
       const entry = await databaseService.queryOne<CacheEntry>(
         `SELECT value, expires_at FROM ${this.tableName} WHERE key = ?`,
-        [key],
-        'cache-get'
+        [_key],
+        "cache-get",
       );
 
       if (!entry) {
@@ -59,61 +63,77 @@ class CacheService {
 
       if (entry.expires_at < Date.now()) {
         // Cache expiré, le supprimer
-        await this.delete(key);
+        await this.delete(_key);
         return null;
       }
 
       return JSON.parse(entry.value) as T;
     } catch (error) {
-      logger.error(`Erreur lors de la récupération du cache pour la clé '${key}': ${error}`);
+      logger.error(
+        `Erreur lors de la récupération du cache pour la clé '${_key}': ${error}`,
+      );
       return null;
     }
   }
 
-  public async set<T>(key: string, value: T, ttlSeconds: number = 3600): Promise<void> {
+  public async set<T>(
+    _key: string,
+    value: T,
+    ttlSeconds: number = 3600,
+  ): Promise<void> {
     try {
       await this.ensureInitialized();
-      
+
       const expires_at = Date.now() + ttlSeconds * 1000;
       const serializedValue = JSON.stringify(value);
 
-      await databaseService.execute(`
+      await databaseService.execute(
+        `
         INSERT OR REPLACE INTO ${this.tableName} (key, value, expires_at)
         VALUES (?, ?, ?)
-      `, [key, serializedValue, expires_at], 'cache-set');
-      
-      logger.info(`Cache défini pour la clé '${key}', expiration dans ${ttlSeconds} secondes.`);
+      `,
+        [_key, serializedValue, expires_at],
+        "cache-set",
+      );
+
+      logger.info(
+        `Cache défini pour la clé '${_key}', expiration dans ${ttlSeconds} secondes.`,
+      );
     } catch (error) {
-      logger.error(`Erreur lors de la définition du cache pour la clé '${key}': ${error}`);
+      logger.error(
+        `Erreur lors de la définition du cache pour la clé '${_key}': ${error}`,
+      );
     }
   }
 
-  public async delete(key: string): Promise<void> {
+  public async delete(_key: string): Promise<void> {
     try {
       await this.ensureInitialized();
-      
+
       await databaseService.execute(
         `DELETE FROM ${this.tableName} WHERE key = ?`,
-        [key],
-        'cache-delete'
+        [_key],
+        "cache-delete",
       );
-      
-      logger.info(`Cache supprimé pour la clé '${key}'.`);
+
+      logger.info(`Cache supprimé pour la clé '${_key}'.`);
     } catch (error) {
-      logger.error(`Erreur lors de la suppression du cache pour la clé '${key}': ${error}`);
+      logger.error(
+        `Erreur lors de la suppression du cache pour la clé '${_key}': ${error}`,
+      );
     }
   }
 
   public async clear(): Promise<void> {
     try {
       await this.ensureInitialized();
-      
+
       await databaseService.execute(
         `DELETE FROM ${this.tableName}`,
         [],
-        'cache-clear'
+        "cache-clear",
       );
-      
+
       logger.info("Cache vidé.");
     } catch (error) {
       logger.error(`Erreur lors du vidage du cache: ${error}`);

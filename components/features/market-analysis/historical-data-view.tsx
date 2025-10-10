@@ -1,30 +1,37 @@
-"use client"
-import { useState, useRef } from "react"
-import { useToast } from "@/components/ui/use-toast"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Checkbox } from "@/components/ui/checkbox"
-import { 
-  History, 
-  Search, 
-  Filter, 
-  TrendingUp, 
-  TrendingDown, 
-  Minus,
-  Calendar,
-  ShoppingCart,
-  Euro,
-  Loader2,
-  AlertCircle,
-  RefreshCw,
-  Eye
-} from "lucide-react"
-import { type HistoricalDataViewProps, type MarketAnalysisHistoryItem } from "@/types/vinted-market-analysis"
-
+"use client";
+import { useState, useRef } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { History, Search, Filter, Eye } from "lucide-react";
+import type {
+  HistoricalDataViewProps,
+  MarketAnalysisHistoryItem,
+} from "@/types/vinted-market-analysis";
 
 export default function HistoricalDataView({
   analyses,
@@ -34,94 +41,106 @@ export default function HistoricalDataView({
   onReload,
   onRowClick,
   onToggleCompare,
-  selectedForComparison = []
-}: HistoricalDataViewProps & { 
-  onReload?: () => void; 
+  selectedForComparison = [],
+}: HistoricalDataViewProps & {
+  onReload?: () => void;
   onRowClick?: (analysis: MarketAnalysisHistoryItem) => void;
   onToggleCompare?: (analysisId: string) => void;
   selectedForComparison?: string[];
 }) {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [pendingDeletions, setPendingDeletions] = useState<string[]>([])
-  const deletionTimers = useRef<Map<string, NodeJS.Timeout>>(new Map())
-  const { toast } = useToast()
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [pendingDeletions, setPendingDeletions] = useState<string[]>([]);
+  const deletionTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const { toast } = useToast();
 
   const handleUndo = (id: string) => {
-    const timer = deletionTimers.current.get(id)
+    const timer = deletionTimers.current.get(id);
     if (timer) {
-      clearTimeout(timer)
-      deletionTimers.current.delete(id)
+      clearTimeout(timer);
+      deletionTimers.current.delete(id);
     }
-    setPendingDeletions(prev => prev.filter(pendingId => pendingId !== id))
-  }
+    setPendingDeletions((prev) => prev.filter((pendingId) => pendingId !== id));
+  };
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    setPendingDeletions(prev => [...prev, id])
+    setPendingDeletions((prev) => [...prev, id]);
 
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/v1/market-analysis?id=${id}`, { method: "DELETE" })
+        const res = await fetch(`/api/v1/market-analysis?id=${id}`, {
+          method: "DELETE",
+        });
         if (res.ok) {
           toast({
             title: "Analyse supprimée",
             description: "L'article a été supprimé avec succès.",
-            variant: "default"
-          })
-          if (onReload) onReload()
+            variant: "default",
+          });
+          if (onReload) onReload();
         } else {
-          handleUndo(id)
+          handleUndo(id);
           toast({
             title: "Erreur",
             description: "Erreur lors de la suppression.",
-            variant: "destructive"
-          })
+            variant: "destructive",
+          });
         }
       } catch (e) {
-        handleUndo(id)
+        handleUndo(id);
         toast({
           title: "Erreur réseau",
           description: "Impossible de supprimer l'analyse.",
-          variant: "destructive"
-        })
+          variant: "destructive",
+        });
       }
-      deletionTimers.current.delete(id)
-    }, 5000)
+      deletionTimers.current.delete(id);
+    }, 5000);
 
-    deletionTimers.current.set(id, timer)
-  }
+    deletionTimers.current.set(id, timer);
+  };
 
-  const filteredAnalyses = analyses
-    .filter(analysis => {
-      const matchesSearch = analysis.productName.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesStatus = statusFilter === "all" || analysis.status === statusFilter
-      return matchesSearch && matchesStatus
-    })
+  const filteredAnalyses = analyses.filter((analysis) => {
+    const matchesSearch = analysis.productName
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || analysis.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-  const formatPrice = (price: number) => `${price.toFixed(2)} €`
+  const formatPrice = (price: number) => `${price.toFixed(2)} €`;
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
-  const getStatusBadge = (status: MarketAnalysisHistoryItem['status']) => {
+  const getStatusBadge = (status: MarketAnalysisHistoryItem["status"]) => {
     switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-800">Terminé</Badge>
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">En cours</Badge>
-      case 'failed':
-        return <Badge variant="destructive">Échec</Badge>
+      case "completed":
+        return (
+          <Badge className="bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))]">
+            Terminé
+          </Badge>
+        );
+      case "pending":
+        return (
+          <Badge className="bg-[hsl(var(--warning))] text-[hsl(var(--warning-foreground))]">
+            En cours
+          </Badge>
+        );
+      case "failed":
+        return <Badge variant="destructive">Échec</Badge>;
       default:
-        return <Badge variant="outline">Inconnu</Badge>
+        return <Badge variant="outline">Inconnu</Badge>;
     }
-  }
+  };
 
   return (
     <Card>
@@ -148,7 +167,7 @@ export default function HistoricalDataView({
             </div>
           </div>
           <div className="flex gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={setStatusFilter!}>
               <SelectTrigger className="w-[140px]">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue />
@@ -183,45 +202,79 @@ export default function HistoricalDataView({
               <TableBody>
                 {filteredAnalyses.map((analysis) => {
                   const isPending = pendingDeletions.includes(analysis.id);
-                  const isSelected = selectedForComparison.includes(analysis.id);
+                  const isSelected = selectedForComparison.includes(
+                    analysis.id,
+                  );
                   return (
                     <TableRow
                       key={analysis.id}
                       onClick={() => onRowClick && onRowClick(analysis)}
                       className={`transition-all duration-300 ${
-                        isPending ? "opacity-50" : "cursor-pointer hover:bg-muted/50"
-                      } ${isSelected ? "bg-blue-100 hover:bg-blue-200" : ""}`}
+                        isPending
+                          ? "opacity-50"
+                          : "cursor-pointer hover:bg-muted/50"
+                      } ${isSelected ? "bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]" : ""}`}
                     >
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={isSelected}
-                          onCheckedChange={() => onToggleCompare && onToggleCompare(analysis.id)}
+                          onCheckedChange={() =>
+                            onToggleCompare && onToggleCompare(analysis.id)
+                          }
                           disabled={isPending}
                         />
                       </TableCell>
                       <TableCell>
-                          <p className="font-medium">{analysis.productName}</p>
-                          {analysis.error && <p className="text-xs text-red-600 mt-1">{analysis.error}</p>}
+                        <p className="font-medium">{analysis.productName}</p>
+                        {analysis.error && (
+                          <p className="text-xs text-[hsl(var(--destructive-foreground))] mt-1">
+                            {analysis.error}
+                          </p>
+                        )}
                       </TableCell>
                       <TableCell>{getStatusBadge(analysis.status)}</TableCell>
                       <TableCell>{formatPrice(analysis.avgPrice)}</TableCell>
                       <TableCell>{formatDate(analysis.createdAt)}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => onRowClick && onRowClick(analysis)}><Eye className="h-4 w-4" /></Button>
-                          {!isPending && <Button variant="destructive" size="sm" onClick={(e) => handleDelete(e, analysis.id)}>Supprimer</Button>}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onRowClick && onRowClick(analysis)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {!isPending && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={(e) => handleDelete(e, analysis.id)}
+                            >
+                              Supprimer
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
-                  )
+                  );
                 })}
               </TableBody>
             </Table>
           </div>
         )}
 
-        {hasMore && <div className="flex justify-center pt-4"><Button variant="outline" onClick={onLoadMore} disabled={isLoading}>Charger plus</Button></div>}
+        {hasMore && (
+          <div className="flex justify-center pt-4">
+            <Button
+              variant="outline"
+              onClick={onLoadMore!}
+              disabled={isLoading}
+            >
+              Charger plus
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
-  )
+  );
 }

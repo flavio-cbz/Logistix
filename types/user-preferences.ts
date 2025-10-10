@@ -1,6 +1,16 @@
-// Types for user preferences and AI personalization
+// Import types and enums for interface definitions
+import type { UserPreferences, UserAction } from '../lib/types/entities';
+import { RiskTolerance } from '../lib/types/entities';
 
-export interface UserPreferences {
+// Re-export shared types for consistency
+export type { 
+  UserPreferences, 
+  UserAction, 
+  RiskTolerance
+} from '../lib/types/entities';
+
+// Legacy interface for backward compatibility
+export interface LegacyUserPreferences {
   id?: string;
   userId: string;
   objectives: Array<'profit' | 'volume' | 'speed' | 'market-share'>;
@@ -11,23 +21,23 @@ export interface UserPreferences {
     opportunities: boolean;
     priceChanges: boolean;
   };
-  customFilters: Record<string, any>;
+  customFilters: Record<string, unknown>;
   createdAt?: string;
   updatedAt?: string;
 }
 
-export interface UserAction {
+export interface LegacyUserAction {
   id?: string;
   userId: string;
-  actionType: 'view_insight' | 'follow_recommendation' | 'ignore_recommendation' | 'export_analysis' | 'save_analysis' | 'share_analysis';
-  actionData: Record<string, any>;
+  actionType: 'view_insight' | 'follow_recommendation' | 'ignore_recommendation' | 'export_analysis' | 'save_analysis' | 'share_analysis' | 'feedback';
+  actionData: Record<string, unknown>;
   timestamp: string;
   context?: {
     analysisId?: string;
     insightType?: string;
     recommendationType?: string;
-feedbackType?: string;
-rating?: string;
+    feedbackType?: string;
+    rating?: string;
   };
 }
 
@@ -50,7 +60,7 @@ export interface PreferenceLearning {
 // Default preferences for new users
 export const DEFAULT_USER_PREFERENCES: Omit<UserPreferences, 'id' | 'userId' | 'createdAt' | 'updatedAt'> = {
   objectives: ['profit'],
-  riskTolerance: 'moderate',
+  riskTolerance: RiskTolerance.MODERATE,
   preferredInsightTypes: ['trends', 'opportunities'],
   notificationSettings: {
     anomalies: true,

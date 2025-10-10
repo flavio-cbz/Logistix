@@ -1,5 +1,3 @@
-> **ℹ️ Ce guide a été consolidé. Pour une vue d’ensemble rapide, voir le [README.md](../README.md). Ce fichier détaille la stratégie et les outils de test avancés.**
-
 # Guide de Test - LogistiX
 
 Ce guide détaille la stratégie de test complète de l'application LogistiX.
@@ -8,7 +6,7 @@ Ce guide détaille la stratégie de test complète de l'application LogistiX.
 
 ### Pyramide de Test
 
-```
+```text
     /\
    /  \     E2E Tests (10%)
   /____\    - Tests end-to-end
@@ -24,17 +22,20 @@ Ce guide détaille la stratégie de test complète de l'application LogistiX.
 ## 🧪 Types de Tests
 
 ### Tests Unitaires (Vitest)
+
 - **Composants React** avec React Testing Library
 - **Services et utilitaires** avec mocks
 - **Hooks personnalisés** avec renderHook
 - **Fonctions pures** avec assertions simples
 
 ### Tests d'Intégration
+
 - **API endpoints** avec requêtes réelles
 - **Services de base de données** avec DB de test
 - **Middlewares** avec contexte complet
 
 ### Tests End-to-End (Playwright)
+
 - **Workflows utilisateur** complets
 - **Tests cross-browser** (Chrome, Firefox, Safari)
 - **Tests d'accessibilité** avec axe-core

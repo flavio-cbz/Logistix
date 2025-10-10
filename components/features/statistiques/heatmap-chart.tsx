@@ -1,87 +1,216 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useMemo } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 
 interface HeatmapData {
-  day: number;
-  hour: number;
-  value: number;
+  jour: string;
+  heure: number;
+  valeur: number;
+  intensite: number;
 }
 
 interface HeatmapChartProps {
-  data: HeatmapData[];
+  data?: HeatmapData[];
+  loading?: boolean;
+  className?: string;
 }
 
-const jours = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
-const heures = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+export function HeatmapChart({
+  data = [],
+  loading = false,
+  className,
+}: HeatmapChartProps) {
+  const heures = Array.from({ length: 24 }, (_, i) => i);
+  const jours = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
-export function HeatmapChart({ data }: HeatmapChartProps) {
-  if (!data || data.length === 0) {
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Heatmap des Ventes</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p>Pas de données de ventes disponibles.</p>
-            </CardContent>
-        </Card>
-    );
-  }
-  
-  const maxValue = Math.max(...data.map(d => d.value), 0);
+  const heatmapGrid = useMemo(() => {
+    const grid: Record<string, Record<number, HeatmapData | null>> = {};
 
-  const getColor = (value: number) => {
-    if (value === 0) return "bg-gray-200 dark:bg-gray-800";
-    const intensity = Math.min(value / (maxValue || 1), 1);
-    if (intensity < 0.2) return "bg-blue-200 dark:bg-blue-900";
-    if (intensity < 0.4) return "bg-blue-300 dark:bg-blue-800";
-    if (intensity < 0.6) return "bg-blue-400 dark:bg-blue-700";
-    if (intensity < 0.8) return "bg-blue-500 dark:bg-blue-600";
-    return "bg-blue-600 dark:bg-blue-500";
+    jours.forEach((jour) => {
+      grid[jour] = {};
+      heures.forEach((heure) => {
+        grid[jour][heure] =
+          data.find((d) => d.jour === jour && d.heure === heure) || null;
+      });
+    });
+
+    return grid;
+  }, [data]);
+
+  const getIntensiteColor = (intensite: number) => {
+    if (intensite === 0) return "bg-gray-100";
+    if (intensite <= 0.25) return "bg-blue-100";
+    if (intensite <= 0.5) return "bg-blue-200";
+    if (intensite <= 0.75) return "bg-blue-400";
+    return "bg-blue-600";
   };
 
-  const gridData: (HeatmapData | undefined)[][] = Array(7).fill(0).map(() => Array(24).fill(undefined));
-  data.forEach(item => {
-      if(item.day >= 0 && item.day < 7 && item.hour >= 0 && item.hour < 24) {
-        gridData[item.day][item.hour] = item;
-      }
-  });
+  const getStats = () => {
+    if (data.length === 0)
+      return { max: 0, min: 0, avg: 0, trend: "stable" as const };
 
+    const valeurs = data.map((d) => d.valeur);
+    const max = Math.max(...valeurs);
+    const min = Math.min(...valeurs);
+    const avg = valeurs.reduce((a, b) => a + b, 0) / valeurs.length;
+
+    // Calcul de tendance simple
+    const firstHalf = valeurs.slice(0, Math.floor(valeurs.length / 2));
+    const secondHalf = valeurs.slice(Math.floor(valeurs.length / 2));
+    const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+    const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+
+    const trend =
+      avgSecond > avgFirst * 1.05
+        ? "up"
+        : avgSecond < avgFirst * 0.95
+          ? "down"
+          : "stable";
+
+    return { max, min, avg, trend };
+  };
+
+  const stats = getStats();
+
+  if (loading) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-64 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
-        <CardTitle>Heatmap des Ventes par Jour/Heure</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Activity className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle>Carte de Chaleur des Ventes</CardTitle>
+              <CardDescription>
+                Activité par jour et heure de la semaine
+              </CardDescription>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4 text-sm">
+            <div className="flex items-center space-x-1">
+              {stats.trend === "up" && (
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              )}
+              {stats.trend === "down" && (
+                <TrendingDown className="h-4 w-4 text-red-500" />
+              )}
+              <span className="font-medium">Moy: {stats.avg.toFixed(1)}</span>
+            </div>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        <TooltipProvider>
-            <div className="flex">
-                <div className="flex flex-col mr-2 text-xs text-muted-foreground">
-                    {jours.map(jour => <div key={jour} className="h-5 flex items-center">{jour}</div>)}
-                </div>
-                <div className="grid grid-flow-col grid-rows-7 gap-1">
-                {gridData.flat().map((item, index) => (
-                    <Tooltip key={index}>
-                    <TooltipTrigger>
-                        <div className={`w-5 h-5 rounded-sm ${getColor(item?.value || 0)}`}></div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>{item ? `${item.value} vente(s)` : '0 vente'}</p>
-                        <p className="text-xs text-muted-foreground">
-                            {jours[index % 7]}, {heures[Math.floor(index/7)]}h
-                        </p>
-                    </TooltipContent>
-                    </Tooltip>
+        {data.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Aucune donnée d'activité disponible
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Légende */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Faible activité</span>
+              <div className="flex space-x-1">
+                <div className="w-3 h-3 bg-gray-100 border rounded"></div>
+                <div className="w-3 h-3 bg-blue-100 rounded"></div>
+                <div className="w-3 h-3 bg-blue-200 rounded"></div>
+                <div className="w-3 h-3 bg-blue-400 rounded"></div>
+                <div className="w-3 h-3 bg-blue-600 rounded"></div>
+              </div>
+              <span>Forte activité</span>
+            </div>
+
+            {/* Grille heatmap */}
+            <div className="relative">
+              {/* En-têtes des heures */}
+              <div className="grid grid-cols-25 gap-1 mb-2">
+                <div></div> {/* Espace pour les jours */}
+                {heures.map((heure) => (
+                  <div
+                    key={heure}
+                    className="text-xs text-center text-muted-foreground"
+                  >
+                    {heure}h
+                  </div>
                 ))}
+              </div>
+
+              {/* Grille principale */}
+              {jours.map((jour) => (
+                <div key={jour} className="grid grid-cols-25 gap-1 mb-1">
+                  <div className="text-xs text-right pr-2 flex items-center text-muted-foreground">
+                    {jour}
+                  </div>
+                  {heures.map((heure) => {
+                    const cellData = heatmapGrid[jour][heure];
+                    return (
+                      <div
+                        key={`${jour}-${heure}`}
+                        className={`
+                          h-6 rounded-sm border border-gray-200 
+                          ${cellData ? getIntensiteColor(cellData.intensite) : "bg-gray-50"}
+                          hover:ring-2 hover:ring-blue-300 hover:ring-opacity-50
+                          cursor-pointer transition-all duration-200
+                        `}
+                        title={
+                          cellData
+                            ? `${jour} ${heure}h: ${cellData.valeur} ventes`
+                            : `${jour} ${heure}h: Aucune données`
+                        }
+                      />
+                    );
+                  })}
                 </div>
+              ))}
             </div>
-            <div className="flex ml-[24px] mt-1">
-                {heures.map((h, i) => (i%3 === 0 && <div key={h} className="w-[68px] text-xs text-muted-foreground">{h}h</div>))}
+
+            {/* Statistiques */}
+            <div className="grid grid-cols-3 gap-4 pt-4 border-t text-center">
+              <div>
+                <div className="text-2xl font-bold text-green-600">
+                  {stats.max.toFixed(0)}
+                </div>
+                <div className="text-xs text-muted-foreground">Pic maximum</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {stats.avg.toFixed(1)}
+                </div>
+                <div className="text-xs text-muted-foreground">Moyenne</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-orange-600">
+                  {stats.min.toFixed(0)}
+                </div>
+                <div className="text-xs text-muted-foreground">Minimum</div>
+              </div>
             </div>
-        </TooltipProvider>
+          </div>
+        )}
       </CardContent>
     </Card>
-  )
+  );
 }
+
+export default HeatmapChart;

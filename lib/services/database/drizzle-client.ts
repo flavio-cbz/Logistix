@@ -1,19 +1,19 @@
-// Client Drizzle ORM pour SQLite (Better-SQLite3)
+// DEPRECATED: Legacy Drizzle Client
+// This file is kept for backward compatibility during migration
+// New code should use: import { databaseService } from '@/lib/database/database-service'
 
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import * as schema from "@/lib/services/database/drizzle-schema";
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import { databaseService } from "@/lib/database/database-service";
+import * as newSchema from "@/lib/database/schema";
 
-const dataDir = path.join(process.cwd(), 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
+// Legacy compatibility exports
+export const db = databaseService.getDb();
+export type DbType = typeof db;
 
-const dbPath = path.join(dataDir, 'logistix.db');
-const sqliteDb = new Database(dbPath);
+// Re-export schema for compatibility (maps old schema to new unified schema)
+export const schema = newSchema;
 
-sqliteDb.pragma('journal_mode = WAL');
-
-export const db = drizzle(sqliteDb, { schema, logger: true });
+// Deprecation warning
+console.warn(
+  "[DEPRECATED] lib/services/database/drizzle-client.ts is deprecated. " +
+    "Please use \"import { databaseService } from '@/lib/database/database-service'\" instead.",
+);

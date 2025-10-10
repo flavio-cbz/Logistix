@@ -1,103 +1,104 @@
-import { databaseService } from './database/db'
+import { databaseService } from "./database/db";
 
-export interface Produit {
-  id: string
-  nom: string
-  prixArticle: number
-  prixLivraison: number
-  prixVente?: number
-  benefices?: number
-  pourcentageBenefice?: number
-  vendu: boolean
-  dateVente?: string
-  created_at: number
-  plateforme?: string
-  user_id: string
-  parcelle_id: string
+// Note: Using the schema definition from lib/db/schema.ts would be ideal, but we'll define the interfaces here for clarity
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  prixVente?: number;
+  benefices?: number; // Will be calculated
+  pourcentageBenefice?: number; // Will be calculated
+  vendu: string; // '0' or '1' based on schema
+  dateVente?: string;
+  createdAt: string; // ISO string based on schema
+  plateforme?: string;
+  user_id: string;
+  parcelleId?: string;
+  // ... other fields as needed
 }
 
 export interface Parcelle {
-  id: string
-  numero: string
-  transporteur: string
-  poids: number
-  prix_achat: number
-  date_creation: number
-  user_id: string
+  id: string;
+  numero: string;
+  transporteur: string;
+  poids: number;
+  prix_achat: number;
+  date_creation: number;
+  user_id: string;
 }
 
 export interface ROIData {
-  produit: string
-  roi: number
+  produit: string;
+  roi: number;
 }
 
 export interface PlatformPerformance {
-  plateforme: string
-  rentabilite: number
+  plateforme: string;
+  rentabilite: number;
 }
 
 export interface RadarMetric {
-  subject: string
-  A: number
-  fullMark: number
+  subject: string;
+  A: number;
+  fullMark: number;
 }
 
 export interface TrendData {
-  periode: string
-  ventes: number
+  periode: string;
+  ventes: number;
 }
 
 export interface HeatmapPoint {
-  day: number
-  hour: number
-  value: number
+  day: number;
+  hour: number;
+  value: number;
 }
 
 export interface AverageSellingTime {
-  categorie: string
-  jours: number
+  categorie: string;
+  jours: number;
 }
 
 export interface TrendCurveData {
-  mois: string
-  valeur: number
-  min: number
-  max: number
+  mois: string;
+  valeur: number;
+  min: number;
+  max: number;
 }
 
 export interface SalesPrediction {
-  mois: string
-  prevision: number
+  mois: string;
+  prevision: number;
 }
 
 export interface KeyStatistics {
-  produitsVendus: number
-  ventesTotales: number
-  beneficesTotaux: number
-  nombreParcelles: number
+  produitsVendus: number;
+  ventesTotales: number;
+  beneficesTotaux: number;
+  nombreParcelles: number;
 }
 
 export interface DashboardData extends KeyStatistics {
-  roiParProduit: ROIData[]
-  tempsMoyenVente: AverageSellingTime[]
-  heatmapVentes: HeatmapPoint[]
-  meilleuresPlateformes: PlatformPerformance[]
-  radarPerformances: RadarMetric[]
-  tendancesSaisonnieres: TrendData[]
-  courbeTendance: TrendCurveData[]
-  previsionsVentes: SalesPrediction[]
+  roiParProduct: ROIData[];
+  tempsMoyenVente: AverageSellingTime[];
+  heatmapVentes: HeatmapPoint[];
+  meilleuresPlateformes: PlatformPerformance[];
+  radarPerformances: RadarMetric[];
+  tendancesSaisonnieres: TrendData[];
+  courbeTendance: TrendCurveData[];
+  previsionsVentes: SalesPrediction[];
 }
 
 export class StatisticsService {
-  private static instance: StatisticsService
-  private cache: Map<string, { data: any; timestamp: number }> = new Map()
-  private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+  private static instance: StatisticsService;
+  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   public static getInstance(): StatisticsService {
     if (!StatisticsService.instance) {
-      StatisticsService.instance = new StatisticsService()
+      StatisticsService.instance = new StatisticsService();
     }
-    return StatisticsService.instance
+    return StatisticsService.instance;
   }
 
   private constructor() {}
@@ -105,318 +106,422 @@ export class StatisticsService {
   /**
    * Get comprehensive dashboard data for a user
    */
-  async getDashboardData(userId: string): Promise<DashboardData> {
-    const cacheKey = `dashboard_${userId}`
-    const cached = this.getCachedData(cacheKey)
+  async getDashboardData(user_id: string): Promise<DashboardData> {
+    const cacheKey = `dashboard_${user_id}`;
+    const cached = this.getCachedData(cacheKey);
     if (cached) {
-      return cached
+      return cached;
     }
 
-    const [produits, parcelles] = await Promise.all([
-      this.getProductsForUser(userId),
-      this.getParcelsForUser(userId)
-    ])
+    // Fetch all required data using optimized SQL queries
+    const [
+      keyStats,
+      roiData,
+      avgSellingTimeData,
+      heatmapData,
+      platformPerformanceData,
+      radarData,
+      seasonalTrendData,
+      trendCurveData,
+      salesPredictionData,
+    ] = await Promise.all([
+      this.calculateKeyStatistics(user_id),
+      this.calculateROIPerProduct(user_id),
+      this.calculateAverageSellingTime(user_id),
+      this.calculateSalesHeatmap(user_id),
+      this.calculateBestPlatforms(user_id),
+      this.calculateRadarPerformances(user_id),
+      this.calculateSeasonalTrends(user_id),
+      this.calculateTrendCurve(user_id),
+      this.calculateSalesPredictions(user_id),
+    ]);
 
     const data: DashboardData = {
-      ...this.calculateKeyStatistics(produits, parcelles),
-      roiParProduit: this.calculateROIPerProduct(produits),
-      tempsMoyenVente: this.calculateAverageSellingTime(produits),
-      heatmapVentes: this.calculateSalesHeatmap(produits),
-      meilleuresPlateformes: this.calculateBestPlatforms(produits),
-      radarPerformances: this.calculateRadarPerformances(produits),
-      tendancesSaisonnieres: this.calculateSeasonalTrends(produits),
-      courbeTendance: this.calculateTrendCurve(produits),
-      previsionsVentes: this.calculateSalesPredictions(produits)
-    }
+      ...keyStats,
+      roiParProduct: roiData,
+      tempsMoyenVente: avgSellingTimeData,
+      heatmapVentes: heatmapData,
+      meilleuresPlateformes: platformPerformanceData,
+      radarPerformances: radarData,
+      tendancesSaisonnieres: seasonalTrendData,
+      courbeTendance: trendCurveData,
+      previsionsVentes: salesPredictionData,
+    };
 
-    this.setCachedData(cacheKey, data)
-    return data
+    this.setCachedData(cacheKey, data);
+    return data;
   }
 
   /**
-   * Calculate ROI for each product
+   * Calculate ROI for each product using SQL aggregation
    */
-  calculateROIPerProduct(produits: Produit[]): ROIData[] {
-    return produits
-      .filter(p => p.vendu && p.pourcentageBenefice != null)
-      .map(p => ({
-        produit: p.nom,
-        roi: p.pourcentageBenefice!
-      }))
-      .sort((a, b) => b.roi - a.roi)
-      .slice(0, 10)
+  async calculateROIPerProduct(user_id: string): Promise<ROIData[]> {
+    // ROI calculation: ((prixVente - price) / price) * 100
+    // We need to calculate this in SQL because pourcentageBenefice doesn't exist in the schema
+    // Fix SQL column names: use DB column names (snake_case)
+    const result = await databaseService.query<{
+      produit: string;
+      roi: number;
+    }>(
+      `
+      SELECT name as produit, 
+             CASE 
+               WHEN price > 0 THEN ROUND(((prixVente - price) / price) * 100, 2)
+               ELSE 0 
+             END as roi
+      FROM products 
+      WHERE user_id = ? AND vendu = '1' AND prixVente IS NOT NULL AND price IS NOT NULL
+      ORDER BY roi DESC
+      LIMIT 10
+    `,
+      [user_id],
+    );
+
+    return result.map((row) => ({
+      produit: row.produit,
+      roi: row.roi,
+    }));
   }
 
   /**
-   * Calculate average selling time by platform
+   * Calculate average selling time by platform using SQL aggregation
    */
-  calculateAverageSellingTime(produits: Produit[]): AverageSellingTime[] {
-    const produitsVendusAvecTemps = produits
-      .filter(p => p.vendu && p.dateVente && p.created_at)
-      .map(p => {
-        const dateVente = new Date(p.dateVente!).getTime()
-        const dateCreation = p.created_at * 1000
-        const tempsVente = (dateVente - dateCreation) / (1000 * 60 * 60 * 24)
-        return { ...p, tempsVente }
-      })
+  async calculateAverageSellingTime(
+    user_id: string,
+  ): Promise<AverageSellingTime[]> {
+    // Fix SQL column names: use DB column names (snake_case)
+    const result = await databaseService.query<{
+      categorie: string;
+      jours: number;
+    }>(
+      `
+      SELECT 
+        COALESCE(plateforme, 'Non spécifié') as categorie,
+        ROUND(AVG((julianday(dateVente) - julianday(created_at))), 2) as jours
+      FROM products 
+      WHERE user_id = ? AND vendu = '1' AND dateVente IS NOT NULL AND created_at IS NOT NULL
+      GROUP BY plateforme
+    `,
+      [user_id],
+    );
 
-    const statsParPlateforme: { [key: string]: { totalJours: number; count: number } } = {}
-
-    for (const p of produitsVendusAvecTemps) {
-      const plateforme = p.plateforme || 'Non spécifié'
-      if (!statsParPlateforme[plateforme]) {
-        statsParPlateforme[plateforme] = { totalJours: 0, count: 0 }
-      }
-      statsParPlateforme[plateforme].totalJours += p.tempsVente
-      statsParPlateforme[plateforme].count++
-    }
-
-    return Object.entries(statsParPlateforme).map(([plateforme, data]) => ({
-      categorie: plateforme,
-      jours: Math.round(data.totalJours / data.count)
-    }))
+    return result.map((row) => ({
+      categorie: row.categorie,
+      jours: row.jours,
+    }));
   }
 
   /**
-   * Calculate sales heatmap data
+   * Calculate sales heatmap data using SQL aggregation
    */
-  calculateSalesHeatmap(produits: Produit[]): HeatmapPoint[] {
-    const heatmapData = Array(7).fill(0).map(() => Array(24).fill(0))
+  async calculateSalesHeatmap(user_id: string): Promise<HeatmapPoint[]> {
+    // This is more complex to do purely in SQL, so we'll keep a hybrid approach
+    // but limit the data fetched from the database
+    const ventes = await databaseService.query<{ dateVente: string }>(
+      `
+      SELECT dateVente
+      FROM products 
+      WHERE user_id = ? AND vendu = '1' AND dateVente IS NOT NULL
+    `,
+      [user_id],
+    );
 
-    produits
-      .filter(p => p.vendu && p.dateVente)
-      .forEach(p => {
-        const dateVente = new Date(p.dateVente!)
-        const dayOfWeek = dateVente.getDay()
-        const hour = dateVente.getHours()
-        heatmapData[dayOfWeek][hour]++
-      })
+    const heatmapData = Array(7)
+      .fill(0)
+      .map(() => Array(24).fill(0));
+
+    ventes.forEach((p) => {
+      const dateVente = new Date(p.dateVente!);
+      const dayOfWeek = dateVente.getDay();
+      const hour = dateVente.getHours();
+      heatmapData[dayOfWeek]![hour]++;
+    });
 
     return heatmapData
       .map((hours, day) => hours.map((value, hour) => ({ day, hour, value })))
-      .flat()
+      .flat();
   }
 
   /**
-   * Calculate key statistics
+   * Calculate key statistics using SQL aggregation
    */
-  calculateKeyStatistics(produits: Produit[], parcelles: Parcelle[]): KeyStatistics {
-    const produitsVendus = produits.filter(p => p.vendu).length
-    const ventesTotales = produits
-      .filter(p => p.vendu && p.prixVente != null)
-      .reduce((acc, p) => acc + (p.prixVente || 0), 0)
-    const beneficesTotaux = produits
-      .filter(p => p.vendu && p.benefices != null)
-      .reduce((acc, p) => acc + (p.benefices || 0), 0)
+  async calculateKeyStatistics(user_id: string): Promise<KeyStatistics> {
+    // Calculate benefices (profit) as prixVente - price for sold items
+    const result = await databaseService.queryOne<{
+      produitsVendus: number;
+      ventesTotales: number;
+      beneficesTotaux: number;
+      nombreParcelles: number;
+    }>(
+      `
+      SELECT 
+        (SELECT COUNT(*) FROM products WHERE user_id = ? AND vendu = '1') as produitsVendus,
+        (SELECT COALESCE(ROUND(SUM(prixVente), 2), 0) FROM products WHERE user_id = ? AND vendu = '1' AND prixVente IS NOT NULL) as ventesTotales,
+        (SELECT COALESCE(ROUND(SUM(CASE WHEN prixVente IS NOT NULL AND price IS NOT NULL THEN prixVente - price ELSE 0 END), 2), 0) 
+         FROM products WHERE user_id = ? AND vendu = '1') as beneficesTotaux,
+        (SELECT COUNT(*) FROM parcelles WHERE user_id = ?) as nombreParcelles
+    `,
+      [user_id, user_id, user_id, user_id],
+    );
+
+    if (!result) {
+      return {
+        produitsVendus: 0,
+        ventesTotales: 0,
+        beneficesTotaux: 0,
+        nombreParcelles: 0,
+      };
+    }
 
     return {
-      produitsVendus,
-      ventesTotales: parseFloat(ventesTotales.toFixed(2)),
-      beneficesTotaux: parseFloat(beneficesTotaux.toFixed(2)),
-      nombreParcelles: parcelles.length
+      produitsVendus: result.produitsVendus,
+      ventesTotales: result.ventesTotales,
+      beneficesTotaux: result.beneficesTotaux,
+      nombreParcelles: result.nombreParcelles,
+    };
+  }
+
+  /**
+   * Calculate best performing platforms using SQL aggregation
+   */
+  async calculateBestPlatforms(
+    user_id: string,
+  ): Promise<PlatformPerformance[]> {
+    // Calculate profit (benefices) as prixVente - price
+    const result = await databaseService.query<{
+      plateforme: string;
+      rentabilite: number;
+    }>(
+      `
+      SELECT 
+        COALESCE(plateforme, 'Non spécifié') as plateforme,
+        ROUND(SUM(CASE WHEN prixVente IS NOT NULL AND price IS NOT NULL THEN prixVente - price ELSE 0 END), 2) as rentabilite
+      FROM products 
+      WHERE user_id = ? AND vendu = '1' 
+      GROUP BY plateforme
+      ORDER BY rentabilite DESC
+      LIMIT 5
+    `,
+      [user_id],
+    );
+
+    return result.map((row) => ({
+      plateforme: row.plateforme,
+      rentabilite: row.rentabilite,
+    }));
+  }
+
+  /**
+   * Calculate radar performance metrics using SQL aggregation
+   */
+  async calculateRadarPerformances(user_id: string): Promise<RadarMetric[]> {
+    // Calculate average profit (benefices) as AVG(prixVente - price)
+    const result = await databaseService.queryOne<{
+      avgBenefice: number;
+      avgTempsVenteJours: number;
+      nombreVentes: number;
+    }>(
+      `
+      SELECT 
+        COALESCE(ROUND(AVG(CASE WHEN prixVente IS NOT NULL AND price IS NOT NULL THEN prixVente - price ELSE 0 END), 2), 0) as avgBenefice,
+        COALESCE(ROUND(AVG((julianday(dateVente) - julianday(created_at))), 2), 0) as avgTempsVenteJours,
+        COUNT(*) as nombreVentes
+      FROM products 
+      WHERE user_id = ? AND vendu = '1' AND dateVente IS NOT NULL AND created_at IS NOT NULL
+    `,
+      [user_id],
+    );
+
+    if (!result) {
+      return [
+        { subject: "Bénéfice Moyen", A: 0, fullMark: 100 },
+        { subject: "Vitesse Vente", A: 0, fullMark: 100 },
+        { subject: "Volume Ventes", A: 0, fullMark: 100 },
+      ];
     }
-  }
 
-  /**
-   * Calculate best performing platforms
-   */
-  calculateBestPlatforms(produits: Produit[]): PlatformPerformance[] {
-    const rentabiliteParPlateforme: { [key: string]: number } = {}
-
-    produits
-      .filter(p => p.vendu && p.benefices != null)
-      .forEach(p => {
-        const plateforme = p.plateforme || 'Non spécifié'
-        rentabiliteParPlateforme[plateforme] = (rentabiliteParPlateforme[plateforme] || 0) + (p.benefices || 0)
-      })
-
-    return Object.entries(rentabiliteParPlateforme)
-      .map(([plateforme, rentabilite]) => ({
-        plateforme,
-        rentabilite: parseFloat(rentabilite.toFixed(2))
-      }))
-      .sort((a, b) => b.rentabilite - a.rentabilite)
-      .slice(0, 5)
-  }
-
-  /**
-   * Calculate radar performance metrics
-   */
-  calculateRadarPerformances(produits: Produit[]): RadarMetric[] {
-    const produitsVendus = produits.filter(p => p.vendu)
-
-    const totalBenefices = produitsVendus.reduce((acc, p) => acc + (p.benefices || 0), 0)
-    const avgBenefice = produitsVendus.length > 0 ? totalBenefices / produitsVendus.length : 0
-
-    const totalTempsVente = produitsVendus
-      .filter(p => p.dateVente && p.created_at)
-      .reduce((acc, p) => {
-        const dateVente = new Date(p.dateVente!).getTime()
-        const dateCreation = p.created_at * 1000
-        return acc + (dateVente - dateCreation)
-      }, 0)
-
-    const avgTempsVenteJours = produitsVendus.length > 0 ? totalTempsVente / produitsVendus.length / (1000 * 60 * 60 * 24) : 0
-    const vitesseVenteScore = avgTempsVenteJours > 0 ? 100 / avgTempsVenteJours : 0
-    const nombreVentes = produitsVendus.length
-
-    const fullMark = 100
+    const vitesseVenteScore =
+      result.avgTempsVenteJours > 0 ? 100 / result.avgTempsVenteJours : 0;
+    const fullMark = 100;
 
     return [
       {
-        subject: 'Bénéfice Moyen',
-        A: Math.min(avgBenefice > 0 ? Math.round(avgBenefice / 10) : 0, fullMark),
-        fullMark
+        subject: "Bénéfice Moyen",
+        A: Math.min(
+          result.avgBenefice > 0 ? Math.round(result.avgBenefice / 10) : 0,
+          fullMark,
+        ),
+        fullMark,
       },
       {
-        subject: 'Vitesse Vente',
+        subject: "Vitesse Vente",
         A: Math.min(Math.round(vitesseVenteScore), fullMark),
-        fullMark
+        fullMark,
       },
       {
-        subject: 'Volume Ventes',
-        A: Math.min(Math.round(nombreVentes), fullMark),
-        fullMark
-      }
-    ]
+        subject: "Volume Ventes",
+        A: Math.min(Math.round(result.nombreVentes), fullMark),
+        fullMark,
+      },
+    ];
   }
 
   /**
-   * Calculate seasonal trends
+   * Calculate seasonal trends using SQL aggregation
    */
-  calculateSeasonalTrends(produits: Produit[]): TrendData[] {
-    const ventesParMoisAnnee: { [key: string]: number } = {}
+  async calculateSeasonalTrends(user_id: string): Promise<TrendData[]> {
+    const result = await databaseService.query<{
+      periode: string;
+      ventes: number;
+    }>(
+      `
+      SELECT 
+        strftime('%Y-%m', dateVente) as periode,
+        ROUND(SUM(prixVente), 2) as ventes
+      FROM products 
+      WHERE user_id = ? AND vendu = '1' AND dateVente IS NOT NULL AND prixVente IS NOT NULL
+      GROUP BY strftime('%Y-%m', dateVente)
+      ORDER BY periode
+    `,
+      [user_id],
+    );
 
-    produits
-      .filter(p => p.vendu && p.dateVente && p.prixVente != null)
-      .forEach(p => {
-        const dateVente = new Date(p.dateVente!)
-        const annee = dateVente.getFullYear()
-        const mois = (dateVente.getMonth() + 1).toString().padStart(2, '0')
-        const cle = `${annee}-${mois}`
-        ventesParMoisAnnee[cle] = (ventesParMoisAnnee[cle] || 0) + (p.prixVente || 0)
-      })
-
-    return Object.entries(ventesParMoisAnnee)
-      .map(([periode, ventes]) => ({ periode, ventes: parseFloat(ventes.toFixed(2)) }))
-      .sort((a, b) => a.periode.localeCompare(b.periode))
+    return result.map((row) => ({
+      periode: row.periode,
+      ventes: row.ventes,
+    }));
   }
 
   /**
-   * Calculate trend curve data
+   * Calculate trend curve data using SQL aggregation
    */
-  calculateTrendCurve(produits: Produit[]): TrendCurveData[] {
-    const ventesMensuelles: { [key: string]: number } = {}
+  async calculateTrendCurve(user_id: string): Promise<TrendCurveData[]> {
+    const result = await databaseService.query<{
+      mois: string;
+      valeur: number;
+    }>(
+      `
+      SELECT 
+        strftime('%Y-%m', dateVente) as mois,
+        ROUND(SUM(prixVente), 2) as valeur
+      FROM products 
+      WHERE user_id = ? AND vendu = '1' AND dateVente IS NOT NULL AND prixVente IS NOT NULL
+      GROUP BY strftime('%Y-%m', dateVente)
+      ORDER BY mois DESC
+      LIMIT 12
+    `,
+      [user_id],
+    );
 
-    produits
-      .filter(p => p.vendu && p.dateVente && p.prixVente != null)
-      .forEach(p => {
-        const dateVente = new Date(p.dateVente!)
-        const annee = dateVente.getFullYear()
-        const mois = dateVente.getMonth()
-        const cle = `${annee}-${mois}`
-        ventesMensuelles[cle] = (ventesMensuelles[cle] || 0) + (p.prixVente || 0)
-      })
+    // Reverse to get chronological order
+    const reversedResult = result.reverse();
 
-    const courbeTendance: TrendCurveData[] = []
-    const now = new Date()
+    return reversedResult.map((row) => {
+      const min = row.valeur * 0.9;
+      const max = row.valeur * 1.1;
 
-    for (let i = 11; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const annee = date.getFullYear()
-      const mois = date.getMonth()
-      const cle = `${annee}-${mois}`
-      const nomMois = date.toLocaleString('fr-FR', { month: 'short', year: '2-digit' })
+      // Format mois for display (e.g., "janv. 23")
+      const [year, month] = row.mois.split("-");
+      const date = new Date(parseInt(year), parseInt(month) - 1);
+      const nomMois = date.toLocaleString("fr-FR", {
+        month: "short",
+        year: "2-digit",
+      });
 
-      const valeur = ventesMensuelles[cle] || 0
-      const min = valeur * 0.9
-      const max = valeur * 1.1
-
-      courbeTendance.push({
+      return {
         mois: nomMois,
-        valeur: parseFloat(valeur.toFixed(2)),
+        valeur: row.valeur,
         min: parseFloat(min.toFixed(2)),
-        max: parseFloat(max.toFixed(2))
-      })
-    }
-
-    return courbeTendance
+        max: parseFloat(max.toFixed(2)),
+      };
+    });
   }
 
   /**
-   * Calculate sales predictions
+   * Calculate sales predictions (simplified version using last known values)
    */
-  calculateSalesPredictions(produits: Produit[]): SalesPrediction[] {
-    const ventesMensuelles: { [key: string]: number } = {}
+  async calculateSalesPredictions(user_id: string): Promise<SalesPrediction[]> {
+    const lastValues = await databaseService.query<{
+      mois: string;
+      valeur: number;
+    }>(
+      `
+      SELECT 
+        strftime('%Y-%m', dateVente) as mois,
+        ROUND(SUM(prixVente), 2) as valeur
+      FROM products 
+      WHERE user_id = ? AND vendu = '1' AND dateVente IS NOT NULL AND prixVente IS NOT NULL
+      GROUP BY strftime('%Y-%m', dateVente)
+      ORDER BY mois DESC
+      LIMIT 3
+    `,
+      [user_id],
+    );
 
-    produits
-      .filter(p => p.vendu && p.dateVente && p.prixVente != null)
-      .forEach(p => {
-        const dateVente = new Date(p.dateVente!)
-        const annee = dateVente.getFullYear()
-        const mois = dateVente.getMonth()
-        const cle = `${annee}-${mois}`
-        ventesMensuelles[cle] = (ventesMensuelles[cle] || 0) + (p.prixVente || 0)
-      })
+    const previsionsVentes: SalesPrediction[] = [];
+    const now = new Date();
 
-    const previsionsVentes: SalesPrediction[] = []
-    const now = new Date()
-
-    // Get last known value for prediction base
-    const lastKnownValues = Object.values(ventesMensuelles).slice(-3)
-    const avgLastValues = lastKnownValues.length > 0 
-      ? lastKnownValues.reduce((a, b) => a + b, 0) / lastKnownValues.length 
-      : 0
+    // Get average of last values for prediction base
+    const avgLastValues =
+      lastValues.length > 0
+        ? lastValues.reduce((sum, item) => sum + item.valeur, 0) /
+          lastValues.length
+        : 0;
 
     for (let i = 1; i <= 3; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() + i, 1)
-      const nomMois = date.toLocaleString('fr-FR', { month: 'short', year: '2-digit' })
+      const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const nomMois = date.toLocaleString("fr-FR", {
+        month: "short",
+        year: "2-digit",
+      });
 
       // Simple prediction based on average with some variation
-      const prevision = avgLastValues * (1 + (Math.random() - 0.5) * 0.2)
+      const prevision = avgLastValues * (1 + (Math.random() - 0.5) * 0.2);
 
       previsionsVentes.push({
         mois: nomMois,
-        prevision: parseFloat(prevision.toFixed(2))
-      })
+        prevision: parseFloat(prevision.toFixed(2)),
+      });
     }
 
-    return previsionsVentes
+    return previsionsVentes;
   }
 
   /**
    * Get performance metrics and KPIs
    */
-  async getPerformanceMetrics(userId: string): Promise<{
-    responseTime: number
-    cacheHitRate: number
-    dataFreshness: number
+  async getPerformanceMetrics(user_id: string): Promise<{
+    responseTime: number;
+    cacheHitRate: number;
+    dataFreshness: number;
   }> {
-    const startTime = Date.now()
-    
+    const startTime = Date.now();
+
     // Simulate some processing
-    await this.getDashboardData(userId)
-    
-    const responseTime = Date.now() - startTime
-    const cacheHitRate = this.calculateCacheHitRate()
-    const dataFreshness = this.calculateDataFreshness(userId)
+    await this.getDashboardData(user_id);
+
+    const responseTime = Date.now() - startTime;
+    const cacheHitRate = this.calculateCacheHitRate();
+    const dataFreshness = this.calculateDataFreshness(user_id);
 
     return {
       responseTime,
       cacheHitRate,
-      dataFreshness
-    }
+      dataFreshness,
+    };
   }
 
   /**
    * Clear cache for specific user or all cache
    */
-  clearCache(userId?: string): void {
-    if (userId) {
-      const keysToDelete = Array.from(this.cache.keys()).filter(key => key.includes(userId))
-      keysToDelete.forEach(key => this.cache.delete(key))
+  clearCache(user_id?: string): void {
+    if (user_id) {
+      const keysToDelete = Array.from(this.cache.keys()).filter((_key) =>
+        _key.includes(user_id),
+      );
+      keysToDelete.forEach((_key) => this.cache.delete(_key));
     } else {
-      this.cache.clear()
+      this.cache.clear();
     }
   }
 
@@ -427,49 +532,41 @@ export class StatisticsService {
     return {
       size: this.cache.size,
       hitRate: this.calculateCacheHitRate(),
-      entries: Array.from(this.cache.keys())
-    }
+      entries: Array.from(this.cache.keys()),
+    };
   }
 
   // Private helper methods
 
-  private async getProductsForUser(userId: string): Promise<Produit[]> {
-    return databaseService.query<Produit>('SELECT * FROM produits WHERE user_id = ?', [userId])
-  }
-
-  private async getParcelsForUser(userId: string): Promise<Parcelle[]> {
-    return databaseService.query<Parcelle>('SELECT * FROM parcelles WHERE user_id = ?', [userId])
-  }
-
   private getCachedData(key: string): any | null {
-    const cached = this.cache.get(key)
+    const cached = this.cache.get(key);
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      return cached.data
+      return cached.data;
     }
     if (cached) {
-      this.cache.delete(key)
+      this.cache.delete(key);
     }
-    return null
+    return null;
   }
 
   private setCachedData(key: string, data: any): void {
-    this.cache.set(key, { data, timestamp: Date.now() })
+    this.cache.set(key, { data, timestamp: Date.now() });
   }
 
   private calculateCacheHitRate(): number {
     // This would need to be tracked over time in a real implementation
-    return Math.random() * 100 // Placeholder
+    return Math.random() * 100; // Placeholder
   }
 
-  private calculateDataFreshness(userId: string): number {
-    const cacheKey = `dashboard_${userId}`
-    const cached = this.cache.get(cacheKey)
+  private calculateDataFreshness(user_id: string): number {
+    const cacheKey = `dashboard_${user_id}`;
+    const cached = this.cache.get(cacheKey);
     if (cached) {
-      return Date.now() - cached.timestamp
+      return Date.now() - cached.timestamp;
     }
-    return 0
+    return 0;
   }
 }
 
 // Export singleton instance
-export const statisticsService = StatisticsService.getInstance()
+export const statisticsService = StatisticsService.getInstance();

@@ -3,8 +3,12 @@
  * Comprehensive logging for user actions and system events
  */
 
-import { getLogger, securityLogger, performanceLogger } from '@/lib/utils/logging';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  getLogger,
+  securityLogger,
+  performanceLogger,
+} from "@/lib/utils/logging";
+import { v4 as uuidv4 } from "uuid";
 
 export interface AuditEvent {
   id: string;
@@ -31,8 +35,14 @@ export interface UserAction {
 }
 
 export interface SecurityEvent {
-  type: 'login' | 'logout' | 'failed_login' | 'password_change' | 'permission_denied' | 'suspicious_activity';
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  type:
+    | "login"
+    | "logout"
+    | "failed_login"
+    | "password_change"
+    | "permission_denied"
+    | "suspicious_activity";
+  severity: "low" | "medium" | "high" | "critical";
   details: Record<string, any>;
 }
 
@@ -44,7 +54,7 @@ export interface PerformanceEvent {
 }
 
 class AuditLoggerService {
-  private logger = getLogger('AUDIT');
+  private logger = getLogger();
   private securityLogger = securityLogger;
   private performanceLogger = performanceLogger;
 
@@ -59,23 +69,23 @@ class AuditLoggerService {
       ip?: string;
       userAgent?: string;
       requestId?: string;
-    } = {}
+    } = {},
   ): Promise<void> {
     const auditEvent: AuditEvent = {
       id: uuidv4(),
       timestamp: new Date(),
-      userId,
-      sessionId: context.sessionId,
+      ...(userId && { userId }),
+      ...(context.sessionId && { sessionId: context.sessionId }),
       action: action.action,
       resource: action.resource,
-      resourceId: action.resourceId,
-      details: action.details,
-      ip: context.ip,
-      userAgent: context.userAgent,
-      success: true
+      ...(action.resourceId && { resourceId: action.resourceId }),
+      ...(action.details && { details: action.details }),
+      ...(context.ip && { ip: context.ip }),
+      ...(context.userAgent && { userAgent: context.userAgent }),
+      success: true,
     };
 
-    this.logger.userAction(action.action, userId, {
+    this.logger.userAction?.(action.action, userId, {
       auditId: auditEvent.id,
       resource: action.resource,
       resourceId: action.resourceId,
@@ -83,7 +93,7 @@ class AuditLoggerService {
       sessionId: context.sessionId,
       ip: context.ip,
       userAgent: context.userAgent,
-      requestId: context.requestId
+      requestId: context.requestId,
     });
 
     // Store in audit trail (could be database, file, or external service)
@@ -102,21 +112,21 @@ class AuditLoggerService {
       ip?: string;
       userAgent?: string;
       requestId?: string;
-    } = {}
+    } = {},
   ): Promise<void> {
     const auditEvent: AuditEvent = {
       id: uuidv4(),
       timestamp: new Date(),
-      userId,
-      sessionId: context.sessionId,
+      ...(userId && { userId }),
+      ...(context.sessionId && { sessionId: context.sessionId }),
       action: action.action,
       resource: action.resource,
-      resourceId: action.resourceId,
-      details: action.details,
-      ip: context.ip,
-      userAgent: context.userAgent,
+      ...(action.resourceId && { resourceId: action.resourceId }),
+      ...(action.details && { details: action.details }),
+      ...(context.ip && { ip: context.ip }),
+      ...(context.userAgent && { userAgent: context.userAgent }),
       success: false,
-      error: error.message
+      error: error.message,
     };
 
     this.logger.error(`User action failed: ${action.action}`, error, {
@@ -127,7 +137,7 @@ class AuditLoggerService {
       sessionId: context.sessionId,
       ip: context.ip,
       userAgent: context.userAgent,
-      requestId: context.requestId
+      requestId: context.requestId,
     });
 
     await this.storeAuditEvent(auditEvent);
@@ -144,27 +154,27 @@ class AuditLoggerService {
       ip?: string;
       userAgent?: string;
       requestId?: string;
-    } = {}
+    } = {},
   ): Promise<void> {
     const auditEvent: AuditEvent = {
       id: uuidv4(),
       timestamp: new Date(),
-      userId: context.userId,
-      sessionId: context.sessionId,
+      ...(context.userId && { userId: context.userId }),
+      ...(context.sessionId && { sessionId: context.sessionId }),
       action: `SECURITY_${event.type.toUpperCase()}`,
-      resource: 'security',
+      resource: "security",
       details: {
         ...event.details,
-        severity: event.severity
+        severity: event.severity,
       },
-      ip: context.ip,
-      userAgent: context.userAgent,
-      success: true
+      ...(context.ip && { ip: context.ip }),
+      ...(context.userAgent && { userAgent: context.userAgent }),
+      success: true,
     };
 
     const logLevel = this.getLogLevelForSeverity(event.severity);
-    
-    this.securityLogger[logLevel](`Security event: ${event.type}`, {
+
+    this.securityLogger[logLevel]!(`Security event: ${event.type}`, {
       auditId: auditEvent.id,
       type: event.type,
       severity: event.severity,
@@ -173,13 +183,13 @@ class AuditLoggerService {
       sessionId: context.sessionId,
       ip: context.ip,
       userAgent: context.userAgent,
-      requestId: context.requestId
+      requestId: context.requestId,
     });
 
     await this.storeAuditEvent(auditEvent);
 
     // Alert on high severity events
-    if (event.severity === 'critical' || event.severity === 'high') {
+    if (event.severity === "critical" || event.severity === "high") {
       await this.alertSecurityTeam(auditEvent);
     }
   }
@@ -193,47 +203,50 @@ class AuditLoggerService {
       userId?: string;
       sessionId?: string;
       requestId?: string;
-    } = {}
+    } = {},
   ): Promise<void> {
     const isSlowOperation = event.duration > event.threshold;
-    
+
     if (isSlowOperation) {
       const auditEvent: AuditEvent = {
         id: uuidv4(),
         timestamp: new Date(),
-        userId: context.userId,
-        sessionId: context.sessionId,
-        action: 'PERFORMANCE_SLOW_OPERATION',
-        resource: 'performance',
+        ...(context.userId && { userId: context.userId }),
+        ...(context.sessionId && { sessionId: context.sessionId }),
+        action: "PERFORMANCE_SLOW_OPERATION",
+        resource: "performance",
         details: {
           operation: event.operation,
           duration: event.duration,
-          threshold: event.threshold,
-          ...event.metadata
+          _threshold: event.threshold,
+          ...event.metadata,
         },
         success: true,
-        duration: event.duration
+        duration: event.duration,
       };
 
-      this.performanceLogger.warn(`Slow operation detected: ${event.operation}`, {
-        auditId: auditEvent.id,
-        operation: event.operation,
-        duration: event.duration,
-        threshold: event.threshold,
-        metadata: event.metadata,
-        userId: context.userId,
-        sessionId: context.sessionId,
-        requestId: context.requestId
-      });
+      this.performanceLogger.warn(
+        `Slow operation detected: ${event.operation}`,
+        {
+          auditId: auditEvent.id,
+          operation: event.operation,
+          duration: event.duration,
+          _threshold: event.threshold,
+          metadata: event.metadata,
+          userId: context.userId,
+          sessionId: context.sessionId,
+          requestId: context.requestId,
+        },
+      );
 
       await this.storeAuditEvent(auditEvent);
     } else {
-      this.performanceLogger.performance(event.operation, event.duration, {
+      this.performanceLogger.performance?.(event.operation, event.duration, {
         threshold: event.threshold,
         metadata: event.metadata,
         userId: context.userId,
         sessionId: context.sessionId,
-        requestId: context.requestId
+        requestId: context.requestId,
       });
     }
   }
@@ -245,27 +258,27 @@ class AuditLoggerService {
     action: string,
     details: Record<string, any>,
     success: boolean = true,
-    error?: Error
+    error?: Error,
   ): Promise<void> {
     const auditEvent: AuditEvent = {
       id: uuidv4(),
       timestamp: new Date(),
       action: `SYSTEM_${action.toUpperCase()}`,
-      resource: 'system',
+      resource: "system",
       details,
       success,
-      error: error?.message
+      ...(error?.message && { error: error.message }),
     };
 
     if (success) {
       this.logger.info(`System event: ${action}`, {
         auditId: auditEvent.id,
-        details
+        details,
       });
     } else {
       this.logger.error(`System event failed: ${action}`, error, {
         auditId: auditEvent.id,
-        details
+        details,
       });
     }
 
@@ -276,13 +289,13 @@ class AuditLoggerService {
    * Get audit events for a user
    */
   async getUserAuditTrail(
-    userId: string,
-    options: {
+    _userId: string,
+    _options: {
       startDate?: Date;
       endDate?: Date;
       actions?: string[];
       limit?: number;
-    } = {}
+    } = {},
   ): Promise<AuditEvent[]> {
     // This would typically query a database
     // For now, return empty array
@@ -293,12 +306,12 @@ class AuditLoggerService {
    * Get security events
    */
   async getSecurityEvents(
-    options: {
-      severity?: SecurityEvent['severity'];
+    _options: {
+      severity?: SecurityEvent["severity"];
       startDate?: Date;
       endDate?: Date;
       limit?: number;
-    } = {}
+    } = {},
   ): Promise<AuditEvent[]> {
     // This would typically query a database
     return [];
@@ -313,30 +326,32 @@ class AuditLoggerService {
     // - File system
     // - External audit service
     // - Message queue for processing
-    
+
     // For now, just log to file through Winston
-    this.logger.info('Audit event stored', {
+    this.logger.info("Audit event stored", {
       auditId: event.id,
       action: event.action,
       resource: event.resource,
       userId: event.userId,
-      success: event.success
+      success: event.success,
     });
   }
 
   /**
    * Get log level based on security severity
    */
-  private getLogLevelForSeverity(severity: SecurityEvent['severity']): 'error' | 'warn' | 'info' {
+  private getLogLevelForSeverity(
+    severity: SecurityEvent["severity"],
+  ): "error" | "warn" | "info" {
     switch (severity) {
-      case 'critical':
-      case 'high':
-        return 'error';
-      case 'medium':
-        return 'warn';
-      case 'low':
+      case "critical":
+      case "high":
+        return "error";
+      case "medium":
+        return "warn";
+      case "low":
       default:
-        return 'info';
+        return "info";
     }
   }
 
@@ -349,13 +364,13 @@ class AuditLoggerService {
     // - Post to Slack/Teams
     // - Create tickets in JIRA
     // - Send to SIEM system
-    
-    this.securityLogger.error('SECURITY ALERT', undefined, {
+
+    this.securityLogger.error("SECURITY ALERT", undefined, {
       auditId: event.id,
       action: event.action,
       userId: event.userId,
       details: event.details,
-      timestamp: event.timestamp
+      timestamp: event.timestamp,
     });
   }
 }
@@ -365,21 +380,24 @@ export const auditLogger = new AuditLoggerService();
 
 // Convenience functions for common audit operations
 export const auditUserAction = auditLogger.logUserAction.bind(auditLogger);
-export const auditFailedUserAction = auditLogger.logFailedUserAction.bind(auditLogger);
-export const auditSecurityEvent = auditLogger.logSecurityEvent.bind(auditLogger);
-export const auditPerformanceEvent = auditLogger.logPerformanceEvent.bind(auditLogger);
+export const auditFailedUserAction =
+  auditLogger.logFailedUserAction.bind(auditLogger);
+export const auditSecurityEvent =
+  auditLogger.logSecurityEvent.bind(auditLogger);
+export const auditPerformanceEvent =
+  auditLogger.logPerformanceEvent.bind(auditLogger);
 export const auditSystemEvent = auditLogger.logSystemEvent.bind(auditLogger);
 
 // Decorator for automatic audit logging
 export function withAuditLogging<T extends any[], R>(
   action: string,
   resource: string,
-  getUserId: (...args: T) => string | undefined = () => undefined
+  getUserId: (...args: T) => string | undefined = () => undefined,
 ) {
   return function (
-    target: any,
+    _target: any,
     propertyName: string,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ) {
     const method = descriptor.value;
 
@@ -391,18 +409,15 @@ export function withAuditLogging<T extends any[], R>(
         const result = await method.apply(this, args);
         const duration = Date.now() - startTime;
 
-        await auditUserAction(
-          userId || 'system',
-          {
-            action,
-            resource,
-            details: {
-              method: propertyName,
-              duration,
-              success: true
-            }
-          }
-        );
+        await auditUserAction(userId || "system", {
+          action,
+          resource,
+          details: {
+            method: propertyName,
+            duration,
+            success: true,
+          },
+        });
 
         return result;
       } catch (error) {
@@ -416,10 +431,10 @@ export function withAuditLogging<T extends any[], R>(
             details: {
               method: propertyName,
               duration,
-              success: false
-            }
+              success: false,
+            },
           },
-          error as Error
+          error as Error,
         );
 
         throw error;

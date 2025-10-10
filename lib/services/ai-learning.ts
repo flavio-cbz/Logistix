@@ -1,16 +1,13 @@
-import { eq, desc, and, gte } from 'drizzle-orm';
-import { databaseService } from './database/db';
-import { userActions, userPreferences } from './database/drizzle-schema';
-import { UserAction, UserPreferences, PreferenceLearning } from '../../types/user-preferences';
-import { userPreferencesService } from './user-preferences';
+import { databaseService } from "../services/database/db";
+import { userPreferencesService } from "../services/user-preferences-modern";
+import {
+  UserPreferences,
+  UserAction,
+  PreferenceLearning,
+} from "../../types/user-preferences";
+import { UserActionType, RiskTolerance } from "../../lib/types/entities";
 
-export interface AILearningService {
-  analyzeUserBehavior(userId: string, timeframeDays?: number): Promise<PreferenceLearning>;
-  updatePreferencesFromLearning(userId: string, learning: PreferenceLearning): Promise<void>;
-  getRecommendationQuality(userId: string): Promise<RecommendationQualityMetrics>;
-  adaptToUserFeedback(userId: string, feedback: UserFeedback): Promise<void>;
-  generatePersonalizedInsights(userId: string, baseInsights: any[]): Promise<any[]>;
-}
+// Define missing interfaces based on their usage in the code
 
 export interface RecommendationQualityMetrics {
   totalRecommendations: number;
@@ -25,7 +22,12 @@ export interface RecommendationQualityMetrics {
 export interface UserFeedback {
   recommendationId: string;
   rating: 1 | 2 | 3 | 4 | 5;
-  feedback: 'helpful' | 'not_helpful' | 'irrelevant' | 'too_complex' | 'too_simple';
+  feedback:
+    | "helpful"
+    | "not_helpful"
+    | "irrelevant"
+    | "too_complex"
+    | "too_simple";
   comment?: string;
   timestamp: string;
 }
@@ -35,30 +37,55 @@ export interface LearningPattern {
   confidence: number;
   frequency: number;
   lastSeen: string;
-  impact: 'high' | 'medium' | 'low';
+  impact: "high" | "medium" | "low";
+}
+
+export interface AILearningService {
+  analyzeUserBehavior(
+    userId: string,
+    timeframeDays?: number,
+  ): Promise<PreferenceLearning>;
+  updatePreferencesFromLearning(
+    userId: string,
+    learning: PreferenceLearning,
+  ): Promise<void>;
+  getRecommendationQuality(
+    userId: string,
+  ): Promise<RecommendationQualityMetrics>;
+  adaptToUserFeedback(userId: string, feedback: UserFeedback): Promise<void>;
+  generatePersonalizedInsights(
+    userId: string,
+    baseInsights: any[],
+  ): Promise<any[]>;
 }
 
 export class AILearningServiceImpl implements AILearningService {
   /**
    * Analyse le comportement utilisateur pour identifier des patterns d'apprentissage
    */
-  async analyzeUserBehavior(userId: string, timeframeDays: number = 30): Promise<PreferenceLearning> {
+  async analyzeUserBehavior(
+    userId: string,
+    timeframeDays: number = 30,
+  ): Promise<PreferenceLearning> {
     try {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - timeframeDays);
-      
-      const actions = await databaseService.query<UserAction[]>(`
+
+      const actions = await databaseService.query<UserAction>(
+        `
         SELECT * FROM user_actions
         WHERE user_id = ? AND timestamp >= ?
         ORDER BY timestamp DESC
-      `, [userId, startDate.toISOString()]);
+      `,
+        [userId, startDate.toISOString()],
+      );
 
-      if (actions.length < 3) {
+      if (!actions || actions.length < 3) {
         return {
           userId,
           learnedPreferences: {},
           confidence: 0,
-          basedOnActions: actions.length,
+          basedOnActions: (actions && actions.length) || 0,
           lastUpdated: new Date().toISOString(),
         };
       }
@@ -75,55 +102,89 @@ export class AILearningServiceImpl implements AILearningService {
         lastUpdated: new Date().toISOString(),
       };
     } catch (error) {
-      throw new Error('Failed to analyze user behavior');
+      throw new Error("Failed to analyze user behavior");
     }
   }
 
   /**
    * Met à jour les préférences utilisateur basées sur l'apprentissage IA
    */
-  async updatePreferencesFromLearning(userId: string, learning: PreferenceLearning): Promise<void> {
+  async updatePreferencesFromLearning(
+    userId: string,
+    learning: PreferenceLearning,
+  ): Promise<void> {
     try {
       if (learning.confidence < 0.6) {
         // Confiance trop faible pour mettre à jour les préférences
         return;
       }
 
-      const currentPreferences = await userPreferencesService.getUserPreferences(userId);
-      const updatedPreferences = this.mergePreferences(currentPreferences, learning.learnedPreferences);
-      
-      await userPreferencesService.updatePreferences(userId, updatedPreferences);
+      const currentPreferences =
+        await userPreferencesService.getUserPreferences(userId);
+      const updatedPreferences = this.mergePreferences(
+        currentPreferences,
+        learning.learnedPreferences,
+      );
+
+      await userPreferencesService.updatePreferences(
+        userId,
+        updatedPreferences,
+      );
     } catch (error) {
-      throw new Error('Failed to update preferences from learning');
+      throw new Error("Failed to update preferences from learning");
     }
   }
 
   /**
-   * Évalue la qualité des recommandations basée sur les actions utilisateur
+   * Retourne des métriques de qualité des recommandations pour un utilisateur
    */
-  async getRecommendationQuality(userId: string): Promise<RecommendationQualityMetrics> {
+  async getRecommendationQuality(
+    userId: string,
+    timeframeDays: number = 30,
+  ): Promise<RecommendationQualityMetrics> {
     try {
       const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - timeframeDays);
 
-      const actions = await databaseService.query<UserAction>(`
+      const actions = await databaseService.query<UserAction>(
+        `
         SELECT * FROM user_actions
         WHERE user_id = ? AND timestamp >= ?
-      `, [userId, thirtyDaysAgo.toISOString()]);
+      `,
+        [userId, thirtyDaysAgo.toISOString()],
+      );
 
-      const followedActions = actions.filter(a => a.actionType === 'follow_recommendation');
-      const ignoredActions = actions.filter(a => a.actionType === 'ignore_recommendation');
-      
-      const totalRecommendations = followedActions.length + ignoredActions.length;
-      const followRate = totalRecommendations > 0 ? followedActions.length / totalRecommendations : 0;
+      const followedActions = (actions || []).filter(
+        (_a: UserAction) => _a.actionType === "follow_recommendation",
+      );
+      const ignoredActions = (actions || []).filter(
+        (_a: UserAction) => _a.actionType === "ignore_recommendation",
+      );
+
+      const totalRecommendations =
+        followedActions.length + ignoredActions.length;
+      const followRate =
+        totalRecommendations > 0
+          ? followedActions.length / totalRecommendations
+          : 0;
 
       // Calculer le temps moyen d'action
-      const averageTimeToAction = this.calculateAverageTimeToAction(actions);
-      
+      const averageTimeToAction = this.calculateAverageTimeToAction(
+        actions || [],
+      );
+
       // Score de qualité basé sur plusieurs facteurs
-      const qualityScore = this.calculateQualityScore(followRate, averageTimeToAction, actions);
-      
-      const improvementSuggestions = this.generateImprovementSuggestions(followRate, averageTimeToAction, actions);
+      const qualityScore = this.calculateQualityScore(
+        followRate,
+        averageTimeToAction,
+        actions || [],
+      );
+
+      const improvementSuggestions = this.generateImprovementSuggestions(
+        followRate,
+        averageTimeToAction,
+        actions || [],
+      );
 
       return {
         totalRecommendations,
@@ -135,21 +196,24 @@ export class AILearningServiceImpl implements AILearningService {
         improvementSuggestions,
       };
     } catch (error) {
-      throw new Error('Failed to get recommendation quality metrics');
+      throw new Error("Failed to get recommendation quality metrics");
     }
   }
 
   /**
    * Adapte le système basé sur le feedback utilisateur
    */
-  async adaptToUserFeedback(userId: string, feedback: UserFeedback): Promise<void> {
+  async adaptToUserFeedback(
+    userId: string,
+    feedback: UserFeedback,
+  ): Promise<void> {
     try {
-      // Enregistrer le feedback comme action utilisateur
+            // Enregistrer le feedback comme action utilisateur
       const feedbackAction: UserAction = {
+        id: `feedback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userId,
-        actionType: 'view_insight', // Utiliser un type existant pour le feedback
+        actionType: UserActionType.FEEDBACK,
         actionData: {
-          type: 'feedback',
           recommendationId: feedback.recommendationId,
           rating: feedback.rating,
           feedback: feedback.feedback,
@@ -157,9 +221,10 @@ export class AILearningServiceImpl implements AILearningService {
         },
         timestamp: feedback.timestamp,
         context: {
-          feedbackType: feedback.feedback,
-          rating: feedback.rating.toString(),
+          source: "ai_recommendation",
+          recommendationId: feedback.recommendationId,
         },
+        createdAt: new Date().toISOString(),
       };
 
       await userPreferencesService.learnFromUserActions(userId, feedbackAction);
@@ -167,41 +232,61 @@ export class AILearningServiceImpl implements AILearningService {
       // Analyser le feedback pour ajuster les préférences
       await this.processFeedbackForLearning(userId, feedback);
     } catch (error) {
-      throw new Error('Failed to adapt to user feedback');
+      throw new Error("Failed to adapt to user feedback");
     }
   }
 
   /**
-   * Génère des insights personnalisés basés sur les préférences utilisateur
+   * Génère des insights personnalisés pour l'utilisateur
    */
-  async generatePersonalizedInsights(userId: string, baseInsights: any[]): Promise<any[]> {
+  async generatePersonalizedInsights(
+    userId: string,
+    baseInsights: any[],
+  ): Promise<any[]> {
     try {
-      const preferences = await userPreferencesService.getUserPreferences(userId);
-      const behaviorAnalysis = await this.analyzeUserBehavior(userId);
+      const preferences =
+        await userPreferencesService.getUserPreferences(userId);
+      // Optionnel : utiliser l'analyse comportementale pour priorisation
+      // const _behavior = await this.analyzeUserBehavior(userId, 30);
 
-      return baseInsights
-        .filter(insight => this.isInsightRelevant(insight, preferences))
-        .map(insight => this.personalizeInsight(insight, preferences, behaviorAnalysis))
-        .sort((a, b) => this.calculateInsightPriority(b, preferences) - this.calculateInsightPriority(a, preferences));
+      const results = (baseInsights || [])
+        .filter((insight) => this.isInsightRelevant(insight, preferences))
+        .map((insight) => this.personalizeInsight(insight, preferences))
+        .sort(
+          (a, b) =>
+            this.calculateInsightPriority(b, preferences) -
+            this.calculateInsightPriority(a, preferences),
+        );
+
+      return results;
     } catch (error) {
-      throw new Error('Failed to generate personalized insights');
+      throw new Error("Failed to generate personalized insights");
     }
   }
 
   /**
    * Identifie les patterns comportementaux dans les actions utilisateur
    */
-  private identifyBehaviorPatterns(actions: any[]): LearningPattern[] {
+  private identifyBehaviorPatterns(actions: UserAction[]): LearningPattern[] {
     const patterns: LearningPattern[] = [];
 
     // Pattern 1: Types d'insights préférés
-    const insightViews = actions.filter(a => a.actionType === 'view_insight');
+    const insightViews = actions.filter((a) => a.actionType === "view_insight");
     if (insightViews.length > 0) {
       const insightTypeCounts: Record<string, number> = {};
-      insightViews.forEach(action => {
-        const context = JSON.parse(action.context || '{}');
-        if (context.insightType) {
-          insightTypeCounts[context.insightType] = (insightTypeCounts[context.insightType] || 0) + 1;
+      insightViews.forEach((action) => {
+        let context: any = {};
+        try {
+          context =
+            typeof action.context === "string"
+              ? JSON.parse(action.context)
+              : action.context || {};
+        } catch {
+          context = {};
+        }
+        if (context && context.insightType) {
+          insightTypeCounts[context.insightType] =
+            (insightTypeCounts[context.insightType] || 0) + 1;
         }
       });
 
@@ -211,39 +296,53 @@ export class AILearningServiceImpl implements AILearningService {
           confidence: Math.min(count / insightViews.length, 1),
           frequency: count,
           lastSeen: insightViews[0].timestamp,
-          impact: count > insightViews.length * 0.5 ? 'high' : count > insightViews.length * 0.2 ? 'medium' : 'low',
+          impact:
+            count > insightViews.length * 0.5
+              ? "high"
+              : count > insightViews.length * 0.2
+                ? "medium"
+                : "low",
         });
       });
     }
 
     // Pattern 2: Comportement de suivi des recommandations
-    const recommendationActions = actions.filter(a => 
-      a.actionType === 'follow_recommendation' || a.actionType === 'ignore_recommendation'
+    const recommendationActions = actions.filter(
+      (a) =>
+        a.actionType === "follow_recommendation" ||
+        a.actionType === "ignore_recommendation",
     );
-    
+
     if (recommendationActions.length > 0) {
-      const followRate = recommendationActions.filter(a => a.actionType === 'follow_recommendation').length / recommendationActions.length;
+      const followRate =
+        recommendationActions.filter(
+          (a) => a.actionType === "follow_recommendation",
+        ).length / recommendationActions.length;
       patterns.push({
-        pattern: `recommendation_follow_rate_${followRate > 0.7 ? 'high' : followRate > 0.3 ? 'medium' : 'low'}`,
+        pattern: `recommendation_follow_rate_${followRate > 0.7 ? "high" : followRate > 0.3 ? "medium" : "low"}`,
         confidence: Math.min(recommendationActions.length / 10, 1),
         frequency: recommendationActions.length,
         lastSeen: recommendationActions[0].timestamp,
-        impact: 'high',
+        impact: "high",
       });
     }
 
     // Pattern 3: Fréquence d'utilisation
-    const daysSinceFirst = actions.length > 0 ? 
-      (new Date().getTime() - new Date(actions[actions.length - 1].timestamp).getTime()) / (1000 * 60 * 60 * 24) : 0;
-    
+    const daysSinceFirst =
+      actions.length > 0
+        ? (new Date().getTime() -
+            new Date(actions[actions.length - 1].timestamp).getTime()) /
+          (1000 * 60 * 60 * 24)
+        : 0;
+
     if (daysSinceFirst > 0) {
       const actionsPerDay = actions.length / daysSinceFirst;
       patterns.push({
-        pattern: `usage_frequency_${actionsPerDay > 2 ? 'high' : actionsPerDay > 0.5 ? 'medium' : 'low'}`,
+        pattern: `usage_frequency_${actionsPerDay > 2 ? "high" : actionsPerDay > 0.5 ? "medium" : "low"}`,
         confidence: Math.min(actions.length / 20, 1),
         frequency: actions.length,
         lastSeen: actions[0].timestamp,
-        impact: actionsPerDay > 1 ? 'high' : 'medium',
+        impact: actionsPerDay > 1 ? "high" : "medium",
       });
     }
 
@@ -253,44 +352,53 @@ export class AILearningServiceImpl implements AILearningService {
   /**
    * Dérive les préférences des patterns identifiés
    */
-  private derivePreferencesFromPatterns(patterns: LearningPattern[]): Partial<UserPreferences> {
+  private derivePreferencesFromPatterns(
+    patterns: LearningPattern[],
+  ): Partial<UserPreferences> {
     const preferences: Partial<UserPreferences> = {};
 
     // Dériver les types d'insights préférés
-    const insightPatterns = patterns.filter(p => p.pattern.startsWith('prefers_') && p.pattern.endsWith('_insights'));
+    const insightPatterns = patterns.filter(
+      (p) =>
+        p.pattern.startsWith("prefers_") && p.pattern.endsWith("_insights"),
+    );
     if (insightPatterns.length > 0) {
       const preferredTypes = insightPatterns
-        .filter(p => p.confidence > 0.3)
+        .filter((p) => p.confidence > 0.3)
         .sort((a, b) => b.confidence - a.confidence)
         .slice(0, 3)
-        .map(p => p.pattern.replace('prefers_', '').replace('_insights', ''));
-      
+        .map((p) => p.pattern.replace("prefers_", "").replace("_insights", ""));
+
       if (preferredTypes.length > 0) {
-        preferences.preferredInsightTypes = preferredTypes as any;
+        preferences.preferredInsightTypes = preferredTypes as any; // Cast to any for now, as types are more specific in UserPreferences
       }
     }
 
     // Dériver la tolérance au risque
-    const followRatePattern = patterns.find(p => p.pattern.startsWith('recommendation_follow_rate_'));
+    const followRatePattern = patterns.find((p) =>
+      p.pattern.startsWith("recommendation_follow_rate_"),
+    );
     if (followRatePattern && followRatePattern.confidence > 0.5) {
-      if (followRatePattern.pattern.includes('high')) {
-        preferences.riskTolerance = 'aggressive';
-      } else if (followRatePattern.pattern.includes('low')) {
-        preferences.riskTolerance = 'conservative';
+      if (followRatePattern.pattern.includes("high")) {
+        preferences.riskTolerance = RiskTolerance.AGGRESSIVE;
+      } else if (followRatePattern.pattern.includes("low")) {
+        preferences.riskTolerance = RiskTolerance.CONSERVATIVE;
       } else {
-        preferences.riskTolerance = 'moderate';
+        preferences.riskTolerance = RiskTolerance.MODERATE;
       }
     }
 
     // Dériver les objectifs basés sur la fréquence d'utilisation
-    const usagePattern = patterns.find(p => p.pattern.startsWith('usage_frequency_'));
+    const usagePattern = patterns.find((p) =>
+      p.pattern.startsWith("usage_frequency_"),
+    );
     if (usagePattern && usagePattern.confidence > 0.5) {
-      if (usagePattern.pattern.includes('high')) {
-        preferences.objectives = ['profit', 'market-share'];
-      } else if (usagePattern.pattern.includes('medium')) {
-        preferences.objectives = ['profit', 'volume'];
+      if (usagePattern.pattern.includes("high")) {
+        preferences.objectives = ["profit", "market-share"];
+      } else if (usagePattern.pattern.includes("medium")) {
+        preferences.objectives = ["profit", "volume"];
       } else {
-        preferences.objectives = ['profit'];
+        preferences.objectives = ["profit"];
       }
     }
 
@@ -300,40 +408,83 @@ export class AILearningServiceImpl implements AILearningService {
   /**
    * Calcule la confiance basée sur les patterns et le nombre d'actions
    */
-  private calculateConfidence(patterns: LearningPattern[], actionCount: number): number {
-    if (patterns.length === 0 || actionCount < 5) {
+  private calculateConfidence(
+    patterns: LearningPattern[],
+    actionCount: number,
+  ): number {
+    if (!patterns || patterns.length === 0 || actionCount < 5) {
       return 0;
     }
 
-    const avgPatternConfidence = patterns.reduce((sum, p) => sum + p.confidence, 0) / patterns.length;
+    const avgPatternConfidence =
+      patterns.reduce((sum, p) => sum + p.confidence, 0) / patterns.length;
     const actionCountFactor = Math.min(actionCount / 50, 1); // Normaliser sur 50 actions
-    const highImpactPatterns = patterns.filter(p => p.impact === 'high').length;
+    const highImpactPatterns = patterns.filter(
+      (p) => p.impact === "high",
+    ).length;
     const impactFactor = Math.min(highImpactPatterns / 3, 1); // Normaliser sur 3 patterns à fort impact
 
-    return (avgPatternConfidence * 0.5 + actionCountFactor * 0.3 + impactFactor * 0.2);
+    return (
+      avgPatternConfidence * 0.5 + actionCountFactor * 0.3 + impactFactor * 0.2
+    );
   }
 
   /**
    * Fusionne les préférences existantes avec les préférences apprises
    */
-  private mergePreferences(current: UserPreferences, learned: Partial<UserPreferences>): Partial<UserPreferences> {
-    const merged: Partial<UserPreferences> = {};
+  private mergePreferences(
+    current: UserPreferences,
+    learned: Partial<UserPreferences>,
+  ): Partial<UserPreferences> {
+    const merged: Partial<UserPreferences> = { ...current }; // Start with current preferences
 
     // Fusionner les objectifs
     if (learned.objectives) {
-      const combinedObjectives = [...new Set([...current.objectives, ...learned.objectives])];
-      merged.objectives = combinedObjectives.slice(0, 3); // Limiter à 3 objectifs
+      const combinedObjectives = [
+        ...new Set([...(current.objectives || []), ...learned.objectives]),
+      ];
+      merged.objectives = combinedObjectives.slice(
+        0,
+        3,
+      ) as UserPreferences["objectives"]; // Limiter à 3 objectifs et caster
     }
 
-    // Mettre à jour la tolérance au risque si la confiance est élevée
+    // Mettre à jour la tolérance au risque si présente dans learned
     if (learned.riskTolerance) {
       merged.riskTolerance = learned.riskTolerance;
     }
 
     // Fusionner les types d'insights préférés
     if (learned.preferredInsightTypes) {
-      const combinedTypes = [...new Set([...current.preferredInsightTypes, ...learned.preferredInsightTypes])];
-      merged.preferredInsightTypes = combinedTypes.slice(0, 4); // Limiter à 4 types
+      const combinedTypes = [
+        ...new Set([
+          ...(current.preferredInsightTypes || []),
+          ...learned.preferredInsightTypes,
+        ]),
+      ];
+      merged.preferredInsightTypes = combinedTypes.slice(
+        0,
+        4,
+      ) as UserPreferences["preferredInsightTypes"]; // Limiter à 4 types et caster
+    }
+
+    // Fusionner les paramètres de notification (si existe et est un objet)
+    if (
+      learned.notificationSettings &&
+      typeof learned.notificationSettings === "object"
+    ) {
+      merged.notificationSettings = {
+        ...(current.notificationSettings || {}),
+        ...learned.notificationSettings,
+      };
+    }
+
+    // Fusionner les filtres personnalisés (si existe et est un objet)
+    if (learned.customFilters && typeof learned.customFilters === "object") {
+      merged.customFilters = {
+        ...(current.customFilters || {}),
+        ...learned.customFilters,
+      };
     }
 
     return merged;
@@ -342,35 +493,47 @@ export class AILearningServiceImpl implements AILearningService {
   /**
    * Calcule le temps moyen d'action en heures
    */
-  private calculateAverageTimeToAction(actions: any[]): number {
-    const actionPairs = [];
-    
-    for (let i = 0; i < actions.length - 1; i++) {
-      const current = actions[i];
-      const next = actions[i + 1];
-      
-      if (current.actionType === 'view_insight' && 
-          (next.actionType === 'follow_recommendation' || next.actionType === 'ignore_recommendation')) {
-        const timeDiff = new Date(current.timestamp).getTime() - new Date(next.timestamp).getTime();
+  private calculateAverageTimeToAction(actions: UserAction[]): number {
+    const actionPairs: number[] = [];
+
+    for (let i = 0; i < (actions ? actions.length - 1 : 0); i++) {
+      const current = actions[i]!;
+      const next = actions[i + 1]!;
+
+      if (
+        current.actionType === "view_insight" &&
+        (next.actionType === "follow_recommendation" ||
+          next.actionType === "ignore_recommendation")
+      ) {
+        const timeDiff =
+          new Date(next.timestamp).getTime() -
+          new Date(current.timestamp).getTime();
         actionPairs.push(Math.abs(timeDiff) / (1000 * 60 * 60)); // Convertir en heures
       }
     }
 
-    return actionPairs.length > 0 ? actionPairs.reduce((sum, time) => sum + time, 0) / actionPairs.length : 0;
+    return actionPairs.length > 0
+      ? actionPairs.reduce((sum, time) => sum + time, 0) / actionPairs.length
+      : 0;
   }
 
   /**
    * Calcule un score de qualité global
    */
-  private calculateQualityScore(followRate: number, avgTimeToAction: number, actions: any[]): number {
+  private calculateQualityScore(
+    followRate: number,
+    avgTimeToAction: number,
+    actions: UserAction[],
+  ): number {
     // Score basé sur le taux de suivi (0.4 de poids)
     const followScore = followRate;
-    
+
     // Score basé sur le temps de réaction (0.3 de poids) - plus rapide = mieux
-    const timeScore = avgTimeToAction > 0 ? Math.max(0, 1 - (avgTimeToAction / 24)) : 0.5;
-    
+    const timeScore =
+      avgTimeToAction > 0 ? Math.max(0, 1 - avgTimeToAction / 24) : 0.5;
+
     // Score basé sur l'engagement (0.3 de poids)
-    const engagementScore = Math.min(actions.length / 50, 1);
+    const engagementScore = Math.min((actions || []).length / 50, 1);
 
     return followScore * 0.4 + timeScore * 0.3 + engagementScore * 0.3;
   }
@@ -378,24 +541,38 @@ export class AILearningServiceImpl implements AILearningService {
   /**
    * Génère des suggestions d'amélioration
    */
-  private generateImprovementSuggestions(followRate: number, avgTimeToAction: number, actions: any[]): string[] {
+  private generateImprovementSuggestions(
+    followRate: number,
+    avgTimeToAction: number,
+    actions: UserAction[],
+  ): string[] {
     const suggestions: string[] = [];
 
     if (followRate < 0.3) {
-      suggestions.push('Les recommandations semblent peu pertinentes. Considérer une personnalisation plus poussée.');
+      suggestions.push(
+        "Les recommandations semblent peu pertinentes. Considérer une personnalisation plus poussée.",
+      );
     }
 
     if (avgTimeToAction > 12) {
-      suggestions.push('Les utilisateurs prennent du temps à agir. Simplifier les recommandations.');
+      suggestions.push(
+        "Les utilisateurs prennent du temps à agir. Simplifier les recommandations.",
+      );
     }
 
-    if (actions.length < 10) {
-      suggestions.push('Engagement faible. Améliorer la présentation des insights.');
+    if ((actions || []).length < 10) {
+      suggestions.push(
+        "Engagement faible. Améliorer la présentation des insights.",
+      );
     }
 
-    const exportActions = actions.filter(a => a.actionType === 'export_analysis');
+    const exportActions = (actions || []).filter(
+      (a) => a.actionType === "export_analysis",
+    );
     if (exportActions.length === 0) {
-      suggestions.push('Aucun export détecté. Promouvoir les fonctionnalités d\'export.');
+      suggestions.push(
+        "Aucun export détecté. Promouvoir les fonctionnalités d'export.",
+      );
     }
 
     return suggestions;
@@ -404,22 +581,25 @@ export class AILearningServiceImpl implements AILearningService {
   /**
    * Traite le feedback pour l'apprentissage
    */
-  private async processFeedbackForLearning(userId: string, feedback: UserFeedback): Promise<void> {
+  private async processFeedbackForLearning(
+    userId: string,
+    feedback: UserFeedback,
+  ): Promise<void> {
     // Ajuster les préférences basées sur le feedback
-    const currentPrefs = await userPreferencesService.getUserPreferences(userId);
+    const currentPrefs =
+      await userPreferencesService.getUserPreferences(userId);
     const adjustments: Partial<UserPreferences> = {};
 
     if (feedback.rating <= 2) {
       // Feedback négatif - ajuster les paramètres de notification
-      if (feedback.feedback === 'irrelevant') {
+      if (feedback.feedback === "irrelevant") {
         adjustments.notificationSettings = {
           ...currentPrefs.notificationSettings,
           opportunities: false,
         };
       }
     } else if (feedback.rating >= 4) {
-      // Feedback positif - renforcer les préférences actuelles
-      // Pas d'ajustement nécessaire, les patterns existants sont bons
+      // Feedback positif - renforcer les préférences actuelles (aucun changement nécessaire par défaut)
     }
 
     if (Object.keys(adjustments).length > 0) {
@@ -430,35 +610,42 @@ export class AILearningServiceImpl implements AILearningService {
   /**
    * Détermine si un insight est pertinent pour l'utilisateur
    */
-  private isInsightRelevant(insight: any, preferences: UserPreferences): boolean {
-    if (!insight.type || !preferences.preferredInsightTypes) {
+  private isInsightRelevant(
+    insight: any,
+    preferences: UserPreferences,
+  ): boolean {
+    if (!insight || !preferences) return true;
+    if (
+      !insight.type ||
+      !preferences.preferredInsightTypes ||
+      preferences.preferredInsightTypes.length === 0
+    ) {
       return true; // Par défaut, inclure l'insight
     }
-
     return preferences.preferredInsightTypes.includes(insight.type);
   }
 
   /**
-   * Personnalise un insight basé sur les préférences
+   * Personnalise un insight selon les préférences utilisateur
    */
-  private personalizeInsight(insight: any, preferences: UserPreferences, behaviorAnalysis: PreferenceLearning): any {
+  private personalizeInsight(insight: any, preferences: UserPreferences): any {
     const personalized = { ...insight };
 
     // Ajuster le niveau de détail basé sur la tolérance au risque
-    if (preferences.riskTolerance === 'conservative') {
+    if (preferences.riskTolerance === "conservative") {
       personalized.confidence = Math.min(personalized.confidence || 0.5, 0.8);
       personalized.riskWarning = true;
-    } else if (preferences.riskTolerance === 'aggressive') {
+    } else if (preferences.riskTolerance === "aggressive") {
       personalized.confidence = Math.max(personalized.confidence || 0.5, 0.6);
       personalized.opportunityFocus = true;
     }
 
     // Ajuster basé sur les objectifs
-    if (preferences.objectives.includes('profit')) {
+    if (preferences.objectives && preferences.objectives.includes("profit")) {
       personalized.profitImpact = true;
     }
 
-    if (preferences.objectives.includes('volume')) {
+    if (preferences.objectives && preferences.objectives.includes("volume")) {
       personalized.volumeImpact = true;
     }
 
@@ -468,21 +655,32 @@ export class AILearningServiceImpl implements AILearningService {
   /**
    * Calcule la priorité d'un insight pour l'utilisateur
    */
-  private calculateInsightPriority(insight: any, preferences: UserPreferences): number {
-    let priority = insight.basePriority || 0.5;
+  private calculateInsightPriority(
+    insight: any,
+    preferences: UserPreferences,
+  ): number {
+    let priority =
+      insight && insight.basePriority !== undefined
+        ? insight.basePriority
+        : 0.5;
 
-    // Augmenter la priorité si l'insight correspond aux types préférés
-    if (preferences.preferredInsightTypes.includes(insight.type)) {
+    if (
+      preferences &&
+      preferences.preferredInsightTypes &&
+      insight &&
+      insight.type &&
+      preferences.preferredInsightTypes.includes(insight.type)
+    ) {
       priority += 0.3;
     }
 
-    // Ajuster basé sur les objectifs
-    if (preferences.objectives.includes('profit') && insight.profitImpact) {
-      priority += 0.2;
-    }
-
-    if (preferences.objectives.includes('volume') && insight.volumeImpact) {
-      priority += 0.2;
+    if (preferences && preferences.objectives && insight) {
+      if (preferences.objectives.includes("profit") && insight.profitImpact) {
+        priority += 0.2;
+      }
+      if (preferences.objectives.includes("volume") && insight.volumeImpact) {
+        priority += 0.2;
+      }
     }
 
     return Math.min(priority, 1);

@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.vitest.json",
+  "include": [
+    "./unit/application/**/*.ts"
+  ],
+  "exclude": [
+    "./integration/**/*",
+    "./e2e/**/*",
+    "./api/**/*"
+  ]
+}

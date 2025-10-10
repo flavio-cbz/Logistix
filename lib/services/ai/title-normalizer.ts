@@ -41,7 +41,7 @@ export async function normalizeTitle(title: string): Promise<NormalizedTitle> {
 
     // La réponse de l'API peut contenir du texte avant/après le JSON.
     // Nous devons extraire le JSON de la réponse.
-    const jsonString = response.choices[0].text.match(/{[\s\S]*}/)?.[0];
+    const jsonString = response.choices[0]!!.text.match(/{[\s\S]*}/)?.[0];
     if (!jsonString) {
       throw new Error("La réponse de l'IA ne contient pas de JSON valide.");
     }
@@ -50,7 +50,9 @@ export async function normalizeTitle(title: string): Promise<NormalizedTitle> {
     const validationResult = NormalizedTitleSchema.safeParse(parsed);
 
     if (!validationResult.success) {
-      throw new Error(`Validation Zod échouée: ${validationResult.error.message}`);
+      throw new Error(
+        `Validation Zod échouée: ${validationResult.error.message}`,
+      );
     }
 
     // Assurer que toutes les propriétés exigées par l'interface NormalizedTitle sont présentes

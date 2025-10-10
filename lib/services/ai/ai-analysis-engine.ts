@@ -1,34 +1,43 @@
-import { VintedAnalysisResult } from "../vinted-market-analysis";
-import AdvancedAnalyticsEngine, { AdvancedMetrics } from "@/lib/analytics/advanced-analytics-engine";
+import type { VintedAnalysisResult } from "../vinted-market-analysis";
+import type { SoldItem } from "../../types/vinted-market-analysis";
+import {
+  AdvancedAnalyticsEngine,
+  AdvancedMetrics,
+} from "@/lib/analytics/advanced-analytics-engine";
 import { generateEnhancedReport, EnhancedReport } from "./report-generator";
-import { marketInsightsService, MarketInsights, UserPreferences } from "./market-insights";
+import {
+  marketInsightsService,
+  MarketInsights,
+  UserPreferences,
+} from "./market-insights";
 import { normalizeTitle } from "./title-normalizer";
-import { isAnomaly } from "./anomaly-detector";
+import { isAnomaly, AnomalyDetectionResponse } from "./anomaly-detector";
 import { marketAnalysisConfig } from "./market-analysis-config";
-import { AIAnalysisError } from "./ai-errors";
+import { AIErrorCode, AIAnalysisError } from "./ai-errors";
+import { getErrorMessage, toError } from "@/lib/utils/error-utils";
 
 // Types pour l'orchestrateur d'analyse IA
 export interface AIAnalysisOptions {
-  userPreferences?: UserPreferences;
-  includeAdvancedMetrics?: boolean;
-  includeReports?: boolean;
-  includeInsights?: boolean;
-  enableDataEnrichment?: boolean;
+  userPreferences?: UserPreferences | undefined;
+  includeAdvancedMetrics?: boolean | undefined;
+  includeReports?: boolean | undefined;
+  includeInsights?: boolean | undefined;
+  enableDataEnrichment?: boolean | undefined;
 }
 
 export interface EnhancedAnalysisResult extends VintedAnalysisResult {
   // Données enrichies par l'IA
-  aiEnhancedItems?: EnrichedItem[];
-  
+  aiEnhancedItems?: EnrichedItem[] | undefined;
+
   // Métriques avancées
-  advancedMetrics?: AdvancedMetrics;
-  
+  advancedMetrics?: AdvancedMetrics | undefined;
+
   // Rapports IA
-  aiReport?: EnhancedReport;
-  
+  aiReport?: EnhancedReport | undefined;
+
   // Insights de marché
-  marketInsights?: MarketInsights;
-  
+  marketInsights?: MarketInsights | undefined;
+
   // Métadonnées de traitement
   processingMetadata: {
     totalProcessingTime: number;
@@ -39,21 +48,23 @@ export interface EnhancedAnalysisResult extends VintedAnalysisResult {
       score: number;
       issues: string[];
     };
-    costs: {
-      totalTokens: number;
-      estimatedCost: number;
-    };
-    lastProcessed: string;
+    costs?:
+      | {
+          totalTokens: number;
+          estimatedCost: number;
+        }
+      | undefined;
+    lastProcessed?: string | undefined;
   };
 }
 
 export interface EnrichedItem {
-  originalItem: any;
+  originalItem: SoldItem; // Changed from Record<string, unknown> to SoldItem
   normalizedData: {
     brand: string | null;
     model: string | null;
     year: number | null;
-    attributes: string[];
+    attributes: unknown[];
   };
   relevanceScore: number;
   isRelevant: boolean;
@@ -61,18 +72,25 @@ export interface EnrichedItem {
   confidence: number;
 }
 
+// Progression d'analyse
 export interface AnalysisProgress {
-  stage: 'initialization' | 'data_enrichment' | 'metrics_calculation' | 'report_generation' | 'insights_generation' | 'finalization';
+  stage:
+    | "initialization"
+    | "data_enrichment"
+    | "metrics_calculation"
+    | "report_generation"
+    | "insights_generation"
+    | "finalization";
   progress: number; // 0-100
   message: string;
-  estimatedTimeRemaining?: number;
+  estimatedTimeRemaining?: number | undefined;
 }
 
 // Orchestrateur principal d'analyse IA
 export class AIAnalysisEngine {
   private static instance: AIAnalysisEngine;
-  private advancedAnalyticsEngine: InstanceType<typeof AdvancedAnalyticsEngine>;
-  private progressCallback?: (progress: AnalysisProgress) => void;
+  private advancedAnalyticsEngine: AdvancedAnalyticsEngine;
+  private progressCallback?: ((progress: AnalysisProgress) => void) | undefined;
 
   private constructor() {
     this.advancedAnalyticsEngine = new AdvancedAnalyticsEngine();
@@ -88,90 +106,128 @@ export class AIAnalysisEngine {
   /**
    * Analyse complète avec orchestration de tous les services IA
    */
-  async analyzeWithAI(
+  public async analyzeWithAI(
     analysisResult: VintedAnalysisResult,
     options: AIAnalysisOptions = {},
-    progressCallback?: (progress: AnalysisProgress) => void
+    progressCallback?: (progress: AnalysisProgress) => void,
   ): Promise<EnhancedAnalysisResult> {
     const startTime = Date.now();
-    this.progressCallback = progressCallback;
-    
+    this.progressCallback = progressCallback ?? undefined;
+
     try {
-      this.reportProgress('initialization', 0, 'Initialisation de l\'analyse IA...');
-      
+      this.reportProgress(
+        "initialization",
+        0,
+        "Initialisation de l'analyse IA...",
+      );
+
       // Validation de la configuration
       const config = marketAnalysisConfig.getConfig();
       this.validateAnalysisOptions(options, config);
-      
+
       // Validation de la qualité des données
       const dataQuality = this.assessDataQuality(analysisResult);
       if (dataQuality.score < 0.3) {
         throw new AIAnalysisError(
-          'Qualité des données insuffisante pour l\'analyse IA',
-          'DATA_QUALITY_TOO_LOW' as any,
-          { context: dataQuality }
+          "Qualité des données insuffisante pour l'analyse IA",
+          AIErrorCode.DATA_QUALITY_TOO_LOW,
+          { context: dataQuality },
         );
       }
 
       const servicesUsed: string[] = [];
       let totalTokens = 0;
+
       let estimatedCost = 0;
       let aiProcessingTime = 0;
 
       // Étape 1: Enrichissement des données (optionnel)
       let enrichedItems: EnrichedItem[] = [];
-      if (options.enableDataEnrichment !== false && analysisResult.rawItems?.length > 0) {
-        this.reportProgress('data_enrichment', 20, 'Enrichissement des données avec l\'IA...');
-        const enrichmentResult = await this.enrichDataWithAI(analysisResult.rawItems);
+      if (
+        options.enableDataEnrichment !== false &&
+        analysisResult.rawItems?.length > 0
+      ) {
+        this.reportProgress(
+          "data_enrichment",
+          20,
+          "Enrichissement des données avec l'IA...",
+        );
+        const enrichmentResult = await this.enrichDataWithAI(
+          analysisResult.rawItems,
+        ); // Corrected type
         enrichedItems = enrichmentResult.items;
         totalTokens += enrichmentResult.tokensUsed;
         estimatedCost += enrichmentResult.cost;
         aiProcessingTime += enrichmentResult.processingTime;
-        servicesUsed.push('data_enrichment');
+        servicesUsed.push("data_enrichment");
       }
 
       // Étape 2: Calcul des métriques avancées
       let advancedMetrics: AdvancedMetrics | undefined;
       if (options.includeAdvancedMetrics !== false) {
-        this.reportProgress('metrics_calculation', 40, 'Calcul des métriques avancées...');
-        advancedMetrics = this.advancedAnalyticsEngine.calculateAdvancedMetrics(analysisResult);
-        servicesUsed.push('advanced_metrics');
+        this.reportProgress(
+          "metrics_calculation",
+          40,
+          "Calcul des métriques avancées...",
+        );
+        advancedMetrics =
+          this.advancedAnalyticsEngine.calculateAdvancedMetrics(analysisResult);
+        servicesUsed.push("advanced_metrics");
       }
 
       // Étape 3: Génération du rapport IA
       let aiReport: EnhancedReport | undefined;
       if (options.includeReports !== false) {
-        this.reportProgress('report_generation', 60, 'Génération du rapport IA...');
-        const reportResult = await this.generateAIReport(analysisResult, advancedMetrics);
+        this.reportProgress(
+          "report_generation",
+          60,
+          "Génération du rapport IA...",
+        );
+        const reportResult = await this.generateAIReport(
+          analysisResult,
+          advancedMetrics,
+        );
         aiReport = reportResult.report;
         totalTokens += reportResult.tokensUsed;
         estimatedCost += reportResult.cost;
         aiProcessingTime += reportResult.processingTime;
-        servicesUsed.push('ai_report');
+        servicesUsed.push("ai_report");
       }
 
       // Étape 4: Génération des insights de marché
       let marketInsights: MarketInsights | undefined;
       if (options.includeInsights !== false) {
-        this.reportProgress('insights_generation', 80, 'Génération des insights de marché...');
+        this.reportProgress(
+          "insights_generation",
+          80,
+          "Génération des insights de marché...",
+        );
         const insightsResult = await this.generateMarketInsights(
           analysisResult,
           advancedMetrics,
-          options.userPreferences
+          options.userPreferences,
         );
         marketInsights = insightsResult.insights;
         totalTokens += insightsResult.tokensUsed;
         estimatedCost += insightsResult.cost;
         aiProcessingTime += insightsResult.processingTime;
-        servicesUsed.push('market_insights');
+        servicesUsed.push("market_insights");
       }
 
       // Étape 5: Finalisation
-      this.reportProgress('finalization', 95, 'Finalisation de l\'analyse...');
-      
+      this.reportProgress("finalization", 95, "Finalisation de l'analyse...");
+
       const totalProcessingTime = Date.now() - startTime;
+      const keyInsightsConfidence =
+        aiReport?.keyInsights && aiReport.keyInsights.length > 0
+          ? aiReport.keyInsights.reduce(
+              (sum, insight) => sum + (insight.confidence || 0),
+              0,
+            ) / aiReport.keyInsights.length
+          : 0; // Added check for empty array
+
       const overallConfidence = this.calculateOverallConfidence([
-        aiReport?.keyInsights.reduce((sum, insight) => sum + insight.confidence, 0) / (aiReport?.keyInsights.length || 1) || 0,
+        keyInsightsConfidence,
         marketInsights?.confidence || 0,
         dataQuality.score,
       ]);
@@ -196,19 +252,18 @@ export class AIAnalysisEngine {
         },
       };
 
-      this.reportProgress('finalization', 100, 'Analyse terminée avec succès');
-      
-      return enhancedResult;
+      this.reportProgress("finalization", 100, "Analyse terminée avec succès");
 
+      return enhancedResult;
     } catch (error) {
       if (error instanceof AIAnalysisError) {
         throw error;
       }
-      
+
       throw new AIAnalysisError(
-        `Erreur lors de l'analyse IA: ${error.message}`,
-        'ANALYSIS_FAILED' as any,
-        { retryable: true, fallbackAvailable: true, cause: error }
+        `Erreur lors de l'analyse IA: ${getErrorMessage(error)}`,
+        AIErrorCode.ANALYSIS_FAILED,
+        { retryable: true, fallbackAvailable: true, cause: toError(error) },
       );
     }
   }
@@ -216,7 +271,8 @@ export class AIAnalysisEngine {
   /**
    * Enrichit les données brutes avec l'IA
    */
-  private async enrichDataWithAI(rawItems: any[]): Promise<{
+  private async enrichDataWithAI(rawItems: SoldItem[]): Promise<{
+    // Changed type to SoldItem[]
     items: EnrichedItem[];
     tokensUsed: number;
     cost: number;
@@ -231,15 +287,18 @@ export class AIAnalysisEngine {
     const batchSize = 10;
     for (let i = 0; i < rawItems.length; i += batchSize) {
       const batch = rawItems.slice(i, i + batchSize);
-      
+
       const batchPromises = batch.map(async (item) => {
         try {
           // Normalisation du titre
-          const normalizedData = await normalizeTitle(item.title || '');
-          
+          const normalizedData = await normalizeTitle(item.title || ""); // Corrected access
+
           // Détection d'anomalies
-          const anomalyResult = await isAnomaly('produit de marché', item.title || '');
-          
+          const anomalyResult: AnomalyDetectionResponse = await isAnomaly(
+            "produit de marché",
+            item.title || "",
+          ); // Corrected access and added type
+
           const enrichedItem: EnrichedItem = {
             originalItem: item,
             normalizedData,
@@ -250,7 +309,7 @@ export class AIAnalysisEngine {
           };
 
           // Estimation des tokens utilisés (approximation)
-          totalTokens += Math.ceil((item.title?.length || 0) / 4);
+          totalTokens += Math.ceil((item.title?.length || 0) / 4); // Corrected access
           totalCost += totalTokens * 0.00003; // Estimation du coût
 
           return enrichedItem;
@@ -258,10 +317,15 @@ export class AIAnalysisEngine {
           // En cas d'erreur, retourner un item avec données minimales
           return {
             originalItem: item,
-            normalizedData: { brand: null, model: null, year: null, attributes: [] },
+            normalizedData: {
+              brand: null,
+              model: null,
+              year: null,
+              attributes: [],
+            },
             relevanceScore: 0.5,
             isRelevant: true,
-            anomalies: [`Erreur d'enrichissement: ${error.message}`],
+            anomalies: [`Erreur d'enrichissement: ${getErrorMessage(error)}`],
             confidence: 0.3,
           };
         }
@@ -270,7 +334,6 @@ export class AIAnalysisEngine {
       const batchResults = await Promise.all(batchPromises);
       enrichedItems.push(...batchResults);
     }
-
     return {
       items: enrichedItems,
       tokensUsed: totalTokens,
@@ -284,7 +347,7 @@ export class AIAnalysisEngine {
    */
   private async generateAIReport(
     analysisResult: VintedAnalysisResult,
-    advancedMetrics?: AdvancedMetrics
+    advancedMetrics?: AdvancedMetrics,
   ): Promise<{
     report: EnhancedReport;
     tokensUsed: number;
@@ -292,14 +355,17 @@ export class AIAnalysisEngine {
     processingTime: number;
   }> {
     const startTime = Date.now();
-    
+
     try {
-      const report = await generateEnhancedReport(analysisResult, advancedMetrics);
-      
+      const report = await generateEnhancedReport(
+        analysisResult,
+        advancedMetrics,
+      );
+
       // Estimation des métriques (en réalité, ces valeurs viendraient de l'API)
       const tokensUsed = 800;
       const cost = tokensUsed * 0.00003;
-      
+
       return {
         report,
         tokensUsed,
@@ -308,9 +374,9 @@ export class AIAnalysisEngine {
       };
     } catch (error) {
       throw new AIAnalysisError(
-        `Erreur lors de la génération du rapport: ${error.message}`,
-        'REPORT_GENERATION_FAILED' as any,
-        { retryable: true, cause: error }
+        `Erreur lors de la génération du rapport: ${getErrorMessage(error)}`,
+        AIErrorCode.REPORT_GENERATION_FAILED,
+        { retryable: true, cause: toError(error) },
       );
     }
   }
@@ -321,7 +387,7 @@ export class AIAnalysisEngine {
   private async generateMarketInsights(
     analysisResult: VintedAnalysisResult,
     advancedMetrics?: AdvancedMetrics,
-    userPreferences?: UserPreferences
+    userPreferences?: UserPreferences,
   ): Promise<{
     insights: MarketInsights;
     tokensUsed: number;
@@ -329,18 +395,18 @@ export class AIAnalysisEngine {
     processingTime: number;
   }> {
     const startTime = Date.now();
-    
+
     try {
       const insights = await marketInsightsService.generateMarketInsights(
         analysisResult,
         advancedMetrics,
-        userPreferences
+        userPreferences,
       );
-      
+
       // Estimation des métriques
       const tokensUsed = 1200;
       const cost = tokensUsed * 0.00003;
-      
+
       return {
         insights,
         tokensUsed,
@@ -349,9 +415,9 @@ export class AIAnalysisEngine {
       };
     } catch (error) {
       throw new AIAnalysisError(
-        `Erreur lors de la génération des insights: ${error.message}`,
-        'INSIGHTS_GENERATION_FAILED' as any,
-        { retryable: true, cause: error }
+        `Erreur lors de la génération des insights: ${getErrorMessage(error)}`,
+        AIErrorCode.INSIGHTS_GENERATION_FAILED,
+        { retryable: true, cause: toError(error) },
       );
     }
   }
@@ -359,36 +425,46 @@ export class AIAnalysisEngine {
   /**
    * Évalue la qualité des données
    */
-  private assessDataQuality(analysisResult: VintedAnalysisResult): { score: number; issues: string[] } {
+  private assessDataQuality(analysisResult: VintedAnalysisResult): {
+    score: number;
+    issues: string[];
+  } {
     const issues: string[] = [];
     let score = 1.0;
 
     // Vérifier le volume de données
-    const itemCount = analysisResult.rawItems?.length || analysisResult.salesVolume || 0;
+    const itemCount =
+      analysisResult.rawItems?.length || analysisResult.salesVolume || 0;
     if (itemCount < 5) {
-      issues.push('Volume de données très faible');
+      issues.push("Volume de données très faible");
       score -= 0.4;
     } else if (itemCount < 15) {
-      issues.push('Volume de données limité');
+      issues.push("Volume de données limité");
       score -= 0.2;
     }
 
     // Vérifier la complétude des données
     if (!analysisResult.avgPrice || analysisResult.avgPrice <= 0) {
-      issues.push('Prix moyen manquant ou invalide');
+      issues.push("Prix moyen manquant ou invalide");
       score -= 0.3;
     }
 
-    if (!analysisResult.priceRange || analysisResult.priceRange.min >= analysisResult.priceRange.max) {
-      issues.push('Gamme de prix invalide');
+    if (
+      !analysisResult.priceRange ||
+      analysisResult.priceRange.min === undefined ||
+      analysisResult.priceRange.max === undefined ||
+      analysisResult.priceRange.min >= analysisResult.priceRange.max
+    ) {
+      issues.push("Gamme de prix invalide");
       score -= 0.2;
     }
 
     // Vérifier la fraîcheur des données
     const analysisDate = new Date(analysisResult.analysisDate);
-    const daysSinceAnalysis = (Date.now() - analysisDate.getTime()) / (1000 * 60 * 60 * 24);
+    const daysSinceAnalysis =
+      (Date.now() - analysisDate.getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceAnalysis > 7) {
-      issues.push('Données d\'analyse anciennes');
+      issues.push("Données d'analyse anciennes");
       score -= 0.1;
     }
 
@@ -401,18 +477,21 @@ export class AIAnalysisEngine {
   /**
    * Valide les options d'analyse
    */
-  private validateAnalysisOptions(options: AIAnalysisOptions, config: any): void {
+  private validateAnalysisOptions(
+    options: AIAnalysisOptions,
+    config: Record<string, any>,
+  ): void {
     if (options.includeInsights && !config.insights.enabled) {
       throw new AIAnalysisError(
-        'Les insights sont demandés mais désactivés dans la configuration',
-        'INVALID_CONFIGURATION' as any
+        "Les insights sont demandés mais désactivés dans la configuration",
+        AIErrorCode.INVALID_AI_CONFIG,
       );
     }
 
     if (options.includeReports && !config.recommendations.enabled) {
       throw new AIAnalysisError(
-        'Les rapports sont demandés mais désactivés dans la configuration',
-        'INVALID_CONFIGURATION' as any
+        "Les rapports sont demandés mais désactivés dans la configuration",
+        AIErrorCode.INVALID_AI_CONFIG,
       );
     }
   }
@@ -421,14 +500,15 @@ export class AIAnalysisEngine {
    * Calcule la confiance globale
    */
   private calculateOverallConfidence(confidenceScores: number[]): number {
-    const validScores = confidenceScores.filter(score => score > 0);
+    const validScores = confidenceScores.filter((score) => score > 0);
     if (validScores.length === 0) return 0.5;
-    
-    const average = validScores.reduce((sum, score) => sum + score, 0) / validScores.length;
-    
+
+    const average =
+      validScores.reduce((sum, score) => sum + score, 0) / validScores.length;
+
     // Ajuster selon le nombre de services utilisés (plus de services = plus de confiance)
     const serviceBonus = Math.min(0.1, validScores.length * 0.02);
-    
+
     return Math.min(1, average + serviceBonus);
   }
 
@@ -436,17 +516,17 @@ export class AIAnalysisEngine {
    * Rapporte le progrès de l'analyse
    */
   private reportProgress(
-    stage: AnalysisProgress['stage'],
+    stage: AnalysisProgress["stage"],
     progress: number,
     message: string,
-    estimatedTimeRemaining?: number
+    estimatedTimeRemaining?: number,
   ): void {
     if (this.progressCallback) {
       this.progressCallback({
         stage,
         progress,
         message,
-        estimatedTimeRemaining,
+        estimatedTimeRemaining: estimatedTimeRemaining ?? undefined,
       });
     }
   }
@@ -454,7 +534,9 @@ export class AIAnalysisEngine {
   /**
    * Analyse rapide sans tous les services (pour les cas où la performance est critique)
    */
-  async quickAnalyze(analysisResult: VintedAnalysisResult): Promise<EnhancedAnalysisResult> {
+  public async quickAnalyze(
+    analysisResult: VintedAnalysisResult,
+  ): Promise<EnhancedAnalysisResult> {
     return this.analyzeWithAI(analysisResult, {
       includeAdvancedMetrics: true,
       includeReports: false,
@@ -466,18 +548,22 @@ export class AIAnalysisEngine {
   /**
    * Analyse complète avec tous les services
    */
-  async fullAnalyze(
+  public async fullAnalyze(
     analysisResult: VintedAnalysisResult,
     userPreferences?: UserPreferences,
-    progressCallback?: (progress: AnalysisProgress) => void
+    progressCallback?: (progress: AnalysisProgress) => void,
   ): Promise<EnhancedAnalysisResult> {
-    return this.analyzeWithAI(analysisResult, {
-      userPreferences,
-      includeAdvancedMetrics: true,
-      includeReports: true,
-      includeInsights: true,
-      enableDataEnrichment: true,
-    }, progressCallback);
+    return this.analyzeWithAI(
+      analysisResult,
+      {
+        userPreferences: userPreferences ?? undefined,
+        includeAdvancedMetrics: true,
+        includeReports: true,
+        includeInsights: true,
+        enableDataEnrichment: true,
+      },
+      progressCallback,
+    );
   }
 }
 

@@ -1,17 +1,16 @@
-// Simple logger disabled
-// import { logger } from '@/lib/utils/simple-logger.js';
+import { getLogger } from "@/lib/utils/logging/simple-logger";
 
-// Mock logger since logger is disabled
-const logger = {
-  error: (msg: string, data?: any) => console.error(`[ValidationMonitor] ${msg}`, data || ''),
-  warn: (msg: string, data?: any) => console.warn(`[ValidationMonitor] ${msg}`, data || ''),
-  info: (msg: string, data?: any) => console.info(`[ValidationMonitor] ${msg}`, data || ''),
-};
+const logger = getLogger("ValidationMonitor");
 
 /**
  * Represents the status of a validation.
  */
-export type ValidationStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+export type ValidationStatus =
+  | "PENDING"
+  | "RUNNING"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED";
 
 /**
  * Defines the performance metrics for a validation.
@@ -31,7 +30,7 @@ export interface ValidationMetrics {
 export interface ValidationError {
   message: string;
   timestamp: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>; // Utilisation de unknown pour un typage plus sûr
 }
 
 /**
@@ -54,7 +53,7 @@ export class ValidationMonitor {
 
   constructor() {
     this.state = this.getInitialState();
-    logger.info('ValidationMonitor initialized.');
+    logger.info("ValidationMonitor initialized.");
   }
 
   /**
@@ -62,7 +61,7 @@ export class ValidationMonitor {
    */
   public reset(): void {
     this.state = this.getInitialState();
-    logger.info('ValidationMonitor has been reset.');
+    logger.info("ValidationMonitor has been reset.");
   }
 
   /**
@@ -76,20 +75,22 @@ export class ValidationMonitor {
    * Starts the monitoring process for a new validation.
    */
   public start(): void {
-    this.state.status = 'RUNNING';
+    this.state.status = "RUNNING";
     this.state.metrics.startTime = Date.now();
-    logger.info('Validation monitoring started.');
+    logger.info("Validation monitoring started.");
   }
 
   /**
    * Completes the validation monitoring, calculating final metrics.
    */
   public complete(): void {
-    if (this.state.status === 'RUNNING') {
-      this.state.status = 'COMPLETED';
+    if (this.state.status === "RUNNING") {
+      this.state.status = "COMPLETED";
       this.state.progress = 100;
       this.finalizeMetrics();
-      logger.info(`Validation monitoring completed. Duration: ${this.state.metrics.durationSeconds}s`);
+      logger.info(
+        `Validation monitoring completed. Duration: ${this.state.metrics.durationSeconds ?? 0}s`,
+      );
     }
   }
 
@@ -98,8 +99,8 @@ export class ValidationMonitor {
    * @param errorMessage - The primary error message.
    * @param details - Additional context for the error.
    */
-  public fail(errorMessage: string, details?: Record<string, any>): void {
-    this.state.status = 'FAILED';
+  public fail(errorMessage: string, details?: Record<string, unknown>): void {
+    this.state.status = "FAILED";
     this.finalizeMetrics();
     this.logError(errorMessage, details);
     this.triggerAlert(`Validation failed: ${errorMessage}`);
@@ -113,6 +114,10 @@ export class ValidationMonitor {
   public updateProgress(progress: number): void {
     if (progress >= 0 && progress <= 100) {
       this.state.progress = progress;
+    } else {
+      logger.warn(
+        `Invalid progress value: ${progress}. Progress must be between 0 and 100.`,
+      );
     }
   }
 
@@ -137,13 +142,14 @@ export class ValidationMonitor {
    * @param message - The error message.
    * @param details - Optional details about the error.
    */
-  public logError(message: string, details?: Record<string, any>): void {
+  public logError(message: string, details?: Record<string, unknown>): void {
     const error: ValidationError = {
       message,
       details: details || {},
       timestamp: new Date().toISOString(),
     };
     this.state.errors.push(error);
+    logger.error(`Logged error: ${message}`, details);
   }
 
   /**
@@ -162,7 +168,7 @@ export class ValidationMonitor {
    */
   private getInitialState(): MonitoringState {
     return {
-      status: 'PENDING',
+      status: "PENDING",
       progress: 0,
       metrics: {
         startTime: 0,

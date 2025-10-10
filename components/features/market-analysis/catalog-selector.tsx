@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Check, ChevronsUpDown, Search } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react";
+import { Check, ChevronsUpDown, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -11,21 +11,24 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { Badge } from "@/components/ui/badge"
-import { vintedCatalogService, type VintedCatalog } from "@/lib/services/vinted-catalogs"
+} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import {
+  vintedCatalogService,
+  type VintedCatalog,
+} from "@/lib/services/vinted-catalogs";
 
 interface CatalogSelectorProps {
-  value?: number
-  onValueChange: (catalogId: number, catalog: VintedCatalog) => void
-  productName?: string
-  placeholder?: string
-  disabled?: boolean
+  value?: number;
+  onValueChange: (catalogId: number, catalog: VintedCatalog) => void;
+  productName?: string;
+  placeholder?: string;
+  disabled?: boolean;
 }
 
 export function CatalogSelector({
@@ -33,50 +36,51 @@ export function CatalogSelector({
   onValueChange,
   productName,
   placeholder = "Sélectionner une catégorie...",
-  disabled = false
+  disabled = false,
 }: CatalogSelectorProps) {
-  const [open, setOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [catalogs, setCatalogs] = useState<VintedCatalog[]>([])
-  const [suggestions, setSuggestions] = useState<VintedCatalog[]>([])
-  const [selectedCatalog, setSelectedCatalog] = useState<VintedCatalog | null>(null)
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<VintedCatalog[]>([]);
+  const [selectedCatalog, setSelectedCatalog] = useState<VintedCatalog | null>(
+    null,
+  );
 
   // Charger les catalogues au montage
   useEffect(() => {
-    const allCatalogs = vintedCatalogService.getAllCatalogs()
-    setCatalogs(allCatalogs)
+    // const loadedCatalogs = vintedCatalogService.getAllCatalogs()
+    // setAllCatalogs(loadedCatalogs)
 
     // Charger le catalogue sélectionné si une valeur est fournie
     if (value) {
-      const catalog = vintedCatalogService.getCatalogById(value)
-      setSelectedCatalog(catalog)
+      const catalog = vintedCatalogService.getCatalogById(value);
+      setSelectedCatalog(catalog);
     }
-  }, [value])
+  }, [value]);
 
   // Générer des suggestions basées sur le nom du produit
   useEffect(() => {
     if (productName) {
-      const productSuggestions = vintedCatalogService.suggestCatalogsForProduct(productName)
-      setSuggestions(productSuggestions)
+      const productSuggestions =
+        vintedCatalogService.suggestCatalogsForProduct(productName);
+      setSuggestions(productSuggestions);
     } else {
-      setSuggestions([])
+      setSuggestions([]);
     }
-  }, [productName])
-
+  }, [productName]);
   // Filtrer les catalogues selon la recherche
   const filteredCatalogs = searchQuery
     ? vintedCatalogService.searchCatalogs(searchQuery)
-    : vintedCatalogService.getMainCatalogs()
+    : vintedCatalogService.getMainCatalogs();
 
   const handleSelect = (catalog: VintedCatalog) => {
-    setSelectedCatalog(catalog)
-    onValueChange(catalog.id, catalog)
-    setOpen(false)
-  }
+    setSelectedCatalog(catalog);
+    onValueChange(catalog.id, catalog);
+    setOpen(false);
+  };
 
   const handleSuggestionSelect = (catalog: VintedCatalog) => {
-    handleSelect(catalog)
-  }
+    handleSelect(catalog);
+  };
 
   return (
     <div className="space-y-2">
@@ -144,7 +148,7 @@ export function CatalogSelector({
               {/* Catégories principales */}
               <CommandGroup heading="Catégories principales">
                 {filteredCatalogs
-                  .filter(catalog => !catalog.parentId)
+                  .filter((catalog) => !catalog.parentId)
                   .map((catalog) => (
                     <CommandItem
                       key={catalog.id}
@@ -154,7 +158,9 @@ export function CatalogSelector({
                       <Check
                         className={cn(
                           "mr-2 h-4 w-4",
-                          selectedCatalog?.id === catalog.id ? "opacity-100" : "opacity-0"
+                          selectedCatalog?.id === catalog.id
+                            ? "opacity-100"
+                            : "opacity-0",
                         )}
                       />
                       <div className="flex-1">
@@ -173,37 +179,42 @@ export function CatalogSelector({
               </CommandGroup>
 
               {/* Sous-catégories si recherche */}
-              {searchQuery && filteredCatalogs.some(catalog => catalog.parentId) && (
-                <CommandGroup heading="Sous-catégories">
-                  {filteredCatalogs
-                    .filter(catalog => catalog.parentId)
-                    .map((catalog) => (
-                      <CommandItem
-                        key={catalog.id}
-                        value={catalog.name}
-                        onSelect={() => handleSelect(catalog)}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedCatalog?.id === catalog.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{catalog.name}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {catalog.id}
-                            </Badge>
+              {searchQuery &&
+                filteredCatalogs.some((catalog) => catalog.parentId) && (
+                  <CommandGroup heading="Sous-catégories">
+                    {filteredCatalogs
+                      .filter((catalog) => catalog.parentId)
+                      .map((catalog) => (
+                        <CommandItem
+                          key={catalog.id}
+                          value={catalog.name}
+                          onSelect={() => handleSelect(catalog)}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedCatalog?.id === catalog.id
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {catalog.name}
+                              </span>
+                              <Badge variant="outline" className="text-xs">
+                                {catalog.id}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {catalog.description}
+                            </p>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {catalog.description}
-                          </p>
-                        </div>
-                      </CommandItem>
-                    ))}
-                </CommandGroup>
-              )}
+                        </CommandItem>
+                      ))}
+                  </CommandGroup>
+                )}
             </CommandList>
           </Command>
         </PopoverContent>
@@ -223,8 +234,10 @@ export function CatalogSelector({
             <div className="mt-2">
               <p className="text-xs text-muted-foreground mb-1">Mots-clés :</p>
               <div className="flex flex-wrap gap-1">
-                {selectedCatalog.keywords.slice(0, 5).map((keyword, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
+                {selectedCatalog.keywords.slice(0, 5).map((keyword, _index) => (
+                  <Badge key={_index} variant="secondary" className="text-xs">
+                    {" "}
+                    {/* Corrected index usage */}
                     {keyword}
                   </Badge>
                 ))}
@@ -239,5 +252,5 @@ export function CatalogSelector({
         </div>
       )}
     </div>
-  )
+  );
 }

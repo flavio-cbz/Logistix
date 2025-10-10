@@ -1,0 +1,8 @@
+{
+  "schema": "./lib/database/schema.ts",
+  "out": "./drizzle/migrations",
+  "dialect": "sqlite",
+  "dbCredentials": {
+    "url": "./data/logistix.db"
+  }
+}

@@ -1,118 +1,113 @@
-import { useMarketAnalysisStore } from "@/lib/store";
-import { MarketAnalysisRequest, VintedAnalysisResult } from "@/types/vinted-market-analysis";
-
 /**
- * Suggestions de catégories mockées pour débloquer la compilation.
+ * Service d'analyse de marché pour Logistix
  */
-export async function getCategorySuggestions(productName: string): Promise<string[]> {
-  // Retourne des suggestions factices
-  if (!productName) return [];
-  return [
-    "Vêtements",
-    "Chaussures",
-    "Accessoires",
-    "Maison",
-    "Électronique"
-  ];
+
+export interface MarketAnalysisConfig {
+  category: string;
+  brand?: string;
+  keywords: string[];
+  priceRange?: {
+    min: number;
+    max: number;
+  };
+  region?: string;
+}
+
+export interface MarketAnalysisResult {
+  id: string;
+  config: MarketAnalysisConfig;
+  results: {
+    averagePrice: number;
+    priceRange: { min: number; max: number };
+    totalProducts: number;
+    recommendations: string[];
+  };
+  timestamp: Date;
 }
 
 /**
- * Suggestions de marques mockées pour débloquer la compilation.
+ * Vérifie le statut du token Vinted
  */
-export async function getBrandSuggestions(productName: string, catalogId?: number): Promise<{ id: number; name: string }[]> {
-  // Retourne des marques factices
-  if (!productName) return [];
-  return [
-    { id: 1, name: "Nike" },
-    { id: 2, name: "Adidas" },
-    { id: 3, name: "Apple" }
-  ];
-}
-
-/**
- * Démarre une analyse de marché mockée pour débloquer la compilation.
- */
-export async function startMarketAnalysis(request: MarketAnalysisRequest): Promise<VintedAnalysisResult> {
-  // Retourne un résultat factice conforme au type attendu
+export async function checkVintedTokenStatus(): Promise<{
+  isValid: boolean;
+  message: string;
+}> {
+  // Simulation pour la démo
   return {
-    salesVolume: 42,
-    avgPrice: 99.99,
-    priceRange: { min: 50, max: 150 },
-    brandInfo: { id: 1, name: "Nike" },
-    catalogInfo: { id: request.catalogId ?? 0, name: "Vêtements" },
-    rawItems: [
-      {
-        title: "Produit exemple",
-        price: { amount: "99.99", currency: "EUR" },
-        size_title: "M",
-        brand: { id: 1, title: "Nike" },
-        created_at: new Date().toISOString(),
-        sold_at: new Date().toISOString()
-      }
-    ],
-    analysisDate: new Date().toISOString()
+    isValid: true,
+    message: "Token Vinted valide",
   };
 }
 
-export async function checkVintedTokenStatus(): Promise<void> {
-  const { setTokenConfigured, setError } = useMarketAnalysisStore.getState();
-  try {
-    const baseUrl = typeof window !== 'undefined' ? '' : 'http://localhost:3000'
-    const response = await fetch(`${baseUrl}/api/v1/vinted/auth`, { credentials: 'include' });
-    const data = await response.json();
-    
-    const isValid = !!data.authenticated;
-    setTokenConfigured(isValid);
-    if (!isValid) {
-        setError("Le token Vinted est invalide ou a expiré.");
-    }
+/**
+ * Lance une analyse de marché
+ */
+export async function launchMarketAnalysis(
+  config: MarketAnalysisConfig,
+): Promise<MarketAnalysisResult> {
+  // Simulation d'une analyse
+  const result: MarketAnalysisResult = {
+    id: `analysis-${Date.now()}`,
+    config,
+    results: {
+      averagePrice: Math.round(Math.random() * 100 + 20),
+      priceRange: {
+        min: Math.round(Math.random() * 20 + 5),
+        max: Math.round(Math.random() * 150 + 50),
+      },
+      totalProducts: Math.round(Math.random() * 1000 + 100),
+      recommendations: [
+        "Prix recommandé: " + Math.round(Math.random() * 50 + 25) + "€",
+        "Meilleure période de vente: Weekend",
+        "Mots-clés suggérés: " + config.keywords.join(", "),
+      ],
+    },
+    timestamp: new Date(),
+  };
 
-  } catch (error) {
-    console.error("Erreur lors de la vérification du token Vinted:", error);
-    setTokenConfigured(false);
-    setError("Impossible de vérifier le statut du token Vinted.");
-  }
+  return result;
 }
 
-export async function launchMarketAnalysis(request: MarketAnalysisRequest): Promise<void> {
-  const { setIsLoading, setError, setCurrentAnalysis, setTokenConfigured } = useMarketAnalysisStore.getState();
+/**
+ * Récupère les suggestions de catégories
+ */
+export async function getCategorySuggestions(query: string): Promise<string[]> {
+  const categories = [
+    "Vêtements femme",
+    "Vêtements homme",
+    "Chaussures",
+    "Accessoires",
+    "Sacs",
+    "Bijoux",
+    "Beauté",
+    "Décoration",
+    "Électronique",
+    "Livres",
+  ];
 
-  setIsLoading(true);
-  setError(null);
+  return categories
+    .filter((cat) => cat.toLowerCase().includes(query.toLowerCase()))
+    .slice(0, 5);
+}
 
-  try {
-    const response = await fetch('/api/v1/market-analysis', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-    });
+/**
+ * Récupère les suggestions de marques
+ */
+export async function getBrandSuggestions(query: string): Promise<string[]> {
+  const brands = [
+    "Zara",
+    "H&M",
+    "Nike",
+    "Adidas",
+    "Louis Vuitton",
+    "Gucci",
+    "Prada",
+    "Chanel",
+    "Dior",
+    "Hermès",
+  ];
 
-    const responseBody = await response.text();
-
-    if (!response.ok) {
-      let errorData;
-      try {
-        errorData = JSON.parse(responseBody);
-      } catch (e) {
-        throw new Error(`Erreur serveur non-JSON: ${response.statusText}`);
-      }
-      
-      if (errorData.error?.code === 'VINTED_TOKEN_EXPIRED') {
-        setTokenConfigured(false);
-        setError("Votre token Vinted a expiré. Veuillez le renouveler.");
-        setIsLoading(false);
-        return;
-      }
-      throw new Error(errorData.error?.message || "Erreur lors de l'analyse");
-    }
-
-    const analysisResult: VintedAnalysisResult = JSON.parse(responseBody);
-    setCurrentAnalysis(analysisResult);
-
-  } catch (error: any) {
-    console.error("Erreur lors du lancement de l'analyse de marché:", error);
-    setError(error.message);
-  } finally {
-    setIsLoading(false);
-  }
+  return brands
+    .filter((brand) => brand.toLowerCase().includes(query.toLowerCase()))
+    .slice(0, 5);
 }

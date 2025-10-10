@@ -1,6 +1,6 @@
-import { useState } from "react"
-import { Search } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -8,19 +8,19 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 
 interface Brand {
-  id: number
-  title: string
+  id: number;
+  title: string;
 }
 
 interface BrandSelectorProps {
-  value?: number
-  onValueChange: (brandId: number) => void
-  brands: Brand[]
-  placeholder?: string
-  disabled?: boolean
+  value?: number;
+  onValueChange: (brandId: number) => void;
+  brands: Brand[];
+  placeholder?: string;
+  disabled?: boolean;
 }
 
 export function BrandSelector({
@@ -28,15 +28,18 @@ export function BrandSelector({
   onValueChange,
   brands,
   placeholder = "Sélectionner une marque...",
-  disabled = false
+  disabled = false,
 }: BrandSelectorProps) {
-  const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState("")
-  const selected = brands.find(b => b.id === value)
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const selected = brands.find((b) => b.id === value);
 
-  const filtered = search.length > 0
-    ? brands.filter(b => b.title.toLowerCase().includes(search.toLowerCase()))
-    : brands
+  const filtered =
+    search.length > 0
+      ? brands.filter((b) =>
+          b.title.toLowerCase().includes(search.toLowerCase()),
+        )
+      : brands;
 
   return (
     <div>
@@ -48,7 +51,9 @@ export function BrandSelector({
         disabled={disabled}
         onClick={() => setOpen(!open)}
       >
-        <span className="truncate">{selected ? selected.title : placeholder}</span>
+        <span className="truncate">
+          {selected ? selected.title : placeholder}
+        </span>
         <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </Button>
       {open && (
@@ -56,18 +61,18 @@ export function BrandSelector({
           <CommandInput
             placeholder="Rechercher une marque..."
             value={search}
-            onValueChange={setSearch}
+            onValueChange={setSearch!}
           />
           <CommandList>
             <CommandEmpty>Aucune marque trouvée.</CommandEmpty>
             <CommandGroup>
-              {filtered.map(brand => (
+              {filtered.map((brand) => (
                 <CommandItem
                   key={brand.id}
                   value={brand.title}
                   onSelect={() => {
-                    onValueChange(brand.id)
-                    setOpen(false)
+                    onValueChange(brand.id);
+                    setOpen(false);
                   }}
                 >
                   {brand.title}
@@ -78,5 +83,5 @@ export function BrandSelector({
         </Command>
       )}
     </div>
-  )
+  );
 }

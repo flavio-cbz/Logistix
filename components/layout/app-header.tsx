@@ -1,182 +1,137 @@
-"use client"
+// Profil Button flottant en haut à droite
+"use client";
 
-import { useTheme } from "next-themes"
-import { usePathname } from "next/navigation"
-import { motion } from "framer-motion"
-import { Package2, Sparkles } from "lucide-react"
-import { KeyboardShortcuts } from "@/components/keyboard-shortcuts"
-import { NotificationCenter } from "@/components/features/notifications/notification-center"
-import { GlobalSearch } from "@/components/search/global-search"
-import { cn } from "@/lib/utils"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { User, Package2, Sparkles } from "lucide-react";
+import { NotificationCenter } from "@/components/features/notifications/notification-center";
+import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface AppHeaderProps {
-  className?: string
-  variant?: 'default' | 'compact' | 'minimal'
-  showBreadcrumb?: boolean
+  className?: string;
+  variant?: "default" | "compact" | "minimal";
+  showBreadcrumb?: boolean;
 }
 
-export function AppHeader({ 
+export function AppHeader({
   className,
-  variant = 'default',
-  showBreadcrumb = true
+  variant = "default",
+  showBreadcrumb = true,
 }: AppHeaderProps) {
-  const { theme } = useTheme()
-  const pathname = usePathname()
+  const pathname = usePathname();
+  // const { theme } = useTheme(); // (optionnel)
 
   // Get page title from pathname
   const getPageTitle = (path: string) => {
-    const segments = path.split('/').filter(Boolean)
-    const lastSegment = segments[segments.length - 1] || 'dashboard'
-    
-    const titles: Record<string, string> = {
-      'dashboard': 'Tableau de bord',
-      'parcelles': 'Parcelles',
-      'produits': 'Produits',
-      'statistiques': 'Statistiques',
-      'analyse-marche': 'Analyse de Marché',
-      'validation': 'Validation',
-      'profile': 'Profil'
-    }
-    
-    return titles[lastSegment] || 'Logistix'
-  }
+    const segments = path.split("/").filter(Boolean);
+  const lastSegment = segments[segments.length - 1] || "dashboard";
 
-  const pageTitle = getPageTitle(pathname)
-  const isCompact = variant === 'compact'
-  const isMinimal = variant === 'minimal'
+    const titles: Record<string, string> = {
+      dashboard: "Tableau de bord",
+      parcelles: "Colis",
+      produits: "Produits",
+      statistiques: "Statistiques",
+      "analyse-marche": "Analyse de Marché",
+      validation: "Validation",
+      profile: "Profil",
+    };
+
+  return titles[lastSegment] || "Logistix";
+  };
+
+  const pageTitle = getPageTitle(pathname);
+  const isCompact = variant === "compact";
+  const isMinimal = variant === "minimal";
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+    <div
       className={cn(
-        "flex items-center justify-between transition-all duration-300",
-        isMinimal ? "py-4" : isCompact ? "py-6" : "py-8",
-        className
+        "flex items-center justify-between w-full max-w-screen-xl mx-auto px-4 transition-all duration-300",
+        isMinimal ? "py-3" : isCompact ? "py-4" : "py-6",
+        className,
       )}
     >
       {/* Logo and Title Section */}
-      <div className="flex items-center gap-3">
+      <div
+        className={cn(
+          "flex items-center gap-3 sm:gap-4 md:gap-6 min-w-0",
+          !isMinimal && "flex-1",
+        )}
+      >
         {/* Enhanced Logo */}
-        <motion.div 
-          whileHover={{ 
-            scale: 1.05,
-            rotate: 2,
-            transition: { duration: 0.2 }
-          }}
-          whileTap={{ scale: 0.95 }}
+        <div
           className={cn(
             "relative flex items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg",
             "before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-br before:from-white/20 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300",
-            isMinimal ? "w-8 h-8" : isCompact ? "w-10 h-10" : "w-12 h-12"
+            isMinimal ? "w-8 h-8" : isCompact ? "w-10 h-10" : "w-12 h-12",
+            "transition-transform duration-200 hover:scale-[1.05] hover:rotate-2 active:scale-[0.95]",
           )}
         >
-          <Package2 className={cn(
-            "relative z-10 transition-transform duration-300",
-            isMinimal ? "w-4 h-4" : isCompact ? "w-5 h-5" : "w-6 h-6"
-          )} />
-          
+          <Package2
+            className={cn(
+              "h-6 w-6 shrink-0 transition-colors duration-200",
+              "relative z-10 transition-transform duration-300",
+              isMinimal ? "w-4 h-4" : isCompact ? "w-5 h-5" : "w-6 h-6",
+            )}
+          />
           {/* Sparkle effect */}
-          <motion.div
-            className="absolute -top-1 -right-1"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ 
-              scale: [0, 1, 0],
-              opacity: [0, 1, 0],
-              rotate: [0, 180, 360]
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              repeatDelay: 3,
-              ease: "easeInOut"
-            }}
-          >
-            <Sparkles className="w-3 h-3 text-yellow-400" />
-          </motion.div>
-        </motion.div>
-
+          <div className="absolute -top-1 -right-1">
+            <Sparkles className="w-3 h-3 text-[hsl(var(--warning-foreground))]" />
+          </div>
+        </div>
         {/* Title and Description */}
         {!isMinimal && (
-          <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-          >
+          <div className="transition-all duration-300">
             <div className="flex items-center gap-2">
-              <h1 className={cn(
-                "font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent",
-                isCompact ? "text-xl" : "text-2xl"
-              )}>
+              <h1
+                className={cn(
+                  "font-bold tracking-tight leading-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent truncate",
+                  isCompact ? "text-lg sm:text-xl" : "text-xl sm:text-2xl",
+                )}
+              >
                 Logistix
               </h1>
-              
               {/* Page indicator */}
-              {showBreadcrumb && pageTitle !== 'Logistix' && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
-                  className="flex items-center gap-1"
-                >
+              {showBreadcrumb && pageTitle !== "Logistix" && (
+                <div className="flex items-center gap-1 transition-all duration-300">
                   <span className="text-muted-foreground">•</span>
-                  <span className={cn(
-                    "font-medium text-primary",
-                    isCompact ? "text-sm" : "text-base"
-                  )}>
+                  <span
+                    className={cn(
+                      "font-medium text-primary",
+                      isCompact ? "text-sm" : "text-base",
+                    )}
+                  >
                     {pageTitle}
                   </span>
-                </motion.div>
+                </div>
               )}
             </div>
-            
             {!isCompact && (
-              <motion.p 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-                className="text-sm text-muted-foreground mt-0.5"
-              >
-                Gestion intelligente de vos parcelles et produits
-              </motion.p>
+              <p className="text-sm text-muted-foreground mt-0.5 transition-opacity duration-300">
+                Gestion intelligente de vos colis et produits
+              </p>
             )}
-          </motion.div>
+          </div>
         )}
       </div>
-
       {/* Actions Section */}
-      <motion.div 
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-        className="flex items-center gap-2"
-      >
-        {/* Enhanced Search */}
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <GlobalSearch />
-        </motion.div>
-
+      <div className="flex items-center gap-3 sm:gap-4 md:gap-6 transition-all duration-300 flex-shrink-0 ml-3">
         {/* Enhanced Notification Center */}
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
+        <div className="transition-transform duration-200 hover:scale-[1.05] active:scale-[0.95]">
           <NotificationCenter />
-        </motion.div>
-
-        {/* Enhanced Keyboard Shortcuts */}
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        </div>
+        {/* Theme Toggle */}
+        <ThemeToggle />
+        {/* Profil Button à côté du ThemeToggle */}
+        <Link
+          href="/profile"
+          className="flex items-center justify-center rounded-full bg-muted h-8 w-8 sm:h-9 sm:w-9 p-2 sm:p-2.5 hover:bg-primary/10 transition"
+          aria-label="Profil"
         >
-          <KeyboardShortcuts />
-        </motion.div>
-      </motion.div>
-    </motion.div>
-  )
+          <User className="w-5 h-5 text-primary" />
+        </Link>
+      </div>
+    </div>
+  );
 }
-

@@ -1,285 +1,567 @@
-"use client"
+"use client";
 
-import { Suspense, useEffect, useState, useMemo } from "react"
-import { motion, useReducedMotion } from "framer-motion"
-import { DollarSign, Package, TrendingUp, Users, FileText, FileSpreadsheet } from "lucide-react"
-import { CardStats } from "@/components/ui/card-stats"
-import { useStore } from "@/lib/services/admin/store"
-import { ProduitsTable } from "../../../components/features/statistiques/produits-table"
-import { ParcellesTable } from "../../../components/features/statistiques/parcelles-table"
-import { RoiTable } from "@/components/features/statistiques/roi-table"
-import { TempsMoyenVenteTable } from "@/components/features/statistiques/temps-moyen-vente-table"
-import { HeatmapChart } from "@/components/features/statistiques/heatmap-chart"
-import { PlateformesRentabiliteTable } from "@/components/features/statistiques/plateformes-rentabilite-table"
-import { RadarChart } from "@/components/features/statistiques/radar-chart"
-import { TendancesSaisonnieresTable } from "@/components/features/statistiques/tendances-saisonnieres-table"
-import dynamic from "next/dynamic"
-const TrendChart = dynamic(() => import("@/components/features/statistiques/trend-chart").then(mod => mod.TrendChart), { ssr: false })
-import { PrevisionsVentesTable } from "@/components/features/statistiques/previsions-ventes-table"
-import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  BarChart3, 
+  TrendingUp, 
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
+  Activity,
+  Target,
+  RefreshCw,
+  CheckCircle2,
+  FileText,
+  Package
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { AppHeader } from "@/components/layout/app-header";
+import { useStatistiques, type PeriodType, type GroupByType } from "@/lib/hooks/useStatistiques";
 
-function LoadingComponent() {
-  return (
-    <div className="h-[300px] w-full flex items-center justify-center">
-      <div className="flex flex-col items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-        <p className="text-muted-foreground">Chargement des données...</p>
-      </div>
-    </div>
-  )
-}
-
-type AnimatedItemProps = {
-  children: React.ReactNode
-  delay?: number
-}
-
-const fadeUpVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-}
-
-function AnimatedItem({ children, delay = 0 }: AnimatedItemProps) {
-  const reduce = useReducedMotion()
-  if (reduce) return <div>{children}</div>
-
-  return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={fadeUpVariants}
-      transition={{ duration: 0.5, delay }}
-    >
-      {children}
-    </motion.div>
-  )
+interface StatMetric {
+  id: string;
+  title: string;
+  value: string | number;
+  change: number;
+  trend: 'up' | 'down' | 'stable';
+  period: string;
+  target?: number;
+  description: string;
 }
 
 export default function StatistiquesPage() {
-  const { parcelles, produits, initializeStore } = useStore()
-  const [advancedStats, setAdvancedStats] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true)
-      setError(null)
-      try {
-        await initializeStore()
-        
-        const response = await fetch("/api/v1/statistiques")
-        if (!response.ok) {
-          if (response.status === 401) {
-            window.location.href = "/login"
-            return
-          }
-          const errorData = await response.json().catch(() => ({}))
-          const message = errorData?.message || "Erreur lors de la récupération des statistiques avancées"
-          setError(message)
-          return
-        }
-        const data = await response.json()
-        setAdvancedStats(data)
-
-      } catch (err: any) {
-        console.error(err)
-        setError(err?.message || "Erreur inattendue lors du chargement des statistiques")
-      } finally {
-        setIsLoading(false)
-      }
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('30d');
+  const [selectedGroupBy, setSelectedGroupBy] = useState<GroupByType>('day');
+  
+  // Récupération des vraies données via le hook
+  const { data, isLoading, isError, error, refetch } = useStatistiques(
+    selectedPeriod,
+    selectedGroupBy,
+    {
+      enabled: true,
+      refetchInterval: 30000, // Refresh toutes les 30s
     }
+  );
 
-    loadData()
-  }, [initializeStore])
-
-  const handleExport = async (format: 'csv' | 'pdf') => {
-    try {
-      const response = await fetch(`/api/v1/statistiques?format=${format}`);
-      if (!response.ok) {
-        const errorData = await response.json();
-        alert(`Erreur lors de l'export ${format.toUpperCase()} : ${errorData.message}`);
-        return;
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `statistiques.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error(`Erreur lors de l'export ${format.toUpperCase()}:`, error);
-      alert(`Une erreur inattendue est survenue lors de l'export ${format.toUpperCase()}.`);
-    }
+  // Helper functions
+  const getTrendIcon = (trend: string) => {
+    if (trend === 'up') return <ArrowUpRight className="w-4 h-4 text-emerald-500" />;
+    if (trend === 'down') return <ArrowDownRight className="w-4 h-4 text-red-500" />;
+    return <Minus className="w-4 h-4 text-blue-500" />;
   };
 
+  const getTrendColor = (trend: string) => {
+    if (trend === 'up') return 'text-emerald-600';
+    if (trend === 'down') return 'text-red-600';
+    return 'text-blue-600';
+  };
+
+  const getChangeText = (change: number, trend: string) => {
+    const sign = trend === 'down' ? '' : '+';
+    return `${sign}${change}%`;
+  };
+
+  // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col items-center"
-        >
-          <motion.div
-            className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-          />
-          <p className="text-muted-foreground">Chargement des statistiques avancées...</p>
-        </motion.div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <div className="text-center">
-          <p className="text-red-500 mb-2">Erreur : {error}</p>
-          <Button onClick={() => { setError(null); setIsLoading(true); (async ()=>{ await initializeStore(); setIsLoading(false) })(); }} variant="outline">Réessayer</Button>
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
+              <Activity className="w-6 h-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Chargement des Statistiques</h3>
+              <p className="text-muted-foreground">Récupération des données...</p>
+            </div>
+          </div>
         </div>
       </div>
-    )
+    );
   }
 
-  if (!advancedStats) {
+  // Error state
+  if (isError || !data) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <p className="text-muted-foreground">Aucune statistique disponible.</p>
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="max-w-md">
+            <CardHeader>
+              <div className="flex items-center gap-2 text-red-600">
+                <FileText className="w-5 h-5" />
+                <CardTitle>Erreur</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {error?.message || 'Impossible de charger les statistiques'}
+              </p>
+              <Button onClick={() => refetch()} className="w-full">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Réessayer
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    )
+    );
   }
 
-  const produitsVendusData = useMemo(() => {
-    if (!Array.isArray(produits)) return []
-    return produits
-      .filter((p) => p?.vendu && p?.prixVente != null && p?.benefices != null)
-      .sort((a, b) => (b.benefices || 0) - (a.benefices || 0))
-      .slice(0, 5)
-  }, [produits])
+  // Métriques principales à partir des vraies données
+  const metrics: StatMetric[] = [
+    {
+      id: 'revenue',
+      title: 'Chiffre d\'Affaires',
+      value: `${data.vueEnsemble.chiffreAffaires.toLocaleString('fr-FR')}€`,
+      change: 0,
+      trend: 'stable',
+      period: selectedPeriod,
+      target: data.vueEnsemble.tauxVente || 0,
+      description: 'Revenus totaux générés'
+    },
+    {
+      id: 'products',
+      title: 'Produits Vendus',
+      value: data.vueEnsemble.produitsVendus,
+      change: 0,
+      trend: 'stable',
+      period: selectedPeriod,
+      target: (data.vueEnsemble.produitsVendus / data.vueEnsemble.totalProduits) * 100,
+      description: `${data.vueEnsemble.produitsVendus} sur ${data.vueEnsemble.totalProduits} produits`
+    },
+    {
+      id: 'margin',
+      title: 'Marge Moyenne',
+      value: `${data.vueEnsemble.margeMoyenne.toFixed(1)}%`,
+      change: 0,
+      trend: data.vueEnsemble.margeMoyenne > 30 ? 'up' : data.vueEnsemble.margeMoyenne > 20 ? 'stable' : 'down',
+      period: selectedPeriod,
+      target: data.vueEnsemble.margeMoyenne,
+      description: 'Marge bénéficiaire moyenne'
+    },
+    {
+      id: 'conversion',
+      title: 'Taux de Vente',
+      value: `${data.vueEnsemble.tauxVente.toFixed(1)}%`,
+      change: 0,
+      trend: data.vueEnsemble.tauxVente > 50 ? 'up' : data.vueEnsemble.tauxVente > 30 ? 'stable' : 'down',
+      period: selectedPeriod,
+      target: data.vueEnsemble.tauxVente,
+      description: 'Produits vendus / Total produits'
+    },
+    {
+      id: 'avgprice',
+      title: 'Prix Moyen Vente',
+      value: `${data.vueEnsemble.prixMoyenVente.toFixed(2)}€`,
+      change: 0,
+      trend: 'stable',
+      period: selectedPeriod,
+      target: 70,
+      description: 'Prix de vente moyen'
+    },
+    {
+      id: 'benefits',
+      title: 'Bénéfices Totaux',
+      value: `${data.vueEnsemble.beneficesTotal.toLocaleString('fr-FR')}€`,
+      change: 0,
+      trend: data.vueEnsemble.beneficesTotal > 0 ? 'up' : 'down',
+      period: selectedPeriod,
+      target: 85,
+      description: 'Bénéfices nets'
+    }
+  ];
 
   return (
-    <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-medium">Statistiques Avancées</h3>
-          <p className="text-sm text-muted-foreground">Vue d'overview des performances et analyses détaillées.</p>
+    <div className="min-h-screen bg-background">
+      <AppHeader />
+      <div className="space-y-6 p-6 max-w-screen-xl mx-auto">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">
+              Statistiques Avancées
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Analyses complètes • Performance en temps réel • Insights intelligents
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="animate-pulse">
+              <Activity className="w-3 h-3 mr-1" />
+              Mise à jour auto (30s)
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Actualiser
+            </Button>
+          </div>
         </div>
-        <div className="flex space-x-2">
-          <Button onClick={() => handleExport('csv')} variant="outline" size="sm">
-            <FileSpreadsheet className="mr-2 h-4 w-4" /> Export CSV
-          </Button>
-          <Button onClick={() => handleExport('pdf')} variant="outline" size="sm">
-            <FileText className="mr-2 h-4 w-4" /> Export PDF
-          </Button>
+
+        {/* Status indicators */}
+        <div className="flex flex-wrap items-center gap-6 text-sm">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            <span className="text-muted-foreground">
+              {data.vueEnsemble.totalProduits} produits • {data.vueEnsemble.produitsVendus} vendus
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-blue-500" />
+            <span className="text-muted-foreground">
+              Taux de vente: {data.vueEnsemble.tauxVente.toFixed(1)}%
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-purple-500" />
+            <span className="text-muted-foreground">
+              ROI moyen: {data.performanceParcelle.length > 0 
+                ? (data.performanceParcelle.reduce((sum, p) => sum + p.ROI, 0) / data.performanceParcelle.length).toFixed(1)
+                : 0}%
+            </span>
+          </div>
         </div>
-      </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <CardStats
-            title="Ventes Totales"
-            value={`${advancedStats.ventesTotales.toFixed(2)} €`}
-            icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
-          />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-        >
-          <CardStats
-            title="Produits Vendus"
-            value={advancedStats.produitsVendus}
-            icon={<Package className="h-4 w-4 text-muted-foreground" />}
-          />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-        >
-          <CardStats
-            title="Bénéfices"
-            value={`${advancedStats.beneficesTotaux.toFixed(2)} €`}
-            icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
-          />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.4 }}
-        >
-          <CardStats
-            title="Parcelles"
-            value={advancedStats.nombreParcelles}
-            icon={<Users className="h-4 w-4 text-muted-foreground" />}
-          />
-        </motion.div>
-      </motion.div>
-      
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
-        <HeatmapChart data={advancedStats.heatmapVentes} />
-      </motion.div>
+        {/* Contrôles de période et groupement */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <Select value={selectedPeriod} onValueChange={(value: PeriodType) => setSelectedPeriod(value)}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">7 Jours</SelectItem>
+                <SelectItem value="30d">30 Jours</SelectItem>
+                <SelectItem value="90d">3 Mois</SelectItem>
+                <SelectItem value="1y">1 An</SelectItem>
+                <SelectItem value="all">Tout</SelectItem>
+              </SelectContent>
+            </Select>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
-           <RoiTable data={advancedStats.roiParProduit} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
-           <TempsMoyenVenteTable data={advancedStats.tempsMoyenVente} />
-        </motion.div>
-      </div>
+            <Select value={selectedGroupBy} onValueChange={(value: GroupByType) => setSelectedGroupBy(value)}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Par Jour</SelectItem>
+                <SelectItem value="week">Par Semaine</SelectItem>
+                <SelectItem value="month">Par Mois</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}>
-           <PlateformesRentabiliteTable data={advancedStats.meilleuresPlateformes} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
-           <RadarChart data={advancedStats.radarPerformances} />
-        </motion.div>
-      </div>
+          <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+            <BarChart3 className="w-3 h-3 mr-1" />
+            Période : {data.periode} • Groupé par : {data.groupBy}
+          </Badge>
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}>
-           <TendancesSaisonnieresTable data={advancedStats.tendancesSaisonnieres} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }}>
-           <TrendChart data={advancedStats.courbeTendance} />
-        </motion.div>
-      </div>
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Vue d'Ensemble</TabsTrigger>
+            <TabsTrigger value="parcelles">Parcelles</TabsTrigger>
+            <TabsTrigger value="produits">Produits</TabsTrigger>
+          </TabsList>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }}>
-         <PrevisionsVentesTable data={advancedStats.previsionsVentes} />
-      </motion.div>
+          <TabsContent value="overview" className="space-y-6">
+            {/* Métriques principales */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {metrics.map((metric) => (
+                <Card key={metric.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-muted-foreground">{metric.title}</p>
+                        <p className="text-3xl font-bold">{metric.value}</p>
+                        <div className="flex items-center gap-2">
+                          {getTrendIcon(metric.trend)}
+                          <span className={cn("text-sm font-medium", getTrendColor(metric.trend))}>
+                            {getChangeText(metric.change, metric.trend)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right space-y-2">
+                        {metric.target !== undefined && (
+                          <>
+                            <div className="text-xs text-muted-foreground">Objectif</div>
+                            <div className="space-y-1">
+                              <Progress value={Math.min(metric.target, 100)} className="h-2 w-16" />
+                              <span className="text-xs font-medium">{metric.target.toFixed(0)}%</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-xs text-muted-foreground">{metric.description}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <AnimatedItem delay={1.0}>
-          <Suspense fallback={<LoadingComponent />}>
-            <ProduitsTable produits={produitsVendusData} />
-          </Suspense>
-        </AnimatedItem>
-        <AnimatedItem delay={1.1}>
-          <Suspense fallback={<LoadingComponent />}>
-            <ParcellesTable parcelles={Array.isArray(parcelles) ? parcelles : []} />
-          </Suspense>
-        </AnimatedItem>
+            {/* Performance par Plateforme */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance par Plateforme</CardTitle>
+                <CardDescription>Ventes et bénéfices par plateforme</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {data.performancePlateforme.map((plateforme, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-muted/30">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold">{plateforme.plateforme}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {plateforme.nbVentes} ventes ({plateforme.partMarche.toFixed(1)}% du marché)
+                          </span>
+                        </div>
+                        <Progress value={plateforme.partMarche} className="h-2" />
+                        <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                          <span>CA: {plateforme.chiffreAffaires.toLocaleString()}€</span>
+                          <span>Bénéfices: {plateforme.benefices.toLocaleString()}€</span>
+                          <span>Prix moyen: {plateforme.prixMoyenVente ? plateforme.prixMoyenVente.toFixed(2) : '0'}€</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Analyse des Coûts */}
+            <div className="grid gap-6 md:grid-cols-3">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Coût Achat Total</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{data.analyseCouts.coutAchatTotal.toLocaleString()}€</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Moyen: {data.analyseCouts.coutMoyenParProduit.toFixed(2)}€/produit
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Coût Livraison Total</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{data.analyseCouts.coutLivraisonTotal.toLocaleString()}€</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Moyen: {data.analyseCouts.coutMoyenLivraison.toFixed(2)}€/produit
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Investissement Total</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{data.analyseCouts.coutTotalInvesti.toLocaleString()}€</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {data.analyseCouts.nbParcelles} parcelle(s)
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="parcelles" className="space-y-6">
+            {/* Performance des Parcelles */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance des Parcelles</CardTitle>
+                <CardDescription>ROI, ventes et bénéfices par parcelle</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {data.performanceParcelle.map((parcelle, index) => (
+                    <div key={parcelle.parcelleId} className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg font-bold text-muted-foreground">#{index + 1}</span>
+                          <div>
+                            <p className="font-semibold">{parcelle.parcelleNumero}</p>
+                            <p className="text-sm text-muted-foreground">{parcelle.parcelleNom}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-4 text-sm">
+                          <span className="text-muted-foreground">
+                            {parcelle.nbProduitsVendus}/{parcelle.nbProduitsTotal} vendus ({parcelle.tauxVente.toFixed(1)}%)
+                          </span>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="text-muted-foreground">
+                            Coût: {parcelle.coutTotal.toLocaleString()}€
+                          </span>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="text-muted-foreground">
+                            Poids: {parcelle.poidsTotal.toLocaleString()}g
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">ROI</p>
+                          <p className={cn(
+                            "text-2xl font-bold",
+                            parcelle.ROI > 50 ? "text-green-600" :
+                            parcelle.ROI > 20 ? "text-blue-600" :
+                            parcelle.ROI > 0 ? "text-orange-600" : "text-red-600"
+                          )}>
+                            {parcelle.ROI.toFixed(1)}%
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Bénéfices</p>
+                          <p className="text-xl font-bold text-green-600">
+                            +{parcelle.beneficesTotal.toLocaleString()}€
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {data.performanceParcelle.length === 0 && (
+                    <div className="text-center py-12">
+                      <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">Aucune parcelle avec des produits</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Délais de Vente */}
+            {data.delaisVente.nbProduitsAvecDelai && data.delaisVente.nbProduitsAvecDelai > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Délais de Vente</CardTitle>
+                  <CardDescription>Statistiques sur le temps de vente</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <div className="text-center p-4 rounded-lg bg-muted/30">
+                      <p className="text-sm text-muted-foreground mb-1">Délai Moyen</p>
+                      <p className="text-2xl font-bold">{data.delaisVente.delaiMoyen.toFixed(1)}j</p>
+                    </div>
+                    <div className="text-center p-4 rounded-lg bg-muted/30">
+                      <p className="text-sm text-muted-foreground mb-1">Délai Médian</p>
+                      <p className="text-2xl font-bold">{data.delaisVente.delaiMedian.toFixed(1)}j</p>
+                    </div>
+                    <div className="text-center p-4 rounded-lg bg-muted/30">
+                      <p className="text-sm text-muted-foreground mb-1">Plus Rapide</p>
+                      <p className="text-2xl font-bold text-green-600">{data.delaisVente.delaiMin}j</p>
+                    </div>
+                    <div className="text-center p-4 rounded-lg bg-muted/30">
+                      <p className="text-sm text-muted-foreground mb-1">Plus Long</p>
+                      <p className="text-2xl font-bold text-red-600">{data.delaisVente.delaiMax}j</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="produits" className="space-y-6">
+            {/* Top Produits */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Top 10 Produits</CardTitle>
+                <CardDescription>Meilleurs performers par bénéfice</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {data.topProduits.map((produit, index) => (
+                    <div key={produit.id} className="flex items-center justify-between p-3 rounded-lg bg-emerald-50/50 border border-emerald-100">
+                      <div className="flex items-center gap-3 flex-1">
+                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-600 text-white text-sm font-bold">
+                          {index + 1}
+                        </span>
+                        <div className="flex-1">
+                          <p className="font-medium">{produit.nom}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {produit.plateforme} • Vendu le {new Date(produit.dateVente).toLocaleDateString('fr-FR')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-6 text-right">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Achat</p>
+                          <p className="text-sm font-medium">{produit.prixAchat}€</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Vente</p>
+                          <p className="text-sm font-medium">{produit.prixVente}€</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Bénéfice</p>
+                          <p className="text-lg font-bold text-emerald-600">+{produit.benefice.toFixed(2)}€</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Marge</p>
+                          <p className="text-sm font-semibold">{produit.margePercent.toFixed(1)}%</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {data.topProduits.length === 0 && (
+                    <div className="text-center py-12">
+                      <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">Aucun produit vendu</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Produits Non Vendus */}
+            {data.produitsNonVendus.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Produits Non Vendus ({data.produitsNonVendus.length})</CardTitle>
+                  <CardDescription>Stock actuel à écouler</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                    {data.produitsNonVendus.map((produit) => (
+                      <div key={produit.id} className="flex items-center justify-between p-3 rounded-lg bg-orange-50/50 border border-orange-100">
+                        <div className="flex-1">
+                          <p className="font-medium">{produit.nom}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Parcelle: {produit.parcelleNumero} • Coût total: {(produit.prixAchat + produit.coutLivraison).toFixed(2)}€
+                          </p>
+                        </div>
+                        <div className="flex gap-4 text-right">
+                          {produit.joursEnLigne !== null && produit.joursEnLigne > 0 ? (
+                            <Badge variant="outline" className="bg-orange-100">
+                              {produit.joursEnLigne}j en ligne
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">Brouillon</Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
-  )
+  );
 }

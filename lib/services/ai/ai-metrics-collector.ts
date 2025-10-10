@@ -1,12 +1,13 @@
-import { logger } from '@/lib/utils/logging/universal-logger';
-import { marketAnalysisConfig } from './market-analysis-config';
+import { getErrorMessage } from "../../utils/error-utils";
+import { logger } from "@/lib/utils/logging/universal-logger";
+import { marketAnalysisConfig } from "./market-analysis-config";
 
 /**
  * Interface pour les métriques de performance IA
  */
 export interface AIPerformanceMetrics {
   requestId: string;
-  analysisType: 'insights' | 'recommendations' | 'trends' | 'anomalies';
+  analysisType: "insights" | "recommendations" | "trends" | "anomalies";
   startTime: number;
   endTime: number;
   processingTime: number;
@@ -18,6 +19,7 @@ export interface AIPerformanceMetrics {
   cacheHit: boolean;
   modelVersion?: string;
   provider?: string;
+  timestamp: number; // Added timestamp
 }
 
 /**
@@ -25,7 +27,7 @@ export interface AIPerformanceMetrics {
  */
 export interface AIQualityMetrics {
   requestId: string;
-  analysisType: 'insights' | 'recommendations' | 'trends' | 'anomalies';
+  analysisType: "insights" | "recommendations" | "trends" | "anomalies";
   timestamp: number;
   insightCount: number;
   averageConfidence: number;
@@ -41,12 +43,12 @@ export interface AIQualityMetrics {
  */
 export interface AICostMetrics {
   timestamp: number;
-  analysisType: 'insights' | 'recommendations' | 'trends' | 'anomalies';
+  analysisType: "insights" | "recommendations" | "trends" | "anomalies";
   tokensUsed: number;
   estimatedCost: number;
   provider: string;
   modelVersion: string;
-  userId?: string;
+  userId?: string | undefined;
   requestId: string;
 }
 
@@ -54,7 +56,7 @@ export interface AICostMetrics {
  * Interface pour les métriques agrégées
  */
 export interface AIAggregatedMetrics {
-  timeframe: 'hour' | 'day' | 'week' | 'month';
+  timeframe: "hour" | "day" | "week" | "month";
   startTime: number;
   endTime: number;
   totalRequests: number;
@@ -80,7 +82,7 @@ export class AIMetricsCollector {
   private costMetrics: AICostMetrics[] = [];
   private readonly MAX_METRICS_HISTORY = 10000; // Limite pour éviter la surcharge mémoire
   private readonly CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 heure
-  private cleanupTimer?: NodeJS.Timeout;
+  private cleanupTimer: NodeJS.Timeout | undefined;
 
   private constructor() {
     this.startCleanupTimer();
@@ -96,25 +98,30 @@ export class AIMetricsCollector {
   /**
    * Enregistre les métriques de performance pour une requête IA
    */
-  recordPerformanceMetrics(metrics: AIPerformanceMetrics): void {
+  recordPerformanceMetrics(
+    metrics: Omit<AIPerformanceMetrics, "timestamp">,
+  ): void {
+    // Changed type to Omit
     try {
       this.performanceMetrics.push({
         ...metrics,
         timestamp: Date.now(),
-      } as any);
+      });
 
       // Nettoyer si nécessaire
       if (this.performanceMetrics.length > this.MAX_METRICS_HISTORY) {
-        this.performanceMetrics = this.performanceMetrics.slice(-this.MAX_METRICS_HISTORY * 0.8);
+        this.performanceMetrics = this.performanceMetrics.slice(
+          -this.MAX_METRICS_HISTORY * 0.8,
+        );
       }
 
       // Logger les métriques importantes
 
       // Alerter si les performances sont dégradées
-      this.checkPerformanceAlerts(metrics);
+      this.checkPerformanceAlerts(metrics as AIPerformanceMetrics); // Cast to AIPerformanceMetrics
     } catch (error) {
-      logger.error('[AIMetrics] Error recording performance metrics', {
-        error: error.message,
+      logger.error("[AIMetrics] Error recording performance metrics", {
+        error: getErrorMessage(error),
         requestId: metrics.requestId,
       });
     }
@@ -126,18 +133,18 @@ export class AIMetricsCollector {
   recordQualityMetrics(metrics: AIQualityMetrics): void {
     try {
       this.qualityMetrics.push(metrics);
-
       // Nettoyer si nécessaire
       if (this.qualityMetrics.length > this.MAX_METRICS_HISTORY) {
-        this.qualityMetrics = this.qualityMetrics.slice(-this.MAX_METRICS_HISTORY * 0.8);
+        this.qualityMetrics = this.qualityMetrics.slice(
+          -this.MAX_METRICS_HISTORY * 0.8,
+        );
       }
-
 
       // Alerter si la qualité est faible
       this.checkQualityAlerts(metrics);
     } catch (error) {
-      logger.error('[AIMetrics] Error recording quality metrics', {
-        error: error.message,
+      logger.error("[AIMetrics] Error recording quality metrics", {
+        error: getErrorMessage(error),
         requestId: metrics.requestId,
       });
     }
@@ -149,18 +156,18 @@ export class AIMetricsCollector {
   recordCostMetrics(metrics: AICostMetrics): void {
     try {
       this.costMetrics.push(metrics);
-
       // Nettoyer si nécessaire
       if (this.costMetrics.length > this.MAX_METRICS_HISTORY) {
-        this.costMetrics = this.costMetrics.slice(-this.MAX_METRICS_HISTORY * 0.8);
+        this.costMetrics = this.costMetrics.slice(
+          -this.MAX_METRICS_HISTORY * 0.8,
+        );
       }
-
 
       // Vérifier les limites de coût
       this.checkCostAlerts(metrics);
     } catch (error) {
-      logger.error('[AIMetrics] Error recording cost metrics', {
-        error: error.message,
+      logger.error("[AIMetrics] Error recording cost metrics", {
+        error: getErrorMessage(error),
         requestId: metrics.requestId,
       });
     }
@@ -170,64 +177,77 @@ export class AIMetricsCollector {
    * Calcule les métriques agrégées pour une période donnée
    */
   getAggregatedMetrics(
-    timeframe: 'hour' | 'day' | 'week' | 'month',
+    timeframe: "hour" | "day" | "week" | "month",
     startTime?: number,
-    endTime?: number
+    endTime?: number,
   ): AIAggregatedMetrics {
     const now = Date.now();
     const timeframeMs = this.getTimeframeMs(timeframe);
-    
-    const actualStartTime = startTime || (now - timeframeMs);
+
+    const actualStartTime = startTime || now - timeframeMs;
     const actualEndTime = endTime || now;
 
     // Filtrer les métriques dans la période
     const periodMetrics = this.performanceMetrics.filter(
-      m => m.startTime >= actualStartTime && m.startTime <= actualEndTime
+      (m) => m.startTime >= actualStartTime && m.startTime <= actualEndTime,
     );
 
     const periodCostMetrics = this.costMetrics.filter(
-      m => m.timestamp >= actualStartTime && m.timestamp <= actualEndTime
+      (m) => m.timestamp >= actualStartTime && m.timestamp <= actualEndTime,
     );
 
-    // Calculer les agrégations
+    // Calcule les agrégations
     const totalRequests = periodMetrics.length;
-    const successfulRequests = periodMetrics.filter(m => m.success).length;
+    const successfulRequests = periodMetrics.filter((m) => m.success).length;
     const failedRequests = totalRequests - successfulRequests;
 
-    const averageProcessingTime = totalRequests > 0
-      ? periodMetrics.reduce((sum, m) => sum + m.processingTime, 0) / totalRequests
-      : 0;
+    const averageProcessingTime =
+      totalRequests > 0
+        ? periodMetrics.reduce((sum, m) => sum + m.processingTime, 0) /
+          totalRequests
+        : 0;
 
-    const totalTokensUsed = periodMetrics.reduce((sum, m) => sum + m.tokensUsed, 0);
-    const totalCost = periodCostMetrics.reduce((sum, m) => sum + m.estimatedCost, 0);
+    const totalTokensUsed = periodMetrics.reduce(
+      (sum, m) => sum + m.tokensUsed,
+      0,
+    );
+    const totalCost = periodCostMetrics.reduce(
+      (sum, m) => sum + m.estimatedCost,
+      0,
+    );
 
-    const averageConfidence = totalRequests > 0
-      ? periodMetrics
-          .filter(m => m.confidence !== undefined)
-          .reduce((sum, m) => sum + (m.confidence || 0), 0) / totalRequests
-      : 0;
+    const averageConfidence =
+      totalRequests > 0
+        ? periodMetrics
+            .filter((m) => m.confidence !== undefined)
+            .reduce((sum, m) => sum + (m.confidence || 0), 0) / totalRequests
+        : 0;
 
-    const cacheHits = periodMetrics.filter(m => m.cacheHit).length;
+    const cacheHits = periodMetrics.filter((m) => m.cacheHit).length;
     const cacheHitRate = totalRequests > 0 ? cacheHits / totalRequests : 0;
 
     // Grouper les erreurs par type
     const errorsByType: Record<string, number> = {};
     periodMetrics
-      .filter(m => !m.success && m.errorType)
-      .forEach(m => {
-        errorsByType[m.errorType!] = (errorsByType[m.errorType!] || 0) + 1;
+      .filter((m) => !m.success && m.errorType)
+      .forEach((m) => {
+        errorsByType[m.errorType ?? "unknown_error"] =
+          (errorsByType[m.errorType ?? "unknown_error"] || 0) + 1; // Used nullish coalescing
       });
 
     // Grouper les requêtes par type
     const requestsByType: Record<string, number> = {};
-    periodMetrics.forEach(m => {
-      requestsByType[m.analysisType] = (requestsByType[m.analysisType] || 0) + 1;
+    periodMetrics.forEach((m) => {
+      requestsByType[m.analysisType ?? "unknown_type"] =
+        (requestsByType[m.analysisType ?? "unknown_type"] || 0) + 1; // Used nullish coalescing
     });
 
     // Grouper les coûts par fournisseur
     const costByProvider: Record<string, number> = {};
-    periodCostMetrics.forEach(m => {
-      costByProvider[m.provider] = (costByProvider[m.provider] || 0) + m.estimatedCost;
+    periodCostMetrics.forEach((m) => {
+      costByProvider[m.provider ?? "unknown_provider"] =
+        (costByProvider[m.provider ?? "unknown_provider"] || 0) +
+        m.estimatedCost; // Used nullish coalescing
     });
 
     return {
@@ -280,7 +300,7 @@ export class AIMetricsCollector {
    */
   getTotalCostForPeriod(startTime: number, endTime: number): number {
     return this.costMetrics
-      .filter(m => m.timestamp >= startTime && m.timestamp <= endTime)
+      .filter((m) => m.timestamp >= startTime && m.timestamp <= endTime)
       .reduce((sum, m) => sum + m.estimatedCost, 0);
   }
 
@@ -289,7 +309,11 @@ export class AIMetricsCollector {
    */
   getCurrentMonthlyCost(): number {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const startOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+    ).getTime();
     return this.getTotalCostForPeriod(startOfMonth, Date.now());
   }
 
@@ -298,20 +322,20 @@ export class AIMetricsCollector {
    */
   private checkPerformanceAlerts(metrics: AIPerformanceMetrics): void {
     const config = marketAnalysisConfig.getPerformanceConfig();
-    
+
     // Alerte si le temps de traitement dépasse le seuil
     if (metrics.processingTime > config.maxProcessingTime * 0.8) {
-      logger.warn('[AIMetrics] Performance alert: High processing time', {
+      logger.warn("[AIMetrics] Performance alert: High processing time", {
         requestId: metrics.requestId,
         processingTime: metrics.processingTime,
-        threshold: config.maxProcessingTime * 0.8,
+        _threshold: config.maxProcessingTime * 0.8,
         analysisType: metrics.analysisType,
       });
     }
 
     // Alerte si la confiance est faible
     if (metrics.confidence && metrics.confidence < 0.5) {
-      logger.warn('[AIMetrics] Quality alert: Low confidence', {
+      logger.warn("[AIMetrics] Quality alert: Low confidence", {
         requestId: metrics.requestId,
         confidence: metrics.confidence,
         analysisType: metrics.analysisType,
@@ -325,7 +349,7 @@ export class AIMetricsCollector {
   private checkQualityAlerts(metrics: AIQualityMetrics): void {
     // Alerte si la qualité des données est faible
     if (metrics.dataQualityScore < 0.6) {
-      logger.warn('[AIMetrics] Quality alert: Low data quality', {
+      logger.warn("[AIMetrics] Quality alert: Low data quality", {
         requestId: metrics.requestId,
         dataQualityScore: metrics.dataQualityScore,
         analysisType: metrics.analysisType,
@@ -334,7 +358,7 @@ export class AIMetricsCollector {
 
     // Alerte si la confiance moyenne est faible
     if (metrics.averageConfidence < 0.5) {
-      logger.warn('[AIMetrics] Quality alert: Low average confidence', {
+      logger.warn("[AIMetrics] Quality alert: Low average confidence", {
         requestId: metrics.requestId,
         averageConfidence: metrics.averageConfidence,
         analysisType: metrics.analysisType,
@@ -353,7 +377,7 @@ export class AIMetricsCollector {
 
     // Alerte si on approche du budget mensuel
     if (currentMonthlyCost >= monthlyBudget * alertThreshold) {
-      logger.warn('[AIMetrics] Cost alert: Approaching monthly budget', {
+      logger.warn("[AIMetrics] Cost alert: Approaching monthly budget", {
         currentMonthlyCost,
         monthlyBudget,
         percentage: Math.round((currentMonthlyCost / monthlyBudget) * 100),
@@ -363,10 +387,10 @@ export class AIMetricsCollector {
 
     // Alerte si le coût par analyse est élevé
     if (metrics.estimatedCost > config.costLimits.maxCostPerAnalysis * 0.8) {
-      logger.warn('[AIMetrics] Cost alert: High cost per analysis', {
+      logger.warn("[AIMetrics] Cost alert: High cost per analysis", {
         requestId: metrics.requestId,
         estimatedCost: metrics.estimatedCost,
-        threshold: config.costLimits.maxCostPerAnalysis * 0.8,
+        _threshold: config.costLimits.maxCostPerAnalysis * 0.8,
         analysisType: metrics.analysisType,
       });
     }
@@ -375,15 +399,15 @@ export class AIMetricsCollector {
   /**
    * Convertit un timeframe en millisecondes
    */
-  private getTimeframeMs(timeframe: 'hour' | 'day' | 'week' | 'month'): number {
+  private getTimeframeMs(timeframe: "hour" | "day" | "week" | "month"): number {
     switch (timeframe) {
-      case 'hour':
+      case "hour":
         return 60 * 60 * 1000;
-      case 'day':
+      case "day":
         return 24 * 60 * 60 * 1000;
-      case 'week':
+      case "week":
         return 7 * 24 * 60 * 60 * 1000;
-      case 'month':
+      case "month":
         return 30 * 24 * 60 * 60 * 1000;
       default:
         return 24 * 60 * 60 * 1000;
@@ -403,22 +427,27 @@ export class AIMetricsCollector {
    * Nettoie les anciennes métriques pour éviter la surcharge mémoire
    */
   private cleanupOldMetrics(): void {
-    const cutoffTime = Date.now() - (7 * 24 * 60 * 60 * 1000); // 7 jours
+    const cutoffTime = Date.now() - 7 * 24 * 60 * 60 * 1000; // 7 jours
 
     const initialPerformanceCount = this.performanceMetrics.length;
     const initialQualityCount = this.qualityMetrics.length;
     const initialCostCount = this.costMetrics.length;
 
-    this.performanceMetrics = this.performanceMetrics.filter(m => m.startTime > cutoffTime);
-    this.qualityMetrics = this.qualityMetrics.filter(m => m.timestamp > cutoffTime);
-    this.costMetrics = this.costMetrics.filter(m => m.timestamp > cutoffTime);
+    this.performanceMetrics = this.performanceMetrics.filter(
+      (m) => m.timestamp > cutoffTime,
+    ); // Changed startTime to timestamp
+    this.qualityMetrics = this.qualityMetrics.filter(
+      (m) => m.timestamp > cutoffTime,
+    );
+    this.costMetrics = this.costMetrics.filter((m) => m.timestamp > cutoffTime);
 
-    const cleanedPerformance = initialPerformanceCount - this.performanceMetrics.length;
+    const cleanedPerformance =
+      initialPerformanceCount - this.performanceMetrics.length;
     const cleanedQuality = initialQualityCount - this.qualityMetrics.length;
     const cleanedCost = initialCostCount - this.costMetrics.length;
 
     if (cleanedPerformance > 0 || cleanedQuality > 0 || cleanedCost > 0) {
-      logger.info('[AIMetrics] Cleaned up old metrics', {
+      logger.info("[AIMetrics] Cleaned up old metrics", {
         cleanedPerformance,
         cleanedQuality,
         cleanedCost,
@@ -435,7 +464,17 @@ export class AIMetricsCollector {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = undefined;
     }
-    
+
+    this.performanceMetrics = [];
+    this.qualityMetrics = [];
+    this.costMetrics = [];
+  }
+
+  /**
+   * Réinitialise toutes les métriques
+   */
+  resetMetrics(): void {
+    logger.info("[AIMetrics] Resetting all metrics");
     this.performanceMetrics = [];
     this.qualityMetrics = [];
     this.costMetrics = [];
@@ -476,7 +515,7 @@ export class AIMetricsCollector {
       this.costMetrics = [...data.cost];
     }
 
-    logger.info('[AIMetrics] Metrics imported successfully', {
+    logger.info("[AIMetrics] Metrics imported successfully", {
       performanceCount: this.performanceMetrics.length,
       qualityCount: this.qualityMetrics.length,
       costCount: this.costMetrics.length,
