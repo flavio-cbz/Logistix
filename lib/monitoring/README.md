@@ -223,12 +223,14 @@ function MonitoringDashboard() {
 The system uses environment-specific thresholds:
 
 ### Production
+
 - Response Time: Warning 1s, Critical 3s
 - Database Query: Warning 500ms, Critical 2s
 - Memory Usage: Warning 80%, Critical 90%
 - Error Rate: Warning 1%, Critical 5%
 
 ### Development
+
 - Response Time: Warning 1.5s, Critical 4.5s
 - Database Query: Warning 750ms, Critical 3s
 - Memory Usage: Warning 80%, Critical 90%

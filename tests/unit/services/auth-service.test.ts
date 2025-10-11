@@ -281,7 +281,7 @@ describe('AuthService', () => {
       await expectCustomError(
         () => authService.createSession('550e8400-e29b-41d4-a716-446655440000'),
         'NOT_FOUND',
-        'User not found'
+        "User with identifier '550e8400-e29b-41d4-a716-446655440000' not found"
       );
     });
 
@@ -561,17 +561,26 @@ describe('AuthService', () => {
         email: testUser.email
       };
 
-      // Mock credential verification
+      // Mock credential verification: sequence of database calls
+      // 1) verifyCredentials -> returns dbUser
+      // 2) createSession-checkUser -> returns { id: userId }
+      // 3) requireAuth -> returns sessionData
       mockDb.queryOne
         .mockResolvedValueOnce(dbUser) // verifyCredentials
-        .mockResolvedValueOnce({ id: testUser.id }) // createSession check
+        .mockResolvedValueOnce({ id: testUser.id }) // createSession-checkUser
         .mockResolvedValueOnce(sessionData); // requireAuth
 
+      // bcrypt compare should succeed
       mockBcrypt.compare.mockResolvedValue(true);
+
+      // execute for creating session should succeed and return undefined
       mockDb.execute.mockResolvedValue(undefined);
 
-      // Act
-      const result = await authService.authenticate(credentials.username, credentials.password);
+  // Ensure cookies.get will return the session id after authenticate sets it
+  mockCookies.get.mockReturnValueOnce({ value: 'test-uuid-1234-5678-9012' });
+
+  // Act
+  const result = await authService.authenticate(credentials.username, credentials.password);
 
       // Assert
       expect(result.success).toBe(true);

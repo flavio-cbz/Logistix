@@ -61,12 +61,33 @@ export async function PUT(
     const updates: string[] = [];
     const values: any[] = [];
 
-    const allowedFields = ['name', 'poids', 'price', 'currency', 'coutLivraison', 
-                           'benefices', 'parcelleId', 'vendu', 'dateMiseEnLigne', 'dateVente'];
+    // Mapping des noms de champs vers les noms de colonnes DB
+    const fieldMapping: Record<string, string> = {
+      'name': 'name',
+      'description': 'description',
+      'poids': 'poids', 
+      'price': 'price',
+      'currency': 'currency',
+      'coutLivraison': 'cout_livraison',
+      'sellingPrice': 'selling_price',
+      'prixVente': 'prix_vente',
+      'plateforme': 'plateforme',
+      'status': 'status',
+      'url': 'url',
+      'photoUrl': 'photo_url',
+      'benefices': 'benefices',
+      'parcelleId': 'parcelle_id',
+      'vendu': 'vendu',
+      'dateMiseEnLigne': 'date_mise_en_ligne',
+      'dateVente': 'date_vente'
+    };
+
+    const allowedFields = Object.keys(fieldMapping);
     
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
-        updates.push(`${field} = ?`);
+        const dbColumn = fieldMapping[field];
+        updates.push(`${dbColumn} = ?`);
         values.push(body[field]);
       }
     }

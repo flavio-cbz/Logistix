@@ -146,7 +146,7 @@ export function ResponsiveContainer({
   );
 }
 
-import { EnhancedCard } from "@/components/ui/enhanced-card";
+import { Card } from "@/components/ui/card";
 
 // Responsive card component optimized for different screen sizes
 interface ResponsiveCardProps {
@@ -174,21 +174,22 @@ export function ResponsiveCard({
     return variantClasses[variant]!;
   };
 
-  // Map responsive variants to EnhancedCard variants
-  const getEnhancedVariant = () => {
-    if (interactive) return "elevated";
-    return "default";
+  // Map responsive variants to Card styles
+  const getCardClasses = () => {
+    let classes = getPaddingClasses();
+    if (interactive) {
+      classes += " hover:shadow-md transition-shadow cursor-pointer";
+    }
+    return classes;
   };
 
   return (
-    <EnhancedCard
-      variant={getEnhancedVariant()}
-      interactive={interactive}
-      className={cn(getPaddingClasses(), className)}
+    <Card
+      className={cn(getCardClasses(), className)}
       {...props}
     >
       {children}
-    </EnhancedCard>
+    </Card>
   );
 }
 

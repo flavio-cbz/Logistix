@@ -41,6 +41,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 import type { Product } from "@/lib/shared/types/entities";
 import {
@@ -439,6 +440,24 @@ function ProductCreateFormRefactored({
                 )}
               />
             </div>
+
+            {/* Photo du produit */}
+            <FormField
+              control={form.control}
+              name="photoUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ImageUpload
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isSubmitting}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Section 2: Détails financiers et logistiques */}
             <div className="space-y-4">

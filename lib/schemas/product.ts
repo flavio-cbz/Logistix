@@ -88,7 +88,15 @@ const baseProductSchema = z.object({
   parcelleId: z.string().optional().nullable(),
   vintedItemId: z.string().optional().nullable(),
   url: z.string().url().optional().nullable().or(z.literal("")),
-  photoUrl: z.string().url().optional().nullable().or(z.literal("")),
+  photoUrl: z.string()
+    .refine((val) => {
+      if (!val || val === "") return true;
+      // Accepter les URLs absolues (http/https) et relatives (commençant par /)
+      return val.startsWith('/') || val.startsWith('http://') || val.startsWith('https://');
+    }, "L'URL de la photo doit être une URL valide (absolue ou relative)")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
 
   // Status and platform information
   status: z.nativeEnum(ProductStatus).optional().default(ProductStatus.DRAFT),

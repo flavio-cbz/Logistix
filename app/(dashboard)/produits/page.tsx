@@ -31,6 +31,7 @@ import ProductCreateForm from "@/components/features/produits/product-create-for
 import { useProducts } from "@/lib/hooks/use-products";
 import type { Product } from "@/lib/shared/types/entities";
 import ProductsList from "@/components/features/produits/produits-list";
+import ProductsGridView from "@/components/features/produits/products-grid-view";
 
 // NOTE: ProductsList now consumes products via `useProducts()` internally.
 // We keep Product typed data here and no longer convert to legacy `Produit`.
@@ -304,12 +305,7 @@ export default function RevolutionaryProductsPage() {
           {viewMode === 'list' ? (
             <ProductsList onUpdate={refetch} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Grid view implementation can be added here */}
-              <p className="col-span-full text-center text-muted-foreground py-8">
-                Vue en grille à venir
-              </p>
-            </div>
+            <ProductsGridView products={products} onUpdate={refetch} />
           )}
         </CardContent>
       </Card>

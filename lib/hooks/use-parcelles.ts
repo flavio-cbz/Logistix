@@ -130,8 +130,13 @@ export const useCreateParcelle = () => {
   return useMutation<Parcelle, Error, CreateParcelleFormData>({
     mutationFn: createParcelle,
     onSuccess: async () => {
-      // Invalider le cache React Query
-      await queryClient.invalidateQueries({ queryKey: ['parcelles'] });
+      // Invalider et refetch le cache React Query - ATTENDRE la fin
+      await queryClient.invalidateQueries({ 
+        queryKey: ['parcelles'],
+        refetchType: 'active' // Force le refetch immédiat des queries actives
+      });
+      // Petit délai pour s'assurer que le refetch est terminé
+      await new Promise(resolve => setTimeout(resolve, 100));
     },
     onError: (error: any) => {
       const status = (error as any)?.status;
@@ -167,7 +172,12 @@ export const useUpdateParcelle = () => {
   return useMutation<Parcelle, Error, { id: string; data: UpdateParcelleFormData }>({
     mutationFn: ({ id, data }) => updateParcelle(id, data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["parcelles"] });
+      await queryClient.invalidateQueries({ 
+        queryKey: ["parcelles"],
+        refetchType: 'active' // Force le refetch immédiat des queries actives
+      });
+      // Petit délai pour s'assurer que le refetch est terminé
+      await new Promise(resolve => setTimeout(resolve, 100));
     },
     onError: (error: any) => {
       const status = (error as any)?.status;

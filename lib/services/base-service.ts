@@ -621,6 +621,23 @@ export abstract class BaseService {
       });
 
       // Ensure error has proper correlation context
+      if (!isCustomError(error)) {
+        // Wrap plain errors into a Service-level CustomError so callers/tests can rely on a consistent error shape
+        const enhancedContext = {
+          originalError: this.getErrorMessage(error),
+          requestId: this.requestId,
+          userId: this.userId,
+          service: this.serviceName,
+          operation: operationName,
+        };
+
+        throw new CustomError(
+          `An error occurred in ${operationName}`,
+          "SERVICE_ERROR",
+          enhancedContext,
+        );
+      }
+
       if (isCustomError(error) && !error.context?.['requestId']) {
         // Add correlation context to custom errors that don't have it
         // Different error types have different constructor signatures

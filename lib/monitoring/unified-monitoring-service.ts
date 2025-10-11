@@ -760,4 +760,202 @@ export function monitorPerformance(operation?: string) {
   };
 }
 
+// ============================================================================
+// ADDITIONAL CONVENIENCE FUNCTIONS AND CONSTANTS
+// ============================================================================
+
+/**
+ * Initialize monitoring system with default configuration
+ */
+export function initializeMonitoring(config?: Partial<MonitoringConfig>): UnifiedMonitoringService {
+  return getUnifiedMonitoring(config);
+}
+
+/**
+ * Quick health check function
+ */
+export async function quickHealthCheck(): Promise<SystemStatus> {
+  const monitoring = getUnifiedMonitoring();
+  return await monitoring.getSystemStatus();
+}
+
+/**
+ * Get current metrics from monitoring system
+ */
+export async function getCurrentMetrics(): Promise<SystemStatus> {
+  const monitoring = getUnifiedMonitoring();
+  return monitoring.getSystemStatus();
+}
+
+/**
+ * Create operation logger instance
+ */
+export function createOperationLogger(operationName: string) {
+  const monitoring = getUnifiedMonitoring();
+  return {
+    start: (context?: Record<string, any>) => {
+      monitoring.logEvent('performance', `${operationName}.start`, 'info', context);
+    },
+    complete: (duration: number, context?: Record<string, any>) => {
+      monitoring.recordPerformance(operationName, duration, true, context);
+      monitoring.logEvent('performance', `${operationName}.complete`, 'info', { duration, ...context });
+    },
+    error: (error: Error, context?: Record<string, any>) => {
+      monitoring.recordPerformance(operationName, 0, false, { error: error.message, ...context });
+      monitoring.logEvent('error', `${operationName}.error`, 'error', { error: error.message, ...context });
+    }
+  };
+}
+
+/**
+ * Log business event
+ */
+export function logBusinessEvent(event: string, entityType: string, entityId: string, context?: Record<string, any>): void {
+  const monitoring = getUnifiedMonitoring();
+  monitoring.logEvent('business', event, 'info', { entityType, entityId, ...context });
+}
+
+/**
+ * Log security event
+ */
+export function logSecurityEvent(event: string, severity: 'low' | 'medium' | 'high' | 'critical', context?: Record<string, any>): void {
+  const monitoring = getUnifiedMonitoring();
+  monitoring.logEvent('security', event, 'warn', { severity, ...context });
+}
+
+/**
+ * Create critical alert
+ */
+export async function createCriticalAlert(type: 'system' | 'performance' | 'security' | 'deployment', title: string, message: string, metadata?: Record<string, any>): Promise<Alert> {
+  const monitoring = getUnifiedMonitoring();
+  return await monitoring.createAlert(type, 'critical', title, message, metadata);
+}
+
+/**
+ * Get monitoring dashboard
+ */
+export function getMonitoringDashboard() {
+  // This would typically return a dashboard object or URL
+  // For now, returning basic status information
+  return {
+    status: 'available',
+    endpoints: {
+      health: '/api/health',
+      metrics: '/api/metrics',
+      alerts: '/api/alerts'
+    }
+  };
+}
+
+/**
+ * Create monitoring middleware for Express/Next.js
+ */
+export function createMonitoringMiddleware() {
+  return async (req: any, res: any, next: any) => {
+    const startTime = Date.now();
+    const path = req.path;
+    const method = req.method;
+    
+    res.on('finish', () => {
+      const duration = Date.now() - startTime;
+      const monitoring = getUnifiedMonitoring();
+      monitoring.recordPerformance(`http.${method}.${path}`, duration, res.statusCode < 400);
+      monitoring.logEvent('performance', 'http.request', 'info', {
+        method,
+        path,
+        statusCode: res.statusCode,
+        duration,
+      });
+    });
+    
+    next();
+  };
+}
+
+/**
+ * Monitor database query performance
+ */
+export async function monitorDatabaseQuery<T>(queryFn: () => Promise<T>, queryName: string): Promise<T> {
+  const monitoring = getUnifiedMonitoring();
+  const startTime = Date.now();
+  let success = true;
+  
+  try {
+    const result = await queryFn();
+    return result;
+  } catch (error) {
+    success = false;
+    throw error;
+  } finally {
+    const duration = Date.now() - startTime;
+    monitoring.recordPerformance(`database.${queryName}`, duration, success);
+    monitoring.logEvent('performance', `database.${queryName}`, success ? 'info' : 'error', { duration, success });
+  }
+}
+
+/**
+ * Monitor cache operation
+ */
+export function monitorCacheOperation<T>(operation: () => Promise<T>, operationName: string): Promise<T> {
+  const monitoring = getUnifiedMonitoring();
+  const startTime = Date.now();
+  let success = true;
+  
+  return operation()
+    .then(result => {
+      return result;
+    })
+    .catch(error => {
+      success = false;
+      throw error;
+    })
+    .finally(() => {
+      const duration = Date.now() - startTime;
+      monitoring.recordPerformance(`cache.${operationName}`, duration, success);
+      monitoring.logEvent('performance', `cache.${operationName}`, success ? 'info' : 'error', { duration, success });
+    });
+}
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+export const MONITORING_DEFAULTS: Partial<MonitoringConfig> = {
+  enablePerformanceTracking: true,
+  enableHealthChecks: true,
+  enableAlerting: true,
+  enableStructuredLogging: true,
+  metricsRetentionPeriod: 24 * 60 * 60 * 1000, // 24 hours
+  healthCheckInterval: 30 * 1000, // 30 seconds
+  alertCooldownPeriod: 5 * 60 * 1000, // 5 minutes
+  logLevel: 'info',
+};
+
+export const LOG_LEVELS = {
+  ERROR: 'error',
+  WARN: 'warn',
+  INFO: 'info',
+  DEBUG: 'debug',
+} as const;
+
+export const METRIC_TYPES = {
+  COUNTER: 'counter',
+  GAUGE: 'gauge',
+  HISTOGRAM: 'histogram',
+  SUMMARY: 'summary',
+} as const;
+
+export const ALERT_SEVERITIES = {
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high',
+  CRITICAL: 'critical',
+} as const;
+
+export const COMPONENT_STATUSES = {
+  OPERATIONAL: 'operational',
+  DEGRADED: 'degraded',
+  DOWN: 'down',
+} as const;
+
 export default UnifiedMonitoringService;

@@ -148,23 +148,18 @@ export function calculateDaysBetween(
 }
 
 /**
- * Formats an amount in euros with proper currency formatting
+ * Formate un montant en euros avec le symbole €
  * 
- * @description Formats a numeric amount to display as euros with proper localization.
- * This function now uses the consolidated formatting utility.
- * @param {number} montant - Amount to format in euros
- * @returns {string} Formatted amount string (e.g., "25,99 €")
- * @example
  * ```typescript
  * const formatted = formatEuro(25.99); // "25,99 €"
  * ```
  * @since 1.0.0
- * @deprecated Use formatCurrency from @/lib/shared/utils instead
  */
 export function formatEuro(montant: number): string {
-  // Use the consolidated formatting utility
-  const { formatCurrency } = require('@/lib/shared/utils/formatting');
-  return formatCurrency(montant);
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+  }).format(montant);
 }
 
 /**

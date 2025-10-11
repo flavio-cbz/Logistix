@@ -50,9 +50,14 @@ export function useCreateProduct() {
 
       return response.json();
     },
-    onSuccess: () => {
-      // Invalidate et refetch des produits
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+    onSuccess: async () => {
+      // Invalidate et refetch des produits - ATTENDRE la fin
+      await queryClient.invalidateQueries({ 
+        queryKey: ["products"],
+        refetchType: 'active' // Force le refetch immédiat des queries actives
+      });
+      // Petit délai pour s'assurer que le refetch est terminé
+      await new Promise(resolve => setTimeout(resolve, 100));
     },
   });
 }
@@ -77,9 +82,14 @@ export function useUpdateProduct() {
 
       return response.json();
     },
-    onSuccess: () => {
-      // Invalidate et refetch des produits
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+    onSuccess: async () => {
+      // Invalidate et refetch des produits - ATTENDRE la fin
+      await queryClient.invalidateQueries({ 
+        queryKey: ["products"],
+        refetchType: 'active' // Force le refetch immédiat des queries actives
+      });
+      // Petit délai pour s'assurer que le refetch est terminé
+      await new Promise(resolve => setTimeout(resolve, 100));
     },
   });
 }

@@ -13,7 +13,7 @@ import {
   AuthError,
   InfrastructureError,
   // ErrorContext, // Not used in this file
-} from "@/lib/shared/errors";
+} from "@/lib/shared/errors/custom-error";
 
 export interface VintedCredentials {
   email: string;

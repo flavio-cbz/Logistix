@@ -1,5 +1,4 @@
-import { hkdf } from "@panva/hkdf";
-import { randomBytes, createCipheriv, createDecipheriv } from "crypto";
+import { randomBytes, createCipheriv, createDecipheriv, pbkdf2 } from "crypto";
 
 // Ce sel doit être unique à l'application et peut être stocké dans une variable d'environnement
 // pour plus de sécurité, mais il n'est pas considéré comme un secret critique.
@@ -27,10 +26,13 @@ export function generateUserSecret(): string {
 export async function deriveUserKek(userSecret: string): Promise<Buffer> {
   const keyMaterial = Buffer.from(userSecret, "hex");
   const salt = Buffer.from(APP_ENCRYPTION_SALT, "utf-8");
-  const info = "logistix-vinted-token-encryption";
 
-  const hk = await hkdf("sha256", keyMaterial, salt, info, KEY_LENGTH);
-  return Buffer.from(hk);
+  return new Promise((resolve, reject) => {
+    pbkdf2(keyMaterial, salt, 100000, KEY_LENGTH, 'sha256', (err, derivedKey) => {
+      if (err) reject(err);
+      else resolve(derivedKey);
+    });
+  });
 }
 
 /**

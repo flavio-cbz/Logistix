@@ -5,7 +5,7 @@
 
 import { vi } from 'vitest';
 
-import type { ParcelleService } from '@/lib/core/services/parcelle-service';
+import type { ParcelleService } from '@/lib/services/parcelle-service';
 import type { AuthService } from '@/lib/services/auth-service';
 
 // Mock logger
@@ -109,4 +109,22 @@ export const createMockBaseService = (serviceName: string) => ({
   validateWithSchema: vi.fn(),
   executeOperation: vi.fn(),
   executeOperationSync: vi.fn(),
+});
+
+// Mock parcelle repository
+export const createMockParcelleRepository = () => ({
+  findById: vi.fn(),
+  findAll: vi.fn(),
+  findAllByUserId: vi.fn(), // Pour getAllParcelles
+  findByUserId: vi.fn(),
+  findByNumero: vi.fn(),
+  numeroExists: vi.fn(), // Pour validateUniqueParcelleNumber
+  create: vi.fn(),
+  update: vi.fn(),
+  updateWithCalculation: vi.fn(), // Pour updateParcelle avec calculs automatiques
+  delete: vi.fn(),
+  count: vi.fn(),
+  exists: vi.fn(),
+  hasAssociatedProducts: vi.fn(),
+  countProductsByParcelleId: vi.fn(), // Pour deleteParcelle validation
 });

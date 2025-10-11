@@ -156,7 +156,7 @@ export default function ParcelleForm({
       );
     } else {
       createParcelleMutation.mutate(values, {
-        onSuccess: () => {
+        onSuccess: async () => {
           toast({
             title: "Parcelle créée",
             description: "La nouvelle parcelle a été créée avec succès.",
@@ -164,6 +164,9 @@ export default function ParcelleForm({
           if (onCreated) {
             onCreated();
           }
+          // Attendre un petit délai pour que l'invalidation du cache se termine
+          await new Promise(resolve => setTimeout(resolve, 150));
+          
           if (forceOpen === undefined) {
             setInternalOpen(false);
           } else if (onClose) {

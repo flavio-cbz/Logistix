@@ -228,24 +228,22 @@ export class ParcelleService extends BaseService {
         }
 
         // Check if there are products associated with this parcelle
-        // TODO: Inject ProductRepository to check for associated products
-        // const products = await this.productRepository.findByParcelleId(id);
-        // const userProducts = products.filter((p: any) => p.userId === userId);
+        const productCount = await this.parcelleRepository.countProductsByParcelleId(id);
 
-        // if (userProducts.length > 0) {
-        //   this.logger.warn(
-        //     "Attempt to delete parcelle with associated products",
-        //     {
-        //       parcelleId: id,
-        //       userId,
-        //       productCount: userProducts.length,
-        //     },
-        //   );
+        if (productCount > 0) {
+          this.logger.warn(
+            "Attempt to delete parcelle with associated products",
+            {
+              parcelleId: id,
+              userId,
+              productCount,
+            },
+          );
 
-        //   throw this.createBusinessError(
-        //     `Cannot delete this parcelle because ${userProducts.length} product(s) are associated with it.`,
-        //   );
-        // }
+          throw this.createBusinessError(
+            `Impossible de supprimer cette parcelle car ${productCount} produit(s) y sont associé(s).`,
+          );
+        }
 
         const deleted = await this.parcelleRepository.delete(id);
 

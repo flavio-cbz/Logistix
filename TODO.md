@@ -6,7 +6,21 @@
 
 ### Corrections Critiques
 
-- [x] Corriger erreur 400 POST /api/v1/produits — investigation urgente : reproduire l'ajout, capturer le payload envoyé, lire les logs serveur et corriger la validation/handler API.
+- [] Finir l'implementation ou supprimer le filtre par categorie dans la liste des produits.
+- [] Corriger le bug ou la creation de produit renvoi : {[Error] Failed to load resource: the server responded with a status of 500 (Internal Server Error) (prod_1760203422249_0gursa540, line 0)
+[Error] Erreur lors de la validation de la vente: – Error: Erreur lors de la mise à jour du produit
+Error: Erreur lors de la mise à jour du produit
+ (fonction anonyme) (app-index.js:33)
+ (fonction anonyme) (hydration-error-info.js:63)
+ (fonction anonyme) (product-sale-dialog.tsx:69)}
+- [] Suppression complete de la fonctionalité de notifications.
+- [] Verifier si tout est couvert par les tests.
+- [] Implementer la page /profil et la modification du mot de passe et informations liés au profil.
+- [] Implementer la page /settings et la modification des settings globaux.
+- [] Implementer la page /help
+- [] Tester et verifier les calculs dans la page /statistique et /dashboard.
+- [] Implementer la fonctionalité /analyse-marche pas à pas
+- Automatiser la saisie des produits et parcelles via l'API SuperBuy.
 
 ## 🔧 INTÉGRATIONS MARCHÉ & DONNÉES
 

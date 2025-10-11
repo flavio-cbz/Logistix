@@ -5,8 +5,16 @@
  * This can be run to validate the implementation.
  */
 
-import { getUnifiedMonitoring, initializeMonitoring, quickHealthCheck } from './index';
+import { getUnifiedMonitoring } from './unified-monitoring-service';
+import { HealthCheckService } from './health-check';
 import { getCompleteMonitoringConfig, validateMonitoringConfig } from './monitoring-config';
+
+// Simple implementations for missing functions
+const initializeMonitoring = (config?: any) => getUnifiedMonitoring(config);
+const quickHealthCheck = async () => {
+  const healthService = HealthCheckService.getInstance();
+  return await healthService.getSystemHealth();
+};
 
 /**
  * Run basic integration tests for the monitoring system

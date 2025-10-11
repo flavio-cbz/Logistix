@@ -552,6 +552,29 @@ export class ParcelleRepository extends BaseRepository<
   }
 
   /**
+   * Count products associated with a parcelle
+   */
+  public async countProductsByParcelleId(parcelleId: string): Promise<number> {
+    try {
+      return await this.executeCustomQuery((db) => {
+        // Import products table dynamically to avoid circular dependencies
+        const { products } = require("@/lib/database/schema");
+        
+        const result = db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(products)
+          .where(eq(products.parcelleId, parcelleId))
+          .get();
+
+        return Number(result?.count || 0);
+      }, "countProductsByParcelleId");
+    } catch (error) {
+      this.logError("countProductsByParcelleId failed", error, { parcelleId });
+      throw error;
+    }
+  }
+
+  /**
    * Delete parcelle and handle related products
    */
   public async deleteWithProducts(id: string): Promise<boolean> {

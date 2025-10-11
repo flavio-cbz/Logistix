@@ -13,12 +13,22 @@ const productData = { name: 'Example Product', price: 100, category: 'test' };
 import {
   getUnifiedMonitoring,
   // monitorPerformance, // Commented out as decorators are disabled in examples
-  createOperationLogger,
-  logBusinessEvent,
-  logSecurityEvent,
-  monitorDatabaseQuery,
-  monitorCacheOperation,
-} from './index';
+  // Monitoring functions temporarily disabled after cleanup
+  // createOperationLogger, logBusinessEvent, logSecurityEvent,
+  // monitorDatabaseQuery, monitorCacheOperation
+} from './unified-monitoring-service';
+
+// Mock implementations for examples (temporarily disabled after cleanup)
+const createOperationLogger = (_op: string) => ({
+  log: console.log,
+  success: console.log,
+  failure: console.log,
+  checkpoint: console.log
+});
+const logBusinessEvent = (...args: any[]) => console.log('Business event:', ...args);
+const logSecurityEvent = (...args: any[]) => console.log('Security event:', ...args);
+const monitorDatabaseQuery = async (_name: string, fn: Function) => await fn();
+const monitorCacheOperation = async (_op: string, _key: string, fn: Function) => await fn();
 
 // ============================================================================
 // API ROUTE MONITORING EXAMPLE

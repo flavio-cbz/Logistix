@@ -209,9 +209,10 @@ describe('Product Calculations', () => {
 
   describe('formatEuro', () => {
     it('devrait formater un montant en euros', () => {
-      expect(formatEuro(25)).toBe('25.00 €');
-      expect(formatEuro(25.5)).toBe('25.50 €');
-      expect(formatEuro(25.567)).toBe('25.57 €');
+      // Format fr-FR : virgule comme séparateur décimal + espace insécable (\u00A0)
+      expect(formatEuro(25)).toBe('25,00\u00A0€');
+      expect(formatEuro(25.5)).toBe('25,50\u00A0€');
+      expect(formatEuro(25.567)).toBe('25,57\u00A0€');
     });
   });
 
