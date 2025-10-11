@@ -5,9 +5,9 @@ import type {
   UserPreferences,
   UserPreferencesService as IUserPreferencesService,
   PreferenceLearning,
-} from "@/types/user-preferences";
+} from "@/lib/types/legacy";
 import { RiskTolerance, UserActionType } from "@/lib/types/entities";
-import { DEFAULT_USER_PREFERENCES } from "@/types/user-preferences";
+import { DEFAULT_USER_PREFERENCES } from "@/lib/types/legacy";
 
 /**
  * Service moderne de gestion des préférences utilisateur
@@ -27,7 +27,6 @@ export class UserPreferencesService implements IUserPreferencesService {
         objectives?: string | null;
         risk_tolerance: string;
         preferred_insight_types?: string | null;
-        notification_settings?: string | null;
         custom_filters?: string | null;
         created_at: string;
         updated_at: string;
@@ -49,7 +48,6 @@ export class UserPreferencesService implements IUserPreferencesService {
         objectives: this.safeJsonParse(result.objectives),
         riskTolerance: result.risk_tolerance as RiskTolerance,
         preferredInsightTypes: this.safeJsonParse(result.preferred_insight_types),
-        notificationSettings: this.safeJsonParse(result.notification_settings),
         customFilters: this.safeJsonParse(result.custom_filters),
         createdAt: result.created_at,
         updatedAt: result.updated_at,
@@ -92,11 +90,6 @@ export class UserPreferencesService implements IUserPreferencesService {
       if (preferences.preferredInsightTypes !== undefined) {
         updates.push('preferred_insight_types = ?');
         params.push(JSON.stringify(preferences.preferredInsightTypes));
-      }
-
-      if (preferences.notificationSettings !== undefined) {
-        updates.push('notification_settings = ?');
-        params.push(JSON.stringify(preferences.notificationSettings));
       }
 
       if (preferences.customFilters !== undefined) {
@@ -146,15 +139,14 @@ export class UserPreferencesService implements IUserPreferencesService {
       await databaseService.execute(
         `INSERT INTO user_preferences (
           id, user_id, objectives, risk_tolerance, preferred_insight_types,
-          notification_settings, custom_filters, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          custom_filters, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           userId,
           JSON.stringify(preferences.objectives),
           preferences.riskTolerance,
           JSON.stringify(preferences.preferredInsightTypes),
-          JSON.stringify(preferences.notificationSettings),
           JSON.stringify(preferences.customFilters),
           now,
           now,

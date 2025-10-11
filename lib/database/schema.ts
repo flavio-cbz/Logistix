@@ -160,154 +160,8 @@ export const products = sqliteTable(
 );
 
 // ============================================================================
-// MARKET ANALYSIS AND TRACKING
+// MARKET ANALYSIS AND TRACKING - REMOVED AS PART OF FEATURE REMOVAL
 // ============================================================================
-
-// Market analyses table - from drizzle-schema.ts
-export const marketAnalyses = sqliteTable(
-  "market_analyses",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id),
-    productName: text("product_name").notNull(),
-    catalogId: integer("catalog_id"),
-    categoryName: text("category_name"),
-    brandId: integer("brand_id"),
-    status: text("status", {
-      enum: ["pending", "completed", "failed"],
-    })
-      .notNull()
-      .$type<"pending" | "completed" | "failed">(),
-    input: text("input", { mode: "json" }).$type<Record<string, unknown>>(),
-    result: text("result", { mode: "json" }).$type<Record<string, unknown>>(),
-    rawData: text("raw_data", { mode: "json" }).$type<Record<string, unknown>>(),
-    error: text("error"),
-    createdAt: text("created_at")
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    updatedAt: text("updated_at")
-      .notNull()
-      .$onUpdate(() => new Date().toISOString()),
-    expiresAt: text("expires_at"),
-  },
-  (table) => ({
-    userCreatedIdx: index("idx_market_analyses_user_created").on(
-      table.userId,
-      table.createdAt,
-    ),
-    statusIdx: index("idx_market_analyses_status").on(table.status),
-    userStatusIdx: index("idx_market_analyses_user_status").on(
-      table.userId,
-      table.status,
-    ),
-    productNameIdx: index("idx_market_analyses_product_name").on(
-      table.productName,
-    ),
-    expiresAtIdx: index("idx_market_analyses_expires_at").on(table.expiresAt),
-  }),
-);
-
-// Historical prices table - from drizzle-schema.ts
-export const historicalPrices = sqliteTable(
-  "historical_prices",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    productName: text("product_name").notNull(),
-    date: text("date").notNull(),
-    price: real("price").notNull(),
-    salesVolume: integer("sales_volume").notNull(),
-    createdAt: text("created_at")
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-  },
-  (table) => ({
-    productDateIdx: index("idx_historical_prices_product_date").on(
-      table.productName,
-      table.date,
-    ),
-    dateIdx: index("idx_historical_prices_date").on(table.date),
-  }),
-);
-
-// Similar sales cache table - from drizzle-schema.ts
-export const similarSales = sqliteTable(
-  "similar_sales",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    queryHash: text("query_hash").notNull(),
-    rawData: text("raw_data", { mode: "json" }).$type<Record<string, unknown>>(),
-    parsedData: text("parsed_data", { mode: "json" }).$type<Record<string, unknown>>(),
-    expiresAt: text("expires_at").notNull(),
-    createdAt: text("created_at")
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-  },
-  (table) => ({
-    queryHashIdx: index("idx_similar_sales_query_hash").on(table.queryHash),
-    expiresAtIdx: index("idx_similar_sales_expires_at").on(table.expiresAt),
-  }),
-);
-
-// Tracked products table - from drizzle-schema.ts
-export const trackedProducts = sqliteTable(
-  "tracked_products",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id),
-    productName: text("product_name").notNull(),
-    externalProductId: text("external_product_id"),
-    lastCheckedAt: text("last_checked_at"),
-    createdAt: text("created_at")
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    updatedAt: text("updated_at")
-      .notNull()
-      .$onUpdate(() => new Date().toISOString()),
-  },
-  (table) => ({
-    userIdx: index("idx_tracked_products_user_id").on(table.userId),
-  }),
-);
-
-// Market trends table - from drizzle-schema.ts
-export const marketTrends = sqliteTable(
-  "market_trends",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    trackedProductId: text("tracked_product_id")
-      .notNull()
-      .references(() => trackedProducts.id),
-    analysisId: text("analysis_id").references(() => marketAnalyses.id),
-    snapshotDate: text("snapshot_date").notNull(),
-    avgPrice: real("avg_price"),
-    salesVolume: integer("sales_volume"),
-    createdAt: text("created_at")
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-  },
-  (table) => ({
-    trackedProductIdx: index("idx_market_trends_tracked_product").on(
-      table.trackedProductId,
-    ),
-    snapshotDateIdx: index("idx_market_trends_snapshot_date").on(
-      table.snapshotDate,
-    ),
-  }),
-);
 
 // ============================================================================
 // USER MANAGEMENT AND PREFERENCES
@@ -361,9 +215,6 @@ export const userPreferences = sqliteTable(
     preferredInsightTypes: text("preferred_insight_types", { mode: "json" })
       .notNull()
       .$type<string[]>(),
-    notificationSettings: text("notification_settings", { mode: "json" })
-      .notNull()
-      .$type<Record<string, boolean>>(),
     customFilters: text("custom_filters", { mode: "json" })
       .notNull()
       .$type<Record<string, unknown>>(),
@@ -516,21 +367,7 @@ export type NewParcelle = typeof parcelles.$inferInsert;
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
 
-// Market analysis types
-export type MarketAnalysis = typeof marketAnalyses.$inferSelect;
-export type NewMarketAnalysis = typeof marketAnalyses.$inferInsert;
-
-export type HistoricalPrice = typeof historicalPrices.$inferSelect;
-export type NewHistoricalPrice = typeof historicalPrices.$inferInsert;
-
-export type SimilarSale = typeof similarSales.$inferSelect;
-export type NewSimilarSale = typeof similarSales.$inferInsert;
-
-export type TrackedProduct = typeof trackedProducts.$inferSelect;
-export type NewTrackedProduct = typeof trackedProducts.$inferInsert;
-
-export type MarketTrend = typeof marketTrends.$inferSelect;
-export type NewMarketTrend = typeof marketTrends.$inferInsert;
+// Market analysis types - REMOVED AS PART OF FEATURE REMOVAL
 
 // User management types
 export type UserQueryHistory = typeof userQueryHistory.$inferSelect;
@@ -559,7 +396,7 @@ export type ProductStatus =
   | "archived"
   | "online";
 export type Platform = "Vinted" | "leboncoin" | "autre";
-export type MarketAnalysisStatus = "pending" | "completed" | "failed";
+// MarketAnalysisStatus enum removed as part of feature removal
 export type RiskTolerance = "conservative" | "moderate" | "aggressive";
 export type UserActionType =
   | "view_insight"

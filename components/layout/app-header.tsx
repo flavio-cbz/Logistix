@@ -4,7 +4,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { User, Package2, Sparkles } from "lucide-react";
-import { NotificationCenter } from "@/components/features/notifications/notification-center";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -32,7 +31,7 @@ export function AppHeader({
       parcelles: "Colis",
       produits: "Produits",
       statistiques: "Statistiques",
-      "analyse-marche": "Analyse de Marché",
+      
       validation: "Validation",
       profile: "Profil",
     };
@@ -117,10 +116,6 @@ export function AppHeader({
       </div>
       {/* Actions Section */}
       <div className="flex items-center gap-3 sm:gap-4 md:gap-6 transition-all duration-300 flex-shrink-0 ml-3">
-        {/* Enhanced Notification Center */}
-        <div className="transition-transform duration-200 hover:scale-[1.05] active:scale-[0.95]">
-          <NotificationCenter />
-        </div>
         {/* Theme Toggle */}
         <ThemeToggle />
         {/* Profil Button à côté du ThemeToggle */}

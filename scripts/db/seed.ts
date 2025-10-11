@@ -11,7 +11,6 @@ import { writeFileSync } from "fs";
 import { databaseService } from "../../lib/database/database-service";
 import { 
   users, parcelles, products, userPreferences, 
-  marketAnalyses
 } from "../../lib/database/schema";
 import { logger } from "../../lib/utils/logging/logger";
 import { eq, count } from "drizzle-orm";
@@ -169,11 +168,6 @@ const mockUserPreferences = [
     objectives: ["profit", "volume"],
     riskTolerance: "moderate" as const,
     preferredInsightTypes: ["trends", "opportunities"],
-    notificationSettings: {
-      anomalies: true,
-      opportunities: true, 
-      priceChanges: false
-    },
     customFilters: {}
   },
   {
@@ -182,11 +176,6 @@ const mockUserPreferences = [
     objectives: ["profit"],
     riskTolerance: "aggressive" as const,
     preferredInsightTypes: ["trends", "predictions"],
-    notificationSettings: {
-      anomalies: false,
-      opportunities: true,
-      priceChanges: true
-    },
     customFilters: {
       minPrice: 20,
       brands: ["Nike", "Adidas"]
@@ -440,52 +429,6 @@ class SeedService {
     }
   }
 
-  async upsertMarketAnalyses() {
-    logger.info("📊 Import des analyses de marché...");
-    const db = await databaseService.getDb();
-    
-    for (const analysisData of mockMarketAnalyses) {
-      try {
-        
-        if (this.options.dryRun) {
-          logger.info(`[DRY RUN] Création analyse: ${analysisData.productName}`);
-          this.logSuccess('analyses', 'created');
-          continue;
-        }
-
-        const existingAnalysis = await db
-          .select({ count: count() })
-          .from(marketAnalyses)
-          .where(eq(marketAnalyses.id, analysisData.id));
-          
-        if (existingAnalysis[0]?.count > 0) {
-          if (!this.options.force) {
-            logger.info(`Analyse ${analysisData.productName} existe déjà, ignorée`);
-            continue;
-          }
-          
-          await db
-            .update(marketAnalyses)
-            .set({
-              ...analysisData,
-              updatedAt: new Date().toISOString()
-            })
-            .where(eq(marketAnalyses.id, analysisData.id));
-            
-          this.logSuccess('analyses', 'updated');
-          logger.info(`✅ Analyse ${analysisData.productName} mise à jour`);
-        } else {
-          await db.insert(marketAnalyses).values(analysisData);
-          this.logSuccess('analyses', 'created');
-          logger.info(`✅ Analyse ${analysisData.productName} créée`);
-        }
-        
-      } catch (error) {
-        this.logError('analyses', 'upsert', error as Error, analysisData);
-      }
-    }
-  }
-
   calculateErrorRate(): number {
     const total = this.report.successCount + this.report.errorCount;
     return total > 0 ? (this.report.errorCount / total) * 100 : 0;
@@ -556,7 +499,6 @@ class SeedService {
     await this.upsertParcelles(); 
     await this.upsertProducts();
     await this.upsertPreferences();
-    await this.upsertMarketAnalyses();
     
     const endTime = performance.now();
     const duration = Math.round(endTime - startTime);

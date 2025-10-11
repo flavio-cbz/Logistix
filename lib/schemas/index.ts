@@ -107,21 +107,6 @@ export const settingsSchema = z.object({
   }).optional()
 });
 
-// Notifications
-export const createNotificationSchema = z.object({
-  title: z.string().min(1, "Le titre est requis").max(200, "Titre trop long"),
-  message: z.string().min(1, "Le message est requis").max(1000, "Message trop long"),
-  type: z.enum(['info', 'success', 'warning', 'error']).default('info'),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
-  data: z.record(z.any()).optional().default({})
-});
-
-export const updateNotificationSchema = z.object({
-  id: idSchema,
-  read: z.boolean().optional(),
-  archived: z.boolean().optional()
-});
-
 // Stats & Analytics
 export const statsQuerySchema = z.object({
   period: z.enum(["day", "week", "month", "year"]).default("month"),
@@ -227,16 +212,6 @@ export const parcellesQuerySchema = z.object({
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   sortBy: z.enum(['createdAt', 'updatedAt', 'dateEnvoi', 'numero']).optional().default('createdAt'),
-  sortOrder: z.enum(['asc', 'desc']).optional().default('desc')
-});
-
-export const notificationsQuerySchema = z.object({
-  unread: z.string().optional().transform((val) => val === 'true'),
-  limit: z.string().optional().transform((val) => val ? Math.min(100, Math.max(1, parseInt(val))) : 50),
-  offset: z.string().optional().transform((val) => val ? Math.max(0, parseInt(val)) : 0),
-  type: z.enum(['info', 'success', 'warning', 'error']).optional(),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
-  sortBy: z.enum(['createdAt', 'priority', 'read']).optional().default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).optional().default('desc')
 });
 

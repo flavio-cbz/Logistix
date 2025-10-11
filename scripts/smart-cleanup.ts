@@ -1,5 +1,4 @@
 // @ts-nocheck - Script needs refactoring for new DB adapter
-#!/usr/bin/env ts-node
 /**
  * Script intelligent de nettoyage pour Logistix
  * 

@@ -231,7 +231,6 @@ export interface UserPreferences {
   objectives: any;
   riskTolerance: RiskTolerance;
   preferredInsightTypes: any;
-  notificationSettings: any;
   customFilters: any;
   createdAt: string;
   updatedAt: string;
