@@ -67,7 +67,7 @@ export function validateUrl(url: string): boolean {
  * Configuration pour les tests E2E
  */
 export const E2E_CONFIG = {
-  HEADLESS: process.env.CI === 'true', // Headless en CI
+  HEADLESS: process.env['CI'] === 'true', // Headless en CI
   VIEWPORT: { width: 1280, height: 720 },
   TIMEOUT: 30000,
 } as const;

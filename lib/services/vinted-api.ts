@@ -1,5 +1,5 @@
 import { autoPerf } from "@/lib/services/auto-performance-integration";
-import { getVintedEndpoint } from "@/lib/services/auto-configuration";
+// import { getVintedEndpoint } from "@/lib/services/auto-configuration";
 
 export interface VintedResponse<T> {
   data: T;
@@ -10,7 +10,7 @@ export class VintedApiClient {
     endpointName: string,
     init: RequestInit = {},
   ): Promise<T> {
-    const url = await getVintedEndpoint(endpointName);
+    const url = `https://api.vinted.fr/${endpointName}`;
     const res = await autoPerf.autoFetch(url, {
       ...init,
       method: init.method ?? "GET",
@@ -32,7 +32,7 @@ export class VintedApiClient {
     body: unknown,
     init: RequestInit = {},
   ): Promise<T> {
-    const url = await getVintedEndpoint(endpointName);
+    const url = `https://api.vinted.fr/${endpointName}`;
     const res = await autoPerf.autoFetch(url, {
       ...init,
       method: "POST",

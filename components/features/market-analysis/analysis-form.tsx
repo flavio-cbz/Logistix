@@ -61,9 +61,9 @@ function normalizeCategorySuggestions(input: unknown): CategorySuggestion[] {
   const out: CategorySuggestion[] = [];
   for (const item of input) {
     if (isRecord(item)) {
-      const id = typeof item.id === "number" ? item.id : Number(item.id);
+      const id = typeof item['id'] === "number" ? item['id'] : Number(item['id']);
       const title =
-        typeof item.title === "string" ? item.title : String(item.title ?? "");
+        typeof item['title'] === "string" ? item['title'] : String(item['title'] ?? "");
       if (Number.isFinite(id) && title) out.push({ id, title });
     }
   }
@@ -75,11 +75,11 @@ function normalizeBrandOptions(input: unknown): BrandOption[] {
   const out: BrandOption[] = [];
   for (const item of input) {
     if (isRecord(item)) {
-      const id = typeof item.id === "number" ? item.id : Number(item.id);
+      const id = typeof item['id'] === "number" ? item['id'] : Number(item['id']);
       // L'API peut retourner `name` ou `title`
-      const name = typeof item.name === "string" ? item.name : undefined;
+      const name = typeof item['name'] === "string" ? item['name'] : undefined;
       const titleRaw =
-        typeof item.title === "string" ? item.title : (name ?? "");
+        typeof item['title'] === "string" ? item['title'] : (name ?? "");
       const title = String(titleRaw);
       if (Number.isFinite(id) && title) out.push({ id, title });
     }

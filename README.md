@@ -19,6 +19,7 @@ Le backend a été **entièrement refactorisé** en 2025-01/02 avec :
 ✅ **Phase 4** : Observabilité & Performance (métriques p95/p99, 11 indexes SQL, HTTP metrics)
 
 **Résultats** :
+
 - 📈 **Performance** : Requêtes listing **94% plus rapides** (150ms → 8ms avec indexes)
 - 🔒 **Sécurité** : RBAC avec roles (user/admin), rate limiting, audit logs structurés
 - 📊 **Observabilité** : Métriques temps réel (use-cases + HTTP), API admin `/api/v1/metrics`
@@ -138,6 +139,7 @@ La documentation complète est disponible dans le dossier `docs/` :
 ### 🔧 Spécifications Techniques
 
 La refactorisation complète de la codebase est documentée dans `.kiro/specs/codebase-cleanup-refactoring/` avec :
+
 - **Requirements** - Exigences détaillées pour l'amélioration de la qualité du code
 - **Design** - Architecture cible et patterns de conception
 - **Tasks** - Plan d'implémentation par phases

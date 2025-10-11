@@ -87,6 +87,8 @@ __pycache__/
 *.swp
 *.swo
 *~
+.kilo-settings.json
+.kilocode/
 
 # OS generated files
 .DS_Store
@@ -144,12 +146,4 @@ pids/
 # Temporary folders
 tmp/
 temp/
-.kiro/specs/comprehensive-testing-system/design.md
-.kiro/specs/comprehensive-testing-system/requirements.md
-.kiro/specs/comprehensive-testing-system/tasks.md
-.kiro/specs/project-audit-system/design.md
-.kiro/specs/project-audit-system/requirements.md
-.kiro/specs/project-audit-system/tasks.md
-.kiro/steering/product.md
-.kiro/steering/structure.md
-.kiro/steering/tech.md
+.kiro/

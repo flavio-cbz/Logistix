@@ -330,14 +330,14 @@ function getOptimalMaxTokens(analysisType: string): number {
 function getProviderFromContext(context?: Record<string, unknown>): string {
   // Changed context type
   return (
-    (context?.provider as string) || process.env["AI_PROVIDER"]! || "openai"
+    (context?.['provider'] as string) || process.env["AI_PROVIDER"]! || "openai"
   );
 }
 
 function getModelVersionFromContext(context?: Record<string, unknown>): string {
   // Changed context type
   return (
-    (context?.modelVersion as string) ||
+    (context?.['modelVersion'] as string) ||
     process.env["AI_MODEL_VERSION"]! ||
     "gpt-4-turbo"
   );

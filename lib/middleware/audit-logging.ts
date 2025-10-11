@@ -112,12 +112,15 @@ export function withComprehensiveAuditLogging<T extends any[]>(
 
 // --- Utilities ---
 function extractClientIP(request: NextRequest): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
+  const forwardedValue = request.headers.get("x-forwarded-for");
+  if (forwardedValue != null) {
+    // @ts-expect-error: TypeScript incorrectly thinks this could be undefined after null check
+    return forwardedValue.split(",")[0].trim();
+  }
   return (
-    request.headers.get("x-real-ip") ||
-    request.headers.get("cf-connecting-ip") ||
-    request.headers.get("x-client-ip") ||
+    request.headers.get("x-real-ip") ??
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-client-ip") ??
     "unknown"
   );
 }

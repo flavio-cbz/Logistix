@@ -48,7 +48,7 @@ async function fetchParcelles(): Promise<Parcelle[]> {
   const parcelles = validatedResponse.data!.parcelles;
 
   // Transform legacy parcelles to modern format if needed
-  const transformedParcelles = parcelles.map((parcelle) => {
+  const transformedParcelles = parcelles.map((parcelle: any) => {
     try {
       return validateParcelle(parcelle, "fetchParcelles");
     } catch (error) {

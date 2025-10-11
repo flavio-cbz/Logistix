@@ -1,5 +1,22 @@
 import { z } from "zod";
-import { AIAnnotation } from "../../types/ai-annotation";
+// import { AIAnnotation } from "../../types/ai-annotation";
+
+// Temporary type definition
+interface AIAnnotation {
+  id: string;
+  type: string;
+  data: any;
+  confidence?: number;
+  timestamp: string;
+  metadata?: Record<string, any>;
+  priority?: string;
+  actionable?: boolean;
+  interactiveElements?: any[];
+  title?: string;
+  description?: string;
+  relatedData?: any;
+  position?: { x: number; y: number };
+}
 
 /**
  * Service centralisé pour la création, validation et transformation des annotations IA.
@@ -250,7 +267,7 @@ export default class AIAnnotationService {
     const interactiveElements: any[] = [];
 
     const competitivePosition =
-      analysisResult?.marketInsights?.competitivePosition;
+      analysisResult?.['marketInsights']?.competitivePosition;
     if (!competitivePosition) {
       return { annotations, interactiveElements };
     }
@@ -369,7 +386,7 @@ export default class AIAnnotationService {
     const interactiveElements: any[] = [];
 
     const trends =
-      trendData?.trends ?? analysisResult?.marketInsights?.trends ?? [];
+      trendData?.trends ?? analysisResult?.['marketInsights']?.trends ?? [];
     trends.forEach((t: any, i: number) => {
       const posX = Math.max(0, Math.min(100, t.position ?? t.x ?? 50));
       const posY = Math.max(0, Math.min(100, t.y ?? t.positionY ?? 50));
@@ -402,7 +419,7 @@ export default class AIAnnotationService {
     const interactiveElements: any[] = [];
 
     const opportunities =
-      analysisResult?.marketInsights?.marketOpportunities ?? [];
+      analysisResult?.['marketInsights']?.marketOpportunities ?? [];
     opportunities.forEach((op: any, i: number) => {
       annotations.push(
         this.createAnnotation({

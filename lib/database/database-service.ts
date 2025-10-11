@@ -83,7 +83,7 @@ export class DatabaseService {
       connectionTimeout: config.connectionTimeout || 30000,
       enableWAL: config.enableWAL !== false,
       enableLogging:
-        config.enableLogging || process.env.NODE_ENV === "development",
+        config.enableLogging || process.env['NODE_ENV'] === "development",
       ...config,
     };
 
@@ -418,7 +418,7 @@ export class DatabaseService {
    * Reset the database (development only)
    */
   public async reset(): Promise<void> {
-    if (process.env.NODE_ENV === "production") {
+    if (process.env['NODE_ENV'] === "production") {
       throw new Error("Database reset is not allowed in production");
     }
 

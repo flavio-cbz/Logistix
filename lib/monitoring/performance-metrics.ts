@@ -75,8 +75,8 @@ class PerformanceCollector {
       count: operationMetrics.length,
       totalDuration: durations.reduce((sum, d) => sum + d, 0),
       avgDuration: durations.reduce((sum, d) => sum + d, 0) / durations.length,
-      minDuration: durations[0],
-      maxDuration: durations[durations.length - 1],
+      minDuration: durations.length > 0 ? durations[0]! : 0,
+      maxDuration: durations.length > 0 ? durations[durations.length - 1]! : 0,
       p50: this.percentile(durations, 50),
       p95: this.percentile(durations, 95),
       p99: this.percentile(durations, 99),
@@ -118,7 +118,7 @@ class PerformanceCollector {
     if (sortedArray.length === 0) return 0;
     
     const index = Math.ceil((percentile / 100) * sortedArray.length) - 1;
-    return sortedArray[Math.max(0, index)];
+    return sortedArray[Math.max(0, index)]!;
   }
 }
 

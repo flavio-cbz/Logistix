@@ -4,44 +4,9 @@
   "entries": [
     {
       "idx": 0,
-      "version": "6",
-      "when": 1759061600490,
-      "tag": "0000_outstanding_hex",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1759062000000,
-      "tag": "0003_add_missing_fields_to_parcelles",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1759062100000,
-      "tag": "0004_add_user_role",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1759062200000,
-      "tag": "0005_add_performance_indexes",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "6",
-      "when": 1759346241411,
-      "tag": "0006_lying_magus",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "6",
-      "when": 1759519638073,
-      "tag": "0007_woozy_the_call",
+      "version": "7",
+      "when": 1760088000000,
+      "tag": "0000_complete_schema",
       "breakpoints": true
     }
   ]

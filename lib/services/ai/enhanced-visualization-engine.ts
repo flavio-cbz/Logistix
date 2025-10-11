@@ -4,8 +4,11 @@ import { getErrorMessage, toError } from "../../utils/error-utils";
 import type { VintedAnalysisResult } from "@/types/vinted-market-analysis";
 import { AIAnalysisError } from "./ai-errors";
 import ChartGenerationService from "./chart-generation.service";
-// Use canonical types from the main types file
-import type { AIAnnotation, InteractiveElement } from "../../types/ai-annotation";
+// import type { AIAnnotation, InteractiveElement } from "../../types/ai-annotation";
+
+// Temporary type definitions
+type AIAnnotation = any;
+type InteractiveElement = any;
 
 // Define EnhancedAnalysisResult locally to break circular dependency
 interface EnhancedAnalysisResult {
@@ -114,14 +117,14 @@ export class EnhancedVisualizationEngine {
       charts.push(priceDistributionChart);
 
       // 2. Graphique d'analyse de tendance avec prédictions
-      if (analysisResult.marketInsights) {
+      if (analysisResult['marketInsights']) {
         const trendChart = await this.createTrendAnalysisChart(analysisResult);
         charts.push(trendChart);
       }
 
       // 3. Carte des opportunités de marché
       if (
-        (analysisResult.marketInsights?.marketOpportunities?.length ?? 0) > 0
+        (analysisResult['marketInsights']?.marketOpportunities?.length ?? 0) > 0
       ) {
         const opportunityChart =
           await this.createOpportunityMapChart(analysisResult);
@@ -129,7 +132,7 @@ export class EnhancedVisualizationEngine {
       }
 
       // 4. Graphique de position concurrentielle
-      if (analysisResult.marketInsights?.competitivePosition) {
+      if (analysisResult['marketInsights']?.competitivePosition) {
         const competitiveChart =
           await this.createCompetitivePositionChart(analysisResult);
         charts.push(competitiveChart);

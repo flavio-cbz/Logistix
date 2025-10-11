@@ -1,4 +1,5 @@
 // Vinted integration feature
-export * from './services'
-export * from './api'
-export * from './types'
+// TODO: Create services, api and types directories
+// export * from './services'
+// export * from './api'
+// export * from './types'

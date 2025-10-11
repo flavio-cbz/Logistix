@@ -38,7 +38,7 @@ export function HeatmapChart({
     jours.forEach((jour) => {
       grid[jour] = {};
       heures.forEach((heure) => {
-        grid[jour][heure] =
+        grid[jour]![heure] =
           data.find((d) => d.jour === jour && d.heure === heure) || null;
       });
     });
@@ -163,7 +163,7 @@ export function HeatmapChart({
                     {jour}
                   </div>
                   {heures.map((heure) => {
-                    const cellData = heatmapGrid[jour][heure];
+                    const cellData = heatmapGrid[jour]?.[heure];
                     return (
                       <div
                         key={`${jour}-${heure}`}

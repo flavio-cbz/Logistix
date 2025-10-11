@@ -115,16 +115,16 @@ interface AuthValidationResult {
 
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
 const BCRYPT_SALT_ROUNDS = 12;
-const DEFAULT_COOKIE_NAME = process.env.COOKIE_NAME || "logistix_session";
+const DEFAULT_COOKIE_NAME = process.env['COOKIE_NAME'] || "logistix_session";
 
 // Vérification de la présence de JWT_SECRET
-if (!process.env.JWT_SECRET) {
+if (!process.env['JWT_SECRET']) {
   throw new Error(
     "JWT_SECRET non défini. Veuillez configurer une valeur sécurisée dans .env",
   );
 }
 
-if (process.env.JWT_SECRET === "change_this_secret_in_production") {
+if (process.env['JWT_SECRET'] === "change_this_secret_in_production") {
   logger.warn(
     "JWT_SECRET utilise la valeur par défaut. Veuillez configurer une valeur sécurisée en production.",
   );
@@ -728,8 +728,9 @@ export async function getSessionUser(): Promise<UserSession | null> {
       });
       
       const responseTime = Date.now() - startTime;
+      const legacyAdminId = process.env['ADMIN_ID'] || 'baa65519-e92f-4010-a3c2-e9b5c67fb0d7';
       const userSession: UserSession = {
-        id: 'baa65519-e92f-4010-a3c2-e9b5c67fb0d7', // admin user ID
+        id: legacyAdminId,
         username: 'admin',
         isAdmin: true,
         aiConfig: undefined,

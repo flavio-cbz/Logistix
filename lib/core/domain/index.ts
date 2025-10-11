@@ -1,2 +1,3 @@
 // Core domain entities and business rules
-export * from './entities'
+// TODO: Create entities directory
+// export * from './entities'

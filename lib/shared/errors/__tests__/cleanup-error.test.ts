@@ -9,10 +9,10 @@ import {
   CleanupError,
   ValidationError,
   NotFoundError,
-  AuthError,
+  // AuthError, // Not used in this test
   DatabaseError,
   ErrorFactory,
-  isCleanupError,
+  // isCleanupError, // Not used in this test
 } from '../cleanup-error';
 
 describe('CleanupError', () => {

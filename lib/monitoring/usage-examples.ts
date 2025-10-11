@@ -1,13 +1,18 @@
 /**
  * Monitoring System Usage Examples
- * 
+ *
  * Practical examples of how to integrate the unified monitoring system
  * into various parts of the Logistix application.
  */
 
-import { 
-  getUnifiedMonitoring, 
-  monitorPerformance, 
+// Mock variables for examples - these would be injected in real usage
+const database = { products: { create: (_data: any) => ({ id: 1, name: 'Product', price: 100 }), findById: (_id: any) => ({ id: 1, name: 'Product', price: 100 }), update: (_id: any, _data: any) => ({ id: 1, name: 'Product', price: 100 }) }, users: { findByEmail: (_email: any) => ({ email: 'user@example.com', id: 1 }) } } as any;
+const cache = { get: (_key: any) => ({}), set: (_key: any, _value: any, _ttl: any) => ({}), delete: (_key: any) => ({}) } as any;
+const productData = { name: 'Example Product', price: 100, category: 'test' };
+
+import {
+  getUnifiedMonitoring,
+  // monitorPerformance, // Commented out as decorators are disabled in examples
   createOperationLogger,
   logBusinessEvent,
   logSecurityEvent,
@@ -90,7 +95,7 @@ export async function exampleApiRouteHandler(request: any, response: any) {
 export class ProductService {
   private monitoring = getUnifiedMonitoring();
 
-  @monitorPerformance('ProductService.findById')
+  // @monitorPerformance('ProductService.findById') // Commented out for example compilation
   async findById(id: string) {
     // Monitor cache operation
     const cached = await monitorCacheOperation('get', `product:${id}`, async () => {
@@ -119,7 +124,7 @@ export class ProductService {
     return product;
   }
 
-  @monitorPerformance('ProductService.updatePrice')
+  // @monitorPerformance('ProductService.updatePrice') // Commented out for example compilation
   async updatePrice(id: string, newPrice: number, userId: string) {
     const operationLogger = createOperationLogger('update-product-price');
 
@@ -184,7 +189,7 @@ export class ProductService {
 export class AuthService {
   private monitoring = getUnifiedMonitoring();
 
-  @monitorPerformance('AuthService.login')
+  // @monitorPerformance('AuthService.login') // Commented out for example compilation
   async login(email: string, password: string, request: any) {
     const operationLogger = createOperationLogger('user-login');
 

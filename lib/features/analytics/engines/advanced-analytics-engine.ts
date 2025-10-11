@@ -1,5 +1,5 @@
 import type { EnhancedAdvancedMetrics } from "@/types/vinted-market-analysis";
-import type { VintedAnalysisResult } from "@/lib/types/vinted-market-analysis";
+import type { VintedAnalysisResult } from "@/types/vinted-market-analysis";
 
 export type AdvancedMetrics = EnhancedAdvancedMetrics;
 

@@ -86,16 +86,16 @@ export function getErrorMessage(error: unknown): string {
     // Tentative d'extraction de propriétés communes d'erreur
     const errorObj = error as Record<string, unknown>;
 
-    if (typeof errorObj.message === "string") {
-      return errorObj.message;
+    if (typeof errorObj['message'] === "string") {
+      return errorObj['message'];
     }
 
-    if (typeof errorObj.error === "string") {
-      return errorObj.error;
+    if (typeof errorObj['error'] === "string") {
+      return errorObj['error'];
     }
 
-    if (typeof errorObj.description === "string") {
-      return errorObj.description;
+    if (typeof errorObj['description'] === "string") {
+      return errorObj['description'];
     }
 
     // Sérialisation sécurisée comme fallback
@@ -368,8 +368,8 @@ export function getErrorStack(error: unknown): string | undefined {
 
   if (error && typeof error === "object") {
     const errorObj = error as Record<string, unknown>;
-    if (typeof errorObj.stack === "string") {
-      return errorObj.stack;
+    if (typeof errorObj['stack'] === "string") {
+      return errorObj['stack'];
     }
   }
 

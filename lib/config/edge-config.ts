@@ -15,14 +15,14 @@
  * Get the authentication cookie name
  */
 export function getCookieName(): string {
-  return process.env.COOKIE_NAME || "logistix_session";
+  return process.env['COOKIE_NAME'] || "logistix_session";
 }
 
 /**
  * Get the JWT secret (if available in Edge Runtime)
  */
 export function getJwtSecret(): string | undefined {
-  return process.env.JWT_SECRET;
+  return process.env['JWT_SECRET'];
 }
 
 /**
@@ -61,7 +61,7 @@ export function getEnvironment(): "development" | "production" | "test" {
  * Get session timeout in milliseconds
  */
 export function getSessionTimeout(): number {
-  const timeout = process.env.SESSION_TIMEOUT;
+  const timeout = process.env['SESSION_TIMEOUT'];
   return timeout ? parseInt(timeout, 10) * 1000 : 3600000; // Default: 1 hour
 }
 
@@ -69,14 +69,14 @@ export function getSessionTimeout(): number {
  * Get database path
  */
 export function getDatabasePath(): string {
-  return process.env.DATABASE_PATH || "./data/logistix.db";
+  return process.env['DATABASE_PATH'] || "./data/logistix.db";
 }
 
 /**
  * Get server port
  */
 export function getPort(): number {
-  const port = process.env.PORT;
+  const port = process.env['PORT'];
   return port ? parseInt(port, 10) : 3000;
 }
 
@@ -84,7 +84,7 @@ export function getPort(): number {
  * Get CORS origins
  */
 export function getCorsOrigins(): string[] {
-  const origins = process.env.CORS_ORIGINS;
+  const origins = process.env['CORS_ORIGINS'];
   return origins
     ? origins.split(",").map((origin) => origin.trim())
     : ["http://localhost:3000"];
@@ -103,14 +103,14 @@ export function isFeatureEnabled(feature: string): boolean {
  * Get admin default password
  */
 export function getAdminDefaultPassword(): string {
-  return process.env.ADMIN_DEFAULT_PASSWORD || "admin123";
+  return process.env['ADMIN_DEFAULT_PASSWORD'] || "admin123";
 }
 
 /**
  * Get log level
  */
 export function getLogLevel(): "error" | "warn" | "info" | "debug" {
-  const level = process.env.LOG_LEVEL;
+  const level = process.env['LOG_LEVEL'];
   if (
     level === "error" ||
     level === "warn" ||
@@ -126,14 +126,14 @@ export function getLogLevel(): "error" | "warn" | "info" | "debug" {
  * Check if debug mode is enabled
  */
 export function isDebugEnabled(): boolean {
-  return process.env.ENABLE_DEBUG === "true" || isDevelopment();
+  return process.env['ENABLE_DEBUG'] === "true" || isDevelopment();
 }
 
 /**
  * Check if metrics are enabled
  */
 export function isMetricsEnabled(): boolean {
-  return process.env.ENABLE_METRICS === "true";
+  return process.env['ENABLE_METRICS'] === "true";
 }
 
 // ============================================================================

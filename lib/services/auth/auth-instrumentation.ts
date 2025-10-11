@@ -260,11 +260,11 @@ export class AuthInstrumentationCollector {
           number
         >;
       }
-      this.metrics.eventsByOrigin[event.origin][event.type] =
-        (this.metrics.eventsByOrigin[event.origin][event.type] || 0) + 1;
+      const originEvents = (this.metrics.eventsByOrigin[event.origin] || {}) as Record<AuthInstrumentationEventType, number>;
+      originEvents[event.type] = (originEvents[event.type] || 0) + 1;
       if (!event.success) {
-        this.metrics.errorsByOrigin[event.origin][event.type] =
-          (this.metrics.errorsByOrigin[event.origin][event.type] || 0) + 1;
+        const originErrors = (this.metrics.errorsByOrigin[event.origin] || {}) as Record<AuthInstrumentationEventType, number>;
+        originErrors[event.type] = (originErrors[event.type] || 0) + 1;
       }
     }
 
@@ -278,7 +278,12 @@ export class AuthInstrumentationCollector {
           totalLatency: 0,
         };
       }
-      const providerMetrics = this.metrics.metricsByProvider[event.provider];
+      const providerMetrics = this.metrics.metricsByProvider[event.provider] || {
+        totalEvents: 0,
+        successfulEvents: 0,
+        failedEvents: 0,
+        totalLatency: 0,
+      };
       providerMetrics.totalEvents++;
       if (event.success) providerMetrics.successfulEvents++;
       else providerMetrics.failedEvents++;
@@ -294,7 +299,12 @@ export class AuthInstrumentationCollector {
           totalLatency: 0,
         };
       }
-      const modelMetrics = this.metrics.metricsByModel[event.model];
+      const modelMetrics = this.metrics.metricsByModel[event.model] || {
+        totalEvents: 0,
+        successfulEvents: 0,
+        failedEvents: 0,
+        totalLatency: 0,
+      };
       modelMetrics.totalEvents++;
       if (event.success) modelMetrics.successfulEvents++;
       else modelMetrics.failedEvents++;

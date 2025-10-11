@@ -5,7 +5,7 @@ interface ProductForCalculation extends Partial<Product> {
   benefices?: number | null;
   coutLivraison?: number | null;
   prixVente?: number | null;
-  vendu?: string | boolean;
+  vendu?: "0" | "1";
 }
 
 /**

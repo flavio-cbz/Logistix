@@ -1,0 +1,32 @@
+name: knip-unused
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+
+jobs:
+  knip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run knip (unused files)
+        run: npx --yes knip --reporter json --config knip.json > knip-report.json || (echo "Knip detected unused items" && exit 1)
+
+      - name: Upload Knip report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: knip-report
+          path: ./knip-report.json

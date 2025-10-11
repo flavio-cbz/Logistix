@@ -26,7 +26,7 @@ export class UserRepository extends BaseRepository<
 > {
   constructor(databaseService: DatabaseService) {
     super(users, databaseService, {
-      enableLogging: process.env.NODE_ENV === "development",
+  enableLogging: process.env['NODE_ENV'] === "development",
       defaultLimit: 50,
       maxLimit: 500,
       tableName: "users",

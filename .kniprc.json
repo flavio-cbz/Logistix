@@ -1,0 +1,56 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "app/**/*.{ts,tsx}",
+    "pages/**/*.{ts,tsx}",
+    "middleware.ts",
+    "scripts/**/*.ts",
+    "tests/**/*.ts"
+  ],
+  "project": [
+    "**/*.{ts,tsx}",
+    "!**/*.test.{ts,tsx}",
+    "!**/*.spec.{ts,tsx}"
+  ],
+  "ignore": [
+    "**/*.d.ts",
+    "**/__tests__/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.next/**",
+    "**/node_modules/**",
+    "**/archive/**"
+  ],
+  "ignoreDependencies": [
+    "knip",
+    "@types/node",
+    "@types/react",
+    "@types/react-dom",
+    "typescript",
+    "eslint",
+    "prettier",
+    "vitest",
+    "@vitejs/plugin-react",
+    "playwright"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "ignoreWorkspaces": [],
+  "next": {
+    "entry": [
+      "app/**/*.{ts,tsx}!",
+      "pages/**/*.{ts,tsx}!",
+      "middleware.ts!"
+    ]
+  },
+  "ignoreBinaries": ["tsx", "tsc", "eslint"],
+  "ignoreMembers": [],
+  "paths": {
+    "@/*": ["./lib/*", "./components/*", "./app/*"]
+  },
+  "workspaces": {
+    ".": {
+      "entry": "app/**/*.{ts,tsx}!",
+      "project": "**/*.{ts,tsx}!"
+    }
+  }
+}

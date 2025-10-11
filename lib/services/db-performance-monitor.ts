@@ -196,9 +196,10 @@ export class DatabasePerformanceMonitor extends EventEmitter {
     ).length;
     
     // QPS (requêtes par seconde)
-    const timeSpanSeconds = timeWindow ? timeWindow / 1000 : 
-      (relevantMetrics[relevantMetrics.length - 1]?.timestamp.getTime() - 
-       relevantMetrics[0]?.timestamp.getTime()) / 1000;
+    const timeSpanSeconds = timeWindow ? timeWindow / 1000 :
+      relevantMetrics.length > 0 ?
+        ((relevantMetrics[relevantMetrics.length - 1]?.timestamp?.getTime() || Date.now()) -
+         (relevantMetrics[0]?.timestamp?.getTime() || Date.now())) / 1000 : 0;
     const queriesPerSecond = timeSpanSeconds > 0 ? totalQueries / timeSpanSeconds : 0;
     
     // Top requêtes lentes
@@ -222,7 +223,7 @@ export class DatabasePerformanceMonitor extends EventEmitter {
         serviceStats[m.service] = { count: 0, avgDuration: 0, errorCount: 0 };
       }
       
-      const stats = serviceStats[m.service];
+      const stats = serviceStats[m.service] || { count: 0, avgDuration: 0, errorCount: 0 };
       stats.count++;
       stats.avgDuration = (stats.avgDuration * (stats.count - 1) + m.duration) / stats.count;
       if (!m.success) stats.errorCount++;

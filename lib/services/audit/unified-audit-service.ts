@@ -738,8 +738,8 @@ export class UnifiedAuditService {
           const objValue = value as Record<string, any>;
           if ('before' in objValue || 'after' in objValue) {
             sanitized[key] = {
-              ...(objValue.before !== undefined && { before: '[REDACTED]' }),
-              ...(objValue.after !== undefined && { after: '[REDACTED]' }),
+              ...(objValue['before'] !== undefined && { before: '[REDACTED]' }),
+              ...(objValue['after'] !== undefined && { after: '[REDACTED]' }),
             };
           } else {
             sanitized[key] = '[REDACTED]';

@@ -15,12 +15,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Validation des paramètres de requête avec Zod
-    const queryValidation = validateQuery(exportDataQuerySchema, request);
-    if (!queryValidation.success) {
-      return queryValidation.response;
-    }
-
-    const { format, tables, metadata: includeMetadata } = queryValidation.data;
+    const queryResult = validateQuery(exportDataQuerySchema as any, request);
+    const { format = "json", tables = ["produits", "parcelles"], metadata: includeMetadata = false } = queryResult.data as any;
 
     const exportData: Record<string, any> = {
       exportInfo: {
@@ -48,7 +44,7 @@ export async function GET(request: NextRequest) {
         "export-produits",
       );
 
-      exportData.produits = produits;
+      exportData['produits'] = produits;
     }
 
     // Export des parcelles
@@ -66,7 +62,7 @@ export async function GET(request: NextRequest) {
         "export-parcelles",
       );
 
-      exportData.parcelles = parcelles;
+      exportData['parcelles'] = parcelles;
     }
 
     // Export des analyses de marché
@@ -85,25 +81,25 @@ export async function GET(request: NextRequest) {
         "export-market-analyses",
       );
 
-      exportData.market_analyses = analyses;
+      exportData['market_analyses'] = analyses;
     }
 
     // Métadonnées supplémentaires
     if (includeMetadata) {
       const stats = {
-        totalProduits: exportData.produits?.length || 0,
-        totalParcelles: exportData.parcelles?.length || 0,
-        totalAnalyses: exportData.market_analyses?.length || 0,
+        totalProduits: exportData['produits']?.length || 0,
+        totalParcelles: exportData['parcelles']?.length || 0,
+        totalAnalyses: exportData['market_analyses']?.length || 0,
         produitsVendus:
-          exportData.produits?.filter((p: any) => p.vendu).length || 0,
+          exportData['produits']?.filter((p: any) => p.vendu).length || 0,
         beneficesTotaux:
-          exportData.produits?.reduce(
+          exportData['produits']?.reduce(
             (sum: number, p: any) => sum + (p.benefices || 0),
             0,
           ) || 0,
       };
 
-      exportData.metadata = stats;
+      exportData['metadata'] = stats;
     }
 
     // Enregistrement de l'export
@@ -126,29 +122,31 @@ export async function GET(request: NextRequest) {
     );
 
     // Retour selon le format demandé
-    if (format === "csv" && tables.length === 1) {
+    if (format === "csv" && tables && tables.length === 1) {
       // Conversion en CSV pour une seule table
       const tableName = tables[0];
       const data = exportData[tableName];
 
       if (data && data.length > 0) {
-        const headers = Object.keys(data[0]).join(",");
-        const rows = data.map((row: any) =>
-          Object.values(row)
-            .map((val) =>
-              typeof val === "string" ? `"${val.replace(/"/g, '""')}"` : val,
-            )
-            .join(","),
-        );
+        const firstRow = data[0];
+        if (firstRow) {
+          const headers = Object.keys(firstRow).join(",");
+          const rows = data.map((row: any) =>
+            Object.values(row)
+              .map((val) =>
+                typeof val === "string" ? `"${val.replace(/"/g, '""')}"` : val,
+              )
+              .join(","),
+          );
+          const csv = [headers, ...rows].join("\n");
 
-        const csv = [headers, ...rows].join("\n");
-
-        return new NextResponse(csv, {
-          headers: {
-            "Content-Type": "text/csv",
-            "Content-Disposition": `attachment; filename="${tableName}_export_${new Date().toISOString().split("T")[0]}.csv"`,
-          },
-        });
+          return new NextResponse(csv, {
+            headers: {
+              "Content-Type": "text/csv",
+              "Content-Disposition": `attachment; filename="${tableName}_export_${new Date().toISOString().split("T")[0]}.csv"`,
+            },
+          });
+        }
       }
     }
 

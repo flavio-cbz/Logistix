@@ -1,1 +1,0 @@
-CREATE INDEX IF NOT EXISTS idx_parcelles_user_status ON parcelles(user_id, status);

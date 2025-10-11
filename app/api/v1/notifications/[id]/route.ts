@@ -18,19 +18,10 @@ export async function PUT(
     }
 
     // Validation des paramètres
-    const paramsValidation = validateParams(params, notificationParamsSchema);
-    if (!paramsValidation.success) {
-      return paramsValidation.response;
-    }
-    
-    // Validation du body
-    const bodyValidation = await validateBody(request, updateNotificationSchema);
-    if (!bodyValidation.success) {
-      return bodyValidation.response;
-    }
+    const { id } = validateParams(notificationParamsSchema, params).data;
 
-    const { id } = paramsValidation.data;
-    const { read, archived } = bodyValidation.data;
+    // Validation du body
+    const { read, archived } = (await validateBody(updateNotificationSchema, request)).data;
 
     const updateFields = [];
     const updateValues = [];
@@ -97,12 +88,7 @@ export async function DELETE(
     }
 
     // Validation des paramètres
-    const paramsValidation = validateParams(params, notificationParamsSchema);
-    if (!paramsValidation.success) {
-      return paramsValidation.response;
-    }
-
-    const { id } = paramsValidation.data;
+    const { id } = validateParams(notificationParamsSchema, params).data;
 
     await databaseService.execute(
       `

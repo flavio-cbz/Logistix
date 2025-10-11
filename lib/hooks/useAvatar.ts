@@ -36,6 +36,7 @@ function createAvatarInfo(username: string, avatarUrl?: string): AvatarInfo {
   const textColor = "#ffffff";
 
   return {
+    username,
     url: avatarUrl || undefined,
     initials,
     backgroundColor,
@@ -47,6 +48,7 @@ function createAvatarInfo(username: string, avatarUrl?: string): AvatarInfo {
 export function useAvatar(username: string, currentAvatarUrl?: string) {
   const [state, setState] = useState<UseAvatarState>({
     avatar: createAvatarInfo(username, currentAvatarUrl),
+    loading: false,
     isUploading: false,
     uploadProgress: 0,
     error: null,
@@ -97,7 +99,7 @@ export function useAvatar(username: string, currentAvatarUrl?: string) {
   // Upload new avatar
   const uploadAvatar = useCallback(
     async (file: File): Promise<boolean> => {
-      setState((prev) => ({
+      setState((prev: any) => ({
         ...prev,
         isUploading: true,
         uploadProgress: 0,
@@ -128,7 +130,7 @@ export function useAvatar(username: string, currentAvatarUrl?: string) {
 
         // Progress simulation
         const progressInterval = setInterval(() => {
-          setState((prev) => ({
+          setState((prev: any) => ({
             ...prev,
             uploadProgress: Math.min(prev.uploadProgress + 10, 90),
           }));
@@ -287,6 +289,7 @@ export function generateAvatarInfo(
   const textColor = "#ffffff";
 
   return {
+    username,
     url: avatarUrl || undefined,
     initials,
     backgroundColor,

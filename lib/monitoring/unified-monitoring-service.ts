@@ -8,10 +8,10 @@
  */
 
 import { getLogger, type ILogger, type LogContext } from '../utils/logging/logger';
-import { PerformanceMonitoringService, type PerformanceAlert, type SystemMetrics } from './performance-monitor';
+import { PerformanceMonitoringService, type SystemMetrics } from './performance-monitor';
 import { HealthCheckService, type SystemHealthStatus } from './health-check';
 import { AlertingService, type Alert } from './alerting-system';
-import { performanceCollector, type PerformanceMetric } from './performance-metrics';
+import { performanceCollector } from './performance-metrics';
 
 // ============================================================================
 // UNIFIED MONITORING TYPES
@@ -280,7 +280,7 @@ export class MetricsCollectionService {
     for (const [, metricHistory] of this.metrics) {
       if (metricHistory.length > 0) {
         // Get the latest metric for each type
-        allMetrics.push(metricHistory[metricHistory.length - 1]);
+        allMetrics.push(metricHistory[metricHistory.length - 1]!);
       }
     }
 
@@ -308,7 +308,7 @@ export class MetricsCollectionService {
     const history = this.metrics.get(name) || [];
     if (history.length < 2) return 'stable';
 
-    const previousValue = history[history.length - 1].value;
+    const previousValue = history[history.length - 1]!.value;
     const difference = currentValue - previousValue;
     const percentageChange = Math.abs(difference) / previousValue;
 
@@ -325,7 +325,7 @@ export class UnifiedMonitoringService {
   private static instance: UnifiedMonitoringService;
   
   private config: MonitoringConfig;
-  private logger: ILogger;
+  // private logger: ILogger; // Unused
   private structuredLogging: StructuredLoggingService;
   private metricsCollection: MetricsCollectionService;
   private performanceMonitor: PerformanceMonitoringService;
@@ -349,7 +349,7 @@ export class UnifiedMonitoringService {
     };
 
     this.startTime = Date.now();
-    this.logger = getLogger('UnifiedMonitoringService');
+    // this.logger = getLogger('UnifiedMonitoringService'); // Unused
     
     // Initialize sub-services
     this.structuredLogging = new StructuredLoggingService(this.config);
@@ -494,8 +494,8 @@ export class UnifiedMonitoringService {
       overall,
       timestamp: new Date().toISOString(),
       uptime: Date.now() - this.startTime,
-      version: process.env.npm_package_version || '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
+  version: process.env['npm_package_version'] || '1.0.0',
+  environment: process.env['NODE_ENV'] || 'development',
       components: {
         performance: {
           status: 'operational',
@@ -562,7 +562,7 @@ export class UnifiedMonitoringService {
       duration,
       timestamp: new Date().toISOString(),
       success,
-      metadata,
+      metadata: metadata ?? {},
     });
 
     // Log performance event
@@ -593,11 +593,11 @@ export class UnifiedMonitoringService {
         this.structuredLogging.logSystemEvent(event, level, context);
         break;
       case 'performance':
-        if (context?.duration && context?.success !== undefined) {
+        if (context?.duration && context?.['success'] !== undefined) {
           this.structuredLogging.logPerformanceEvent(
             event,
             context.duration as number,
-            context.success as boolean,
+            context['success'] as boolean,
             context
           );
         }
@@ -605,15 +605,15 @@ export class UnifiedMonitoringService {
       case 'security':
         this.structuredLogging.logSecurityEvent(
           event,
-          (context?.severity as any) || 'medium',
+          (context?.['severity'] as any) || 'medium',
           context
         );
         break;
       case 'business':
         this.structuredLogging.logBusinessEvent(
           event,
-          (context?.entityType as string) || 'unknown',
-          (context?.entityId as string) || 'unknown',
+          (context?.['entityType'] as string) || 'unknown',
+          (context?.['entityId'] as string) || 'unknown',
           context
         );
         break;
@@ -667,7 +667,7 @@ export class UnifiedMonitoringService {
   stopMonitoring(): void {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
-      this.monitoringInterval = undefined;
+      this.monitoringInterval = null as any;
     }
 
     this.performanceMonitor.stopMonitoring();

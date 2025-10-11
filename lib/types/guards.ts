@@ -17,23 +17,23 @@ export function isProduct(value: unknown): value is Product {
   const obj = value as Record<string, unknown>;
 
   // Required fields
-  if (typeof obj.id !== "string") return false;
-  if (typeof obj.userId !== "string") return false;
+  if (typeof obj['id'] !== "string") return false;
+  if (typeof obj['userId'] !== "string") return false;
 
   // Optional fields validation
-  if (obj.parcelleId !== undefined && obj.parcelleId !== null && typeof obj.parcelleId !== "string") {
+  if (obj['parcelleId'] !== undefined && obj['parcelleId'] !== null && typeof obj['parcelleId'] !== "string") {
     return false;
   }
-  if (obj.name !== undefined && obj.name !== null && typeof obj.name !== "string") {
+  if (obj['name'] !== undefined && obj['name'] !== null && typeof obj['name'] !== "string") {
     return false;
   }
-  if (obj.nom !== undefined && obj.nom !== null && typeof obj.nom !== "string") {
+  if (obj['nom'] !== undefined && obj['nom'] !== null && typeof obj['nom'] !== "string") {
     return false;
   }
-  if (obj.details !== undefined && obj.details !== null && typeof obj.details !== "string") {
+  if (obj['details'] !== undefined && obj['details'] !== null && typeof obj['details'] !== "string") {
     return false;
   }
-  if (obj.price !== undefined && obj.price !== null && typeof obj.price !== "number") {
+  if (obj['price'] !== undefined && obj['price'] !== null && typeof obj['price'] !== "number") {
     return false;
   }
 
@@ -52,9 +52,9 @@ export function isParcelle(value: unknown): value is { id: string; name: string;
   const obj = value as Record<string, unknown>;
 
   return (
-    typeof obj.id === "string" &&
-    typeof obj.name === "string" &&
-    typeof obj.userId === "string"
+    typeof obj['id'] === "string" &&
+    typeof obj['name'] === "string" &&
+    typeof obj['userId'] === "string"
   );
 }
 
@@ -69,9 +69,9 @@ export function isUser(value: unknown): value is { id: string; username: string;
 
   const obj = value as Record<string, unknown>;
 
-  if (typeof obj.id !== "string") return false;
-  if (typeof obj.username !== "string") return false;
-  if (obj.email !== undefined && obj.email !== null && typeof obj.email !== "string") {
+  if (typeof obj['id'] !== "string") return false;
+  if (typeof obj['username'] !== "string") return false;
+  if (obj['email'] !== undefined && obj['email'] !== null && typeof obj['email'] !== "string") {
     return false;
   }
 

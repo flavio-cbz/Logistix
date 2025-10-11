@@ -71,7 +71,7 @@ export function ProductSaleDialog({
       dateVente: product?.dateVente || new Date().toISOString().split('T')[0],
       dateMiseEnLigne: product?.dateMiseEnLigne || new Date().toISOString().split('T')[0],
       plateforme: (product?.plateforme as Platform) || Platform.VINTED,
-    },
+    } as SaleFormValues,
   })
 
   // Calculer le bénéfice estimé en temps réel
@@ -114,7 +114,7 @@ export function ProductSaleDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-4">
             {/* Résumé du coût */}
             <div className="bg-muted/50 border rounded-lg p-3 space-y-1">
               <div className="flex justify-between text-sm">
@@ -152,7 +152,7 @@ export function ProductSaleDialog({
 
             {/* Prix de vente */}
             <FormField
-              control={form.control}
+              control={form.control as any}
               name="prixVente"
               render={({ field }) => (
                 <FormItem>
@@ -181,7 +181,7 @@ export function ProductSaleDialog({
 
             {/* Date de mise en ligne */}
             <FormField
-              control={form.control}
+              control={form.control as any}
               name="dateMiseEnLigne"
               render={({ field }) => (
                 <FormItem>
@@ -199,7 +199,7 @@ export function ProductSaleDialog({
 
             {/* Date de vente */}
             <FormField
-              control={form.control}
+              control={form.control as any}
               name="dateVente"
               render={({ field }) => (
                 <FormItem>
@@ -217,7 +217,7 @@ export function ProductSaleDialog({
 
             {/* Plateforme */}
             <FormField
-              control={form.control}
+              control={form.control as any}
               name="plateforme"
               render={({ field }) => (
                 <FormItem>

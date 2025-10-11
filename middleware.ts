@@ -258,7 +258,7 @@ export async function middleware(req: NextRequest) {
 
     // Bloquer l'accès aux routes de débogage en production
     const isDebugRoute = context.path.startsWith("/debug")
-    if (isDebugRoute && isProduction() && process.env.DEBUG_ROUTES_ENABLED !== "true") {
+    if (isDebugRoute && isProduction() && process.env['DEBUG_ROUTES_ENABLED'] !== "true") {
       logger.warn('Tentative d\'accès aux routes de debug en production', {
         requestId: context.requestId,
         path: context.path,

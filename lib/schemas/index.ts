@@ -145,7 +145,7 @@ export const importDataSchema = z.object({
 });
 
 export const exportDataQuerySchema = z.object({
-  format: z.enum(["json", "csv", "xlsx"]).default("json"),
+  format: z.enum(["json", "csv", "xlsx"]),
   tables: z.string().optional().transform((val) => {
     if (!val) return ["produits", "parcelles"];
     return val.split(",").filter(table => ["produits", "parcelles", "notifications", "users"].includes(table));

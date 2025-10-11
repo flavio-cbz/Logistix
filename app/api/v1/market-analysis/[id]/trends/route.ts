@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/services/auth/auth";
 import { databaseService } from "@/lib/services/database/db";
-import { validateParams, validateQuery } from "@/lib/middleware/validation-middleware";
-import { marketAnalysisParamsSchema, marketTrendsQuerySchema } from "@/lib/schemas";
+import { validateParams } from "@/lib/middleware/validation-middleware";
+import { marketAnalysisParamsSchema } from "@/lib/schemas";
 import { createErrorResponse } from "@/lib/utils/api-response";
 
 // GET /api/v1/market-analysis/[id]/trends - Récupération des tendances pour une analyse spécifique
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
@@ -17,18 +17,7 @@ export async function GET(
     }
 
     // Validation des paramètres
-    const paramsValidation = validateParams(params, marketAnalysisParamsSchema);
-    if (!paramsValidation.success) {
-      return paramsValidation.response;
-    }
-
-    // Validation des query parameters
-    const queryValidation = validateQuery(request, marketTrendsQuerySchema);
-    if (!queryValidation.success) {
-      return queryValidation.response;
-    }
-
-    const { id } = paramsValidation.data;
+    const { id } = validateParams(marketAnalysisParamsSchema, params).data;
 
     // Récupération de l'analyse
     const analysis = await databaseService.queryOne(
@@ -106,22 +95,24 @@ export async function GET(
       const demand = Math.random() * 100;
       const competition = Math.random() * 100;
 
+      const dateStr = date.toISOString().split("T")[0] || date.toISOString();
+
       trends.priceHistory.unshift({
-        date: date.toISOString().split("T")[0],
+        date: dateStr,
         averagePrice: Math.round(basePrice * 100) / 100,
         minPrice: Math.round(basePrice * 0.7 * 100) / 100,
         maxPrice: Math.round(basePrice * 1.3 * 100) / 100,
       });
 
       trends.demandHistory.unshift({
-        date: date.toISOString().split("T")[0],
+        date: dateStr,
         demandLevel: Math.round(demand),
         searchVolume: Math.round(demand * 10),
         engagementRate: Math.round(demand * 0.5),
       });
 
       trends.competitionHistory.unshift({
-        date: date.toISOString().split("T")[0],
+        date: dateStr,
         competitionLevel: Math.round(competition),
         activeListings: Math.round(competition * 5),
         averageSellingTime: Math.round(30 - competition * 0.2),
@@ -167,12 +158,10 @@ export async function GET(
     // Analyse de saisonnalité a déjà été définie ci-dessus
 
     // Insights automatiques
-    const priceChange =
-      trends.priceHistory[trends.priceHistory.length - 1].averagePrice -
-      trends.priceHistory[0].averagePrice;
-    const priceChangePercent = Math.round(
-      (priceChange / trends.priceHistory[0].averagePrice) * 100,
-    );
+    const firstPrice = trends.priceHistory[0]?.averagePrice ?? 0;
+    const lastPrice = trends.priceHistory[trends.priceHistory.length - 1]?.averagePrice ?? 0;
+    const priceChange = lastPrice - firstPrice;
+    const priceChangePercent = firstPrice !== 0 ? Math.round((priceChange / firstPrice) * 100) : 0;
 
     trends.insights = [
       `Prix moyen ${priceChange > 0 ? "en hausse" : "en baisse"} de ${Math.abs(priceChangePercent)}% sur 6 mois`,

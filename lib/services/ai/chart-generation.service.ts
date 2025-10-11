@@ -43,7 +43,7 @@ export default class ChartGenerationService {
           generatedAt: new Date().toISOString(),
           confidence: 0,
           dataQuality:
-            analysisResult.processingMetadata?.dataQuality?.score ?? 0,
+            analysisResult['processingMetadata']?.dataQuality?.score ?? 0,
           processingTime: 0,
         },
       };
@@ -74,7 +74,7 @@ export default class ChartGenerationService {
       metadata: {
         generatedAt: new Date().toISOString(),
         confidence: ChartMetadataService.calculateChartConfidence(annotations),
-        dataQuality: analysisResult.processingMetadata.dataQuality.score,
+        dataQuality: analysisResult['processingMetadata'].dataQuality.score,
         processingTime: 0,
       },
     };
@@ -107,7 +107,7 @@ export default class ChartGenerationService {
       metadata: {
         generatedAt: new Date().toISOString(),
         confidence: ChartMetadataService.calculateChartConfidence(annotations),
-        dataQuality: analysisResult.processingMetadata.dataQuality.score,
+        dataQuality: analysisResult['processingMetadata'].dataQuality.score,
         processingTime: 0,
       },
     };
@@ -127,7 +127,7 @@ export default class ChartGenerationService {
       description:
         "Visualisation des opportunités identifiées par l'IA avec potentiel de profit",
       chartData: this.prepareOpportunityMapData(
-        analysisResult.marketInsights?.marketOpportunities ?? [],
+        analysisResult['marketInsights']?.marketOpportunities ?? [],
       ),
       aiAnnotations: annotations,
       interactiveElements,
@@ -139,7 +139,7 @@ export default class ChartGenerationService {
       metadata: {
         generatedAt: new Date().toISOString(),
         confidence: ChartMetadataService.calculateChartConfidence(annotations),
-        dataQuality: analysisResult.processingMetadata.dataQuality.score,
+        dataQuality: analysisResult['processingMetadata'].dataQuality.score,
         processingTime: 0,
       },
     };
@@ -152,7 +152,7 @@ export default class ChartGenerationService {
     const interactiveElements: any[] = [];
 
     const competitivePosition =
-      analysisResult.marketInsights!.competitivePosition;
+      analysisResult['marketInsights']!.competitivePosition;
 
     annotations.push({
       id: "current-position",
@@ -195,7 +195,7 @@ export default class ChartGenerationService {
       metadata: {
         generatedAt: new Date().toISOString(),
         confidence: ChartMetadataService.calculateChartConfidence(annotations),
-        dataQuality: analysisResult.processingMetadata.dataQuality.score,
+        dataQuality: analysisResult['processingMetadata'].dataQuality.score,
         processingTime: 0,
       },
     };
@@ -223,7 +223,7 @@ export default class ChartGenerationService {
     const avgPrice = analysisResult.avgPrice;
     const volume = analysisResult.salesVolume;
     const recommendations =
-      analysisResult.marketInsights?.pricingRecommendations?.length || 0;
+      analysisResult['marketInsights']?.pricingRecommendations?.length || 0;
 
     return `Distribution de ${volume} articles avec un prix moyen de ${avgPrice.toFixed(2)}€. ${recommendations} recommandations de prix identifiées par l'IA.`;
   }
@@ -234,10 +234,10 @@ export default class ChartGenerationService {
     const findings: string[] = [];
 
     if (
-      analysisResult.marketInsights?.pricingRecommendations &&
-      analysisResult.marketInsights.pricingRecommendations.length > 0
+      analysisResult['marketInsights']?.pricingRecommendations &&
+      analysisResult['marketInsights'].pricingRecommendations.length > 0
     ) {
-      const rec = analysisResult.marketInsights.pricingRecommendations[0];
+      const rec = analysisResult['marketInsights'].pricingRecommendations[0];
       findings.push(`Position prix actuelle: ${rec.strategy}`);
       findings.push(`Stratégie recommandée: ${rec.strategy}`);
     }
@@ -254,8 +254,8 @@ export default class ChartGenerationService {
   ): string[] {
     const recommendations: string[] = [];
 
-    if (analysisResult.marketInsights?.pricingRecommendations) {
-      analysisResult.marketInsights.pricingRecommendations.forEach((rec: any) => {
+    if (analysisResult['marketInsights']?.pricingRecommendations) {
+      analysisResult['marketInsights'].pricingRecommendations.forEach((rec: any) => {
         recommendations.push(
           `Optimiser le prix entre ${rec.optimalPriceRange.min}€ et ${rec.optimalPriceRange.max}€`,
         );
@@ -268,7 +268,7 @@ export default class ChartGenerationService {
   private static generateTrendSummary(
     analysisResult: EnhancedAnalysisResult,
   ): string {
-    const trends = analysisResult.marketInsights?.marketTrends?.length || 0;
+    const trends = analysisResult['marketInsights']?.marketTrends?.length || 0;
     return `${trends} tendances de marché identifiées avec analyse prédictive.`;
   }
 
@@ -277,7 +277,7 @@ export default class ChartGenerationService {
   ): string[] {
     const findings: string[] = [];
 
-    analysisResult.marketInsights?.marketTrends?.forEach((trend: { trend: string; direction: string; strength: number }) => {
+    analysisResult['marketInsights']?.marketTrends?.forEach((trend: { trend: string; direction: string; strength: number }) => {
       findings.push(
         `${trend.trend} - Direction: ${trend.direction}, Force: ${(trend.strength * 100).toFixed(0)}%`,
       );
@@ -291,7 +291,7 @@ export default class ChartGenerationService {
   ): string[] {
     const recommendations: string[] = [];
 
-    analysisResult.marketInsights?.marketTrends?.forEach((trend: { trend: string; impact: string }) => {
+    analysisResult['marketInsights']?.marketTrends?.forEach((trend: { trend: string; impact: string }) => {
       if (trend.impact === "high") {
         recommendations.push(
           `Adapter la stratégie selon la tendance: ${trend.trend}`,
@@ -306,9 +306,9 @@ export default class ChartGenerationService {
     analysisResult: EnhancedAnalysisResult,
   ): string {
     const opportunities =
-      analysisResult.marketInsights?.marketOpportunities?.length || 0;
+      analysisResult['marketInsights']?.marketOpportunities?.length || 0;
     const totalPotential =
-      analysisResult.marketInsights?.marketOpportunities
+      analysisResult['marketInsights']?.marketOpportunities
         ?.filter(
           (opp: any): opp is typeof opp & { potentialValue: number } =>
             opp != null && typeof opp.potentialValue === "number",
@@ -323,7 +323,7 @@ export default class ChartGenerationService {
   ): string[] {
     const findings: string[] = [];
 
-    analysisResult.marketInsights?.marketOpportunities?.forEach((opp: { title: string; potentialValue: number; effort: string; timeframe: string }) => {
+    analysisResult['marketInsights']?.marketOpportunities?.forEach((opp: { title: string; potentialValue: number; effort: string; timeframe: string }) => {
       findings.push(
         `${opp.title}: ${opp.potentialValue}€ (${opp.effort} effort, ${opp.timeframe})`,
       );
@@ -337,7 +337,7 @@ export default class ChartGenerationService {
   ): string[] {
     const recommendations: string[] = [];
 
-    analysisResult.marketInsights?.marketOpportunities
+    analysisResult['marketInsights']?.marketOpportunities
       ?.filter(
         (
           opp: any,
@@ -365,7 +365,7 @@ export default class ChartGenerationService {
   private static generateCompetitiveSummary(
     analysisResult: EnhancedAnalysisResult,
   ): string {
-    const position = analysisResult.marketInsights?.competitivePosition;
+    const position = analysisResult['marketInsights']?.competitivePosition;
     if (!position) return "Position concurrentielle non disponible";
 
     const marketShare = (position.marketShare.estimated * 100).toFixed(1);
@@ -376,7 +376,7 @@ export default class ChartGenerationService {
     analysisResult: EnhancedAnalysisResult,
   ): string[] {
     const findings: string[] = [];
-    const position = analysisResult.marketInsights?.competitivePosition;
+    const position = analysisResult['marketInsights']?.competitivePosition;
 
     if (position) {
       findings.push(`${position.strengths.length} forces identifiées`);
@@ -393,7 +393,7 @@ export default class ChartGenerationService {
     analysisResult: EnhancedAnalysisResult,
   ): string[] {
     const recommendations: string[] = [];
-    const position = analysisResult.marketInsights?.competitivePosition;
+    const position = analysisResult['marketInsights']?.competitivePosition;
 
     if (position) {
       position.opportunities.forEach((opp: string) => {

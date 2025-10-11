@@ -553,7 +553,7 @@ export class DatabasePerformanceMonitor {
   private extractColumnsFromIndexSQL(sql: string): string[] {
     // Extract column names from CREATE INDEX SQL
     const match = sql.match(/\(([^)]+)\)/);
-    if (match) {
+    if (match && match[1]) {
       return match[1].split(",").map((col) => col.trim().replace(/["`]/g, ""));
     }
     return [];

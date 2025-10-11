@@ -75,8 +75,8 @@ export default function ParcellesPage() {
       "En transit": { variant: "default", icon: Truck },
       "Livré": { variant: "outline", icon: CheckCircle2 },
     };
-    const config = variants[statut] || variants["En attente"];
-    const Icon = config.icon;
+    const config = variants[statut] || { variant: "secondary" as const, icon: AlertTriangle };
+    const Icon = config!.icon;
     return (
       <Badge variant={config.variant} className="gap-1">
         <Icon className="w-3 h-3" />

@@ -329,15 +329,15 @@ export class UserPreferencesService implements IUserPreferencesService {
   private analyzeRiskTolerance(actionCounts: Record<string, number>): string[] {
     const indicators: string[] = [];
 
-    if (actionCounts['view_high_value_items'] > 5) {
+    if ((actionCounts['view_high_value_items'] || 0) > 5) {
       indicators.push('high_value_interest');
     }
 
-    if (actionCounts['quick_purchase'] > actionCounts['detailed_analysis']) {
+    if ((actionCounts['quick_purchase'] || 0) > (actionCounts['detailed_analysis'] || 0)) {
       indicators.push('impulsive_behavior');
     }
 
-    if (actionCounts['price_comparison'] > 10) {
+    if ((actionCounts['price_comparison'] || 0) > 10) {
       indicators.push('price_conscious');
     }
 

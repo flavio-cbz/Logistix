@@ -25,13 +25,17 @@ export default function MarketAnalysisDashboard() {
 
   const handleToggleCompare = (analysisId: string) => {
     setSelectedForComparison((prev) => {
-      if (prev.includes(analysisId)) {
-        return prev.filter((id) => id !== analysisId);
+      const filtered = prev.filter((id): id is string => id !== undefined && id !== analysisId);
+      if (filtered.length === prev.length) {
+        // L'ID n'était pas dans la liste, l'ajouter
+        if (prev.length < 2) {
+          return [...filtered, analysisId];
+        }
+        return [filtered[0] || analysisId, analysisId]; // Garde les deux plus récents
+      } else {
+        // L'ID était dans la liste, le retirer
+        return filtered;
       }
-      if (prev.length < 2) {
-        return [...prev, analysisId];
-      }
-      return [prev[1], analysisId]; // Garde les deux plus récents
     });
   };
 

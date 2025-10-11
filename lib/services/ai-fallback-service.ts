@@ -32,11 +32,11 @@ export class AIFallbackService {
    */
   private initializeConfigs(): void {
     // Configuration OpenAI
-    if (process.env.OPENAI_API_KEY) {
+  if (process.env['OPENAI_API_KEY']) {
       this.configs.push({
         provider: "openai",
         model: "gpt-4",
-        apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env['OPENAI_API_KEY'],
         baseUrl: "https://api.openai.com/v1",
         maxTokens: 4096,
         temperature: 0.7,
@@ -46,11 +46,11 @@ export class AIFallbackService {
     }
 
     // Configuration Anthropic
-    if (process.env.ANTHROPIC_API_KEY) {
+  if (process.env['ANTHROPIC_API_KEY']) {
       this.configs.push({
         provider: "anthropic",
         model: "claude-3-sonnet-20240229",
-        apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env['ANTHROPIC_API_KEY'],
         baseUrl: "https://api.anthropic.com/v1",
         maxTokens: 4096,
         temperature: 0.7,
@@ -60,11 +60,11 @@ export class AIFallbackService {
     }
 
     // Configuration locale (Ollama ou autre)
-    if (process.env.LOCAL_AI_URL) {
+  if (process.env['LOCAL_AI_URL']) {
       this.configs.push({
         provider: "local",
-        model: process.env.LOCAL_AI_MODEL || "llama2",
-        baseUrl: process.env.LOCAL_AI_URL,
+  model: process.env['LOCAL_AI_MODEL'] || "llama2",
+  baseUrl: process.env['LOCAL_AI_URL'],
         maxTokens: 2048,
         temperature: 0.7,
         isDefault: false,
@@ -365,7 +365,7 @@ export class AIFallbackService {
     const activeConfigs = this.configs.filter((c) => c.isActive);
     if (activeConfigs.length === 0) return null;
 
-    return activeConfigs[this.currentConfigIndex % activeConfigs.length];
+    return activeConfigs[this.currentConfigIndex % activeConfigs.length]!;
   }
 
   /**

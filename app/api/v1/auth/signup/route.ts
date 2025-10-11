@@ -18,10 +18,10 @@ import { COOKIE_NAME } from "@/lib/constants/config";
 // CONFIGURATION DE SÉCURITÉ
 // =============================================================================
 
-const SIGNUP_ENABLED = process.env.SIGNUP_ENABLED === 'true' || false;
-const REQUIRE_INVITATION_CODE = process.env.REQUIRE_INVITATION_CODE === 'true' || false;
-const VALID_INVITATION_CODES = process.env.INVITATION_CODES?.split(',') || [];
-const MAX_SIGNUPS_PER_HOUR = parseInt(process.env.MAX_SIGNUPS_PER_HOUR || '10');
+const SIGNUP_ENABLED = process.env['SIGNUP_ENABLED'] === 'true' || false;
+const REQUIRE_INVITATION_CODE = process.env['REQUIRE_INVITATION_CODE'] === 'true' || false;
+const VALID_INVITATION_CODES = process.env['INVITATION_CODES']?.split(',') || [];
+const MAX_SIGNUPS_PER_HOUR = parseInt(process.env['MAX_SIGNUPS_PER_HOUR'] || '10');
 
 // =============================================================================
 // SCHÉMAS DE VALIDATION

@@ -14,12 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Validation des query parameters
-    const queryValidation = validateQuery(request, marketStatusQuerySchema);
-    if (!queryValidation.success) {
-      return queryValidation.response;
-    }
-
-    const { id: analysisId } = queryValidation.data;
+    const { id: analysisId } = validateQuery(marketStatusQuerySchema, request).data;
 
     // Récupération de l'analyse
     const analysis = await databaseService.queryOne(

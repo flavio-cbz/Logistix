@@ -132,8 +132,8 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
         const handleMediaChange = () => {
           setPreferences(prev => ({
             ...prev,
-            reducedMotion: mediaQueries[0].matches,
-            highContrast: mediaQueries[1].matches,
+            reducedMotion: mediaQueries[0]?.matches ?? false,
+            highContrast: mediaQueries[1]?.matches ?? false,
           }))
         }
 
@@ -192,19 +192,19 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
           if (event.shiftKey) {
             if (document.activeElement === firstElement) {
               event.preventDefault()
-              lastElement.focus()
+              lastElement?.focus()
             }
           } else {
             if (document.activeElement === lastElement) {
               event.preventDefault()
-              firstElement.focus()
+              firstElement?.focus()
             }
           }
         }
       }
 
       element.addEventListener('keydown', handleKeyDown)
-      firstElement.focus()
+      firstElement?.focus()
 
       return () => {
         element.removeEventListener('keydown', handleKeyDown)
@@ -227,14 +227,14 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     focusFirst: useCallback((container: HTMLElement) => {
       const focusableElements = getFocusableElements(container)
       if (focusableElements.length > 0) {
-        focusableElements[0].focus()
+        focusableElements[0]?.focus()
       }
     }, []),
 
     focusLast: useCallback((container: HTMLElement) => {
       const focusableElements = getFocusableElements(container)
       if (focusableElements.length > 0) {
-        focusableElements[focusableElements.length - 1].focus()
+        focusableElements[focusableElements.length - 1]?.focus()
       }
     }, []),
   }

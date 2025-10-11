@@ -15,12 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validation du body
-    const bodyValidation = await validateBody(request, notificationsReadBodySchema);
-    if (!bodyValidation.success) {
-      return bodyValidation.response;
-    }
-
-    const { notificationIds, markAllRead } = bodyValidation.data;
+    const { notificationIds, markAllRead } = (await validateBody(notificationsReadBodySchema, request)).data;
 
     if (markAllRead) {
       // Marquer toutes les notifications comme lues

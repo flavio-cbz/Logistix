@@ -11,10 +11,7 @@ export async function GET(request: NextRequest) {
       return createErrorResponse(new Error("Non authentifié"));
     }
 
-    const validationResult = validateQuery(request, parcellesStatsQuerySchema);
-    if (!validationResult.success) {
-      return validationResult.response;
-    }
+    validateQuery(parcellesStatsQuerySchema, request);
 
     return createSuccessResponse({ 
       message: "Statistiques parcelles endpoint secured",

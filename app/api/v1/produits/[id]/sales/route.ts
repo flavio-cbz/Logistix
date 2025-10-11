@@ -17,10 +17,7 @@ export async function GET(request: NextRequest) {
       return createErrorResponse(new Error("Non authentifié"));
     }
 
-    const validationResult = validateQuery(request, productSalesQuerySchema);
-    if (!validationResult.success) {
-      return validationResult.response;
-    }
+    validateQuery(productSalesQuerySchema, request);
 
     return createSuccessResponse({ 
       message: "Product sales endpoint secured",

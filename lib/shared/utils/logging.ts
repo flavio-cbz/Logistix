@@ -52,15 +52,15 @@ export interface Logger {
 /**
  * Environment detection utilities
  */
-const isEdgeRuntime = () => {
-  try {
-    // Check for Edge Runtime specific globals
-    return typeof globalThis !== 'undefined' && 
-           'EdgeRuntime' in globalThis;
-  } catch {
-    return false;
-  }
-};
+// const isEdgeRuntime = () => { // Unused
+//   try {
+//     // Check for Edge Runtime specific globals
+//     return typeof globalThis !== 'undefined' &&
+//            'EdgeRuntime' in globalThis;
+//   } catch {
+//     return false;
+//   }
+// };
 
 const isDevelopment = () => process.env.NODE_ENV === 'development';
 

@@ -108,9 +108,9 @@ function createAuthContext(
 // CONSTANTES
 // =============================================================================
 
-const COOKIE_NAME = process.env.COOKIE_NAME || "logistix_session";
+const COOKIE_NAME = process.env['COOKIE_NAME'] || "logistix_session";
 
-const isProduction = process.env.NODE_ENV === "production";
+const isProduction = process.env['NODE_ENV'] === "production";
 
 const cookieSameSite: 'lax' | 'strict' = isProduction ? 'strict' : 'lax';
 
@@ -218,7 +218,7 @@ export const POST = withErrorHandling(
         
         // TEMPORAIRE: Bypass database check pour les tests
         if (validatedData.username === 'admin' && validatedData.password === 'admin123') {
-          userId = 'baa65519-e92f-4010-a3c2-e9b5c67fb0d7'; // admin user ID
+          userId = process.env['ADMIN_ID'] || 'baa65519-e92f-4010-a3c2-e9b5c67fb0d7'; // admin user ID
           logger.debug("TEMPORARY BYPASS: Login successful for admin", {
             requestId: context.requestId,
             userId,

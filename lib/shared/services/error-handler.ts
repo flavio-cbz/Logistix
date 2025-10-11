@@ -244,7 +244,7 @@ export class CentralizedErrorHandler {
       try {
         return await operation();
       } catch (error) {
-        lastError = this.handleError(error, operationName, { attempt });
+        lastError = this.handleError(error, operationName, { additionalData: { attempt } });
 
         if (attempt === config.maxRetries) {
           break;
@@ -373,7 +373,7 @@ export class CentralizedErrorHandler {
         severity: cleanupError.severity,
       },
       meta: {
-        requestId: requestId || cleanupError.context?.requestId,
+        requestId: requestId || cleanupError.context?.['requestId'],
         timestamp: new Date().toISOString(),
       },
     };
@@ -444,7 +444,7 @@ export const errorHandler = CentralizedErrorHandler.getInstance();
 export const useErrorHandler = () => {
   const handleError = (error: unknown, operation: string = "Unknown") => {
     const errorId = errorHandler.generateErrorId();
-    const cleanupError = errorHandler.handleError(error, operation, { errorId });
+    const cleanupError = errorHandler.handleError(error, operation, { additionalData: { errorId } });
     const userError = errorHandler.formatUserFriendlyError(cleanupError);
 
     return {
@@ -483,7 +483,7 @@ export function withErrorHandling(serviceName: string, methodName: string) {
 
     descriptor.value = function (...args: any[]) {
       const context: ErrorContext = {
-        service: serviceName,
+        additionalData: { service: serviceName },
         operation: methodName,
         requestId: (this as any).requestId,
         userId: (this as any).userId,

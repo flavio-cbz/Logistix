@@ -47,7 +47,7 @@ export class CleanupError extends Error {
       timestamp: new Date().toISOString(),
       ...context,
     };
-    this.field = field;
+    this.field = field || "";
     this.statusCode = statusCode;
     this.timestamp = new Date().toISOString();
     this.isOperational = isOperational;
@@ -215,13 +215,13 @@ export class DatabaseError extends CleanupError {
     super(
       message,
       'DATABASE_ERROR',
-      { operation, ...context },
+      { operation: operation || 'unknown', ...context },
       undefined,
       500,
       true,
       'critical'
     );
-    this.operation = operation;
+    this.operation = operation || 'unknown';
   }
 }
 

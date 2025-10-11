@@ -1,5 +1,5 @@
 import type { VintedAnalysisResult } from "../vinted-market-analysis";
-import type { SoldItem } from "../../types/vinted-market-analysis";
+import type { SoldItem } from "@/types/vinted-market-analysis";
 import {
   AdvancedAnalyticsEngine,
   AdvancedMetrics,
@@ -481,14 +481,14 @@ export class AIAnalysisEngine {
     options: AIAnalysisOptions,
     config: Record<string, any>,
   ): void {
-    if (options.includeInsights && !config.insights.enabled) {
+    if (options.includeInsights && !config['insights'].enabled) {
       throw new AIAnalysisError(
         "Les insights sont demandés mais désactivés dans la configuration",
         AIErrorCode.INVALID_AI_CONFIG,
       );
     }
 
-    if (options.includeReports && !config.recommendations.enabled) {
+    if (options.includeReports && !config['recommendations'].enabled) {
       throw new AIAnalysisError(
         "Les rapports sont demandés mais désactivés dans la configuration",
         AIErrorCode.INVALID_AI_CONFIG,

@@ -321,74 +321,74 @@ export function parseEnvironmentConfig(
 ): z.infer<typeof ConfigSchema> {
   const rawConfig = {
     database: {
-      path: env.DATABASE_PATH,
-      maxConnections: env.DATABASE_MAX_CONNECTIONS
-        ? parseInt(env.DATABASE_MAX_CONNECTIONS, 10)
+      path: env['DATABASE_PATH'],
+      maxConnections: env['DATABASE_MAX_CONNECTIONS']
+        ? parseInt(env['DATABASE_MAX_CONNECTIONS'], 10)
         : undefined,
-      connectionTimeout: env.DATABASE_CONNECTION_TIMEOUT
-        ? parseInt(env.DATABASE_CONNECTION_TIMEOUT, 10)
+      connectionTimeout: env['DATABASE_CONNECTION_TIMEOUT']
+        ? parseInt(env['DATABASE_CONNECTION_TIMEOUT'], 10)
         : undefined,
-      enableWAL: env.DATABASE_ENABLE_WAL
-        ? env.DATABASE_ENABLE_WAL.toLowerCase() === "true"
+      enableWAL: env['DATABASE_ENABLE_WAL']
+        ? env['DATABASE_ENABLE_WAL'].toLowerCase() === "true"
         : undefined,
-      enableLogging: env.DATABASE_ENABLE_LOGGING
-        ? env.DATABASE_ENABLE_LOGGING.toLowerCase() === "true"
+      enableLogging: env['DATABASE_ENABLE_LOGGING']
+        ? env['DATABASE_ENABLE_LOGGING'].toLowerCase() === "true"
         : undefined,
     },
     auth: {
-      jwtSecret: env.JWT_SECRET,
-      cookieName: env.COOKIE_NAME,
-      sessionTimeout: env.SESSION_TIMEOUT
-        ? parseInt(env.SESSION_TIMEOUT, 10)
+      jwtSecret: env['JWT_SECRET'],
+      cookieName: env['COOKIE_NAME'],
+      sessionTimeout: env['SESSION_TIMEOUT']
+        ? parseInt(env['SESSION_TIMEOUT'], 10)
         : undefined,
-      bcryptRounds: env.BCRYPT_ROUNDS
-        ? parseInt(env.BCRYPT_ROUNDS, 10)
+      bcryptRounds: env['BCRYPT_ROUNDS']
+        ? parseInt(env['BCRYPT_ROUNDS'], 10)
         : undefined,
-      maxLoginAttempts: env.MAX_LOGIN_ATTEMPTS
-        ? parseInt(env.MAX_LOGIN_ATTEMPTS, 10)
+      maxLoginAttempts: env['MAX_LOGIN_ATTEMPTS']
+        ? parseInt(env['MAX_LOGIN_ATTEMPTS'], 10)
         : undefined,
-      lockoutDuration: env.LOCKOUT_DURATION
-        ? parseInt(env.LOCKOUT_DURATION, 10)
+      lockoutDuration: env['LOCKOUT_DURATION']
+        ? parseInt(env['LOCKOUT_DURATION'], 10)
         : undefined,
     },
     app: {
-      environment: env.NODE_ENV as "development" | "production" | "test",
-      port: env.PORT ? parseInt(env.PORT, 10) : undefined,
-      logLevel: env.LOG_LEVEL as "error" | "warn" | "info" | "debug",
-      enableMetrics: env.ENABLE_METRICS
-        ? env.ENABLE_METRICS.toLowerCase() === "true"
+      environment: env['NODE_ENV'] as "development" | "production" | "test",
+      port: env['PORT'] ? parseInt(env['PORT'], 10) : undefined,
+      logLevel: env['LOG_LEVEL'] as "error" | "warn" | "info" | "debug",
+      enableMetrics: env['ENABLE_METRICS']
+        ? env['ENABLE_METRICS'].toLowerCase() === "true"
         : undefined,
-      enableDebug: env.ENABLE_DEBUG
-        ? env.ENABLE_DEBUG.toLowerCase() === "true"
+      enableDebug: env['ENABLE_DEBUG']
+        ? env['ENABLE_DEBUG'].toLowerCase() === "true"
         : undefined,
-      corsOrigins: env.CORS_ORIGINS
-        ? env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
+      corsOrigins: env['CORS_ORIGINS']
+        ? env['CORS_ORIGINS'].split(",").map((origin) => origin.trim())
         : undefined,
     },
     admin: {
-      defaultPassword: env.ADMIN_DEFAULT_PASSWORD,
-      forcePasswordChange: env.ADMIN_FORCE_PASSWORD_CHANGE
-        ? env.ADMIN_FORCE_PASSWORD_CHANGE.toLowerCase() === "true"
+      defaultPassword: env['ADMIN_DEFAULT_PASSWORD'],
+      forcePasswordChange: env['ADMIN_FORCE_PASSWORD_CHANGE']
+        ? env['ADMIN_FORCE_PASSWORD_CHANGE'].toLowerCase() === "true"
         : undefined,
-      enableAdminApi: env.ENABLE_ADMIN_API
-        ? env.ENABLE_ADMIN_API.toLowerCase() === "true"
+      enableAdminApi: env['ENABLE_ADMIN_API']
+        ? env['ENABLE_ADMIN_API'].toLowerCase() === "true"
         : undefined,
     },
     features: {
-      enableVintedIntegration: env.ENABLE_VINTED_INTEGRATION
-        ? env.ENABLE_VINTED_INTEGRATION.toLowerCase() === "true"
+      enableVintedIntegration: env['ENABLE_VINTED_INTEGRATION']
+        ? env['ENABLE_VINTED_INTEGRATION'].toLowerCase() === "true"
         : undefined,
-      enableAnalytics: env.ENABLE_ANALYTICS
-        ? env.ENABLE_ANALYTICS.toLowerCase() === "true"
+      enableAnalytics: env['ENABLE_ANALYTICS']
+        ? env['ENABLE_ANALYTICS'].toLowerCase() === "true"
         : undefined,
-      enableCaching: env.ENABLE_CACHING
-        ? env.ENABLE_CACHING.toLowerCase() === "true"
+      enableCaching: env['ENABLE_CACHING']
+        ? env['ENABLE_CACHING'].toLowerCase() === "true"
         : undefined,
-      enableRateLimit: env.ENABLE_RATE_LIMIT
-        ? env.ENABLE_RATE_LIMIT.toLowerCase() === "true"
+      enableRateLimit: env['ENABLE_RATE_LIMIT']
+        ? env['ENABLE_RATE_LIMIT'].toLowerCase() === "true"
         : undefined,
-      enableMetrics: env.ENABLE_METRICS_COLLECTION
-        ? env.ENABLE_METRICS_COLLECTION.toLowerCase() === "true"
+      enableMetrics: env['ENABLE_METRICS_COLLECTION']
+        ? env['ENABLE_METRICS_COLLECTION'].toLowerCase() === "true"
         : undefined,
     },
   };

@@ -47,7 +47,7 @@ export class ErrorTrackingService {
     }
 
     // Vérifier si Sentry est disponible et configuré
-    if (config.dsn && process.env.NEXT_PUBLIC_SENTRY_DSN) {
+    if (config.dsn && process.env['NEXT_PUBLIC_SENTRY_DSN']) {
       // Sentry.init({
       //   dsn: config.dsn,
       //   environment: config.environment,

@@ -14,11 +14,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Validation du body avec Zod
-    const bodyValidation = await validateBody(request, marketPredictionSchema);
-    if (!bodyValidation.success) {
-      return bodyValidation.response;
-    }
-
     const {
       productName,
       category,
@@ -27,7 +22,7 @@ export async function POST(request: NextRequest) {
       size,
       color,
       description
-    } = bodyValidation.data;
+    } = (await validateBody(marketPredictionSchema, request)).data;
 
     // Recherche d'analyses similaires pour la prédiction
     const similarAnalyses = await databaseService.query(
@@ -170,7 +165,7 @@ export async function POST(request: NextRequest) {
       };
 
       const basePrice =
-        basePrices[category.toLowerCase()] || basePrices.default;
+        basePrices[category.toLowerCase()] || basePrices['default'] || 25;
 
       prediction.estimatedPrice = {
         min: Math.round(basePrice * 0.5 * 100) / 100,

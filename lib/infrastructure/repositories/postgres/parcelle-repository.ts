@@ -101,7 +101,7 @@ export class PostgresParcelleRepository implements IParcelleRepository {
     operation: string
   ): Promise<T | null> {
     const rows = await this.executeQuery<T>(query, params, operation);
-    return rows.length > 0 ? rows[0] : null;
+    return rows.length > 0 ? rows[0]! : null;
   }
 
   // =============================================================================

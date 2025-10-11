@@ -31,7 +31,7 @@ export default async function ProfilePage() {
   try {
     // Fetch additional profile data from API
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/profile`,
+      `${process.env['NEXT_PUBLIC_BASE_URL']}/api/v1/profile`,
       {
         method: "GET",
         headers: {

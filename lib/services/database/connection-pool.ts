@@ -83,7 +83,7 @@ export class SQLiteConnectionPool implements DatabaseConnectionPool {
   private constructor() {
     // Utiliser DATABASE_PATH depuis les variables d'environnement, avec fallback sur le chemin par défaut
     const databasePath =
-      process.env.DATABASE_PATH ||
+      process.env['DATABASE_PATH'] ||
       path.join(process.cwd(), "data", "logistix.db");
     this.dbPath = databasePath;
     this.circuitBreaker = new CircuitBreaker(

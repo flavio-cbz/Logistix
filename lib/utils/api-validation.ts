@@ -9,7 +9,7 @@ import {
   ApiResponse,
   ProductListRequest,
   ParcelleListRequest,
-} from "../types/api";
+} from "../shared/types/api";
 import {
   Product,
   Parcelle,
@@ -28,7 +28,7 @@ import {
 // ============================================================================
 
 const isDevelopment = process.env.NODE_ENV === "development";
-const enableApiValidation = process.env.ENABLE_API_VALIDATION !== "false";
+const enableApiValidation = process.env['ENABLE_API_VALIDATION'] !== "false";
 
 // ============================================================================
 // Zod Schemas for API Validation

@@ -179,7 +179,7 @@ class Logger implements ILogger {
    * Gets the current log level from environment
    */
   private getLogLevel(): LogLevel {
-    const envLevel = process.env.LOG_LEVEL?.toLowerCase();
+    const envLevel = process.env['LOG_LEVEL']?.toLowerCase();
     switch (envLevel) {
       case "error":
         return LogLevel.ERROR;

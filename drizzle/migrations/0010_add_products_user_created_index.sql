@@ -1,1 +1,0 @@
-CREATE INDEX IF NOT EXISTS idx_products_user_created ON products(user_id, created_at DESC);

@@ -72,21 +72,21 @@ export class DatabaseFactory {
    * Crée la configuration à partir des variables d'environnement
    */
   static createConfigFromEnv(): DatabaseFactoryConfig {
-    const databaseType = (process.env.DATABASE_TYPE || 'sqlite').toLowerCase() as DatabaseType;
+    const databaseType = (process.env['DATABASE_TYPE'] || 'sqlite').toLowerCase() as DatabaseType;
 
     if (databaseType === DatabaseType.POSTGRES) {
       return {
         type: DatabaseType.POSTGRES,
         postgres: {
-          host: process.env.POSTGRES_HOST || 'localhost',
-          port: parseInt(process.env.POSTGRES_PORT || '5432'),
-          database: process.env.POSTGRES_DATABASE || 'logistix',
-          username: process.env.POSTGRES_USERNAME || 'postgres',
-          password: process.env.POSTGRES_PASSWORD || '',
-          ssl: process.env.POSTGRES_SSL === 'true',
-          connectionTimeoutMillis: parseInt(process.env.POSTGRES_CONNECTION_TIMEOUT || '5000'),
-          idleTimeoutMillis: parseInt(process.env.POSTGRES_IDLE_TIMEOUT || '30000'),
-          max: parseInt(process.env.POSTGRES_MAX_CONNECTIONS || '20'),
+          host: process.env['POSTGRES_HOST'] || 'localhost',
+          port: parseInt(process.env['POSTGRES_PORT'] || '5432'),
+          database: process.env['POSTGRES_DATABASE'] || 'logistix',
+          username: process.env['POSTGRES_USERNAME'] || 'postgres',
+          password: process.env['POSTGRES_PASSWORD'] || '',
+          ssl: process.env['POSTGRES_SSL'] === 'true',
+          connectionTimeoutMillis: parseInt(process.env['POSTGRES_CONNECTION_TIMEOUT'] || '5000'),
+          idleTimeoutMillis: parseInt(process.env['POSTGRES_IDLE_TIMEOUT'] || '30000'),
+          max: parseInt(process.env['POSTGRES_MAX_CONNECTIONS'] || '20'),
         },
       };
     }
@@ -95,7 +95,7 @@ export class DatabaseFactory {
     return {
       type: DatabaseType.SQLITE,
       sqlite: {
-        path: process.env.SQLITE_PATH || './data/logistix.db',
+        path: process.env['SQLITE_PATH'] || './data/logistix.db',
       },
     };
   }

@@ -11,7 +11,7 @@ import {
   CleanupError,
   ErrorContext,
   ErrorFactory,
-  isCleanupError,
+  // isCleanupError, // Not used in this file
 } from "@/lib/shared/errors/cleanup-error";
 
 /**
@@ -211,13 +211,13 @@ export class ErrorMigrationService {
   public createBaseService() {
     return class BaseService {
       protected errorHandler: CentralizedErrorHandler;
-      protected requestId?: string;
-      protected userId?: string;
+      protected requestId: string;
+      protected userId: string;
 
       constructor(requestId?: string, userId?: string) {
         this.errorHandler = errorHandler;
-        this.requestId = requestId;
-        this.userId = userId;
+        this.requestId = requestId || "";
+        this.userId = userId || "";
       }
 
       /**

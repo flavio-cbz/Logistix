@@ -93,7 +93,7 @@ export interface AuthResult {
 
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const BCRYPT_SALT_ROUNDS = 12;
-const DEFAULT_COOKIE_NAME = process.env.COOKIE_NAME || "logistix_session";
+const DEFAULT_COOKIE_NAME = process.env['COOKIE_NAME'] || "logistix_session";
 
 /**
  * Authentication service providing secure user authentication and session management
@@ -106,7 +106,7 @@ export class AuthService extends BaseService {
     super("AuthService");
 
     // Validate required environment variables
-    this.jwtSecret = process.env.JWT_SECRET;
+    this.jwtSecret = process.env['JWT_SECRET'];
     if (!this.jwtSecret) {
       this.logger.warn(
         "JWT_SECRET environment variable is not set. Some JWT features may be disabled in development.",

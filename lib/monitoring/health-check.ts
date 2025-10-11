@@ -440,7 +440,7 @@ export class HealthCheckService {
         status: overallStatus,
         timestamp: new Date().toISOString(),
         uptime: Date.now() - this.startTime,
-        version: process.env.npm_package_version || "1.0.0",
+  version: process.env['npm_package_version'] || "1.0.0",
         environment: configService.getEnvironment(),
         checks,
         summary,
@@ -461,7 +461,7 @@ export class HealthCheckService {
         status: "unhealthy",
         timestamp: new Date().toISOString(),
         uptime: Date.now() - this.startTime,
-        version: process.env.npm_package_version || "1.0.0",
+  version: process.env['npm_package_version'] || "1.0.0",
         environment: configService.getEnvironment(),
         checks: [
           {

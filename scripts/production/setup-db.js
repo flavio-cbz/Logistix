@@ -9,7 +9,7 @@ const dataDir = path.join(process.cwd(), "data");
 const dbPath = path.join(dataDir, "logistix.db");
 const adminUserId = '6b8acaf0-9f56-4d90-b3e0-2c226b67059c';
 const adminUsername = 'admin';
-const adminPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'admin';
+const adminPassword = process.env['ADMIN_DEFAULT_PASSWORD'] || 'admin';
 
 // --- Fonctions Utilitaires ---
 

@@ -295,7 +295,7 @@ export class AILearningServiceImpl implements AILearningService {
           pattern: `prefers_${type}_insights`,
           confidence: Math.min(count / insightViews.length, 1),
           frequency: count,
-          lastSeen: insightViews[0].timestamp,
+          lastSeen: insightViews[0]?.timestamp || new Date().toISOString(),
           impact:
             count > insightViews.length * 0.5
               ? "high"
@@ -322,7 +322,7 @@ export class AILearningServiceImpl implements AILearningService {
         pattern: `recommendation_follow_rate_${followRate > 0.7 ? "high" : followRate > 0.3 ? "medium" : "low"}`,
         confidence: Math.min(recommendationActions.length / 10, 1),
         frequency: recommendationActions.length,
-        lastSeen: recommendationActions[0].timestamp,
+        lastSeen: recommendationActions[0]?.timestamp || new Date().toISOString(),
         impact: "high",
       });
     }
@@ -331,7 +331,7 @@ export class AILearningServiceImpl implements AILearningService {
     const daysSinceFirst =
       actions.length > 0
         ? (new Date().getTime() -
-            new Date(actions[actions.length - 1].timestamp).getTime()) /
+            new Date(actions[actions.length - 1]?.timestamp || new Date().toISOString()).getTime()) /
           (1000 * 60 * 60 * 24)
         : 0;
 
@@ -341,7 +341,7 @@ export class AILearningServiceImpl implements AILearningService {
         pattern: `usage_frequency_${actionsPerDay > 2 ? "high" : actionsPerDay > 0.5 ? "medium" : "low"}`,
         confidence: Math.min(actions.length / 20, 1),
         frequency: actions.length,
-        lastSeen: actions[0].timestamp,
+        lastSeen: actions[0]?.timestamp || new Date().toISOString(),
         impact: actionsPerDay > 1 ? "high" : "medium",
       });
     }

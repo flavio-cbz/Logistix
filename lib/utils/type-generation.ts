@@ -12,7 +12,7 @@ import { schemas } from "./api-validation";
 // ============================================================================
 
 const isDevelopment = process.env.NODE_ENV === "development";
-const enableTypeGeneration = process.env.ENABLE_TYPE_GENERATION === "true";
+const enableTypeGeneration = process.env['ENABLE_TYPE_GENERATION'] === "true";
 
 // ============================================================================
 // Schema to TypeScript Interface Generation

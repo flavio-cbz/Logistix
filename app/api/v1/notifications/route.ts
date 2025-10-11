@@ -15,12 +15,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Validation des paramètres de requête avec Zod
-    const queryValidation = validateQuery(request, notificationsQuerySchema);
-    if (!queryValidation.success) {
-      return queryValidation.response;
-    }
-
-    const { unread, limit, offset, type, priority, sortBy, sortOrder } = queryValidation.data;
+    const queryResult = validateQuery(notificationsQuerySchema as any, request);
+    const { unread, limit, offset, type, priority, sortBy, sortOrder } = queryResult.data as any;
 
     // Construction de la requête avec filtres validés
     let whereClause = "WHERE userId = ?";
@@ -95,12 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validation du body avec Zod
-    const bodyValidation = await validateBody(request, createNotificationSchema);
-    if (!bodyValidation.success) {
-      return bodyValidation.response;
-    }
-
-    const { title, message, type, priority, data } = bodyValidation.data;
+    const { title, message, type, priority, data } = (await validateBody(createNotificationSchema, request)).data;
 
     // Génération d'un ID unique pour la notification
     const notificationId = `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

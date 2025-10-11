@@ -156,8 +156,8 @@ export class MetricsDashboard {
         status,
         healthScore,
         uptime: Date.now() - this.startTime,
-        version: process.env.npm_package_version || "1.0.0",
-        environment: process.env.NODE_ENV || "development",
+        version: process.env['npm_package_version'] || "1.0.0",
+        environment: process.env['NODE_ENV'] || "development",
       },
       performance: {
         requests: {

@@ -1,1 +1,0 @@
-CREATE INDEX IF NOT EXISTS idx_parcelles_created_at_desc ON parcelles(created_at DESC);

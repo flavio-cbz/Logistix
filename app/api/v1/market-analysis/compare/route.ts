@@ -14,12 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validation du body avec Zod
-    const bodyValidation = await validateBody(request, marketAnalysisCompareSchema);
-    if (!bodyValidation.success) {
-      return bodyValidation.response;
-    }
-
-    const { analysisIds } = bodyValidation.data;
+    const { analysisIds } = (await validateBody(marketAnalysisCompareSchema, request)).data;
 
     // Récupération des analyses à comparer
     const placeholders = analysisIds.map(() => "?").join(",");

@@ -29,7 +29,7 @@ export class ErrorMigrationHelper {
   ): CustomError {
     // If already a custom error, enhance with context if missing
     if (isCustomError(error)) {
-      if (!error.context?.requestId && context?.requestId) {
+      if (!error.context?.['requestId'] && context?.requestId) {
         return new (error.constructor as any)(
           error.message,
           error.code,
@@ -142,7 +142,7 @@ export class ErrorMigrationHelper {
         timestamp: customError.timestamp,
       },
       meta: {
-        requestId: requestId || customError.context?.requestId,
+        requestId: requestId || customError.context?.['requestId'],
         timestamp: new Date().toISOString(),
       },
     };

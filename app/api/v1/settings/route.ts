@@ -27,10 +27,7 @@ export async function PUT(request: NextRequest) {
       return createErrorResponse(new Error("Non authentifié"));
     }
 
-    const validationResult = await validateBody(request, settingsUpdateBodySchema);
-    if (!validationResult.success) {
-      return validationResult.response;
-    }
+    await validateBody(settingsUpdateBodySchema, request);
 
     return createSuccessResponse({ 
       message: "Settings PUT endpoint secured",

@@ -228,7 +228,7 @@ export function useSecretRotation() {
       setRotating(true);
       console.log("🔄 Rotation des secrets d'authentification...");
 
-      await autoAuthConfig.regenerateConfig();
+      await autoAuthConfig.generateAuthConfig();
       setLastRotation(new Date());
 
       console.log("✅ Secrets d'authentification régénérés avec succès");

@@ -149,7 +149,7 @@ export class FeatureFlagService {
   private loadConfig(): FeatureFlagsConfig {
     try {
       // Try to load from environment variable
-      const envConfig = process.env.FEATURE_FLAGS_CONFIG;
+      const envConfig = process.env['FEATURE_FLAGS_CONFIG'];
       if (envConfig) {
         const parsed = JSON.parse(envConfig);
         return FeatureFlagsConfigSchema.parse(parsed);

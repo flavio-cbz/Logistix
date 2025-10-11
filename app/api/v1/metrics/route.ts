@@ -356,5 +356,5 @@ function parseTimeRange(timeRange: string): number {
     "30d": 30 * 24 * 60 * 60 * 1000,
   };
 
-  return timeRangeMap[timeRange] || timeRangeMap["1h"];
+  return timeRangeMap[timeRange] ?? timeRangeMap["1h"] ?? 60 * 60 * 1000;
 }

@@ -15,10 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Validation des paramètres de requête
-    const validationResult = validateQuery(request, productsStatsQuerySchema);
-    if (!validationResult.success) {
-      return validationResult.response;
-    }
+    validateQuery(productsStatsQuerySchema, request);
     
     // Statistiques générales
     const globalStats = await databaseService.queryOne(

@@ -19,22 +19,22 @@ export default defineConfig({
   
   // Configuration globale
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : '50%',
+  forbidOnly: !!process.env['CI'],
+  retries: process.env['CI'] ? 2 : 0,
+  workers: process.env['CI'] ? 1 : '50%',
   
   // Reporter configuration
   reporter: [
     ['html', { open: 'never' }],
     ['json', { outputFile: 'playwright-report/results.json' }],
     ['junit', { outputFile: 'playwright-report/results.xml' }],
-    process.env.CI ? ['github'] : ['list'],
+  process.env['CI'] ? ['github'] : ['list'],
   ],
   
   // Configuration globale des tests
   use: {
     // Base URL de l'application
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+  baseURL: process.env['PLAYWRIGHT_BASE_URL'] || 'http://localhost:3000',
     
     // Trace configuration
     trace: 'on-first-retry',
@@ -79,7 +79,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     port: 3000,
-    reuseExistingServer: !process.env.CI,
+  reuseExistingServer: !process.env['CI'],
     timeout: 120000,
   },
 

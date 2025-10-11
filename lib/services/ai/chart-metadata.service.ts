@@ -1,4 +1,7 @@
-import type { AIAnnotation } from "../../types/ai-annotation";
+// import type { AIAnnotation } from "../../types/ai-annotation";
+
+// Temporary type definition
+type AIAnnotation = any;
 
 export interface ChartMetadata {
   generatedAt: string;

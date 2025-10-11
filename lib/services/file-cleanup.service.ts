@@ -188,7 +188,7 @@ export class FileCleanupService {
         // Keep only the most recent backup, mark others for deletion
         if (backupFiles.length > 1) {
           for (let i = 1; i < backupFiles.length; i++) {
-            oldBackups.push(backupFiles[i].path);
+            oldBackups.push(backupFiles[i]?.path || "");
           }
         }
       }

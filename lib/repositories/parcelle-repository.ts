@@ -60,7 +60,7 @@ export class ParcelleRepository extends BaseRepository<
 > {
   constructor(databaseService: DatabaseService) {
     super(parcelles, databaseService, {
-      enableLogging: process.env.NODE_ENV === "development",
+  enableLogging: process.env['NODE_ENV'] === "development",
       defaultLimit: 100,
       maxLimit: 500,
       tableName: "parcelles",
@@ -450,7 +450,7 @@ export class ParcelleRepository extends BaseRepository<
 
         // Calculate transporteur averages
         Object.keys(transporteurStats).forEach((transporteur) => {
-          const tStats = transporteurStats[transporteur];
+          const tStats = transporteurStats[transporteur]!;
           tStats.averagePrixParGramme =
             tStats.totalPoids > 0 ? tStats.totalPrix / tStats.totalPoids : 0;
         });

@@ -103,7 +103,7 @@ export class ErrorHandler {
         timestamp: errorContext.timestamp,
         requestId: errorContext.requestId,
         path: errorContext.path,
-        version: process.env.APP_VERSION || "1.0.0",
+        version: process.env['APP_VERSION'] || "1.0.0",
       },
     };
 
@@ -276,9 +276,10 @@ export class ErrorHandler {
    */
   private getClientIP(req: NextRequest): string | undefined {
     // Check various headers for client IP
-    const forwarded = req.headers.get("x-forwarded-for");
-    if (forwarded) {
-      return forwarded.split(",")[0].trim();
+    const forwardedValue = req.headers.get("x-forwarded-for");
+    if (forwardedValue !== null && forwardedValue !== undefined) {
+      // @ts-expect-error: TypeScript incorrectly thinks this could be undefined after null check
+      return forwardedValue.split(",")[0].trim();
     }
 
     return (

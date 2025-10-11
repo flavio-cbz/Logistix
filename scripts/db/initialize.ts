@@ -21,8 +21,8 @@ import { randomUUID } from 'crypto';
 // Configuration simplifiée pour le script
 const DB_PATH = resolve(process.cwd(), 'logistix.db');
 const MIGRATIONS_PATH = resolve(process.cwd(), 'drizzle', 'migrations');
-const ADMIN_DEFAULT_PASSWORD = process.env.ADMIN_DEFAULT_PASSWORD || 'admin123'; // Valeur par défaut pour le script
-const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
+const ADMIN_DEFAULT_PASSWORD = process.env['ADMIN_DEFAULT_PASSWORD'] || 'admin123'; // Valeur par défaut pour le script
+const BCRYPT_ROUNDS = parseInt(process.env['BCRYPT_ROUNDS'] || '12', 10);
 
 /**
  * Vérifie si le fichier de base de données existe

@@ -621,7 +621,7 @@ export abstract class BaseService {
       });
 
       // Ensure error has proper correlation context
-      if (isCustomError(error) && !error.context?.requestId) {
+      if (isCustomError(error) && !error.context?.['requestId']) {
         // Add correlation context to custom errors that don't have it
         // Different error types have different constructor signatures
         const enhancedContext = {

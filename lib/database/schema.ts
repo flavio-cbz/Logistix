@@ -97,6 +97,7 @@ export const products = sqliteTable(
 
     // Basic information
     name: text("name").notNull(),
+    description: text("description"), // Product description
     brand: text("brand"),
     category: text("category"),
     subcategory: text("subcategory"),

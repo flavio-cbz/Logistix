@@ -352,4 +352,3 @@
 - **Amazon + eBay** : Données de référence fiables
 - **AliExpress + Cdiscount** : Tendances prix discount
 - **Résultat** : Détection des bonnes affaires, optimisation des stocks
-

@@ -11,10 +11,7 @@ export async function GET(request: NextRequest) {
       return createErrorResponse(new Error("Non authentifié"));
     }
 
-    const validationResult = validateQuery(request, parcelleProductsQuerySchema);
-    if (!validationResult.success) {
-      return validationResult.response;
-    }
+    validateQuery(parcelleProductsQuerySchema, request);
 
     return createSuccessResponse({ 
       message: "Parcelle products endpoint secured",

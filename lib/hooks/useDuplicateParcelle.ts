@@ -30,7 +30,11 @@ export function useDuplicateParcelle() {
       const newParcelleData = {
         ...rest,
         numero: `${parcelle.numero}-copie-${Date.now()}`,
-      };
+        actif: rest.actif ? 1 : 0,
+        prixAchat: rest.prixAchat ?? null,
+        poids: rest.poids ?? null,
+        prixTotal: rest.prixTotal ?? null,
+      } as any;
 
       // 3. Appeler la fonction du store.
       // La fonction addParcelle est de type `void`, nous ne pouvons pas vérifier sa valeur de retour.

@@ -1,4 +1,5 @@
 // Parcelle management feature
-export * from './services'
-export * from './types'
-export * from './hooks'
+// TODO: Create services, types and hooks directories
+// export * from './services'
+// export * from './types'
+// export * from './hooks'

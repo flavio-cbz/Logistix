@@ -1,1 +1,0 @@
-CREATE INDEX IF NOT EXISTS idx_parcelles_transporteur ON parcelles(transporteur);

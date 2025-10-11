@@ -12,17 +12,20 @@
  */
 
 // Main unified monitoring service
+import { UnifiedMonitoringService, getUnifiedMonitoring, monitorPerformance, type MonitoringConfig, type SystemStatus, type ComponentStatus, type PerformanceMetrics, type AlertMetrics, type CriticalMetrics } from './unified-monitoring-service';
+import { HealthCheckService } from './health-check';
+
 export {
   UnifiedMonitoringService,
   getUnifiedMonitoring,
   monitorPerformance,
-  type MonitoringConfig,
-  type SystemStatus,
-  type ComponentStatus,
-  type PerformanceMetrics,
-  type AlertMetrics,
-  type CriticalMetrics,
-} from './unified-monitoring-service';
+  MonitoringConfig,
+  SystemStatus,
+  ComponentStatus,
+  PerformanceMetrics,
+  AlertMetrics,
+  CriticalMetrics,
+};
 
 // Structured logging
 export {
@@ -210,8 +213,8 @@ export async function getMonitoringDashboard() {
       overall: systemStatus.overall,
       uptime: systemStatus.uptime,
       activeAlerts: activeAlerts.length,
-      criticalMetrics: criticalMetrics.filter(m => m.status === 'critical').length,
-      warningMetrics: criticalMetrics.filter(m => m.status === 'warning').length,
+      criticalMetrics: criticalMetrics.filter((m: any) => m.status === 'critical').length,
+      warningMetrics: criticalMetrics.filter((m: any) => m.status === 'warning').length,
     },
   };
 }

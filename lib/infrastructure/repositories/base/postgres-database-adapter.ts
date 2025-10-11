@@ -71,7 +71,7 @@ export class PostgreSQLDatabaseAdapter implements DatabaseAdapter {
 // Factory function for creating PostgreSQL adapter
 export function createPostgreSQLAdapter(): PostgreSQLDatabaseAdapter | null {
   // Feature flag check
-  if (!process.env.ENABLE_POSTGRES_ADAPTER || process.env.ENABLE_POSTGRES_ADAPTER !== 'true') {
+  if (!process.env['ENABLE_POSTGRES_ADAPTER'] || process.env['ENABLE_POSTGRES_ADAPTER'] !== 'true') {
     return null;
   }
 

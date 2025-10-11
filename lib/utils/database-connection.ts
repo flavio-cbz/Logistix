@@ -15,7 +15,7 @@ let currentDatabaseType: DatabaseType | null = null;
  * Obtient les repositories selon la configuration environnement
  */
 export async function getDatabaseConnection(): Promise<RepositoryContainer> {
-  const configuredType = (process.env.DATABASE_TYPE || 'sqlite').toLowerCase() as DatabaseType;
+  const configuredType = (process.env['DATABASE_TYPE'] || 'sqlite').toLowerCase() as DatabaseType;
   
   // Si le type a changé ou si pas de cache, reinitialiser
   if (!cachedRepositories || currentDatabaseType !== configuredType) {

@@ -70,7 +70,7 @@ export function useProfile() {
   const fetchProfile = useCallback(async () => {
     if (!session?.user) return;
 
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    setState((prev: any) => ({ ...prev, isLoading: true, error: null }));
 
     try {
       const response = await fetch("/api/v1/profile", {
@@ -88,7 +88,7 @@ export function useProfile() {
       const data: ProfileApiResponse = await response.json();
 
       if (data.success && data.data) {
-        setState((prev) => ({
+        setState((prev: any) => ({
           ...prev,
           profile: data.data!,
           isLoading: false,
@@ -99,7 +99,7 @@ export function useProfile() {
       }
     } catch (error: any) {
       logger.error("Error fetching profile:", error);
-      setState((prev) => ({
+      setState((prev: any) => ({
         ...prev,
         isLoading: false,
         error:
@@ -118,7 +118,7 @@ export function useProfile() {
   // Update profile
   const updateProfile = useCallback(
     async (data: ProfileFormData) => {
-      setState((prev) => ({ ...prev, isUpdating: true, error: null }));
+      setState((prev: any) => ({ ...prev, isUpdating: true, error: null }));
 
       try {
         const response = await fetch("/api/v1/profile", {
@@ -138,7 +138,7 @@ export function useProfile() {
 
         if (result.success && result.data) {
           // Update local state
-          setState((prev) => ({
+          setState((prev: any) => ({
             ...prev,
             profile: prev.profile ? { ...prev.profile, ...result.data } : null,
             isUpdating: false,
@@ -163,7 +163,7 @@ export function useProfile() {
         }
       } catch (error: any) {
         logger.error("Error updating profile:", error);
-        setState((prev) => ({
+        setState((prev: any) => ({
           ...prev,
           isUpdating: false,
           error:
@@ -184,7 +184,7 @@ export function useProfile() {
 
   // Mark as having changes
   const setHasChanges = useCallback((hasChanges: boolean) => {
-    setState((prev) => ({ ...prev, hasChanges }));
+    setState((prev: any) => ({ ...prev, hasChanges }));
   }, []);
 
   // Refresh profile

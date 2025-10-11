@@ -267,7 +267,7 @@ export class PerformanceTracker {
     //   (m) => m.tags?.success === "true",
     // );
     const failedQueries = queryCounts.filter(
-      (m) => m.tags?.success === "false",
+      (m) => m.tags?.['success'] === "false",
     );
 
     return {
@@ -307,7 +307,7 @@ export class PerformanceTracker {
 
     const statusCodes: Record<string, number> = {};
     requestCounts.forEach((metric) => {
-      const statusCode = metric.tags?.statusCode || "unknown";
+      const statusCode = metric.tags?.['statusCode'] || "unknown";
       statusCodes[statusCode] = (statusCodes[statusCode] || 0) + 1;
     });
 
@@ -340,7 +340,7 @@ export class PerformanceTracker {
       1,
     );
     const eventLoopLag =
-      eventLoopLagMetrics.length > 0 ? eventLoopLagMetrics[0].value : 0;
+      eventLoopLagMetrics.length > 0 ? eventLoopLagMetrics[0]?.value ?? 0 : 0;
 
     return {
       memoryUsage: {

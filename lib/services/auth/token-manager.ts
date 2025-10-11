@@ -86,7 +86,7 @@ export function verifyToken(
 
   // Décoder payload
   try {
-    const payloadBuf = base64urlDecode(payloadB64);
+    const payloadBuf = base64urlDecode(payloadB64!);
     const payload = JSON.parse(payloadBuf.toString("utf8"));
     return { valid: true, payload };
   } catch (err) {

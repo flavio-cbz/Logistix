@@ -7,11 +7,26 @@ export interface AutoAuthConfig {
   jwtSecret?: string;
   accessTokenExpiry?: number;
   refreshTokenExpiry?: number;
+  cookieName?: string;
+  cookieMaxAge?: number;
+  sessionDuration?: number;
+  bcryptRounds?: number;
+  maxLoginAttempts?: number;
+  lockoutDuration?: number;
+  passwordMinLength?: number;
+  passwordMaxLength?: number;
+  adminPassword?: string;
+  environment?: string;
 }
 
 export interface SecurityAssessment {
   level: 'low' | 'medium' | 'high';
   recommendations: string[];
+  overallScore?: number;
+  jwtSecretStrength?: number;
+  passwordPolicyStrength?: number;
+  sessionSecurity?: number;
+  warnings?: string[];
 }
 
 export const autoAuthConfig = {

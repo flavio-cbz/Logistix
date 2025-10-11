@@ -151,9 +151,10 @@ const globalStore = new RateLimitStore();
  */
 function getClientIp(req: NextRequest): string {
   // Essayer les headers standards de proxy
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
+  const forwardedValue = req.headers.get("x-forwarded-for");
+  if (forwardedValue !== null && forwardedValue !== undefined) {
+    // @ts-expect-error: TypeScript incorrectly thinks this could be undefined after null check
+    return forwardedValue.split(",")[0].trim();
   }
 
   const realIp = req.headers.get("x-real-ip");

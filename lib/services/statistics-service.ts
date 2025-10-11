@@ -422,7 +422,7 @@ export class StatisticsService {
 
       // Format mois for display (e.g., "janv. 23")
       const [year, month] = row.mois.split("-");
-      const date = new Date(parseInt(year), parseInt(month) - 1);
+      const date = new Date(parseInt(year!), parseInt(month!) - 1);
       const nomMois = date.toLocaleString("fr-FR", {
         month: "short",
         year: "2-digit",

@@ -17,7 +17,7 @@ import type { MonitoringConfig } from './unified-monitoring-service';
  * Get monitoring configuration based on environment
  */
 export function getMonitoringConfig(): MonitoringConfig {
-  const environment = process.env.NODE_ENV || 'development';
+  const environment = process.env['NODE_ENV'] || 'development';
   const isDevelopment = environment === 'development';
   const isProduction = environment === 'production';
 
@@ -88,7 +88,7 @@ export interface MonitoringFeatureFlags {
  * Get monitoring feature flags based on environment and configuration
  */
 export function getMonitoringFeatureFlags(): MonitoringFeatureFlags {
-  const environment = process.env.NODE_ENV || 'development';
+  const environment = process.env['NODE_ENV'] || 'development';
   const isDevelopment = environment === 'development';
   const isProduction = environment === 'production';
 
@@ -158,7 +158,7 @@ export interface PerformanceThresholds {
  * Get performance thresholds based on environment
  */
 export function getPerformanceThresholds(): PerformanceThresholds {
-  const environment = process.env.NODE_ENV || 'development';
+  const environment = process.env['NODE_ENV'] || 'development';
   const isProduction = environment === 'production';
 
   // Stricter thresholds in production
@@ -221,7 +221,7 @@ export interface LoggingConfig {
  * Get logging configuration based on environment
  */
 export function getLoggingConfig(): LoggingConfig {
-  const environment = process.env.NODE_ENV || 'development';
+  const environment = process.env['NODE_ENV'] || 'development';
   const isDevelopment = environment === 'development';
   const isProduction = environment === 'production';
 
@@ -496,44 +496,44 @@ export function applyEnvironmentOverrides(config: CompleteMonitoringConfig): Com
   const overrides = { ...config };
 
   // Monitoring overrides
-  if (process.env.MONITORING_ENABLED !== undefined) {
-    overrides.monitoring.enablePerformanceTracking = process.env.MONITORING_ENABLED === 'true';
+  if (process.env['MONITORING_ENABLED'] !== undefined) {
+    overrides.monitoring.enablePerformanceTracking = process.env['MONITORING_ENABLED'] === 'true';
   }
 
-  if (process.env.LOG_LEVEL) {
-    overrides.monitoring.logLevel = process.env.LOG_LEVEL as any;
-    overrides.logging.level = process.env.LOG_LEVEL as any;
+  if (process.env['LOG_LEVEL']) {
+    overrides.monitoring.logLevel = process.env['LOG_LEVEL'] as any;
+    overrides.logging.level = process.env['LOG_LEVEL'] as any;
   }
 
-  if (process.env.HEALTH_CHECK_INTERVAL) {
-    overrides.monitoring.healthCheckInterval = parseInt(process.env.HEALTH_CHECK_INTERVAL, 10);
+  if (process.env['HEALTH_CHECK_INTERVAL']) {
+    overrides.monitoring.healthCheckInterval = parseInt(process.env['HEALTH_CHECK_INTERVAL'], 10);
   }
 
-  if (process.env.METRICS_RETENTION_HOURS) {
+  if (process.env['METRICS_RETENTION_HOURS']) {
     overrides.monitoring.metricsRetentionPeriod = 
-      parseInt(process.env.METRICS_RETENTION_HOURS, 10) * 60 * 60 * 1000;
+      parseInt(process.env['METRICS_RETENTION_HOURS'], 10) * 60 * 60 * 1000;
   }
 
   // Alerting overrides
-  if (process.env.ALERTING_ENABLED !== undefined) {
-    overrides.alerting.enabled = process.env.ALERTING_ENABLED === 'true';
+  if (process.env['ALERTING_ENABLED'] !== undefined) {
+    overrides.alerting.enabled = process.env['ALERTING_ENABLED'] === 'true';
   }
 
   // Performance threshold overrides
-  if (process.env.RESPONSE_TIME_WARNING_MS) {
-    overrides.thresholds.responseTime.warning = parseInt(process.env.RESPONSE_TIME_WARNING_MS, 10);
+  if (process.env['RESPONSE_TIME_WARNING_MS']) {
+    overrides.thresholds.responseTime.warning = parseInt(process.env['RESPONSE_TIME_WARNING_MS'], 10);
   }
 
-  if (process.env.RESPONSE_TIME_CRITICAL_MS) {
-    overrides.thresholds.responseTime.critical = parseInt(process.env.RESPONSE_TIME_CRITICAL_MS, 10);
+  if (process.env['RESPONSE_TIME_CRITICAL_MS']) {
+    overrides.thresholds.responseTime.critical = parseInt(process.env['RESPONSE_TIME_CRITICAL_MS'], 10);
   }
 
-  if (process.env.MEMORY_WARNING_PERCENT) {
-    overrides.thresholds.memoryUsage.warning = parseInt(process.env.MEMORY_WARNING_PERCENT, 10);
+  if (process.env['MEMORY_WARNING_PERCENT']) {
+    overrides.thresholds.memoryUsage.warning = parseInt(process.env['MEMORY_WARNING_PERCENT'], 10);
   }
 
-  if (process.env.MEMORY_CRITICAL_PERCENT) {
-    overrides.thresholds.memoryUsage.critical = parseInt(process.env.MEMORY_CRITICAL_PERCENT, 10);
+  if (process.env['MEMORY_CRITICAL_PERCENT']) {
+    overrides.thresholds.memoryUsage.critical = parseInt(process.env['MEMORY_CRITICAL_PERCENT'], 10);
   }
 
   return overrides;

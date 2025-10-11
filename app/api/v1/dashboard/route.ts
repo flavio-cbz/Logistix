@@ -24,11 +24,11 @@ export async function GET(_request: NextRequest) {
       produitsVendus: number;
     }>(
       `SELECT 
-        COALESCE(SUM(prixVente), 0) as ventesTotales,
-        COALESCE(SUM(benefices), 0) as beneficesTotaux,
+        COALESCE(SUM(COALESCE(selling_price, prix_vente, price)), 0) as ventesTotales,
+        COALESCE(SUM(COALESCE(selling_price, prix_vente, price) - price), 0) as beneficesTotaux,
         COUNT(*) as produitsVendus
       FROM products 
-      WHERE user_id = ? AND vendu = 1`,
+      WHERE user_id = ? AND vendu = '1'`,
       [user.id],
       "get-ventes-totales"
     );

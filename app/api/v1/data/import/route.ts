@@ -15,18 +15,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Validation du body avec Zod
-    const bodyValidation = await validateBody(request, importDataSchema);
-    if (!bodyValidation.success) {
-      return bodyValidation.response;
-    }
-
-    const { data, options } = bodyValidation.data;
+    const { data, options } = (await validateBody(importDataSchema, request)).data;
     const {
-      overwrite,
-      validateOnly,
-      skipDuplicates,
-      tablesToImport
-    } = options;
+      overwrite = false,
+      validateOnly = false,
+      skipDuplicates = false,
+      tablesToImport = []
+    } = options || {};
 
     const importResult = {
       importId: `imp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -43,12 +38,12 @@ export async function POST(request: NextRequest) {
 
     // Import des produits
     if (
-      data.produits &&
+      data['produits'] &&
       (tablesToImport.length === 0 || tablesToImport.includes("produits"))
     ) {
-      const produits = Array.isArray(data.produits)
-        ? data.produits
-        : [data.produits];
+      const produits = Array.isArray(data['produits'])
+        ? data['produits']
+        : [data['produits']];
       const tableResult = { processed: 0, imported: 0, skipped: 0, errors: 0 };
 
       for (let i = 0; i < produits.length; i++) {
@@ -57,7 +52,7 @@ export async function POST(request: NextRequest) {
 
         try {
           // Validation des champs requis
-          if (!produit.nom || !produit.categorie) {
+          if (!produit?.['nom'] || !produit?.['categorie']) {
             importResult.errors.push({
               table: "produits",
               record: i + 1,
@@ -68,12 +63,12 @@ export async function POST(request: NextRequest) {
           }
 
           // Vérification des doublons
-          if (skipDuplicates && produit.id) {
+          if (skipDuplicates && produit?.['id']) {
             const existing = await databaseService.queryOne(
               `
               SELECT id FROM products WHERE id = ? AND userId = ?
             `,
-              [produit.id, user.id],
+              [produit['id'], user.id],
               "check-produit-duplicate",
             );
 
@@ -85,10 +80,10 @@ export async function POST(request: NextRequest) {
 
           if (!validateOnly) {
             const id =
-              produit.id ||
+              produit?.['id'] ||
               `prod_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-            if (overwrite && produit.id) {
+            if (overwrite && produit?.['id']) {
               // Mise à jour
               await databaseService.execute(
                 `
@@ -99,17 +94,17 @@ export async function POST(request: NextRequest) {
                 WHERE id = ? AND userId = ?
               `,
                 [
-                  produit.nom,
-                  produit.description || "",
-                  produit.categorie,
-                  produit.prixAchat || 0,
-                  produit.prixVente || 0,
-                  produit.benefices || 0,
-                  produit.vendu || false,
-                  produit.dateAchat || new Date().toISOString(),
-                  produit.dateVente || null,
+                  produit?.['nom'],
+                  produit?.['description'] || "",
+                  produit?.['categorie'],
+                  produit?.['prixAchat'] || 0,
+                  produit?.['prixVente'] || 0,
+                  produit?.['benefices'] || 0,
+                  produit?.['vendu'] || false,
+                  produit?.['dateAchat'] || new Date().toISOString(),
+                  produit?.['dateVente'] || null,
                   new Date().toISOString(),
-                  produit.id,
+                  produit?.['id'],
                   user.id,
                 ],
                 "update-imported-produit",
@@ -125,18 +120,18 @@ export async function POST(request: NextRequest) {
               `,
                 [
                   id,
-                  produit.nom,
-                  produit.description || "",
-                  produit.categorie,
-                  produit.prixAchat || 0,
-                  produit.prixVente || 0,
-                  produit.benefices ||
-                    (produit.prixVente || 0) - (produit.prixAchat || 0),
-                  produit.vendu || false,
-                  produit.dateAchat || new Date().toISOString(),
-                  produit.dateVente || null,
+                  produit?.['nom'],
+                  produit?.['description'] || "",
+                  produit?.['categorie'],
+                  produit?.['prixAchat'] || 0,
+                  produit?.['prixVente'] || 0,
+                  produit?.['benefices'] ||
+                    (produit?.['prixVente'] || 0) - (produit?.['prixAchat'] || 0),
+                  produit?.['vendu'] || false,
+                  produit?.['dateAchat'] || new Date().toISOString(),
+                  produit?.['dateVente'] || null,
                   user.id,
-                  produit.createdAt || new Date().toISOString(),
+                  produit?.['createdAt'] || new Date().toISOString(),
                   new Date().toISOString(),
                 ],
                 "insert-imported-produit",
@@ -155,7 +150,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      importResult.summary.tables.produits = tableResult;
+      importResult.summary.tables['produits'] = tableResult;
       importResult.summary.totalRecords += tableResult.processed;
       importResult.summary.imported += tableResult.imported;
       importResult.summary.skipped += tableResult.skipped;
@@ -164,12 +159,12 @@ export async function POST(request: NextRequest) {
 
     // Import des parcelles
     if (
-      data.parcelles &&
+      data['parcelles'] &&
       (tablesToImport.length === 0 || tablesToImport.includes("parcelles"))
     ) {
-      const parcelles = Array.isArray(data.parcelles)
-        ? data.parcelles
-        : [data.parcelles];
+      const parcelles = Array.isArray(data['parcelles'])
+        ? data['parcelles']
+        : [data['parcelles']];
       const tableResult = { processed: 0, imported: 0, skipped: 0, errors: 0 };
 
       for (let i = 0; i < parcelles.length; i++) {
@@ -178,7 +173,7 @@ export async function POST(request: NextRequest) {
 
         try {
           // Validation des champs requis
-          if (!parcelle.nom || !parcelle.ville) {
+          if (!parcelle?.['nom'] || !parcelle?.['ville']) {
             importResult.errors.push({
               table: "parcelles",
               record: i + 1,
@@ -189,12 +184,12 @@ export async function POST(request: NextRequest) {
           }
 
           // Vérification des doublons
-          if (skipDuplicates && parcelle.id) {
+          if (skipDuplicates && parcelle?.['id']) {
             const existing = await databaseService.queryOne(
               `
               SELECT id FROM parcelles WHERE id = ? AND userId = ?
             `,
-              [parcelle.id, user.id],
+              [parcelle['id'], user.id],
               "check-parcelle-duplicate",
             );
 
@@ -206,30 +201,30 @@ export async function POST(request: NextRequest) {
 
           if (!validateOnly) {
             const id =
-              parcelle.id ||
+              parcelle?.['id'] ||
               `parc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-            if (overwrite && parcelle.id) {
+            if (overwrite && parcelle?.['id']) {
               // Mise à jour
               await databaseService.execute(
                 `
                 UPDATE parcelles SET
-                  nom = ?, description = ?, adresse = ?, ville = ?, 
-                  codePostal = ?, superficie = ?, typeActivite = ?, 
+                  nom = ?, description = ?, adresse = ?, ville = ?,
+                  codePostal = ?, superficie = ?, typeActivite = ?,
                   status = ?, updatedAt = ?
                 WHERE id = ? AND userId = ?
               `,
                 [
-                  parcelle.nom,
-                  parcelle.description || "",
-                  parcelle.adresse || "",
-                  parcelle.ville,
-                  parcelle.codePostal || "",
-                  parcelle.superficie || 0,
-                  parcelle.typeActivite || "agriculture",
-                  parcelle.status || "active",
+                  parcelle?.['nom'],
+                  parcelle?.['description'] || "",
+                  parcelle?.['adresse'] || "",
+                  parcelle?.['ville'],
+                  parcelle?.['codePostal'] || "",
+                  parcelle?.['superficie'] || 0,
+                  parcelle?.['typeActivite'] || "agriculture",
+                  parcelle?.['status'] || "active",
                   new Date().toISOString(),
-                  parcelle.id,
+                  parcelle?.['id'],
                   user.id,
                 ],
                 "update-imported-parcelle",
@@ -245,16 +240,16 @@ export async function POST(request: NextRequest) {
               `,
                 [
                   id,
-                  parcelle.nom,
-                  parcelle.description || "",
-                  parcelle.adresse || "",
-                  parcelle.ville,
-                  parcelle.codePostal || "",
-                  parcelle.superficie || 0,
-                  parcelle.typeActivite || "agriculture",
-                  parcelle.status || "active",
+                  parcelle?.['nom'],
+                  parcelle?.['description'] || "",
+                  parcelle?.['adresse'] || "",
+                  parcelle?.['ville'],
+                  parcelle?.['codePostal'] || "",
+                  parcelle?.['superficie'] || 0,
+                  parcelle?.['typeActivite'] || "agriculture",
+                  parcelle?.['status'] || "active",
                   user.id,
-                  parcelle.createdAt || new Date().toISOString(),
+                  parcelle?.['createdAt'] || new Date().toISOString(),
                   new Date().toISOString(),
                 ],
                 "insert-imported-parcelle",
@@ -273,7 +268,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      importResult.summary.tables.parcelles = tableResult;
+      importResult.summary.tables['parcelles'] = tableResult;
       importResult.summary.totalRecords += tableResult.processed;
       importResult.summary.imported += tableResult.imported;
       importResult.summary.skipped += tableResult.skipped;

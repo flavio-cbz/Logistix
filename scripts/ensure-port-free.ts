@@ -23,7 +23,7 @@ function getPort(): number {
     const n = Number(arg);
     if (!Number.isNaN(n) && n > 0) return n;
   }
-  const envPort = process.env.PORT && Number(process.env.PORT);
+  const envPort = process.env['PORT'] && Number(process.env['PORT']);
   if (envPort && !Number.isNaN(envPort)) return envPort;
   return 3000;
 }

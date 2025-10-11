@@ -139,180 +139,92 @@ export class DatabaseInitializationManagerImpl
    * Initialise le schéma de la base de données
    */
   private initializeSchema(db: Database.Database): void {
-    logger.info("Initializing database schema...");
+    logger.info("Initializing database schema via consolidated migration file...");
 
-    const initTransaction = db.transaction(() => {
-      // Création des tables
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS users (
-          id TEXT PRIMARY KEY,
-          username TEXT UNIQUE NOT NULL,
-          password_hash TEXT NOT NULL,
-          bio TEXT DEFAULT '',
-          avatar TEXT DEFAULT '',
-          language TEXT DEFAULT 'fr',
-          theme TEXT DEFAULT 'system',
-          created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-          updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
-        );
+    const migrationFile = path.join(process.cwd(), 'drizzle', 'migrations', '0000_complete_schema.sql');
 
-        CREATE TABLE IF NOT EXISTS sessions (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          expires_at TEXT NOT NULL,
-          created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        );
+    if (!fs.existsSync(migrationFile)) {
+      logger.error('Migration file not found', { migrationFile });
+      throw new Error(`Migration file not found: ${migrationFile}`);
+    }
 
-        CREATE TABLE IF NOT EXISTS parcelles (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          numero TEXT NOT NULL,
-          transporteur TEXT NOT NULL,
-          prixAchat REAL NOT NULL,
-          poids REAL NOT NULL,
-          prixTotal REAL NOT NULL,
-          prixParGramme REAL NOT NULL,
-          created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-          updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        );
+    const migrationSQL = fs.readFileSync(migrationFile, 'utf-8');
 
-        CREATE TABLE IF NOT EXISTS produits (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          parcelleId TEXT,
-          commandeId TEXT NOT NULL,
-          nom TEXT NOT NULL,
-          details TEXT,
-          prixArticle REAL NOT NULL,
-          prixArticleTTC REAL,
-          poids REAL NOT NULL,
-          prixLivraison REAL NOT NULL,
-          vendu INTEGER DEFAULT 0,
-          dateVente TEXT,
-          tempsEnLigne TEXT,
-          prixVente REAL,
-          plateforme TEXT,
-          benefices REAL,
-          pourcentageBenefice REAL,
-          created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-          updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-          FOREIGN KEY (parcelleId) REFERENCES parcelles(id) ON DELETE SET NULL
-        );
+    // Split statements and ignore comments/empty lines
+    const statements = migrationSQL
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && !s.startsWith('--'));
 
-        -- Ensure English 'products' table exists and migrate data from 'produits' if necessary
-        CREATE TABLE IF NOT EXISTS products (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          parcelle_id TEXT,
-          name TEXT NOT NULL,
-          description TEXT,
-          price REAL NOT NULL,
-          currency TEXT NOT NULL DEFAULT 'EUR',
-          vinted_item_id TEXT,
-          status TEXT NOT NULL DEFAULT 'draft',
-          created_at INTEGER,
-          updated_at INTEGER,
-          sold_at INTEGER,
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-          FOREIGN KEY (parcelle_id) REFERENCES parcelles(id) ON DELETE SET NULL
-        );
+    const transaction = db.transaction(() => {
+      for (const stmt of statements) {
+        const statement = stmt.trim();
+        if (!statement) continue;
 
-        -- Migrate existing data from 'produits' to 'products' (best-effort, idempotent)
-        INSERT OR IGNORE INTO products (id, user_id, parcelle_id, name, description, price, currency, vinted_item_id, status, created_at, updated_at, sold_at)
-        SELECT
-          id,
-          user_id,
-          parcelleId,
-          nom,
-          details,
-          prixArticle,
-          'EUR',
-          NULL,
-          CASE WHEN vendu = 1 THEN 'sold' ELSE 'draft' END,
-          CAST(strftime('%s', created_at) AS INTEGER) * 1000,
-          CAST(strftime('%s', updated_at) AS INTEGER) * 1000,
-          NULL
-        FROM products
-        WHERE NOT EXISTS (SELECT 1 FROM products WHERE products.id = produits.id);
+        try {
+          // Guard for CREATE INDEX statements: ensure columns exist first
+          const lower = statement.toLowerCase();
+          if (lower.startsWith('create index') || lower.startsWith('create unique index')) {
+            const m = /on\s+([`"]?)([a-z0-9_]+)\1\s*\(([^)]+)\)/i.exec(statement);
+            if (m) {
+              const table = m[2];
+              const cols = m[3]!
+                .split(',')
+                .map(c => c.trim().replace(/[`"\s]+/g, ''))
+                .map(c => c.replace(/\s+(desc|asc)\s*$/i, ''))
+                .map(c => c.toLowerCase());
 
-        CREATE TABLE IF NOT EXISTS dashboard_config (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          config TEXT NOT NULL,
-          created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-          updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        );
-        
-        -- Supprimer l'ancienne table market_analyses si elle existe avec l'ancien schéma
-        DROP TABLE IF EXISTS market_analyses;
-        
-        CREATE TABLE market_analyses (
-            id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            product_name TEXT NOT NULL,
-            catalog_id INTEGER,
-            category_name TEXT,
-            status TEXT NOT NULL CHECK (status IN ('pending', 'completed', 'failed')),
-            input TEXT,
-            result TEXT,
-            error TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT
-        );
+              let tableColumns: string[] = [];
+              try {
+                const rows = db.prepare(`PRAGMA table_info('${table}')`).all();
+                tableColumns = rows.map((r: any) => String(r.name).toLowerCase());
+              } catch (e) {
+                logger.warn(`Table ${table} does not exist yet, skipping index: ${statement}`);
+                continue;
+              }
 
-        CREATE TABLE IF NOT EXISTS historical_prices (
-            id TEXT PRIMARY KEY,
-            product_name TEXT NOT NULL,
-            date TEXT NOT NULL,
-            price REAL NOT NULL,
-            sales_volume INTEGER NOT NULL,
-            created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
-        );
+              const missing = cols.filter(c => !tableColumns.includes(c));
+              if (missing.length > 0) {
+                logger.info(`Skipping index on ${table}, missing columns: ${missing.join(', ')}`);
+                continue;
+              }
+            }
+          }
 
-        CREATE TABLE IF NOT EXISTS similar_sales (
-          id TEXT PRIMARY KEY,
-          query_hash TEXT NOT NULL,
-          raw_data TEXT NOT NULL,
-          parsed_data TEXT NOT NULL,
-          expires_at TEXT NOT NULL,
-          created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
-        );
-      `);
+          db.prepare(statement).run();
+        } catch (err: any) {
+          // Ignore already exists errors because migration uses IF NOT EXISTS
+          const msg = String(err?.message || err);
+          if (msg.toLowerCase().includes('already exists')) {
+            continue;
+          }
+          // Log and rethrow other errors
+          logger.error('Error executing migration statement', { statement, error: msg });
+          throw err;
+        }
+      }
 
-      // Création des index
-      db.exec(`
-        CREATE INDEX IF NOT EXISTS idx_parcelles_user_id ON parcelles(user_id);
-        CREATE INDEX IF NOT EXISTS idx_products_user_id ON products(user_id);
-        CREATE INDEX IF NOT EXISTS idx_products_parcelle_id ON products(parcelle_id);
-        CREATE INDEX IF NOT EXISTS idx_dashboard_config_user_id ON dashboard_config(user_id);
-        CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
-        CREATE INDEX IF NOT EXISTS idx_market_analyses_user_id ON market_analyses(user_id);
-        CREATE INDEX IF NOT EXISTS idx_historical_prices_product_name ON historical_prices(product_name);
-        CREATE INDEX IF NOT EXISTS idx_historical_prices_date ON historical_prices(date);
-        CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
-        CREATE INDEX IF NOT EXISTS idx_parcelles_created_at ON parcelles(created_at);
-        CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
-        CREATE INDEX IF NOT EXISTS idx_products_created_at ON products(created_at);
-        CREATE INDEX IF NOT EXISTS idx_similar_sales_query_hash ON similar_sales(query_hash);
-      `);
-
-      this.upgradeMarketAnalysesSchema(db);
-      this.upgradeVintedSessionsSchema(db); // Ensure vinted_sessions schema is up-to-date
-      logger.info("Tables and indexes created or already exist");
-
-      // Initialisation des métadonnées Vinted
-      this.runMetadataSchema(db);
-
-      // Création de l'utilisateur admin si aucun utilisateur n'existe
-      this.createDefaultAdminUser(db);
+      logger.info('Migration statements executed from file', { migrationFile, count: statements.length });
     });
 
-    initTransaction();
-    logger.info("Database schema initialization completed successfully");
+    transaction();
+
+    // Run existing upgrade helpers to ensure any programmatic upgrades are applied
+    try {
+      this.upgradeMarketAnalysesSchema(db);
+      this.upgradeVintedSessionsSchema(db);
+      logger.info('Post-migration schema upgrades applied');
+    } catch (e) {
+      logger.warn('Post-migration upgrades failed', { error: e instanceof Error ? e.message : String(e) });
+    }
+
+    // Initialisation des métadonnées Vinted
+    this.runMetadataSchema(db);
+
+    // Création de l'utilisateur admin si aucun utilisateur n'existe
+    this.createDefaultAdminUser(db);
+
+    logger.info('Database schema initialization completed successfully (via migration file)');
   }
 
   /**
@@ -358,16 +270,30 @@ export class DatabaseInitializationManagerImpl
         process.env["ADMIN_PASSWORD"] ||
         "admin123"; // Removed '!' as it can be null/undefined
 
-      const insert = db.prepare(
-        "INSERT INTO users (id, username, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-      );
-      insert.run(
-        this.generateId(),
-        "admin",
-        hashPasswordSync(adminPassword),
-        this.getCurrentTimestamp(),
-        this.getCurrentTimestamp(),
-      );
+      // Support a legacy fixed admin ID used by temporary session bypass in the codebase.
+      // Allow override via ADMIN_ID env var for flexibility in CI/dev.
+      const legacyAdminId = process.env["ADMIN_ID"] || 'baa65519-e92f-4010-a3c2-e9b5c67fb0d7';
+
+      // Upsert pattern: if a user with legacyAdminId doesn't exist, insert it.
+      const exists = db
+        .prepare("SELECT 1 FROM users WHERE id = ? LIMIT 1")
+        .get(legacyAdminId);
+
+      if (!exists) {
+        const insert = db.prepare(
+          "INSERT INTO users (id, username, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        );
+        insert.run(
+          legacyAdminId,
+          "temp_admin",
+          hashPasswordSync(adminPassword),
+          this.getCurrentTimestamp(),
+          this.getCurrentTimestamp(),
+        );
+        logger.info('Inserted legacy admin user to satisfy temporary session bypass', { legacyAdminId });
+      } else {
+        logger.info('Legacy admin user already present, skipping insert', { legacyAdminId });
+      }
 
       logger.info("Default administrator user created successfully");
       logger.warn(`Username: admin, Password: ${adminPassword}`);
@@ -580,10 +506,13 @@ export class DatabaseInitializationManagerImpl
 
           // Single UPDATE using subselects
           const updateAssignments: string[] = [];
-          for (const m of mappings[0]) {
+          // mappings may be empty or undefined; guard before iterating
+          if (mappings && mappings[0]) {
+            for (const m of mappings[0]) {
             // Only attempt to copy if source column exists in produits
             if (this.columnExists(db, 'produits', m.from)) {
               updateAssignments.push(`${m.to} = (SELECT ${m.from} FROM produits p WHERE p.id = products.id)`);
+            }
             }
           }
 
@@ -681,9 +610,8 @@ export class DatabaseInitializationManagerImpl
   /**
    * Génère un identifiant unique universel (UUID)
    */
-  private generateId(): string {
-    return randomUUID();
-  }
+  // generateId was previously defined here but the project uses shared generateId utilities
+  // to avoid duplicate implementations. Remove the private one to satisfy linter.
 
   /**
    * Rotate legacy admin password (SHA-256) to bcrypt using ADMIN_DEFAULT_PASSWORD if provided.

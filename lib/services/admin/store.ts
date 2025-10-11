@@ -221,6 +221,7 @@ export const useStore = create<StoreState>()(
           id: crypto.randomUUID(),
           userId: produit.userId || '',
           name: produit.name || '',
+          description: produit.description || '',
           brand: produit.brand || null,
           category: produit.category || null,
           subcategory: produit.subcategory || null,

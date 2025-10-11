@@ -42,14 +42,14 @@ export class DatabaseAdapterFactory {
 
   private static getDatabaseType(): DatabaseType {
     // Priority: explicit env var > feature flag > default
-    if (process.env.DATABASE_TYPE) {
-      const type = process.env.DATABASE_TYPE.toLowerCase();
+    if (process.env['DATABASE_TYPE']) {
+      const type = process.env['DATABASE_TYPE'].toLowerCase();
       if (type === 'postgres' || type === 'postgresql') return 'postgres';
       if (type === 'sqlite') return 'sqlite';
     }
 
     // Check PostgreSQL feature flag
-    if (process.env.ENABLE_POSTGRES_ADAPTER === 'true') {
+    if (process.env['ENABLE_POSTGRES_ADAPTER'] === 'true') {
       return 'postgres';
     }
 

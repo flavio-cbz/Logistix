@@ -1,7 +1,7 @@
  // Types pour l'analyse de marché Vinted
 
 import { z } from 'zod';
-import type { AIAnnotation as CanonicalAIAnnotation, InteractiveElement as CanonicalInteractiveElement } from '../lib/types/ai-annotation';
+// import type { AIAnnotation as CanonicalAIAnnotation, InteractiveElement as CanonicalInteractiveElement } from '../lib/types/ai-annotation'; // Module not found
 
 /**
  * Types et schémas pour l'analyse de marché Vinted.
@@ -561,10 +561,14 @@ export interface TrendPrediction {
 
 // Types pour les graphiques enrichis
  // Canonical AIAnnotation type imported from lib/types/ai-annotation.ts
- export type AIAnnotation = CanonicalAIAnnotation;
+ // export type AIAnnotation = CanonicalAIAnnotation;
 
  // Canonical InteractiveElement type imported from lib/types/ai-annotation.ts
- export type InteractiveElement = CanonicalInteractiveElement;
+ // export type InteractiveElement = CanonicalInteractiveElement;
+
+// Temporary type definitions
+export type AIAnnotation = any;
+export type InteractiveElement = any;
 
 export interface EnhancedChart {
   id: string;

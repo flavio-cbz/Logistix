@@ -9,10 +9,10 @@ import { logger } from "@/lib/utils/logging/logger";
 import { migrationService } from "@/lib/shared/services/error-migration";
 import {
   ValidationError,
-  NotFoundError,
+  // NotFoundError, // Not used in this file
   AuthError,
   InfrastructureError,
-  ErrorContext,
+  // ErrorContext, // Not used in this file
 } from "@/lib/shared/errors";
 
 export interface VintedCredentials {
@@ -83,8 +83,8 @@ export class VintedCredentialServiceMigrated extends migrationService.createBase
     this.executeOperation(async () => {
       // En développement, utiliser les variables d'environnement
       if (process.env.NODE_ENV === "development") {
-        const email = process.env.VINTED_EMAIL;
-        const password = process.env.VINTED_PASSWORD;
+        const email = process.env['VINTED_EMAIL'];
+        const password = process.env['VINTED_PASSWORD'];
 
         if (email && password) {
           this.credentials = {
@@ -99,7 +99,7 @@ export class VintedCredentialServiceMigrated extends migrationService.createBase
 
       // En production, charger depuis la base de données ou le stockage sécurisé
       // TODO: Implémenter le chargement depuis la base de données
-    }, 'loadCredentials').catch(error => {
+    }, 'loadCredentials').catch(_error => {
       // Error is already logged by executeOperation
       logger.warn('Failed to load Vinted credentials, continuing without them', {
         requestId: this.requestId,
@@ -136,7 +136,7 @@ export class VintedCredentialServiceMigrated extends migrationService.createBase
         throw this.createValidationError(
           'Invalid email format',
           'email',
-          { operation: 'setCredentials', providedEmail: email }
+          { operation: 'setCredentials', additionalData: { providedEmail: email } }
         );
       }
 
@@ -160,7 +160,7 @@ export class VintedCredentialServiceMigrated extends migrationService.createBase
         'Invalid Vinted credentials provided',
         {
           operation: 'setCredentials',
-          email: email, // Don't log password for security
+          additionalData: { email }, // Don't log password for security
         }
       );
     }, 'setCredentials');
@@ -195,8 +195,10 @@ export class VintedCredentialServiceMigrated extends migrationService.createBase
           'Failed to validate credentials with Vinted API',
           {
             operation: 'validateCredentials',
-            email: email,
-            originalError: error instanceof Error ? error.message : String(error),
+            additionalData: {
+              email,
+              originalError: error instanceof Error ? error.message : String(error),
+            },
           }
         );
       }
@@ -230,8 +232,10 @@ export class VintedCredentialServiceMigrated extends migrationService.createBase
           'Vinted credentials not configured or invalid',
           {
             operation: 'searchProducts',
-            hasCredentials: this.credentials !== null,
-            isActive: this.credentials?.isActive || false,
+            additionalData: {
+              hasCredentials: this.credentials !== null,
+              isActive: this.credentials?.isActive || false,
+            },
           }
         );
       }
@@ -241,7 +245,7 @@ export class VintedCredentialServiceMigrated extends migrationService.createBase
         throw this.createValidationError(
           'Minimum price cannot be negative',
           'minPrice',
-          { operation: 'searchProducts', minPrice: params.minPrice }
+          { operation: 'searchProducts', additionalData: { minPrice: params.minPrice } }
         );
       }
 
@@ -249,7 +253,7 @@ export class VintedCredentialServiceMigrated extends migrationService.createBase
         throw this.createValidationError(
           'Maximum price cannot be negative',
           'maxPrice',
-          { operation: 'searchProducts', maxPrice: params.maxPrice }
+          { operation: 'searchProducts', additionalData: { maxPrice: params.maxPrice } }
         );
       }
 
@@ -263,8 +267,10 @@ export class VintedCredentialServiceMigrated extends migrationService.createBase
           'minPrice',
           {
             operation: 'searchProducts',
-            minPrice: params.minPrice,
-            maxPrice: params.maxPrice,
+            additionalData: {
+              minPrice: params.minPrice,
+              maxPrice: params.maxPrice,
+            },
           }
         );
       }
@@ -273,7 +279,7 @@ export class VintedCredentialServiceMigrated extends migrationService.createBase
         throw this.createValidationError(
           'Limit must be between 1 and 100',
           'limit',
-          { operation: 'searchProducts', limit: params.limit }
+          { operation: 'searchProducts', additionalData: { limit: params.limit } }
         );
       }
 
@@ -290,8 +296,10 @@ export class VintedCredentialServiceMigrated extends migrationService.createBase
           'Failed to search products on Vinted',
           {
             operation: 'searchProducts',
-            searchParams: params,
-            originalError: error instanceof Error ? error.message : String(error),
+            additionalData: {
+              searchParams: params,
+              originalError: error instanceof Error ? error.message : String(error),
+            },
           }
         );
       }
@@ -316,7 +324,7 @@ export class VintedCredentialServiceMigrated extends migrationService.createBase
           'Vinted credentials not configured or invalid',
           {
             operation: 'getProductDetails',
-            productId: productId,
+            additionalData: { productId },
           }
         );
       }
@@ -330,8 +338,10 @@ export class VintedCredentialServiceMigrated extends migrationService.createBase
           'Failed to retrieve product details from Vinted',
           {
             operation: 'getProductDetails',
-            productId: productId,
-            originalError: error instanceof Error ? error.message : String(error),
+            additionalData: {
+              productId,
+              originalError: error instanceof Error ? error.message : String(error),
+            },
           }
         );
       }

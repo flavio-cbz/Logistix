@@ -7,7 +7,7 @@
  */
 
 import { migrationService, ERROR_HANDLING_MIGRATION_CHECKLIST } from '../services/error-migration';
-import { logger } from '@/lib/utils/logging/logger';
+// import { logger } from '@/lib/utils/logging/logger'; // Not used in this file
 
 /**
  * Example service migration

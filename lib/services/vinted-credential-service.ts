@@ -155,8 +155,8 @@ export class VintedCredentialService {
     try {
       // En développement, utiliser les variables d'environnement
       if (process.env.NODE_ENV === "development") {
-        const email = process.env.VINTED_EMAIL;
-        const password = process.env.VINTED_PASSWORD;
+        const email = process.env['VINTED_EMAIL'];
+        const password = process.env['VINTED_PASSWORD'];
 
         if (email && password) {
           this.credentials = {

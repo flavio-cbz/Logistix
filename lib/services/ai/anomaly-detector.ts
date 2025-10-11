@@ -128,7 +128,7 @@ export async function isAnomaly(
       max_tokens: 100,
     });
 
-    const jsonString = response.choices[0].text.match(/{[\s\S]*}/)?.[0];
+    const jsonString = response.choices[0]!.text!.match(/{[\s\S]*}/)?.[0];
     if (!jsonString) {
       throw new Error("La réponse de l'IA ne contient pas de JSON valide.");
     }
@@ -202,7 +202,7 @@ export async function detectMarketAnomalies(
       max_tokens: 1500,
     });
 
-    const jsonString = response.choices[0].text.match(/{[\s\S]*}/)?.[0];
+    const jsonString = response.choices[0]!.text!.match(/{[\s\S]*}/)?.[0];
     if (!jsonString) {
       throw new Error("La réponse de l'IA ne contient pas de JSON valide.");
     }

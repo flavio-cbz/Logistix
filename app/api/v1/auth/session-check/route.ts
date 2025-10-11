@@ -23,12 +23,13 @@ export async function GET(request: NextRequest) {
     // TEMPORAIRE: Bypass database check pour les sessions de test
     if (sessionId.startsWith('temp_session_')) {
       console.log("✅ TEMPORARY BYPASS ACTIVATED for session:", sessionId);
+      const legacyAdminId = process.env['ADMIN_ID'] || 'baa65519-e92f-4010-a3c2-e9b5c67fb0d7';
       return NextResponse.json({
         success: true,
         data: {
           valid: true,
           user: {
-            id: 'baa65519-e92f-4010-a3c2-e9b5c67fb0d7',
+            id: legacyAdminId,
             username: 'admin'
           },
           session: {

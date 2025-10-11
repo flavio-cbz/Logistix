@@ -106,8 +106,8 @@ describe('UnifiedAuditService', () => {
 
       const event = events[0] as MutationAuditEvent;
       expect(event.action).toBe('update');
-      expect(event.changes.nom).toEqual({ before: 'Old Name', after: 'New Name' });
-      expect(event.changes.prix).toEqual({ before: 99.99, after: 149.99 });
+      expect(event.changes['nom']).toEqual({ before: 'Old Name', after: 'New Name' });
+      expect(event.changes['prix']).toEqual({ before: 99.99, after: 149.99 });
     });
 
     it('devrait logger une suppression', async () => {
@@ -146,9 +146,9 @@ describe('UnifiedAuditService', () => {
       const events = service.getBufferedEvents();
       const event = events[0] as MutationAuditEvent;
 
-      expect(event.changes.password).toEqual({ before: '[REDACTED]', after: '[REDACTED]' });
-      expect(event.changes.token).toEqual({ before: '[REDACTED]', after: '[REDACTED]' });
-      expect(event.changes.email).toEqual({ before: 'old@example.com', after: 'new@example.com' });
+      expect(event.changes['password']).toEqual({ before: '[REDACTED]', after: '[REDACTED]' });
+      expect(event.changes['token']).toEqual({ before: '[REDACTED]', after: '[REDACTED]' });
+      expect(event.changes['email']).toEqual({ before: 'old@example.com', after: 'new@example.com' });
     });
 
     it('ne devrait pas logger si logMutations désactivé', async () => {
@@ -204,7 +204,7 @@ describe('UnifiedAuditService', () => {
 
       expect(event.success).toBe(false);
       expect(event.reason).toBe('Invalid password');
-      expect(event.details?.attempts).toBe(3);
+      expect(event.details?.['attempts']).toBe(3);
     });
 
     it('devrait logger un blocage brute force', async () => {
@@ -223,7 +223,7 @@ describe('UnifiedAuditService', () => {
 
       expect(event.securityEventType).toBe('brute_force_blocked');
       expect(event.severity).toBe('high');
-      expect(event.details?.attempts).toBe(5);
+      expect(event.details?.['attempts']).toBe(5);
     });
 
     it('ne devrait pas logger si logSecurity désactivé', async () => {
@@ -453,7 +453,7 @@ describe('UnifiedAuditService', () => {
       expect(event.requestId).toBe('req-000');
       expect(event.ip).toBe('192.168.1.1');
       expect(event.userAgent).toBe('Mozilla/5.0');
-      expect(event.metadata?.source).toBe('api');
+      expect(event.metadata?.['source']).toBe('api');
     });
   });
 
