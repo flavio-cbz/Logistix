@@ -6,7 +6,7 @@
 
 ### Corrections Critiques
 
-- [] Finir l'implementation ou supprimer le filtre par categorie dans la liste des produits.
+- [x] Finir l'implementation ou supprimer le filtre par categorie dans la liste des produits.
 - [] Corriger le bug ou la creation de produit renvoi : {[Error] Failed to load resource: the server responded with a status of 500 (Internal Server Error) (prod_1760203422249_0gursa540, line 0)
 [Error] Erreur lors de la validation de la vente: – Error: Erreur lors de la mise à jour du produit
 Error: Erreur lors de la mise à jour du produit

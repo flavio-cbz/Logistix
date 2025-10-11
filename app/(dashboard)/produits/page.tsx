@@ -6,27 +6,17 @@ import {
   Plus,
   TrendingUp,
   List,
-  
+  Grid3X3,
   AlertTriangle,
   DollarSign,
-  ArrowUpDown,
   Archive,
-  Grid3X3,
   RefreshCw,
   ShoppingCart
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import ProductCreateForm from "@/components/features/produits/product-create-form";
 import { useProducts } from "@/lib/hooks/use-products";
 import type { Product } from "@/lib/shared/types/entities";
@@ -37,16 +27,11 @@ import ProductsGridView from "@/components/features/produits/products-grid-view"
 // We keep Product typed data here and no longer convert to legacy `Produit`.
 
 type ViewMode = 'grid' | 'list';
-type SortBy = 'title' | 'prix' | 'stock' | 'ventes' | 'date' | 'note';
-type FilterStatus = 'tous' | 'actif' | 'rupture' | 'inactif';
 
 export default function RevolutionaryProductsPage() {
   // États du composant
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [sortBy, setSortBy] = useState<SortBy>('title');
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('tous');
 
   // Hooks pour les données
   const { data: productsResponse, isLoading, error, refetch } = useProducts();
@@ -144,6 +129,26 @@ export default function RevolutionaryProductsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center border rounded-lg p-1 bg-muted/50">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="h-8 px-3"
+            >
+              <Grid3X3 className="w-4 h-4 mr-2" />
+              Grille
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="h-8 px-3"
+            >
+              <List className="w-4 h-4 mr-2" />
+              Liste
+            </Button>
+          </div>
           <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Actualiser
@@ -206,85 +211,6 @@ export default function RevolutionaryProductsPage() {
             <p className="text-xs text-muted-foreground">
               Produits archivés
             </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Section des filtres et recherche */}
-      <div className="grid gap-4 lg:grid-cols-4">
-
-        <Card>
-    <CardContent className="p-4" data-sort-order={sortOrder}>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Statut</Label>
-              <Select value={filterStatus} onValueChange={(value: FilterStatus) => setFilterStatus(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tous les statuts" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tous">Tous les statuts</SelectItem>
-                  <SelectItem value="actif">Actifs</SelectItem>
-                  <SelectItem value="rupture">Rupture</SelectItem>
-                  <SelectItem value="inactif">Inactifs</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Trier par</Label>
-              <div className="flex gap-2">
-                <Select value={sortBy} onValueChange={(value: SortBy) => setSortBy(value)}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="title">Nom</SelectItem>
-                    <SelectItem value="prix">Prix</SelectItem>
-                    <SelectItem value="date">Date</SelectItem>
-                    <SelectItem value="ventes">Ventes</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                >
-                  <ArrowUpDown className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Affichage</Label>
-              <div className="flex gap-1">
-                <Button
-                  data-testid="view-mode-grid"
-                  variant={viewMode === 'grid' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="flex-1"
-                >
-                  <Grid3X3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  data-testid="view-mode-list"
-                  variant={viewMode === 'list' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="flex-1"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
