@@ -17,9 +17,11 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { hash as bcryptHashPassword } from 'bcrypt';
 import { randomUUID } from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Configuration simplifiée pour le script
-const DB_PATH = resolve(process.cwd(), 'logistix.db');
+const DB_PATH = resolve(process.cwd(), 'data', 'logistix.db'); // Correction : utiliser le répertoire 'data' comme spécifié dans les instructions du projet
 const MIGRATIONS_PATH = resolve(process.cwd(), 'drizzle', 'migrations');
 const ADMIN_DEFAULT_PASSWORD = process.env['ADMIN_DEFAULT_PASSWORD'] || 'admin123'; // Valeur par défaut pour le script
 const BCRYPT_ROUNDS = parseInt(process.env['BCRYPT_ROUNDS'] || '12', 10);
@@ -33,6 +35,8 @@ function checkDatabaseExists(): boolean {
 
 /**
  * Exécute les migrations de la base de données
+ * 
+ * @throws {Error} Si une migration échoue de manière inattendue (erreurs autres que "already exists")
  */
 async function runMigrations(): Promise<void> {
   console.log("🚀 Début des migrations de base de données...");
@@ -42,9 +46,6 @@ async function runMigrations(): Promise<void> {
   const sqlite = new Database(DB_PATH);
   
   // Lire tous les fichiers de migration manuellement
-  const fs = require('fs');
-  const path = require('path');
-  
   const migrationFiles = fs.readdirSync(MIGRATIONS_PATH)
     .filter((file: string) => file.endsWith('.sql'))
     .sort(); // Trier pour appliquer dans l'ordre
@@ -55,11 +56,21 @@ async function runMigrations(): Promise<void> {
     const filePath = path.join(MIGRATIONS_PATH, file);
     const sqlContent = fs.readFileSync(filePath, 'utf-8');
     
-    // Splitter les statements SQL (séparés par ';' et saut de ligne)
-    const statements = sqlContent
+    // Nettoyer le contenu SQL : supprimer les commentaires et lignes vides
+    const cleanedContent = sqlContent
+      .split('\n')
+      .filter((line: string) => {
+        const trimmed = line.trim();
+        // Ignorer les lignes vides et les commentaires SQL
+        return trimmed.length > 0 && !trimmed.startsWith('--');
+      })
+      .join('\n');
+    
+    // Splitter les statements SQL (séparés par ';')
+    const statements = cleanedContent
       .split(';')
       .map((stmt: string) => stmt.trim())
-      .filter((stmt: string) => stmt.length > 0);
+      .filter((stmt: string) => stmt.length > 0 && !stmt.startsWith('--'));
     
     console.log(`  ⚙️  Exécution de ${file} (${statements.length} statement${statements.length > 1 ? 's' : ''})`);
     
@@ -116,6 +127,8 @@ async function runMigrations(): Promise<void> {
 
 /**
  * Crée l'utilisateur admin
+ * 
+ * @throws {Error} Si ADMIN_DEFAULT_PASSWORD n'est pas défini ou si l'insertion échoue
  */
 async function createAdminUser(): Promise<void> {
   // Initialiser Drizzle avec better-sqlite3 directement
@@ -156,6 +169,8 @@ async function createAdminUser(): Promise<void> {
 
 /**
  * Post-migration fixes for known schema gaps (idempotent)
+ * 
+ * Applique des correctifs idempotents pour les lacunes connues du schéma (ex: colonnes manquantes).
  */
 async function postMigrationFixes(): Promise<void> {
   const sqlite = new Database(DB_PATH);
@@ -181,6 +196,8 @@ async function postMigrationFixes(): Promise<void> {
 
 /**
  * Fonction principale
+ * 
+ * @throws {Error} Si l'initialisation échoue (migrations, création d'utilisateur, etc.)
  */
 async function main(): Promise<void> {
  console.log("🔍 Vérification de l'état de la base de données...");

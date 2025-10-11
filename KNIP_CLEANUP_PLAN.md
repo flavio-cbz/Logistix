@@ -15,7 +15,8 @@
 | **Exports inutilisés** | ~150+ | 🟡 Faible - Complexité API |
 | **Duplicates détectés** | ~20 | 🟠 Moyen - Confusion nommage |
 
-**Gain estimé** : 
+**Gain estimé** :
+
 - ~15 000 lignes de code supprimées
 - ~200 MB de node_modules en moins
 - Temps de build réduit de 20-30%
@@ -50,6 +51,7 @@ graph TD
 ## 📁 Catégorisation des 233 Fichiers
 
 ### 🟢 **Phase 1 : Scripts de Maintenance (0% Risque)**
+
 **Suppression safe car ce sont des outils one-shot jamais référencés dans l'app**
 
 ```typescript
@@ -77,6 +79,7 @@ scripts/db/rollback.ts                    // Rollback manuel
 ---
 
 ### 🟡 **Phase 2 : Barrel Exports & Index Files (5% Risque)**
+
 **Fichiers `index.ts` qui re-exportent mais ne sont jamais importés**
 
 ```typescript
@@ -102,7 +105,8 @@ components/features/notifications/index.ts
 components/features/produits/index.ts
 ```
 
-**Action** : 
+**Action** :
+
 1. Vérifier avec `grep -r "from '@/lib'" app/` si utilisés
 2. Supprimer ceux qui ne sont jamais importés
 3. Remplacer imports de barrel par imports directs
@@ -110,6 +114,7 @@ components/features/produits/index.ts
 ---
 
 ### 🟠 **Phase 3 : Composants UI shadcn/ui Inutilisés (10% Risque)**
+
 **Composants Radix UI jamais utilisés dans les pages**
 
 ```typescript
@@ -128,7 +133,8 @@ components/ui/toggle.tsx
 components/ui/tooltip.tsx                 // ⚠️ Peut être utilisé indirectement
 ```
 
-**Action** : 
+**Action** :
+
 1. Chercher usages avec `grep -r "<Breadcrumb" app/ components/`
 2. Garder `tooltip.tsx` (souvent utilisé via composition)
 3. Supprimer les autres
@@ -177,6 +183,7 @@ components/features/profile/avatar-upload.tsx
 ```
 
 **⚠️ ATTENTION** : Ces composants peuvent être dans des routes conditionnelles ou admin. Vérifier :
+
 ```bash
 # Chercher routes dans app/
 find app/ -name "page.tsx" -o -name "*.tsx" | xargs grep -l "market-analysis\|statistiques"
@@ -246,6 +253,7 @@ lib/services/statistics-service.ts
 ```
 
 **Analyse Requise** : Utiliser un script pour tracer les imports réels :
+
 ```bash
 # Pour chaque fichier, vérifier s'il est importé
 for file in lib/services/ai/*.ts; do
@@ -281,6 +289,7 @@ lib/infrastructure/repositories/sqlite/produit-repository.ts
 ```
 
 **Diagnostic** : Le projet a probablement commencé une migration vers DDD puis abandonné. Vérifier si les repositories sont utilisés :
+
 ```bash
 grep -r "ProduitRepository\|SqliteProduitRepository" app/
 ```
@@ -335,6 +344,7 @@ lib/utils/type-generation.ts        // Types générés par Drizzle
 ```
 
 **Commande** :
+
 ```bash
 npm uninstall @auth/core @databases/sqlite @hello-pangea/dnd bcryptjs date-fns \
   embla-carousel-react input-otp jsonwebtoken lru-cache next-auth node-cron \
@@ -366,6 +376,7 @@ npm uninstall @auth/core @databases/sqlite @hello-pangea/dnd bcryptjs date-fns \
 ```
 
 **Commande** :
+
 ```bash
 npm uninstall @radix-ui/react-accordion @radix-ui/react-aspect-ratio \
   @radix-ui/react-collapsible @radix-ui/react-context-menu \
@@ -416,6 +427,7 @@ npm uninstall @radix-ui/react-accordion @radix-ui/react-aspect-ratio \
 ```
 
 **Commande** :
+
 ```bash
 npm uninstall -D @jest/globals @testing-library/user-event @types/cookie \
   @types/jsonwebtoken @types/lodash @types/node-fetch @types/nodemailer \
@@ -527,6 +539,7 @@ main();
 ```
 
 **Usage** :
+
 ```bash
 npx tsx scripts/smart-cleanup-with-knip.ts
 ```
@@ -586,8 +599,8 @@ Après nettoyage complet, tu devrais voir :
 
 ## 🎓 Ressources pour Approfondir
 
-- **Knip Docs** : https://knip.dev/overview/getting-started
-- **Stratégies de nettoyage** : https://knip.dev/guides/handling-issues
+- **Knip Docs** : <https://knip.dev/overview/getting-started>
+- **Stratégies de nettoyage** : <https://knip.dev/guides/handling-issues>
 - **Ignorer faux positifs** : Créer `.kniprc.json` avec patterns
 
 ---
