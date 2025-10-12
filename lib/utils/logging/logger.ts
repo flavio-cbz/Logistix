@@ -158,7 +158,7 @@ function anonymizeValue(
   return value;
 }
 
-export function anonymize(objOrString: any): any {
+function anonymize(objOrString: any): any {
   return anonymizeValue(objOrString);
 }
 

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   Package2, 
-  Bell, 
   Settings, 
   ChevronRight,
   Sparkles,
@@ -20,7 +19,6 @@ import { UserAvatarMenu } from "@/components/user-avatar-menu";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { MobileNavDrawer } from "./mobile-nav-drawer";
 import { useHeaderAnimations, useSearchState } from "@/lib/hooks/useHeaderAnimations";
 
@@ -193,23 +191,6 @@ export function HorizontalNav() {
 
             {/* Actions rapides */}
             <div className="flex items-center gap-2">
-              {/* Notifications avec badge */}
-              <Link href="/notifications">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative h-10 w-10 rounded-xl hover:bg-white/10 transition-all duration-300 group"
-                >
-                  <Bell className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" />
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs font-medium"
-                  >
-                    3
-                  </Badge>
-                </Button>
-              </Link>
-
               {/* Paramètres */}
               <Link href="/settings">
                 <Button

@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Settings, 
   User, 
-  Bell, 
   Shield, 
   Database, 
   Palette,
@@ -76,53 +75,6 @@ export default async function SettingsPage() {
                 Sauvegarder
               </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Notifications */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5" />
-              Notifications
-            </CardTitle>
-            <CardDescription>
-              Configurez vos préférences de notification
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Notifications push</Label>
-                <p className="text-sm text-muted-foreground">
-                  Recevoir des notifications dans le navigateur
-                </p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Notifications email</Label>
-                <p className="text-sm text-muted-foreground">
-                  Recevoir des résumés par email
-                </p>
-              </div>
-              <Switch />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Alertes stock</Label>
-                <p className="text-sm text-muted-foreground">
-                  Alertes pour stock faible
-                </p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/notifications">
-                Gérer les notifications
-              </Link>
-            </Button>
           </CardContent>
         </Card>
 

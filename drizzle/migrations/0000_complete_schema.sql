@@ -218,7 +218,6 @@ CREATE TABLE IF NOT EXISTS user_preferences (
   objectives TEXT NOT NULL, -- JSON array
   risk_tolerance TEXT NOT NULL CHECK(risk_tolerance IN ('conservative', 'moderate', 'aggressive')),
   preferred_insight_types TEXT NOT NULL, -- JSON array
-  notification_settings TEXT NOT NULL, -- JSON object
   custom_filters TEXT NOT NULL, -- JSON object
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),

@@ -96,7 +96,6 @@
 - [x] Développer les composants de graphiques avancés pour les visualisations
 - [x] Ajouter les composants de recherche et filtres avancés
 - [x] Développer les composants de formulaires avec validation en temps réel
-- [ ] Implémenter les composants de notifications et alertes utilisateur
 - [ ] Ajouter les composants de chargement et états d'attente élégants
 - [ ] Développer les composants de navigation responsive et intuitive
 
@@ -140,7 +139,6 @@
 - [ ] Ajouter la planification des analyses de marché périodiques
 - [ ] Développer les workers pour les tâches en arrière-plan
 - [ ] Implémenter la queue de jobs avec retry automatique
-- [ ] Ajouter la notification des tâches échouées aux administrateurs
 - [ ] Développer le monitoring en temps réel des processus automatisés
 
 ---
@@ -255,9 +253,6 @@
 ### Fonctionnalités à Forte Valeur
 
 - [ ] Alertes en temps réel pour les changements de marché
-- [ ] Système de notifications complet avec centre de notifications
-- [ ] Alertes en temps réel pour les changements de marché
-- [ ] Notifications push pour les analyses terminées
 - [ ] Système d'abonnements aux catégories et produits
 
 ---

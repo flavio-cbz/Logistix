@@ -28,7 +28,6 @@ export const createTestUser = (overrides: Partial<User> = {}): User => ({
   preferences: {
     theme: 'light',
     language: 'fr',
-    notifications: true,
   },
   createdAt: faker.date.past().toISOString(),
   updatedAt: faker.date.recent().toISOString(),

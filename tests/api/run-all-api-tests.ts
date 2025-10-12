@@ -147,7 +147,6 @@ class ApiTestRunner {
       { route: '/api/v1/settings', method: 'GET' },
       { route: '/api/v1/statistics/dashboard', method: 'GET' },
       { route: '/api/v1/search/advanced', method: 'GET' },
-      { route: '/api/v1/notifications', method: 'GET' },
       { route: '/api/v1/market-analysis/status', method: 'GET' },
       { route: '/api/v1/vinted/categories', method: 'GET' },
       // { route: '/api/client/products', method: 'GET' }, // REMOVED: obsolete route
@@ -159,7 +158,6 @@ class ApiTestRunner {
       { route: '/api/v1/auth/logout', method: 'POST' },
       { route: '/api/v1/produits', method: 'POST' },
       { route: '/api/v1/parcelles', method: 'POST' },
-      { route: '/api/v1/notifications/read', method: 'POST' },
       { route: '/api/v1/vinted/categories/clear-cache', method: 'POST' },
       { route: '/api/v1/data/import', method: 'POST' },
       { route: '/api/v1/data/sync', method: 'POST' },
@@ -174,7 +172,6 @@ class ApiTestRunner {
       // DELETE routes
       { route: '/api/v1/parcelles', method: 'DELETE' },
       { route: '/api/v1/produits', method: 'DELETE' },
-      { route: '/api/v1/notifications', method: 'DELETE' },
     ];
 
     // Run tests for each route
@@ -226,8 +223,7 @@ class ApiTestRunner {
       working = status < 500 && (status !== 404 || !route.includes('['));
       
     } catch (err: unknown) {
-      const error = err as Error;
-      error = error.message || 'Unknown error';
+      error = (err as Error).message || 'Unknown error';
       working = false;
     }
 
