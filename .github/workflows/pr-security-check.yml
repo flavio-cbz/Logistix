@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           
       - name: Install dependencies
@@ -53,31 +53,33 @@ jobs:
           # Analyser la sécurité actuelle
           node scripts/analyze-api-security.js > current-security.txt
           
-          # Vérifier que les nouveaux/modifiés endpoints sont sécurisés
-          CURRENT_SCORE=$(grep -oP "Pourcentage sécurisé: \K[\d.]+" current-security.txt)
-          
-          echo "📊 Score de sécurité actuel: $CURRENT_SCORE%"
-          
-          # Règle: ne pas régresser en dessous de 35%
-          if (( $(echo "$CURRENT_SCORE < 35" | bc -l) )); then
-            echo "❌ ÉCHEC: Le PR fait régresser la sécurité en dessous de 35%"
-            echo "💡 Veuillez sécuriser les nouveaux endpoints avec validation Zod"
-            exit 1
-          fi
-          
-          echo "✅ Sécurité maintenue ou améliorée"
+          node <<'NODE'
+          const fs = require('fs');
+          const report = fs.readFileSync('current-security.txt', 'utf8');
+          const match = report.match(/Pourcentage sécurisé:\s*([\d.]+)/i);
+          const score = match ? Number(match[1]) : NaN;
+
+          if (!Number.isFinite(score)) {
+            console.error('❌ Impossible de déterminer le score de sécurité.');
+            process.exit(1);
+          }
+
+          console.log(`📊 Score de sécurité actuel: ${score}%`);
+
+          if (score < 35) {
+            console.error('❌ ÉCHEC: Le PR fait régresser la sécurité en dessous de 35%');
+            console.error('💡 Veuillez sécuriser les nouveaux endpoints avec validation Zod');
+            process.exit(1);
+          }
+
+          console.log('✅ Sécurité maintenue ou améliorée');
+          NODE
           
       - name: Test Zod Schemas (if API changes)
         if: steps.analyze-changes.outputs.api-changes == 'true'
         run: |
-          echo "🧪 Test des schémas de validation..."
-          
-          # Vérifier que les schémas sont fonctionnels
-          npx tsx scripts/test-validation-schemas.ts || {
-            echo "⚠️ Certains tests de validation ont échoué"
-            echo "💡 Veuillez vérifier la compatibilité des schémas Zod"
-            # Ne pas faire échouer le build pour cela
-          }
+          echo "🧪 Tests de validation via Vitest..."
+          npm run test:unit
           
       - name: Security Summary Comment
         if: steps.analyze-changes.outputs.api-changes == 'true'
@@ -99,9 +101,9 @@ jobs:
             const totalMatch = securityReport.match(/Total endpoints: (\d+)/);
             const percentageMatch = securityReport.match(/Pourcentage sécurisé: ([\d.]+)%/);
             
-            const secured = securedMatch ? securedMatch[1] : 'N/A';
-            const total = totalMatch ? totalMatch[1] : 'N/A';
-            const percentage = percentageMatch ? percentageMatch[1] : 'N/A';
+            const secured = securedMatch ? Number(securedMatch[1]) : 'N/A';
+            const total = totalMatch ? Number(totalMatch[1]) : 'N/A';
+            const percentage = percentageMatch ? Number(percentageMatch[1]) : 'N/A';
             
             const comment = `
             ## 🔐 Analyse de Sécurité du PR
@@ -109,17 +111,17 @@ jobs:
             ### 📊 État Actuel de la Sécurisation
             - **Endpoints sécurisés:** ${secured}/${total}
             - **Pourcentage:** ${percentage}%
-            - **Seuil minimum:** 35% ${percentage >= 35 ? '✅' : '❌'}
+            - **Seuil minimum:** 35% ${percentage !== 'N/A' && percentage >= 35 ? '✅' : '❌'}
             
             ### 🔍 Fichiers API Modifiés
             Ce PR modifie des endpoints API. La sécurité a été automatiquement vérifiée.
             
             ### 📝 Checklist de Sécurité
-            ${percentage >= 35 ? '- ✅ Seuil de sécurité respecté' : '- ❌ Seuil de sécurité non respecté'}
-            - ${percentage > 50 ? '✅' : '⚠️'} Couverture de sécurisation ${percentage > 50 ? 'satisfaisante' : 'à améliorer'}
+            ${percentage !== 'N/A' && percentage >= 35 ? '- ✅ Seuil de sécurité respecté' : '- ❌ Seuil de sécurité non respecté'}
+            - ${percentage !== 'N/A' && percentage > 50 ? '✅' : '⚠️'} Couverture de sécurisation ${percentage !== 'N/A' && percentage > 50 ? 'satisfaisante' : 'à améliorer'}
             
             ### 💡 Recommandations
-            ${percentage < 40 ? '- ⚠️ Considérer l\'ajout de validation Zod aux nouveaux endpoints\n- 📚 Consulter \`lib/schemas/index.ts\` pour les schémas existants\n- 🔧 Utiliser \`lib/middleware/validation.ts\` pour l\'intégration' : '- 🎉 Bonne pratique de sécurisation maintenue !'}
+            ${percentage !== 'N/A' && percentage < 40 ? '- ⚠️ Considérer l\'ajout de validation Zod aux nouveaux endpoints\n- 📚 Consulter `lib/schemas/index.ts` pour les schémas existants\n- 🔧 Utiliser `lib/middleware/validation.ts` pour l\'intégration' : '- 🎉 Bonne pratique de sécurisation maintenue !'}
             
             ---
             *Analyse automatique par le système de sécurité LogistiX*

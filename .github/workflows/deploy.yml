@@ -33,7 +33,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           
       - name: Install dependencies
@@ -43,16 +43,30 @@ jobs:
         id: security
         run: |
           node scripts/analyze-api-security.js > security.txt
-          SCORE=$(grep -oP "Pourcentage sécurisé: \K[\d.]+" security.txt)
-          echo "score=$SCORE" >> $GITHUB_OUTPUT
-          echo "Score de sécurité: $SCORE%"
-          
-          if (( $(echo "$SCORE < 50" | bc -l) )); then
-            echo "❌ Déploiement bloqué: Sécurité insuffisante ($SCORE% < 50%)"
-            exit 1
-          fi
-          
-          echo "✅ Gate de sécurité passé"
+          node <<'NODE'
+          const fs = require('fs');
+          const report = fs.readFileSync('security.txt', 'utf8');
+          const match = report.match(/Pourcentage sécurisé:\s*([\d.]+)/i);
+          const score = match ? Number(match[1]) : NaN;
+
+          if (!Number.isFinite(score)) {
+            console.error('❌ Impossible de calculer le score de sécurité');
+            process.exit(1);
+          }
+
+          if (process.env.GITHUB_OUTPUT) {
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `score=${score}\n`);
+          }
+
+          console.log(`Score de sécurité: ${score}%`);
+
+          if (score < 50) {
+            console.error(`❌ Déploiement bloqué: Sécurité insuffisante (${score}% < 50%)`);
+            process.exit(1);
+          }
+
+          console.log('✅ Gate de sécurité passé');
+          NODE
 
   build-docker:
     name: Build Docker Image

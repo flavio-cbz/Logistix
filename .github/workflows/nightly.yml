@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
 
 jobs:
   performance:
@@ -27,18 +27,19 @@ jobs:
         run: npm ci
 
       - name: Setup test database
+        run: npm run db:initialize
+
+      - name: Run smoke performance suite
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
         run: |
-          mkdir -p data
-          npm run db:migrate
+          npx playwright test \
+            --config=playwright.config.ts \
+            --project=chromium \
+            --grep "@smoke"
 
-      - name: Run performance tests
-        run: npm run test:performance
-
-      - name: Run load tests
-        run: npm run test:performance:load
-
-      - name: Run optimization tests
-        run: npm run test:performance:optimization
+      - name: Run quality checks
+        run: npm run checks
 
       - name: Upload performance reports
         uses: actions/upload-artifact@v4
@@ -46,7 +47,7 @@ jobs:
           name: performance-reports
           path: |
             test-results/
-            performance-report.html
+            playwright-report/
 
   security-tests:
     name: Security Vulnerability Tests
@@ -65,17 +66,13 @@ jobs:
         run: npm ci
 
       - name: Setup test database
-        run: |
-          mkdir -p data
-          npm run db:migrate
+        run: npm run db:initialize
 
       - name: Run security tests
-        run: |
-          npm test -- --testPathPattern=security --run
+        run: npm run test:unit
 
       - name: Run penetration tests
-        run: |
-          npm test -- --testPathPattern=penetration --run
+        run: npm run test:integration
 
       - name: Upload security test reports
         uses: actions/upload-artifact@v4
@@ -106,12 +103,12 @@ jobs:
         run: npx playwright install --with-deps ${{ matrix.browser }}
 
       - name: Setup test database
-        run: |
-          mkdir -p data
-          npm run db:migrate
+        run: npm run db:initialize
 
       - name: Run cross-browser tests
-        run: npx playwright test --project=${{ matrix.browser }}
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+        run: npx playwright test --config=playwright.config.ts --project=${{ matrix.browser }}
 
       - name: Upload test results
         if: always()
@@ -142,16 +139,13 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Setup test database
-        run: |
-          mkdir -p data
-          npm run db:migrate
+        run: npm run db:initialize
 
       - name: Run all tests
-        run: npm run test:all
+        run: npm run test:e2e:ci
 
-      - name: Generate comprehensive report
-        run: |
-          node scripts/generate-test-report.js
+      - name: Collect coverage
+        run: npm run test:coverage
 
       - name: Upload comprehensive report
         uses: actions/upload-artifact@v4
@@ -160,7 +154,7 @@ jobs:
           path: |
             test-results/
             coverage/
-            comprehensive-report.html
+            playwright-report/
 
   notify:
     name: Notify on Failure

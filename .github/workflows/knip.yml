@@ -22,7 +22,7 @@ jobs:
         run: npm ci
 
       - name: Run knip (unused files)
-        run: npx --yes knip --reporter json --config knip.json > knip-report.json || (echo "Knip detected unused items" && exit 1)
+        run: npx --yes knip --reporter json > knip-report.json || (echo "Knip detected unused items" && exit 1)
 
       - name: Upload Knip report
         if: always()
