@@ -13,7 +13,7 @@ describe('/api/v1/health - Integration Tests', () => {
     vi.clearAllMocks();
     // Dynamically import GET to avoid edge runtime initialization issues
     if (!GET) {
-      const healthModule = await import('../../../app/api/v1/health/route');
+      const healthModule = await import('../../app/api/v1/health/route');
       GET = healthModule.GET;
     }
   });

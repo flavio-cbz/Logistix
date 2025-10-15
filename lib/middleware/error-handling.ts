@@ -14,6 +14,7 @@ export interface ApiError {
 }
 
 export interface ApiResponse<T = any> {
+  ok: boolean;
   success: boolean;
   data?: T;
   error?: {
@@ -212,6 +213,7 @@ export function createErrorResponse(
   requestId?: string
 ): ApiResponse {
   return {
+    ok: false,
     success: false,
     error: {
       code,
@@ -234,6 +236,7 @@ export function createSuccessResponse<T>(
   requestId?: string
 ): ApiResponse<T> {
   return {
+    ok: true,
     success: true,
     data,
     metadata: {

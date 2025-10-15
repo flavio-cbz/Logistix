@@ -1,5 +1,8 @@
 {
   "extends": "../tsconfig.vitest.json",
+  "compilerOptions": {
+    "types": []
+  },
   "include": [
     "./unit/application/**/*.ts"
   ],

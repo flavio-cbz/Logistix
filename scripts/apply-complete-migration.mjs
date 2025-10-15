@@ -27,8 +27,10 @@ try {
   const migrationSQL = readFileSync(MIGRATION_FILE, 'utf-8');
   console.log(`✅ Lecture du fichier de migration : ${MIGRATION_FILE}\n`);
   
+  // Nettoyage des commentaires multi-lignes pour éviter la corruption des statements
+  const sanitizedSQL = migrationSQL.replace(/\/\*[\s\S]*?\*\//g, '');
   // Séparation des commandes SQL (ignorer les commentaires et lignes vides)
-  const sqlStatements = migrationSQL
+  const sqlStatements = sanitizedSQL
     .split(';')
     .map(stmt => stmt.trim())
     .filter(stmt => {
@@ -38,28 +40,61 @@ try {
   
   console.log(`📋 ${sqlStatements.length} commandes SQL à exécuter\n`);
   
+  // Helper: vérifier existence d'une table
+  function tableExists(tableName) {
+    try {
+      const row = db.prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name = ?"
+      ).get(tableName);
+      return !!row;
+    } catch {
+      return false;
+    }
+  }
+
   // Exécution dans une transaction
   const transaction = db.transaction(() => {
     let successCount = 0;
     let skipCount = 0;
     
-    for (const statement of sqlStatements) {
+    for (const raw of sqlStatements) {
+      const statement = raw; // déjà trim
+      
       try {
+        const lower = statement.toLowerCase();
+
+        // Gardes pour CREATE INDEX: s'assurer que la table cible existe, sinon ignorer (idempotence)
+        if (lower.startsWith('create index') || lower.startsWith('create unique index')) {
+          const m = /on\s+([`"]?)([a-z0-9_]+)\1\s*\(/i.exec(statement);
+          const targetTable = m?.[2];
+          if (!targetTable) {
+            console.warn(`  ⚠️ Index sans table détecté, skip: ${statement.substring(0, 80)}...`);
+            skipCount++;
+            continue;
+          }
+          if (!tableExists(targetTable)) {
+            console.log(`  ⏭️ Table absente (${targetTable}), index ignoré: ${statement.substring(0, 80)}...`);
+            skipCount++;
+            continue;
+          }
+        }
+
+        // Exécuter le statement
         db.exec(statement);
         successCount++;
         
         // Afficher des messages pour les CREATE TABLE
-        if (statement.toLowerCase().includes('create table')) {
-          const match = statement.match(/create table (?:if not exists )?(\w+)/i);
+        if (lower.startsWith('create table')) {
+          const match = statement.match(/create table (?:if not exists )?([`"]?)([a-z0-9_]+)\1/i);
           if (match) {
-            console.log(`  ✓ Table créée/vérifiée : ${match[1]}`);
+            console.log(`  ✓ Table créée/vérifiée : ${match[2]}`);
           }
         }
       } catch (error) {
         // Ignorer les erreurs "table already exists" ou "duplicate column name"
-        const errorMsg = error.message.toLowerCase();
+        const errorMsg = String(error?.message || '').toLowerCase();
         if (
-          errorMsg.includes('already exists') || 
+          errorMsg.includes('already exists') ||
           errorMsg.includes('duplicate column')
         ) {
           skipCount++;

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { logger } from "@/lib/utils/logging/logger";
 
 // Importations des services d'authentification
-// import { verifyCredentials, createSession } from "@/lib/services/auth/auth";
+import { verifyCredentials, createSession } from "@/lib/services/auth/auth";
 import { logAuthenticationEvent } from "@/lib/services/user-action-logger";
 
 // Importations des classes d'erreur
@@ -216,16 +216,9 @@ export const POST = withErrorHandling(
           username: validatedData.username,
         });
         
-        // TEMPORAIRE: Bypass database check pour les tests
-        if (validatedData.username === 'admin' && validatedData.password === 'admin123') {
-          userId = process.env['ADMIN_ID'] || 'baa65519-e92f-4010-a3c2-e9b5c67fb0d7'; // admin user ID
-          logger.debug("TEMPORARY BYPASS: Login successful for admin", {
-            requestId: context.requestId,
-            userId,
-          });
-        } else {
-          throw new Error("INVALID_CREDENTIALS");
-        }
+        // Vérifier les credentials avec le service d'authentification
+        const user = await verifyCredentials(validatedData.username, validatedData.password);
+        userId = user.id;
         
         logger.debug("Credentials verified successfully", {
           requestId: context.requestId,
@@ -241,14 +234,21 @@ export const POST = withErrorHandling(
           errorName: authError instanceof Error ? authError.name : undefined,
         });
         
-        // TEMPORAIRE: Retourner l'erreur exacte pour debug
+        // Gérer les erreurs d'authentification
         const errorMessage = authError instanceof Error ? authError.message : String(authError);
+        let userFriendlyMessage = "Identifiants invalides";
+        
+        if (errorMessage === "USER_NOT_FOUND") {
+          userFriendlyMessage = "Utilisateur non trouvé";
+        } else if (errorMessage === "INVALID_PASSWORD") {
+          userFriendlyMessage = "Mot de passe incorrect";
+        }
+        
         const options = createResponseOptions(nextReq, startTime, context.requestId);
         return createErrorResponse(
-          new AuthError(`DEBUG: ${errorMessage}`),
+          new AuthError(userFriendlyMessage),
           options,
         );
-        // Le code ci-dessous n'est jamais exécuté (après return)
       }
 
       // =============================================================================
@@ -263,10 +263,10 @@ export const POST = withErrorHandling(
 
       let sessionId: string;
       try {
-        // TEMPORAIRE: Bypass database session creation pour les tests
-        sessionId = `temp_session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        // Créer une vraie session avec le service d'authentification
+        sessionId = await createSession(userId);
         
-        logger.debug("TEMPORARY BYPASS: Session created successfully", {
+        logger.debug("Session created successfully", {
           requestId: context.requestId,
           userId,
           username: validatedData.username,
@@ -329,13 +329,15 @@ export const POST = withErrorHandling(
       );
       const response = createSuccessResponse(responseData, options);
 
-      // Set session cookie
+      // Set session cookie (delete old one first to ensure refresh)
       logger.debug("Setting session cookie", {
         requestId: context.requestId,
         cookieName: COOKIE_NAME,
         sessionId,
       });
 
+      // Clear old cookie first (to ensure browser updates it)
+      response.cookies.delete(COOKIE_NAME);
       response.cookies.set(COOKIE_NAME, sessionId, COOKIE_OPTIONS);
 
       return response;

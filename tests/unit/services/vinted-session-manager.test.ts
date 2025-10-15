@@ -26,13 +26,15 @@ vi.mock('../../../lib/utils/crypto', () => {
 });
 
 vi.mock('../../../lib/utils/logging/logger', () => {
+  const mockLogger = {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  };
   return {
-    logger: {
-      error: vi.fn(),
-      warn: vi.fn(),
-      info: vi.fn(),
-      debug: vi.fn(),
-    },
+    getLogger: vi.fn(() => mockLogger),
+    logger: mockLogger,
   };
 });
 

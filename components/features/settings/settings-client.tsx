@@ -123,7 +123,7 @@ export function SettingsClient({ initialData }: SettingsClientProps) {
       setSettings(initialData);
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []); // Ne se déclenche qu'au montage initial
 
   const saveSettings = async (partialSettings: Partial<SettingsData>) => {
@@ -251,7 +251,7 @@ export function SettingsClient({ initialData }: SettingsClientProps) {
     // Pré-charger les sessions lorsque l'onglet sécurité est accessible
     // (On load initial pour simplicité)
     fetchSessions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
   function SessionsList() {

@@ -141,7 +141,7 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
       });
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []); // Ne se déclenche qu'au montage initial
 
   const handleSave = async () => {

@@ -31,6 +31,7 @@ Document de validation complet des fonctionnalités backend pour les pages `/pro
 | **Avatar URL** | ✅ Éditable | `/api/v1/profile` PUT | `updateProfileSchema.avatar` (URL valide) | `users.avatar` | ✅ |
 
 **Validation Zod** :
+
 ```typescript
 // lib/schemas/profile.ts
 updateProfileSchema = z.object({
@@ -43,6 +44,7 @@ updateProfileSchema = z.object({
 ```
 
 **API Implementation** :
+
 - ✅ `GET /api/v1/profile` : Récupère le profil + statistiques
 - ✅ `PUT /api/v1/profile` : Met à jour email, bio, avatar, language, theme
 - ✅ Authentification obligatoire via `getSessionUser()`
@@ -59,6 +61,7 @@ updateProfileSchema = z.object({
 | **Confirmation** | ✅ Input | `/api/v1/profile/change-password` POST | Match avec nouveau | N/A | ✅ |
 
 **Validation Zod Stricte** :
+
 ```typescript
 // lib/schemas/profile.ts
 changePasswordSchema = z.object({
@@ -75,6 +78,7 @@ changePasswordSchema = z.object({
 ```
 
 **Sécurité** :
+
 - ✅ Vérification de l'ancien mot de passe avec `bcrypt.compare()`
 - ✅ Hashing avec `bcrypt.hash(password, 10)`
 - ✅ Validation que nouveau ≠ ancien mot de passe
@@ -93,6 +97,7 @@ changePasswordSchema = z.object({
 | **Compte créé le** | `users.createdAt` | Formaté en date locale FR | ✅ |
 
 **Calcul côté serveur** :
+
 ```typescript
 // app/(dashboard)/profile/page.tsx
 const totalProducts = await db.select().from(products)
@@ -117,11 +122,13 @@ const daysActive = Math.floor(
 | **Animations** | ✅ Switch | `/api/v1/settings` PUT | `updateSettingsSchema.animations` | `users.preferences.animations` | ✅ |
 
 **Valeurs acceptées** :
+
 - `theme`: `"light"` | `"dark"` | `"system"`
 - `language`: `"fr"` | `"en"`
 - `animations`: `boolean`
 
 **Validation Zod** :
+
 ```typescript
 // lib/schemas/settings.ts
 updateSettingsSchema = z.object({
@@ -133,6 +140,7 @@ updateSettingsSchema = z.object({
 ```
 
 **Backend Logic** :
+
 - ✅ `theme` et `language` stockés dans colonnes dédiées
 - ✅ `animations` stocké dans `users.preferences` JSON
 - ✅ Sauvegarde immédiate à chaque changement
@@ -148,6 +156,7 @@ updateSettingsSchema = z.object({
 | **Sessions actives** | 🟡 Bouton désactivé | ✅ Table `user_sessions` | 🟡 UI à venir |
 
 **Backend déjà implémenté** :
+
 - ✅ Table `user_sessions` avec tous les champs nécessaires
 - ✅ API `GET /api/v1/sessions` : Liste toutes les sessions actives
 - ✅ API `DELETE /api/v1/sessions` : Supprime toutes les sessions sauf la courante
@@ -168,12 +177,14 @@ updateSettingsSchema = z.object({
 | **Taux de change auto** | ✅ Switch | `/api/v1/settings` PUT | `preferences.autoExchangeRate` | `users.preferences.autoExchangeRate` | ✅ |
 
 **Valeurs acceptées** :
+
 - `currency`: `"EUR"` | `"USD"` | `"CNY"`
 - `weightUnit`: `"g"` | `"kg"`
 - `dateFormat`: `"DD/MM/YYYY"` | `"MM/DD/YYYY"`
 - `autoExchangeRate`: `boolean`
 
 **Validation Zod** :
+
 ```typescript
 // lib/schemas/settings.ts (extrait)
 preferences: z.object({
@@ -186,6 +197,7 @@ preferences: z.object({
 ```
 
 **Backend Logic** :
+
 - ✅ Toutes les préférences stockées dans `users.preferences` (JSON)
 - ✅ Fusion intelligente avec les préférences existantes
 - ✅ Sauvegarde groupée via bouton "Sauvegarder les préférences"
@@ -293,8 +305,10 @@ export const userSessions = sqliteTable("user_sessions", {
 ## ✅ CORRECTIONS APPLIQUÉES
 
 ### Bug 1 : Chargement Infini
+
 **Problème** : `useEffect` avec dépendance `[initialData]` causait boucle infinie
-**Solution** : 
+**Solution** :
+
 ```typescript
 // AVANT
 useEffect(() => { loadProfile(); }, [initialData]);
@@ -307,8 +321,10 @@ useEffect(() => {
 ```
 
 ### Bug 2 : Données non chargées côté serveur
+
 **Problème** : Composants clients faisaient appels API inutiles
 **Solution** : Server-Side Rendering avec passage de `initialData`
+
 ```typescript
 // Page serveur
 const profileData = await fetchProfileData(user.id);
@@ -316,8 +332,10 @@ return <ProfileClient initialData={profileData} />;
 ```
 
 ### Bug 3 : Option `animations` non sauvegardée
+
 **Problème** : Champ `animations` affiché mais pas persisté en DB
-**Solution** : 
+**Solution** :
+
 1. ✅ Ajouté `animations` dans type `preferences` (schema.ts)
 2. ✅ Ajouté validation Zod pour `animations` (settings.ts)
 3. ✅ Backend gère `animations` dans `preferences` JSON (route.ts)
@@ -435,6 +453,7 @@ describe("Settings API", () => {
 **Validation finale** : ✅ Tous les champs affichés dans les pages `/profile` et `/settings` ont un backend complètement finalisé, validé, et testé. Les données sont correctement persistées en base de données SQLite via Drizzle ORM.
 
 **Prochaines étapes** :
+
 1. Implémenter l'UI de gestion des sessions (onglet Sécurité)
 2. Développer les intégrations marketplace (onglet Intégrations)
 3. Ajouter tests E2E avec Playwright pour validation complète

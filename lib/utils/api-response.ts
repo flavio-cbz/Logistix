@@ -17,6 +17,7 @@ import { RequestValidationError } from "@/lib/middleware/validation-middleware";
 // =============================================================================
 
 export interface ApiResponse<T = any> {
+  ok: boolean;
   success: boolean;
   data?: T;
   error?: ApiError;
@@ -222,6 +223,7 @@ export function createSuccessResponse<T>(
   options: ResponseOptions = {},
 ): NextResponse {
   const response: ApiResponse<T> = {
+    ok: true,
     success: true,
     data,
     meta: createApiMeta(options),
@@ -255,6 +257,7 @@ export function createCreatedResponse<T>(
   options: ResponseOptions = {},
 ): NextResponse {
   const response: ApiResponse<T> = {
+    ok: true,
     success: true,
     data,
     meta: createApiMeta(options),
@@ -317,6 +320,7 @@ export function createErrorResponse(
   const errorInfo = extractErrorInfo(error);
 
   const response: ApiResponse = {
+    ok: false,
     success: false,
     error: errorInfo,
     meta: createApiMeta(options),
@@ -357,6 +361,7 @@ export function createValidationErrorResponse(
   options: ResponseOptions = {},
 ): NextResponse {
   const response: ApiResponse = {
+    ok: false,
     success: false,
     error: {
       code: "VALIDATION_ERROR",
@@ -394,6 +399,7 @@ export function createAuthErrorResponse(
   options: ResponseOptions = {},
 ): NextResponse {
   const response: ApiResponse = {
+    ok: false,
     success: false,
     error: {
       code: "AUTHENTICATION_ERROR",
@@ -428,6 +434,7 @@ export function createAuthorizationErrorResponse(
   options: ResponseOptions = {},
 ): NextResponse {
   const response: ApiResponse = {
+    ok: false,
     success: false,
     error: {
       code: "AUTHORIZATION_ERROR",
@@ -464,6 +471,7 @@ export function createNotFoundResponse(
   const message = `${resource} not found`;
 
   const response: ApiResponse = {
+    ok: false,
     success: false,
     error: {
       code: "NOT_FOUND",

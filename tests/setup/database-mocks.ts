@@ -53,7 +53,29 @@ export const setupInMemoryDatabase = async () => {
   
   // Create in-memory database
   const sqlite = new Database(':memory:');
+  // Enforce foreign key constraints for integration tests (Better-SQLite3 requires explicit PRAGMA)
+  sqlite.pragma("foreign_keys = ON");
   const db = drizzle(sqlite, { schema });
+
+  // Bridge helpers: expose run/get/all/exec compatible with Better-SQLite3 for tests
+  (db as any).run = (sql: string, params: any[] = []) => {
+    const stmt = sqlite.prepare(sql);
+    if (Array.isArray(params)) {
+      return stmt.run(...params);
+    }
+    return stmt.run(params);
+  };
+  (db as any).get = (sql: string, params: any[] = []) => {
+    const stmt = sqlite.prepare(sql);
+    return stmt.get(...(Array.isArray(params) ? params : [params]));
+  };
+  (db as any).all = (sql: string, params: any[] = []) => {
+    const stmt = sqlite.prepare(sql);
+    return stmt.all(...(Array.isArray(params) ? params : [params]));
+  };
+  (db as any).exec = (sql: string) => {
+    return sqlite.exec(sql);
+  };
   
   // Create tables (you would run migrations here in a real setup)
   // This is a simplified version - in practice, you'd run your actual migrations
@@ -115,6 +137,7 @@ export const setupInMemoryDatabase = async () => {
       purchase_price REAL,
       purchasePrice REAL,
       prix REAL,
+      price REAL,
       selling_price REAL,
       sellingPrice REAL,
       prixVente REAL,
@@ -133,10 +156,35 @@ export const setupInMemoryDatabase = async () => {
       dateVente TEXT,
       created_at TEXT,
       updated_at TEXT,
+      createdAt TEXT,
+      updatedAt TEXT,
       listedAt TEXT,
       soldAt TEXT,
       FOREIGN KEY (user_id) REFERENCES users(id),
       FOREIGN KEY (parcelle_id) REFERENCES parcelles(id)
+    );
+
+    -- Sessions table for authentication
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    -- Per-device user sessions (used by /api/v1/sessions)
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      device_name TEXT,
+      device_type TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
+      last_activity_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `);
   

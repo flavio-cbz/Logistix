@@ -44,7 +44,15 @@ export async function PUT(
     }
 
     const { id } = params;
-    const body = await request.json();
+    let body: any = {};
+    const rawText = await request.text();
+    if (rawText && rawText.trim().length > 0) {
+      try {
+        body = JSON.parse(rawText);
+      } catch (_e) {
+        return NextResponse.json({ success: false, error: 'Requête invalide: JSON malformé' }, { status: 400 });
+      }
+    }
 
     // Vérifier que le produit existe et appartient à l'utilisateur
     const existing = await databaseService.queryOne<any>(

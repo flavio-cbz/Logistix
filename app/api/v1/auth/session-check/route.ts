@@ -8,7 +8,8 @@ import { databaseService } from "@/lib/services/database/db";
 export async function GET(request: NextRequest) {
   try {
     // Récupération du cookie de session
-    const sessionId = request.cookies.get("logistix_session")?.value;
+    const cookieName = process.env['COOKIE_NAME'] || 'logistix_session';
+    const sessionId = request.cookies.get(cookieName)?.value;
     
     if (!sessionId) {
       return NextResponse.json(
@@ -20,27 +21,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // TEMPORAIRE: Bypass database check pour les sessions de test
-    if (sessionId.startsWith('temp_session_')) {
-      console.log("✅ TEMPORARY BYPASS ACTIVATED for session:", sessionId);
-      const legacyAdminId = process.env['ADMIN_ID'] || 'baa65519-e92f-4010-a3c2-e9b5c67fb0d7';
-      return NextResponse.json({
-        success: true,
-        data: {
-          valid: true,
-          user: {
-            id: legacyAdminId,
-            username: 'admin'
-          },
-          session: {
-            id: sessionId,
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-          }
-        }
-      });
-    }
-
-    // Pour les vraies sessions : validation UUID puis database
+    // Validation UUID puis database
     const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId);
     
     if (!isValidUUID) {

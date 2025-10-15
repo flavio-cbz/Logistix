@@ -108,7 +108,7 @@ class DatabaseService {
       (db: BetterSQLite3Database) => {
         // Type 'db' explicitement
         const stmt = (db as any).client.prepare(sql); // Accéder au client better-sqlite3
-        return stmt.all(...params) as T[];
+        return stmt.all(params) as T[];
       },
       RequestType.READ,
       RequestPriority.NORMAL,
@@ -130,7 +130,7 @@ class DatabaseService {
       (db: BetterSQLite3Database) => {
         // Type 'db' explicitement
         const stmt = (db as any).client.prepare(sql); // Accéder au client better-sqlite3
-        return (stmt.get(...params) as T | undefined) || null;
+        return (stmt.get(params) as T | undefined) || null;
       },
       RequestType.READ,
       RequestPriority.NORMAL,
@@ -152,7 +152,7 @@ class DatabaseService {
       (db: BetterSQLite3Database) => {
         // Type 'db' explicitement
         const stmt = (db as any).client.prepare(sql); // Accéder au client better-sqlite3
-        return stmt.run(...params);
+        return stmt.run(params);
       },
       RequestType.WRITE,
       RequestPriority.NORMAL,

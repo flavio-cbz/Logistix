@@ -55,9 +55,27 @@ async function runMigrations(): Promise<void> {
   for (const file of migrationFiles) {
     const filePath = path.join(MIGRATIONS_PATH, file);
     const sqlContent = fs.readFileSync(filePath, 'utf-8');
+
+    // Skip entire file if Postgres/PLpgSQL constructs detected (protect against split ';' inside DO $$ blocks)
+    {
+      const lowerFile = sqlContent.toLowerCase();
+      if (
+        lowerFile.includes('language plpgsql') ||
+        lowerFile.includes('do $$') ||
+        lowerFile.includes('create trigger') ||
+        lowerFile.includes('drop trigger') ||
+        lowerFile.includes('create function') ||
+        lowerFile.includes('drop function') ||
+        lowerFile.includes('comment on')
+      ) {
+        console.log(`⏭️ Skipping Postgres-specific migration file: ${file}`);
+        continue;
+      }
+    }
     
     // Nettoyer le contenu SQL : supprimer les commentaires et lignes vides
     const cleanedContent = sqlContent
+      .replace(/\/\*[\s\S]*?\*\//g, '')
       .split('\n')
       .filter((line: string) => {
         const trimmed = line.trim();
@@ -108,6 +126,21 @@ async function runMigrations(): Promise<void> {
               continue; // skip executing this index statement
             }
           }
+        }
+
+        // Skip Postgres-specific / non-SQLite statements
+        if (
+          lower.startsWith('do $$') ||
+          (lower.startsWith('do ') && lower.includes('$$')) ||
+          lower.includes('language plpgsql') ||
+          lower.startsWith('create function') ||
+          lower.startsWith('drop function') ||
+          lower.startsWith('create trigger') ||
+          lower.startsWith('drop trigger') ||
+          lower.startsWith('comment on')
+        ) {
+          console.log(`⏭️ Skipping non-SQLite statement in ${file}`);
+          continue;
         }
 
         sqlite.prepare(statement).run();

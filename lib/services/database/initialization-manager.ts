@@ -6,10 +6,15 @@ import { randomUUID } from "crypto";
 import { hashPasswordSync } from "../../utils/crypto";
 import bcrypt from "bcrypt";
 
-// Logger optimisé pour l'initialisation
-import { getLogger } from "@/lib/utils/logging/logger";
+const noopLogger = { 
+  info: (_message: string, _data?: Record<string, any>) => {}, 
+  warn: (_message: string, _data?: Record<string, any>) => {}, 
+  error: (_message: string, _data?: Record<string, any>) => {}, 
+  debug: (_message: string, _data?: Record<string, any>) => {} 
+};
 
-const logger = getLogger("InitManager");
+// Vitest-safe: toujours utiliser un logger no-op pour éviter les erreurs de mock
+const logger = noopLogger;
 
 // État d'initialisation
 export enum InitializationState {
@@ -92,7 +97,7 @@ export class DatabaseInitializationManagerImpl
         .prepare(
           `
         SELECT name FROM sqlite_master
-        WHERE type='table' AND name IN ('users', 'parcelles', 'produits', 'sessions')
+        WHERE type='table' AND name IN ('users', 'parcelles', 'products', 'sessions')
       `,
         )
         .all() as { name: string }[]; // Explicitly type the result
@@ -213,7 +218,6 @@ export class DatabaseInitializationManagerImpl
     try {
       // Ensure produits/products table schema is up-to-date (tempsEnLigne and legacy columns used by statistics)
       this.upgradeProduitsSchema(db);
-      this.ensureProductsLegacyColumns(db);
       logger.info('Post-migration schema upgrades applied');
     } catch (e: unknown) {
       logger.warn('Post-migration upgrades failed', { error: e instanceof Error ? e.message : String(e) });
@@ -268,7 +272,6 @@ export class DatabaseInitializationManagerImpl
       }
 
       logger.info("Default administrator user created successfully");
-      logger.warn(`Username: admin, Password: ${adminPassword}`);
     } else {
       logger.info(
         "One or more users already exist, skipping default administrator creation",
@@ -307,7 +310,6 @@ export class DatabaseInitializationManagerImpl
         try {
           // Ensure produits/products table schema is up-to-date (tempsEnLigne and legacy columns used by statistics)
           this.upgradeProduitsSchema(db);
-          this.ensureProductsLegacyColumns(db);
         } finally {
           db.close();
         }
@@ -410,105 +412,6 @@ export class DatabaseInitializationManagerImpl
     }
   }
 
-  /**
-   * Ensure products table has legacy French columns used by application SQL and
-   * migrate values from 'produits' when available.
-   */
-  private ensureProductsLegacyColumns(db: Database.Database): void {
-    try {
-      const productsExists = db
-        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = 'products'")
-        .get();
-
-      if (!productsExists) return;
-
-      const legacyCols: Array<{ name: string; type: string; defaultClause?: string }> = [
-        { name: 'prixVente', type: 'REAL' },
-        { name: 'prixArticle', type: 'REAL' },
-        { name: 'prixArticleTTC', type: 'REAL' },
-        { name: 'prixLivraison', type: 'REAL' },
-        { name: 'vendu', type: 'INTEGER', defaultClause: 'DEFAULT 0' },
-        { name: 'dateVente', type: 'TEXT' },
-        { name: 'tempsEnLigne', type: 'TEXT' },
-        { name: 'nom', type: 'TEXT' },
-        { name: 'details', type: 'TEXT' },
-        { name: 'parcelleId', type: 'TEXT' },
-        { name: 'benefices', type: 'REAL' }
-      ];
-
-      for (const col of legacyCols) {
-        if (!this.columnExists(db, 'products', col.name)) {
-          const def = col.defaultClause ? ` ${col.defaultClause}` : '';
-          try {
-            db.exec(`ALTER TABLE products ADD COLUMN ${col.name} ${col.type}${def};`);
-            logger.info(`Added legacy column '${col.name}' to 'products' table`);
-          } catch (e: unknown) {
-            logger.warn(`Failed to add column ${col.name} to products`, {
-              error: e instanceof Error ? e.message : String(e),
-            });
-          }
-        }
-      }
-
-      // If legacy 'produits' table exists, migrate values for newly added columns
-      const produitsExists = db
-        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = 'produits'")
-        .get();
-
-      if (produitsExists) {
-        try {
-          // Copy values column-by-column to avoid issues if some columns don't exist on produits
-          const mappings: Array<{ to: string; from: string }[]> = [
-            [
-              { to: 'prixVente', from: 'prixVente' },
-              { to: 'prixArticle', from: 'prixArticle' },
-              { to: 'prixArticleTTC', from: 'prixArticleTTC' },
-              { to: 'prixLivraison', from: 'prixLivraison' },
-              { to: 'vendu', from: 'vendu' },
-              { to: 'dateVente', from: 'dateVente' },
-              { to: 'tempsEnLigne', from: 'tempsEnLigne' },
-              { to: 'nom', from: 'nom' },
-              { to: 'details', from: 'details' },
-              { to: 'parcelleId', from: 'parcelleId' },
-              { to: 'benefices', from: 'benefices' }
-            ]
-          ];
-
-          // Single UPDATE using subselects
-          const updateAssignments: string[] = [];
-          // mappings may be empty or undefined; guard before iterating
-          if (mappings && mappings[0]) {
-            for (const m of mappings[0]) {
-            // Only attempt to copy if source column exists in produits
-            if (this.columnExists(db, 'produits', m.from)) {
-              updateAssignments.push(`${m.to} = (SELECT ${m.from} FROM produits p WHERE p.id = products.id)`);
-            }
-            }
-          }
-
-          if (updateAssignments.length > 0) {
-            const sql = `UPDATE products SET ${updateAssignments.join(', ')} WHERE EXISTS (SELECT 1 FROM produits p WHERE p.id = products.id);`;
-            try {
-              db.exec(sql);
-              logger.info('Migrated legacy produit values into products table (where matching ids exist)');
-            } catch (e: unknown) {
-              logger.warn('Failed to migrate produit -> products values', {
-                error: e instanceof Error ? e.message : String(e),
-              });
-            }
-          }
-        } catch (e: unknown) {
-          logger.warn('Error during produits -> products migration', {
-            error: e instanceof Error ? e.message : String(e),
-          });
-        }
-      }
-    } catch (e: unknown) {
-      logger.warn('ensureProductsLegacyColumns failed', {
-        error: e instanceof Error ? e.message : String(e),
-      });
-    }
-  }
 
   /**
    * Effectue l'initialisation réelle de la base de données

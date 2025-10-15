@@ -1,7 +1,23 @@
 import { getLogger } from "@/lib/utils/logging/logger";
 import Database from "better-sqlite3";
 
-const logger = getLogger("QueueManager");
+// Fallback logger for test environments where logger mock might not be ready
+const createFallbackLogger = () => ({
+  info: (_message: string, ..._args: any[]) => {},
+  warn: (_message: string, ..._args: any[]) => {},
+  error: (_message: string, ..._args: any[]) => {},
+  debug: (_message: string, ..._args: any[]) => {},
+});
+
+let logger: any;
+try {
+  logger = getLogger("QueueManager");
+  if (!logger) {
+    logger = createFallbackLogger();
+  }
+} catch {
+  logger = createFallbackLogger();
+}
 
 export enum RequestType {
   READ = "READ",
