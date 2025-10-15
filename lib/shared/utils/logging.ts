@@ -238,7 +238,6 @@ export const auditLogger = new UnifiedLogger("Audit");
 export const databaseLogger = new UnifiedLogger("Database");
 export const apiLogger = new UnifiedLogger("API");
 export const authLogger = new UnifiedLogger("Auth");
-export const marketAnalysisLogger = new UnifiedLogger("MarketAnalysis");
 export const vintedLogger = new UnifiedLogger("Vinted");
 
 /**

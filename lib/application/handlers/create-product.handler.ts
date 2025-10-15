@@ -18,7 +18,6 @@ async function createProductHandler(req: NextRequest): Promise<NextResponse> {
     name: validatedData.name,
     price: validatedData.price,
     userId: user.id,
-    ...(validatedData.vintedItemId && { vintedItemId: validatedData.vintedItemId }),
     ...(validatedData.poids !== undefined && { poids: validatedData.poids }),
     ...(validatedData.brand && { brand: validatedData.brand }),
     ...(validatedData.category && { category: validatedData.category }),

@@ -14,6 +14,8 @@ import { z } from "zod";
 // Re-export des schémas existants
 export * from "./product";
 export * from "./parcelle";
+export * from "./profile";
+export * from "./settings";
 
 // Schémas utilisés dans les APIs
 export const productsStatsQuerySchema = z.object({
@@ -42,13 +44,4 @@ export const parcelleProductsQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(100).optional().default(20),
   offset: z.coerce.number().min(0).optional().default(0),
   includeDetails: z.boolean().optional().default(true)
-});
-
-export const settingsUpdateBodySchema = z.object({
-  theme: z.enum(["light", "dark", "system"]).optional(),
-  language: z.enum(["fr", "en"]).optional(),
-  privacy: z.object({
-    publicProfile: z.boolean().optional(),
-    showActivity: z.boolean().optional()
-  }).optional()
 });

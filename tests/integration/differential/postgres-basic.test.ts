@@ -26,7 +26,15 @@ const TEST_POSTGRES_CONFIG = {
   ssl: false,
 };
 
-describe('Tests Différentiels - PostgreSQL (Phase 1)', () => {
+// Check if PostgreSQL env vars are configured
+const isPostgresConfigured = () => {
+  return Boolean(
+    process.env.TEST_POSTGRES_HOST &&
+    process.env.TEST_POSTGRES_DATABASE
+  );
+};
+
+describe.skipIf(!isPostgresConfigured())('Tests Différentiels - PostgreSQL (Phase 1)', () => {
   let pool: Pool;
   let produitRepo: PostgresProduitRepository;
   let parcelleRepo: PostgresParcelleRepository;

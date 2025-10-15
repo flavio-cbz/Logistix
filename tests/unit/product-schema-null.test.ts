@@ -20,7 +20,7 @@ describe('Product Schema - Null Handling', () => {
       subcategory: null,
       coutLivraison: null,
       parcelleId: null,
-      vintedItemId: null,
+  vintedItemId: null, // allowed, platform-agnostic
       plateforme: null,
       dateMiseEnLigne: null,
       dateVente: null,
@@ -73,7 +73,7 @@ describe('Product Schema - Null Handling', () => {
       subcategory: null,
       coutLivraison: null,
       parcelleId: null,
-      vintedItemId: null,
+  vintedItemId: null, // allowed
       plateforme: null,
       dateMiseEnLigne: null,
       dateVente: null,

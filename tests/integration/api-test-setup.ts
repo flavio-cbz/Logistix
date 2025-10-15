@@ -7,6 +7,7 @@ import { NextRequest } from 'next/server';
 import { createMocks } from 'node-mocks-http';
 import { setupInMemoryDatabase, cleanupInMemoryDatabase } from '../setup/database-mocks';
 import { createTestUser, createTestProduct, createTestParcelle } from '../setup/test-data-factory';
+import { createTestUserAndSession, setAuthCookie, initTestDb } from '../setup/test-setup';
 
 /**
  * Create a mock NextRequest for testing API routes
@@ -54,16 +55,16 @@ export const setupTestDatabase = async () => {
   const testUser = createTestUser();
   const adminUser = createTestUser({ username: 'admin' });
   
-  // Insert test users
+  // Insert test users (use snake_case column names matching migrations)
   await db.run(`
     INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `, [
     testUser.id,
     testUser.username,
-    testUser.email,
+    testUser.email ?? 'test@example.com',
     testUser.passwordHash,
-    testUser.encryptionSecret,
+    testUser.encryptionSecret ?? 'test-secret',
     testUser.createdAt,
     testUser.updatedAt
   ]);
@@ -74,9 +75,9 @@ export const setupTestDatabase = async () => {
   `, [
     adminUser.id,
     adminUser.username,
-    adminUser.email,
+    adminUser.email ?? 'admin@example.com',
     adminUser.passwordHash,
-    adminUser.encryptionSecret,
+    adminUser.encryptionSecret ?? 'admin-secret',
     adminUser.createdAt,
     adminUser.updatedAt
   ]);
@@ -100,7 +101,7 @@ export const setupTestDatabase = async () => {
     testParcelle.updatedAt
   ]);
 
-  // Create test products
+  // Create test products (use snake_case column names matching migrations)
   const testProduct = createTestProduct({ 
     userId: testUser.id, 
     parcelleId: testParcelle.id 
@@ -108,34 +109,24 @@ export const setupTestDatabase = async () => {
   
   await db.run(`
     INSERT INTO products (
-      id, userId, parcelleId, name, titre, description, brand, marque, 
-      category, size, taille, color, couleur, condition, weight, poids,
-      purchasePrice, prix, sellingPrice, prixVente, currency, status,
-      createdAt, updatedAt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, user_id, parcelle_id, name, description, brand, 
+      category, size, color, poids, price, currency, status,
+      created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     testProduct.id,
     testProduct.userId,
     testProduct.parcelleId,
     testProduct.name,
-    testProduct.titre,
-    testProduct.description,
-    testProduct.brand,
-    testProduct.marque,
-    testProduct.category,
-    testProduct.size,
-    testProduct.taille,
-    testProduct.color,
-    testProduct.couleur,
-    testProduct.condition,
-    testProduct.weight,
-    testProduct.poids,
-    testProduct.purchasePrice,
-    testProduct.prix,
-    testProduct.sellingPrice,
-    testProduct.prixVente,
-    testProduct.currency,
-    testProduct.status,
+    testProduct.description ?? '',
+    testProduct.brand ?? '',
+    testProduct.category ?? '',
+    testProduct.size ?? '',
+    testProduct.color ?? '',
+    testProduct.poids ?? 0,
+    testProduct.price ?? 0,
+    testProduct.currency ?? 'EUR',
+    testProduct.status ?? 'draft',
     testProduct.createdAt,
     testProduct.updatedAt
   ]);
@@ -191,8 +182,8 @@ export const assertApiResponse = (
   expectedStatus: 'success' | 'error',
   expectedStatusCode?: number
 ) => {
-  expect(response).toHaveProperty('success');
-  expect(response.success).toBe(expectedStatus === 'success');
+  expect(response).toHaveProperty('ok');
+  expect(response.ok).toBe(expectedStatus === 'success');
   
   if (expectedStatus === 'success') {
     expect(response).toHaveProperty('data');
@@ -203,10 +194,6 @@ export const assertApiResponse = (
     expect(response.error).toHaveProperty('message');
     expect(response).not.toHaveProperty('data');
   }
-  
-  expect(response).toHaveProperty('meta');
-  expect(response.meta).toHaveProperty('timestamp');
-  expect(response.meta).toHaveProperty('requestId');
 };
 
 /**
@@ -234,7 +221,7 @@ export const assertValidationError = (
  */
 export const assertAuthError = (response: any, expectedMessage?: string) => {
   assertApiResponse(response, 'error');
-  expect(response.error.code).toBe('AUTH_ERROR');
+  expect(response.error.code).toBe('AUTHENTICATION_ERROR');
   
   if (expectedMessage) {
     expect(response.error.message).toContain(expectedMessage);

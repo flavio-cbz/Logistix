@@ -69,8 +69,7 @@ const productSchema = z.object({
   price: z.number().min(0),
   currency: z.string().default("EUR"),
   coutLivraison: z.number().min(0).optional(),
-  vintedItemId: z.string().optional(),
-  vendu: z.enum(["0", "1", "2", "3"]),
+  vendu: z.enum(["0", "1"]), // Simplified: 0=not sold, 1=sold
   dateMiseEnLigne: z.string().optional(),
   dateVente: z.string().optional(),
   prixVente: z.number().min(0).optional(),
@@ -128,7 +127,7 @@ const productListRequestSchema = z.object({
   search: z.string().optional(),
   sortBy: z.enum(["name", "price", "createdAt", "updatedAt"]).optional(),
   sortOrder: z.enum(["asc", "desc"]).optional(),
-  vendu: z.enum(["0", "1", "2", "3"]).optional(),
+  vendu: z.enum(["0", "1"]).optional(), // Simplified: 0=not sold, 1=sold
   plateforme: z.nativeEnum(Platform).optional(),
   priceMin: z.number().min(0).optional(),
   priceMax: z.number().min(0).optional(),
@@ -191,9 +190,9 @@ export function validateApiResponse<T = any>(
 /**
  * Validates a Product entity
  */
-export function validateProduct(product: any, context?: string): Product {
+export function validateProduct(product: unknown, context?: string): Product {
   if (!enableApiValidation) {
-    return product;
+    return product as Product;
   }
 
   try {
@@ -221,9 +220,9 @@ export function validateProduct(product: any, context?: string): Product {
 /**
  * Validates a Parcelle entity
  */
-export function validateParcelle(parcelle: any, context?: string): Parcelle {
+export function validateParcelle(parcelle: unknown, context?: string): Parcelle {
   if (!enableApiValidation) {
-    return parcelle;
+    return parcelle as Parcelle;
   }
 
   try {
@@ -331,9 +330,9 @@ export function validateEntityArray<T>(
 /**
  * Validates request parameters
  */
-export function validateProductListRequest(params: any): ProductListRequest {
+export function validateProductListRequest(params: unknown): ProductListRequest {
   if (!enableApiValidation) {
-    return params;
+    return params as ProductListRequest;
   }
 
   try {
@@ -348,9 +347,9 @@ export function validateProductListRequest(params: any): ProductListRequest {
 /**
  * Validates parcelle list request parameters
  */
-export function validateParcelleListRequest(params: any): ParcelleListRequest {
+export function validateParcelleListRequest(params: unknown): ParcelleListRequest {
   if (!enableApiValidation) {
-    return params;
+    return params as ParcelleListRequest;
   }
 
   try {
@@ -388,7 +387,7 @@ export function assertSuccessfulResponse<T>(
 /**
  * Asserts that data is a valid Product and returns it
  */
-export function assertProduct(data: any, context?: string): Product {
+export function assertProduct(data: unknown, context?: string): Product {
   if (isProduct(data)) {
     return validateProduct(data, context);
   }
@@ -398,7 +397,7 @@ export function assertProduct(data: any, context?: string): Product {
 /**
  * Asserts that data is a valid Parcelle and returns it
  */
-export function assertParcelle(data: any, context?: string): Parcelle {
+export function assertParcelle(data: unknown, context?: string): Parcelle {
   if (isParcelle(data)) {
     return validateParcelle(data, context);
   }

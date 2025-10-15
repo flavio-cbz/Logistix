@@ -181,12 +181,6 @@ export const AdminConfigSchema = z.object({
  * A/B testing capabilities.
  */
 export const FeatureFlagsSchema = z.object({
-  /** Enable Vinted marketplace integration */
-  enableVintedIntegration: z
-    .boolean()
-    .default(true)
-    .describe("Enable Vinted marketplace integration features"),
-
   /** Enable analytics and tracking */
   enableAnalytics: z
     .boolean()
@@ -375,9 +369,6 @@ export function parseEnvironmentConfig(
         : undefined,
     },
     features: {
-      enableVintedIntegration: env['ENABLE_VINTED_INTEGRATION']
-        ? env['ENABLE_VINTED_INTEGRATION'].toLowerCase() === "true"
-        : undefined,
       enableAnalytics: env['ENABLE_ANALYTICS']
         ? env['ENABLE_ANALYTICS'].toLowerCase() === "true"
         : undefined,

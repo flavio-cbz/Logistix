@@ -9,7 +9,7 @@ import {
   ChevronRight,
   Sparkles,
   Zap,
-  TrendingUp,
+  
   BarChart3,
   Package,
   ShoppingCart
@@ -43,13 +43,6 @@ const navItems = [
     icon: ShoppingCart,
     description: "Gestion des produits",
     color: "from-green-500 to-green-600"
-  },
-  {
-    title: "Analyse de marché",
-    href: "/analyse-marche",
-    icon: TrendingUp,
-    description: "Tendances et opportunités",
-    color: "from-purple-500 to-purple-600"
   },
   {
     title: "Statistiques",

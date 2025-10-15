@@ -72,7 +72,7 @@ export class ProfitCalculatorService extends BaseService {
    * @example
    * ```typescript
    * const metrics = service.calculateProfit({ price: 25, coutLivraison: 3.5, prixVente: 35 });
-   * console.log(metrics.profit); // 6.5
+   * // metrics.profit will be 6.5
    * ```
    * @since 1.0.0
    */

@@ -8,6 +8,8 @@
 
 import { test, expect } from '@playwright/test';
 
+test.describe.configure({ tag: '@regression' });
+
 test.describe('Product Update with Null Fields', () => {
   test.beforeEach(async ({ page }) => {
     // Login (ajuster selon votre mécanisme d'auth)
@@ -131,9 +133,9 @@ test.describe('Product Update with Null Fields', () => {
     const submitButton = page.locator('button[type="submit"]');
     await submitButton.click();
 
-    // Attendre un peu pour que la requête soit envoyée
-    await page.waitForTimeout(1000);
-
+    // Attendre la réponse PUT envoyée pour la mise à jour
+    await page.waitForResponse(response => response.url().includes('/api/v1/products/') && response.request().method() === 'PUT', { timeout: 5000 });
+    
     // Vérifier que le body contient null (ou undefined) pour url
     expect(requestBody).toBeTruthy();
     expect(requestBody.url === null || requestBody.url === undefined || requestBody.url === '').toBeTruthy();

@@ -218,10 +218,6 @@ export class ConfigService {
     return this.getConfig().features[feature];
   }
 
-  public isVintedIntegrationEnabled(): boolean {
-    return this.getConfig().features.enableVintedIntegration;
-  }
-
   public isAnalyticsEnabled(): boolean {
     return this.getConfig().features.enableAnalytics;
   }

@@ -6,7 +6,10 @@ async function logoutHandler(): Promise<NextResponse> {
   await signOut();
 
   const response = createSuccessResponse({
-    message: 'Déconnexion réussie',
+    ok: true,
+    data: {
+      message: 'Déconnexion réussie',
+    },
   });
 
   return NextResponse.json(response);

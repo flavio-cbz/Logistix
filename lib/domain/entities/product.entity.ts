@@ -10,7 +10,6 @@ export const ProductStatusSchema = z.enum([
 ]);
 
 export const ProductPlatformSchema = z.enum([
-  'Vinted',
   'leboncoin',
   'autre'
 ]);
@@ -35,7 +34,6 @@ export interface ProductProps {
   sellingPrice?: number;
   prixVente?: number;
   plateforme?: ProductPlatform;
-  vintedItemId?: string;
   externalId?: string;
   url?: string;
   photoUrl?: string;
@@ -99,7 +97,6 @@ export class Product {
       sellingPrice: data.sellingPrice,
       prixVente: data.prixVente,
       plateforme: data.plateforme,
-      vintedItemId: data.vintedItemId,
       externalId: data.externalId,
       url: data.url,
       photoUrl: data.photoUrl,
@@ -158,7 +155,6 @@ export class Product {
   get price(): number { return this.props.price; }
   get poids(): number { return this.props.poids; }
   get status(): ProductStatus { return this.props.status; }
-  get vintedItemId(): string | undefined { return this.props.vintedItemId; }
   get createdAt(): string { return this.props.createdAt; }
   get updatedAt(): string { return this.props.updatedAt; }
 

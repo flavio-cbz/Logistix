@@ -45,9 +45,6 @@ export const NODE_ENV =
 export const LOG_LEVEL =
   NODE_ENV === "production" ? LogLevel.INFO : LogLevel.DEBUG;
 
-// API Configuration
-export const VINTED_API_URL = "https://www.vinted.fr/api/v2";
-
 // Auto-Configuration Replacements (remplace les constantes hardcodées)
 export const getMaxExecutionTime = () => getApiTimeout(); // Dynamique selon l'environnement
 export const getConcurrentRequests = () => {
@@ -122,15 +119,13 @@ export const VALIDATION_CONSTANTS = {
   },
   DATABASE_VALIDATION: {
     INTEGRITY_CHECK_TABLES: [
-      "market_analysis_tasks",
-      "market_analysis_results",
-      "market_metrics",
-      "similar_sales",
+      "products",
+      "parcelles",
+      "users",
     ],
     ORPHAN_DATA_CHECKS: [
-      "market_analysis_results without tasks",
-      "market_metrics without results",
-      "similar_sales without results",
+      "products without parcelles",
+      "parcelles without users",
     ],
   },
   PERFORMANCE_THRESHOLDS: {
@@ -148,21 +143,14 @@ export const VALIDATION_CONSTANTS = {
 };
 
 export const ENV_KEYS = {
-  VINTED_API_TOKEN: "VINTED_ACCESS_TOKEN",
-  VINTED_TOKEN_FALLBACK: "VINTED_TOKEN",
   DEBUG_MODE: "VALIDATION_DEBUG_MODE",
   API_TIMEOUT: "VALIDATION_API_TIMEOUT",
   ANALYSIS_TIMEOUT: "VALIDATION_ANALYSIS_TIMEOUT",
   MAX_RETRIES: "VALIDATION_MAX_RETRIES",
 } as const;
 
-// Vinted API Constants (maintenant dynamiques)
-import { getVintedApiUrl } from "@/lib/services/auto-config-manager";
-
-export const getVintedApiUrlForSimilarItems = () =>
-  `${getVintedApiUrl()}/item_upload/items/similar_sold_items`;
-export const getVintedApiConfig = () => ({
-  baseUrl: getVintedApiUrl(),
+// API Configuration endpoints
+export const API_CONFIG = {
   endpoints: {
     catalogs: "/catalogs",
     brands: "/brands",
@@ -175,7 +163,7 @@ export const getVintedApiConfig = () => ({
     "User-Agent": "Logistix/1.0",
     Accept: "application/json",
   },
-});
+};
 
 // Authentication Constants (maintenant dynamiques)
 import { getCookieMaxAge } from "@/lib/services/auto-config-manager";
@@ -242,7 +230,7 @@ async function determineTestAdminUserId(): Promise<string> {
         count: number;
       }>(
         `SELECT user_id as userId, COUNT(*) as count
-         FROM market_analyses
+         FROM products
          GROUP BY user_id
          ORDER BY count DESC
          LIMIT 1`,
@@ -256,12 +244,12 @@ async function determineTestAdminUserId(): Promise<string> {
 
       if (userWithMostData?.userId) {
         console.log(
-          `🔍 Utilisateur admin trouvé via données: ${userWithMostData.userId} (${userWithMostData.count} analyses)`,
+          `🔍 Utilisateur admin trouvé via données: ${userWithMostData.userId} (${userWithMostData.count} produits)`,
         );
         return userWithMostData.userId;
       }
     } catch (queryError) {
-      console.warn("Impossible de rechercher via market_analyses:", queryError);
+      console.warn("Impossible de rechercher via products:", queryError);
     }
 
     // Sinon, prendre le premier utilisateur créé

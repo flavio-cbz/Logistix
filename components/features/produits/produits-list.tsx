@@ -15,6 +15,10 @@ import { Product, ProductStatus, Platform } from "@/lib/shared/types/entities"
 
 import { useCreateProduct, useUpdateProduct, useDeleteProduct, useProducts } from "@/lib/hooks/use-products";
 import { useParcelles } from "@/lib/hooks/use-parcelles";
+import {
+  calculateProductProfit,
+  type ProductWithLegacyFields
+} from "@/lib/utils/product-field-normalizers";
 
 
 interface ProduitsListProps {
@@ -238,16 +242,12 @@ export default function ProduitsList({ onUpdate }: ProduitsListProps) {
     const totalBenefices = filteredProduits
       .filter(p => p.vendu === '1')
       .reduce((sum, p) => {
-        const parcelle = p.parcelleId ? parcelleMap.get(p.parcelleId) : undefined;
-        const estimatedLivraison = parcelle?.prixParGramme ? (parcelle.prixParGramme * (p.poids || 0)) : 0;
-        const coutLivraison = (p.coutLivraison && p.coutLivraison > 0) ? p.coutLivraison : estimatedLivraison;
-        const coutTotal = (p.price || 0) + coutLivraison;
-        const benefice = p.prixVente ? p.prixVente - coutTotal : 0;
-        return sum + benefice;
+        const profit = calculateProductProfit(p as ProductWithLegacyFields);
+        return sum + (profit ?? 0);
       }, 0);
     
     return { total, vendus, enLigne, brouillons, totalBenefices };
-  }, [filteredProduits, parcelleMap]);
+  }, [filteredProduits]);
 
   return (
     <>
@@ -343,14 +343,6 @@ export default function ProduitsList({ onUpdate }: ProduitsListProps) {
                             <>
                               <span>•</span>
                               <span title={`Parcelle: ${parcelle.nom}`}>📦 {parcelle.numero}</span>
-                            </>
-                          )}
-                          {product.vintedItemId && (
-                            <>
-                              <span>•</span>
-                              <span title={`Vinted ID: ${product.vintedItemId}`} className="font-mono">
-                                #{product.vintedItemId.substring(0, 8)}
-                              </span>
                             </>
                           )}
                         </div>

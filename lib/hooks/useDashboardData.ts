@@ -158,7 +158,6 @@ export function useDashboardData(config: RealtimeConfig = { enabled: true, inter
   // Effet pour le chargement initial
   useEffect(() => {
     fetchData(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Effet pour le temps réel
@@ -168,7 +167,6 @@ export function useDashboardData(config: RealtimeConfig = { enabled: true, inter
     }
     
     return stopRealtime;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, loading, error]);
 
   // Nettoyage à la destruction du composant

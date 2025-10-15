@@ -7,7 +7,7 @@ import { hashPasswordSync } from "../../utils/crypto";
 import bcrypt from "bcrypt";
 
 // Logger optimisé pour l'initialisation
-import { getLogger } from "@/lib/utils/logging/simple-logger";
+import { getLogger } from "@/lib/utils/logging/logger";
 
 const logger = getLogger("InitManager");
 
@@ -92,7 +92,7 @@ export class DatabaseInitializationManagerImpl
         .prepare(
           `
         SELECT name FROM sqlite_master
-        WHERE type='table' AND name IN ('users', 'parcelles', 'produits', 'sessions', 'market_analyses')
+        WHERE type='table' AND name IN ('users', 'parcelles', 'produits', 'sessions')
       `,
         )
         .all() as { name: string }[]; // Explicitly type the result
@@ -211,46 +211,18 @@ export class DatabaseInitializationManagerImpl
 
     // Run existing upgrade helpers to ensure any programmatic upgrades are applied
     try {
-      this.upgradeMarketAnalysesSchema(db);
-      this.upgradeVintedSessionsSchema(db);
+      // Ensure produits/products table schema is up-to-date (tempsEnLigne and legacy columns used by statistics)
+      this.upgradeProduitsSchema(db);
+      this.ensureProductsLegacyColumns(db);
       logger.info('Post-migration schema upgrades applied');
-    } catch (e) {
+    } catch (e: unknown) {
       logger.warn('Post-migration upgrades failed', { error: e instanceof Error ? e.message : String(e) });
     }
-
-    // Initialisation des métadonnées Vinted
-    this.runMetadataSchema(db);
 
     // Création de l'utilisateur admin si aucun utilisateur n'existe
     this.createDefaultAdminUser(db);
 
     logger.info('Database schema initialization completed successfully (via migration file)');
-  }
-
-  /**
-   * Exécute le script SQL pour le schéma des métadonnées
-   */
-  private runMetadataSchema(db: Database.Database): void {
-    const schemaPath = path.join(
-      process.cwd(),
-      "lib",
-      "services",
-      "metadata-schema.sql",
-    );
-    if (fs.existsSync(schemaPath)) {
-      try {
-        const schema = fs.readFileSync(schemaPath, "utf8");
-        db.exec(schema);
-        logger.info("Vinted metadata schema executed successfully");
-      } catch (error: unknown) {
-        // Changed to unknown
-        logger.error("Error executing metadata schema", {
-          error: error instanceof Error ? error.message : String(error),
-        }); // Improved error logging
-      }
-    } else {
-      logger.warn("Metadata schema file not found, step skipped");
-    }
   }
 
   /**
@@ -333,11 +305,9 @@ export class DatabaseInitializationManagerImpl
       try {
         const db = new Database(this.dbPath);
         try {
-          this.upgradeMarketAnalysesSchema(db);
           // Ensure produits/products table schema is up-to-date (tempsEnLigne and legacy columns used by statistics)
           this.upgradeProduitsSchema(db);
           this.ensureProductsLegacyColumns(db);
-          this.upgradeVintedSessionsSchema(db); // Call the new upgrade function
         } finally {
           db.close();
         }
@@ -686,95 +656,6 @@ export class DatabaseInitializationManagerImpl
         { error: error instanceof Error ? error.message : String(error) },
       ); // Improved logging
       return false;
-    }
-  }
-
-  /**
-   * Met à niveau le schéma de la table market_analyses pour ajouter les colonnes manquantes
-   * requises par le code (brand_id, raw_data, expires_at) et créer les index utiles.
-   */
-  private upgradeMarketAnalysesSchema(db: Database.Database): void {
-    try {
-      // Ajouter les colonnes manquantes si nécessaire
-      if (!this.columnExists(db, "market_analyses", "brand_id")) {
-        db.exec(`ALTER TABLE market_analyses ADD COLUMN brand_id INTEGER;`);
-      }
-      if (!this.columnExists(db, "market_analyses", "raw_data")) {
-        db.exec(`ALTER TABLE market_analyses ADD COLUMN raw_data TEXT;`);
-      }
-      if (!this.columnExists(db, "market_analyses", "expires_at")) {
-        db.exec(`ALTER TABLE market_analyses ADD COLUMN expires_at TEXT;`);
-      }
-
-      // Index utiles pour les requêtes
-      db.exec(
-        `CREATE INDEX IF NOT EXISTS idx_market_analyses_product_name ON market_analyses(product_name);`,
-      );
-      db.exec(
-        `CREATE INDEX IF NOT EXISTS idx_market_analyses_expires_at ON market_analyses(expires_at);`,
-      );
-    } catch (e: unknown) {
-      // Changed to unknown
-      logger.warn("upgradeMarketAnalysesSchema failed", {
-        error: e instanceof Error ? e.message : String(e),
-      }); // Improved error logging
-    }
-  }
-  /**
-   * Met à niveau/assure le schéma de la table vinted_sessions pour correspondre au drizzle-schema.
-   * - Crée la table si absente
-   * - Ajoute les colonnes manquantes (encrypted_dek, encryption_metadata, token_expires_at, etc.)
-   */
-  private upgradeVintedSessionsSchema(db: Database.Database): void {
-    try {
-      // Créer la table si elle n'existe pas (schéma complet attendu par le code)
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS vinted_sessions (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          session_cookie TEXT,
-          encrypted_dek TEXT,
-          encryption_metadata TEXT,
-          session_expires_at TEXT,
-          token_expires_at TEXT,
-          status TEXT NOT NULL DEFAULT 'requires_configuration',
-          last_validated_at TEXT,
-          last_refreshed_at TEXT,
-          last_refresh_attempt_at TEXT,
-          refresh_attempt_count INTEGER DEFAULT 0,
-          refresh_error_message TEXT,
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          UNIQUE (user_id),
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        );
-      `);
-
-      const ensureCol = (name: string, type: string) => {
-        if (!this.columnExists(db, "vinted_sessions", name)) {
-          db.exec(`ALTER TABLE vinted_sessions ADD COLUMN ${name} ${type};`);
-        }
-      };
-
-      // Assurer toutes les colonnes nécessaires
-      ensureCol("session_cookie", "TEXT");
-      ensureCol("encrypted_dek", "TEXT");
-      ensureCol("encryption_metadata", "TEXT");
-      ensureCol("session_expires_at", "TEXT");
-      ensureCol("token_expires_at", "TEXT");
-      ensureCol("status", "TEXT");
-      ensureCol("last_validated_at", "TEXT");
-      ensureCol("last_refreshed_at", "TEXT");
-      ensureCol("last_refresh_attempt_at", "TEXT");
-      ensureCol("refresh_attempt_count", "INTEGER");
-      ensureCol("refresh_error_message", "TEXT");
-      ensureCol("created_at", "TEXT");
-      ensureCol("updated_at", "TEXT");
-    } catch (e: unknown) {
-      // Changed to unknown
-      logger.warn("upgradeVintedSessionsSchema failed", {
-        error: e instanceof Error ? e.message : String(e),
-      }); // Improved error logging
     }
   }
 }

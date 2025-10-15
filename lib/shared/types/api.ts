@@ -8,7 +8,6 @@ import {
   Product,
   Parcelle,
   User,
-  MarketAnalysis,
   CreateProductInput,
   CreateParcelleInput,
   UpdateProductInput,
@@ -128,7 +127,7 @@ export interface ProductListRequest {
   search?: string;
   sortBy?: "name" | "price" | "createdAt" | "updatedAt";
   sortOrder?: "asc" | "desc";
-  vendu?: "0" | "1" | "2" | "3";
+  vendu?: "0" | "1"; // Simplified: 0=not sold, 1=sold
   plateforme?: Platform;
   priceMin?: number;
   priceMax?: number;
@@ -242,44 +241,6 @@ export interface ParcelleStatsResponse {
   }>;
 }
 
-// ============================================================================
-// Market Analysis API Types
-// ============================================================================
-
-/**
- * Market analysis request
- */
-export interface MarketAnalysisRequest {
-  productName: string;
-  brandId?: number;
-  catalogId?: number;
-  categoryName?: string;
-  filters?: {
-    priceMin?: number;
-    priceMax?: number;
-    condition?: string;
-    size?: string;
-    color?: string;
-  };
-}
-
-/**
- * Market analysis response
- */
-export interface MarketAnalysisResponse extends MarketAnalysis {
-  insights?: {
-    averagePrice: number;
-    priceRange: { min: number; max: number };
-    salesVolume: number;
-    competitionLevel: "low" | "medium" | "high";
-    recommendedPrice: number;
-    trends: Array<{
-      period: string;
-      averagePrice: number;
-      volume: number;
-    }>;
-  };
-}
 
 // ============================================================================
 // User Profile API Types

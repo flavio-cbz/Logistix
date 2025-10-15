@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select"
 import { AnimatedButton } from "@/components/ui/animated-button"
 import { Product, Platform } from "@/lib/shared/types/entities"
+import { getSellingPrice, getListedAt, getSoldAt, type ProductWithLegacyFields } from "@/lib/utils/product-field-normalizers"
 import { DollarSign, Calendar, Store } from "lucide-react"
 
 // Schéma de validation pour les informations de vente
@@ -67,10 +68,10 @@ export function ProductSaleDialog({
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(saleFormSchema),
     defaultValues: {
-      prixVente: Number(product?.prixVente) || coutTotalNum * 1.5, // Suggérer 50% de marge
-      dateVente: product?.dateVente || new Date().toISOString().split('T')[0],
-      dateMiseEnLigne: product?.dateMiseEnLigne || new Date().toISOString().split('T')[0],
-      plateforme: (product?.plateforme as Platform) || Platform.VINTED,
+      prixVente: getSellingPrice(product as ProductWithLegacyFields) || coutTotalNum * 1.5, // Suggérer 50% de marge
+      dateVente: getSoldAt(product as ProductWithLegacyFields) || new Date().toISOString().split('T')[0],
+      dateMiseEnLigne: getListedAt(product as ProductWithLegacyFields) || new Date().toISOString().split('T')[0],
+      plateforme: (product?.plateforme as Platform) || "leboncoin" as Platform,
     } as SaleFormValues,
   })
 
@@ -235,7 +236,6 @@ export function ProductSaleDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value={Platform.VINTED}>Vinted</SelectItem>
                       <SelectItem value={Platform.LEBONCOIN}>Leboncoin</SelectItem>
                       <SelectItem value={Platform.OTHER}>Autre</SelectItem>
                     </SelectContent>

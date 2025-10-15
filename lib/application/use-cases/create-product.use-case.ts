@@ -9,7 +9,6 @@ export class CreateProductUseCase {
   ) {}
 
   async execute(data: {
-    vintedItemId?: string;
     name: string;
     brand?: string;
     category?: string;
@@ -24,7 +23,6 @@ export class CreateProductUseCase {
       userId: data.userId,
     };
 
-    if (data.vintedItemId !== undefined) createData.vintedItemId = data.vintedItemId;
     if (data.brand !== undefined) createData.brand = data.brand;
     if (data.category !== undefined) createData.category = data.category;
     if (data.poids !== undefined) createData.poids = data.poids;

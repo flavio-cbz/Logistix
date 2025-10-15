@@ -15,6 +15,8 @@
 
 import { test, expect } from '@playwright/test';
 
+test.describe.configure({ tag: '@regression' });
+
 const BASE_URL = 'http://localhost:3000';
 const TEST_CREDENTIALS = {
   username: 'admin',
@@ -57,10 +59,11 @@ test.describe('Workflow Produits Complet', () => {
     console.log('🔄 Passage en mode liste...');
     const listViewButton = page.locator('button').filter({ has: page.locator('svg[data-lucide="list"]') }).or(page.locator('button:has-text("Liste")'));
     if (await listViewButton.count() > 0) {
-      await listViewButton.first().click();
-      await page.waitForTimeout(1000);
-      console.log('✅ Mode liste activé');
-    } else {
+    await listViewButton.first().click();
+    // Attendre la présence de la table de produits pour confirmer le passage en mode liste
+    await page.waitForSelector('tbody tr[data-row-key]', { timeout: 10000 }).catch(() => {});
+    console.log('✅ Mode liste activé');
+  } else {
       console.log('⚠️  Bouton liste non trouvé, on continue (peut-être déjà en mode liste)');
     }
     
@@ -88,11 +91,11 @@ test.describe('Workflow Produits Complet', () => {
     console.log('⏳ Attente de la création du produit...');
     
     // Attendre la fermeture du dialog ou la réponse API
-    await page.waitForTimeout(2000);
+    await page.waitForSelector(`tr:has-text("${TEST_PRODUCT.name}")`, { timeout: 10000 });
     console.log(`✅ Produit soumis`);
     
     // Vérifier que le produit apparaît
-    await page.waitForTimeout(2000);
+    await page.waitForSelector(`tr:has-text("${TEST_PRODUCT.name}")`, { timeout: 10000 });
     const countAfterCreate = await page.locator('tbody tr[data-row-key]').count();
     console.log(`Nombre de produits après création : ${countAfterCreate}`);
     
@@ -117,7 +120,7 @@ test.describe('Workflow Produits Complet', () => {
     
     await duplicateButton.click();
     await postPromise2;
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle');
     
     const countAfterDuplicate = await page.locator('tbody tr[data-row-key]').count();
     console.log(`Nombre de produits après duplication : ${countAfterDuplicate}`);
@@ -143,7 +146,7 @@ test.describe('Workflow Produits Complet', () => {
     
     await deleteButton.click();
     await deletePromise;
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle');
     
     const countAfterDelete = await page.locator('tbody tr[data-row-key]').count();
     console.log(`Nombre de produits après suppression : ${countAfterDelete}`);
@@ -166,7 +169,7 @@ test.describe('Workflow Produits Complet', () => {
     
     const submitButton2 = page.locator('[role="dialog"]').locator('button[type="submit"]').first();
     await submitButton2.click({ force: true });
-    await page.waitForTimeout(2000);
+    await page.waitForSelector('tr:has-text("Robe modifié")', { timeout: 10000 });
     
     // Vérifier le nouveau nom
     const modifiedProduct = page.locator('tr:has-text("Robe modifié")');
@@ -178,9 +181,9 @@ test.describe('Workflow Produits Complet', () => {
     // ==========================================
     console.log('\n=== ÉTAPE 3 : CRÉER UN PRODUIT VENDU ===');
     
-    // Fermer tous les dialogs
+    // Fermer tous les dialogs et attendre qu'ils disparaissent
     await page.keyboard.press('Escape');
-    await page.waitForTimeout(1000);
+    await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 5000 }).catch(() => {});
     
     // Compter les produits actuels
     const countBeforeSold = await page.locator('tbody tr[data-row-key]').count();
@@ -201,13 +204,11 @@ test.describe('Workflow Produits Complet', () => {
     // IMPORTANT : Changer le statut vers "Vendu" AVANT de remplir les champs conditionnels
     console.log('🔍 Changement du statut vers Vendu...');
     const statusSelect2 = dialog2.locator('button').filter({ hasText: /sélectionner le statut|disponible/i }).first();
-    await statusSelect2.focus();
-    await page.keyboard.press('Space');
-    await page.waitForTimeout(500);
-    await page.keyboard.press('ArrowDown');
-    await page.waitForTimeout(200);
-    await page.keyboard.press('Enter');
-    await page.waitForTimeout(1500);
+    // Ouvrir le sélecteur et choisir l'option 'Vendu' de façon déterministe
+    await statusSelect2.click();
+    await page.getByRole('option', { name: /vendu/i }).click();
+    // Attendre que la section d'informations de vente se charge
+    await dialog2.locator('text=Informations de vente').waitFor({ state: 'visible', timeout: 10000 });
     console.log('✅ Statut Vendu sélectionné');
     
     // Attendre que la section "Informations de vente" apparaisse
@@ -231,7 +232,8 @@ test.describe('Workflow Produits Complet', () => {
     // Soumettre le formulaire
     const submitButton3 = dialog2.locator('button[type="submit"]').first();
     await submitButton3.click({ force: true });
-    await page.waitForTimeout(2000);
+    // Attendre la création via présence dans la liste (déterministe)
+    await page.waitForSelector('tr:has-text("Manteau vendu")', { timeout: 10000 });
     
     // Vérifier que le produit vendu est créé
     const countAfterSold = await page.locator('tbody tr[data-row-key]').count();

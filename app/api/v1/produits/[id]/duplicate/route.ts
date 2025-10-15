@@ -39,7 +39,6 @@ export async function POST(
       name: `${sourceProduct.name} (Copie)`,
       price: sourceProduct.price,
       poids: sourceProduct.poids,
-      vintedItemId: `${sourceProduct.vintedItemId || 'item'}-copy-${Date.now()}`,
     };
     
     // Ajouter les propriétés optionnelles seulement si elles existent

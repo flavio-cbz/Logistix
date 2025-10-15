@@ -1,19 +1,208 @@
 # LogistiX
 
 ---
+Tu es un architecte logiciel expert en TypeScript. Je souhaite intégrer une fonctionnalité d'analyse de marché basée sur des APIs non officielles de marketplaces dans mon application existante.
+
+## CONTEXTE DE L'APPLICATION EXISTANTE
+
+- **Stack**: TypeScript/Node.js avec architecture modulaire
+- **Pattern**: Services découplés, injection de dépendances
+- **Objectifs**: Extensibilité future (Leboncoin, eBay), performance optimisée
+- **Contraintes**: Pas de surcharge de l'architecture existante, intégration transparente
+
+## FOURNISSEURS D'API NON OFFICIELS IDENTIFIÉS
+
+### **Vinted - Providers disponibles**[1][2][3]
+```bash
+# Options principales
+npm install vinted-api                    # @Androz2091 - Le plus populaire
+npm install @eliottoblinger/vinted       # Support proxies + pagination
+npm install @skanix/vinted-client        # Moderne mais deprecated
+```
+
+**Caractéristiques des providers Vinted :**
+
+- `vinted-api` (Androz2091) : 36+ stars, stable, recherche par URL[1]
+- `@eliottoblinger/vinted` : Support pagination, proxies, getBrands()[2]
+- `@skanix/vinted-client` : TypeScript natif mais plus maintenu[4]
+
+### **eBay - Scrapers disponibles**[5]
+```bash
+# Python-based (à adapter en TypeScript)
+git clone https://github.com/Simple-Python-Scrapy-Scrapers/ebay-scrapy-scraper
+# Features: Anti-bot protection, prix, seller data, auction info
+```
+
+### **Leboncoin - Solutions identifiées**[6][7][8]
+```bash
+# API Immobilier (base pour extension)
+git clone https://github.com/Fluximmo/api-immo-scrapper-leboncoin-pap
+# Scrapy Spider avec support anti-detection
+```
+
+### **Templates/Frameworks génériques**[9][10][11]
+```bash
+# Templates TypeScript + Puppeteer
+npm install puppeteer crawlee          # Crawlee = Apify's framework
+git clone https://github.com/NoxelS/scraper  # Template TypeScript + Puppeteer
+```
+
+## EXIGENCES TECHNIQUES SPÉCIFIQUES
+
+### 1. **Architecture Provider Abstraction**
+Supporte multiple providers avec fallback automatique :
+```typescript
+interface MarketplaceProvider {
+  name: 'vinted' | 'leboncoin' | 'ebay';
+  authenticate(): Promise<AuthTokens>;
+  search(query: SearchQuery, tokens?: AuthTokens): Promise<SearchResult[]>;
+  getItem(id: string, tokens?: AuthTokens): Promise<Item>;
+  isAvailable(): Promise<boolean>; // Health check
+}
+```
+
+### 2. **Provider Factory avec Auto-Detection**
+```typescript
+// Doit supporter ces providers automatiquement
+const providers = [
+  new VintedProvider('vinted-api'),           // Fallback Androz2091
+  new VintedProvider('@eliottoblinger'),      // Primary avec proxies
+  new EbayProvider('scrapy-based'),           // À implémenter
+  new LeboncoinProvider('puppeteer-based')   // À implémenter
+];
+```
+
+### 3. **Système de Proxies et Anti-Detection**[2][5]
+
+- Rotation automatique de proxies (résidentiels + datacenter)
+- User-Agent rotation avec browser fingerprinting
+- Rate limiting adaptatif par provider (1-2 req/sec Vinted)
+- Circuit breaker avec exponential backoff
+
+### 4. **Token/Session Management**
+
+- Cookie Factory Puppeteer pour Vinted/Leboncoin[6]
+- Session persistence avec Redis TTL
+- Auto-refresh avec retry logic
+- Multi-provider token pooling
+
+## PLAN DE DÉVELOPPEMENT DEMANDÉ
+
+**Crée-moi un plan de développement qui intègre ces providers existants :**
+
+1. **Architecture modulaire** : Comment wrapper proprement ces packages npm dans mon abstraction
+
+2. **Provider Integration Strategy** : 
+   - Comment intégrer `vinted-api` d'Androz2091 comme fallback
+   - Utiliser `@eliottoblinger/vinted` comme provider principal
+   - Préparer l'architecture pour eBay/Leboncoin scrapers
+
+3. **Proxy Management Service** : Système centralisé compatible avec tous les providers
+
+4. **Health Monitoring** : Auto-détection de providers indisponibles + fallback
+
+5. **Data Normalization** : Unification des formats de réponse entre providers
+
+6. **Error Handling Strategy** : Gestion des bans, rate limits, tokens expirés
+
+7. **Testing Strategy** : Comment tester sans se faire bannir des plateformes
+
+## INTÉGRATION AVEC PROVIDERS EXISTANTS
+
+### Provider Vinted - Stratégie de fallback
+```typescript
+// Utilise @eliottoblinger en primary, fallback sur Androz2091
+class VintedProvider {
+  private primaryClient = new EliottVinted();
+  private fallbackClient = new AndrozVinted();
+  
+  async search(query: SearchQuery): Promise<SearchResult[]> {
+    try {
+      return await this.primaryClient.search(query);
+    } catch (error) {
+      console.warn('Primary provider failed, using fallback');
+      return await this.fallbackClient.search(query);
+    }
+  }
+}
+```
+
+### Provider eBay - Adaptation du scraper Python
+Comment adapter le scraper Scrapy eBay en TypeScript avec Crawlee/Puppeteer.[11][5]
+
+### Provider Leboncoin - Extension du scraper immo
+Comment étendre l'API immobilier Fluximmo pour tous les produits.[7]
+
+## CRITÈRES DE SUCCÈS
+
+- ✅ Intégration transparente des packages npm existants
+- ✅ Fallback automatique entre providers (ex: Androz2091 ↔ Eliott)
+- ✅ Support proxies rotatifs pour éviter les bans
+- ✅ Architecture extensible pour nouveaux scrapers GitHub
+- ✅ Zero impact performance sur l'app existante
+- ✅ Health checks automatiques des providers
+
+## LIVRABLES ATTENDUS
+
+1. Plan d'intégration des packages npm existants[1][2]
+2. Architecture de wrapper pour providers GitHub[9][11]
+3. Système de fallback entre providers Vinted
+4. Roadmap pour adaptation eBay/Leboncoin scrapers
+5. Code d'exemple utilisant les packages identifiés
+
+**Optimise pour réutiliser au maximum l'existant GitHub/npm plutôt que de réinventer.**
+
+[1](https://github.com/Androz2091/vinted-api)
+[2](https://www.npmjs.com/package/@eliottoblinger/vinted)
+[3](https://github.com/MrBalourd/Vinted-API)
+[4](https://github.com/SkanixDev/vinted-client)
+[5](https://github.com/Simple-Python-Scrapy-Scrapers/ebay-scrapy-scraper)
+[6](https://lorisgautier.fr/blog/comment-scraper-leboncoin)
+[7](https://github.com/Fluximmo/api-immo-scrapper-leboncoin-pap)
+[8](https://scrapeops.io/websites/leboncoin/how-to-scrape-leboncoin)
+[9](https://github.com/NoxelS/scraper)
+[10](https://github.com/pskd73/ts-scraper)
+[11](https://github.com/apify/crawlee)
+[12](https://github.com/vincenzoAiello/VintedAPI)
+[13](https://github.com/topics/vinted-api)
+[14](https://github.com/node-steam/market-pricing)
+[15](https://github.com/Remi-deronzier/vinted-api)
+[16](https://www.reddit.com/r/node/comments/4j0wzr/write_an_api_wrapper_in_nodejs/)
+[17](https://socket.dev/npm/package/vinted-api)
+[18](https://github.com/Parking-Master/node_perplexityai)
+[19](https://github.com/scrapfly/scrapfly-scrapers)
+[20](https://codesandbox.io/s/vinted-api-1vthtm)
+[21](https://www.npmjs.com/search?q=keywords%3Aapi-wrapper)
+[22](https://blog.appsignal.com/2024/09/11/top-5-http-request-libraries-for-nodejs.html)
+[23](https://www.vint-aide.com/t/api-vinted-pro-enfin-une-vraie-api-officielle/2108)
+[24](https://www.npmjs.com/search?q=marketplace&page=4)
+[25](https://www.reddit.com/r/node/comments/1hrtytj/test_api_librarywrapper_npm_package/)
+[26](https://github.com/StreakYC/node-api-wrapper)
+[27](https://dev.to/projectescape/web-monetization-for-npm-packages-3g6o)
+[28](https://www.heroku.com/blog/build-openapi-apis-nodejs-fastify/)
+[29](https://socket.dev/npm/package/cc-data-api-wrapper)
+[30](https://github.com/topics/unofficial-api)
+[31](https://www.jsdelivr.com/package/npm/xapi-wrapper)
+[32](https://github.com/vermaysha/hoyoapi)
+[33](https://www.npmjs.com/search?q=keywords%3AAPI+wrapper)
+[34](https://github.com/topics/scraper)
+[35](https://www.reddit.com/r/node/comments/ukdigp/looking_for_good_examples_of_api_wrappers/)
+[36](https://github.com/teambit/oxlint-node)
+[37](https://github.com/topics/scraper?l=typescript&o=desc&s=updated)
+[38](https://www.youtube.com/watch?v=qHA4PNTSLmc)
+[39](https://pixeljets.com/blog/building-modern-express-js-api/)
+---
 
 ## 🚨 URGENT / BLOQUANTS
 
 ### Corrections Critiques
 
-- [x] Suppression complete de la fonctionalité de notifications.
-- [] Verifier si toutes les fonctionalitées sont couvertes par les tests et si tout le stests sont conformes et facilement modulables et qu'il existes pas de doublons ou des tests inutiles.
-- [] Implementer la page /profil et la modification du mot de passe et informations liés au profil.
-- [] Implementer la page /settings et la modification des settings globaux.
-- [] Implementer la page /help
-- [] Tester et verifier les calculs dans la page /statistique et /dashboard.
-- [] Implementer la fonctionalité /analyse-marche pas à pas
-- Automatiser la saisie des produits et parcelles via l'API SuperBuy.
+- [x] Implementer la page /profil et la modification du mot de passe et informations liés au profil.
+- [x] Implementer la page /settings et la modification des settings globaux.
+- [ ] Implementer la page /help
+- [ ] Tester et verifier les calculs dans la page /statistique et /dashboard.
+- [ ] Implementer la fonctionalité /analyse-marche pas à pas
+- [ ] Automatiser la saisie des produits et parcelles via l'API SuperBuy.
 
 ## 🔧 INTÉGRATIONS MARCHÉ & DONNÉES
 

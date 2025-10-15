@@ -100,12 +100,6 @@ export const FeatureFlagsConfigSchema = z.object({
     description: "A/B test for new product form UI design",
   }),
 
-  enhancedMarketAnalysis: FeatureFlagSchema.default({
-    enabled: false,
-    rolloutPercentage: 25,
-    description: "A/B test for enhanced market analysis features",
-  }),
-
   // Development and debugging flags
   debugMode: FeatureFlagSchema.default({
     enabled: false,

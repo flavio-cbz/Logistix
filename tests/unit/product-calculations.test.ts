@@ -131,7 +131,7 @@ describe('Product Calculations', () => {
           '2025-01-01',
           '2025-01-08',
           150,
-          'Vinted'
+            // 'Vinted' removed as part of the update
         )
       ).toBe(true);
     });
@@ -142,7 +142,7 @@ describe('Product Calculations', () => {
           null,
           '2025-01-08',
           150,
-          'Vinted'
+            // 'Vinted' removed as part of the update
         )
       ).toBe(false);
 
@@ -151,7 +151,7 @@ describe('Product Calculations', () => {
           '2025-01-01',
           null,
           150,
-          'Vinted'
+            // 'Vinted' removed as part of the update
         )
       ).toBe(false);
 
@@ -159,17 +159,7 @@ describe('Product Calculations', () => {
         validateSoldProductFields(
           '2025-01-01',
           '2025-01-08',
-          0,
-          'Vinted'
-        )
-      ).toBe(false);
-
-      expect(
-        validateSoldProductFields(
-          '2025-01-01',
-          '2025-01-08',
-          150,
-          null
+          0
         )
       ).toBe(false);
     });
@@ -181,18 +171,17 @@ describe('Product Calculations', () => {
         '2025-01-01',
         '2025-01-08',
         150,
-        'Vinted'
+          // 'Vinted' removed as part of the update
       );
       expect(missing).toEqual([]);
     });
 
     it('devrait lister tous les champs manquants', () => {
-      const missing = getMissingSoldFields(null, null, null, null);
+      const missing = getMissingSoldFields(null, null, null);
       expect(missing).toEqual([
         'Date de mise en ligne',
         'Date de vente',
         'Prix de vente',
-        'Plateforme',
       ]);
     });
 
@@ -200,10 +189,9 @@ describe('Product Calculations', () => {
       const missing = getMissingSoldFields(
         '2025-01-01',
         null,
-        150,
-        null
+        150
       );
-      expect(missing).toEqual(['Date de vente', 'Plateforme']);
+      expect(missing).toEqual(['Date de vente']);
     });
   });
 

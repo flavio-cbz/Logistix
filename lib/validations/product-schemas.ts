@@ -28,7 +28,6 @@ import { z } from 'zod';
  * ```
  */
 export const CreateProductSchema = z.object({
-  vintedItemId: z.string().optional(),
   name: z.string().min(1, 'Le nom est requis').max(255, 'Le nom est trop long'),
   brand: z.string().optional(),
   category: z.string().optional(),
@@ -51,7 +50,6 @@ export const CreateProductSchema = z.object({
  * ```
  */
 export const UpdateProductSchema = z.object({
-  vintedItemId: z.string().optional(),
   name: z.string().min(1, 'Le nom est requis').max(255, 'Le nom est trop long').optional(),
   brand: z.string().optional(),
   category: z.string().optional(),

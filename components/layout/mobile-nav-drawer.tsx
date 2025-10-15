@@ -9,7 +9,7 @@ import {
   Package2,
   BarChart3,
   ShoppingCart,
-  TrendingUp,
+  
   Package,
   Bell,
   Settings
@@ -36,12 +36,6 @@ const navItems = [
     href: "/produits",
     icon: ShoppingCart,
     description: "Gestion du catalogue",
-  },
-  {
-    title: "Analyse de marché",
-    href: "/analyse-marche",
-    icon: TrendingUp,
-    description: "Tendances et opportunités",
   },
   {
     title: "Statistiques",

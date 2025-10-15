@@ -19,7 +19,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ProductCreateForm from "@/components/features/produits/product-create-form";
 import { useProducts } from "@/lib/hooks/use-products";
-import type { Product } from "@/lib/shared/types/entities";
+import { Product } from "@/lib/shared/types/entities";
+import { 
+  calculateProductProfit,
+  type ProductWithLegacyFields 
+} from "@/lib/utils/product-field-normalizers";
 import ProductsList from "@/components/features/produits/produits-list";
 import ProductsGridView from "@/components/features/produits/products-grid-view";
 
@@ -41,7 +45,7 @@ export default function RevolutionaryProductsPage() {
   const getProductStatus = (product: Product) => {
     if (product.status === 'archived' || product.status === 'removed') return 'inactif';
     if (product.vendu === '1') return 'actif'; // Vendu
-    if (product.vendu === '3') return 'rupture'; // Retiré
+    // Note: vendu is now "0" | "1" only, status field handles other states
     return 'actif';
   };
 
@@ -55,17 +59,14 @@ export default function RevolutionaryProductsPage() {
     total: products.length,
     actifs: products.filter(p => getProductStatus(p) === 'actif').length,
     inactifs: products.filter(p => getProductStatus(p) === 'inactif').length,
-    rupture: products.filter(p => getProductStatus(p) === 'rupture').length,
+    rupture: 0, // Legacy field - now handled by status field
     valeurStock: products.reduce((sum, p) => sum + (p.price || 0), 0),
-    beneficesTotal: products.reduce((sum, p: any) => {
-      // Calcul des vrais bénéfices: prix de vente - (prix d'achat + coût de livraison)
-      const prixVente = (p.prix_vente || p.selling_price || p.prixVente || 0) as number;
-      const coutAchat = (p.price || p.prixAchat || 0) as number;
-      const coutLivraison = (p.cout_livraison || p.coutLivraison || 0) as number;
-      const benefice = prixVente - (coutAchat + coutLivraison);
-      return sum + (benefice > 0 ? benefice : 0); // Ne compter que les bénéfices positifs
+    beneficesTotal: products.reduce((sum, p) => {
+      // Utiliser les utilitaires pour un accès sûr aux champs legacy
+      const profit = calculateProductProfit(p as ProductWithLegacyFields);
+      return sum + (profit && profit > 0 ? profit : 0);
     }, 0),
-    ventesTotales: products.filter((p: any) => String(p.vendu) === '1').length // Nombre de produits vendus
+    ventesTotales: products.filter(p => p.vendu === '1').length
   };
 
   // Affichage du loading et des erreurs

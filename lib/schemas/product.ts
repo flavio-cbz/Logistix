@@ -86,7 +86,6 @@ const baseProductSchema = z.object({
   currency: z.string().default("EUR"),
   coutLivraison: z.number().min(0).optional().nullable(),
   parcelleId: z.string().optional().nullable(),
-  vintedItemId: z.string().optional().nullable(),
   url: z.string().url().optional().nullable().or(z.literal("")),
   photoUrl: z.string()
     .refine((val) => {
@@ -103,7 +102,7 @@ const baseProductSchema = z.object({
   plateforme: z.nativeEnum(Platform).optional().nullable(),
 
   // Legacy compatibility fields
-  vendu: z.enum(["0", "1", "2", "3"]).optional().default("0"),
+  vendu: z.enum(["0", "1"]).optional().default("0"), // Simplified: 0=not sold, 1=sold
   dateMiseEnLigne: z.string().optional().nullable(),
   dateVente: z.string().optional().nullable(),
 

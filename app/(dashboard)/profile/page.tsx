@@ -1,6 +1,9 @@
 import { getSessionUser } from "@/lib/services/auth/auth";
 import { redirect } from "next/navigation";
-import { ProfileClientWrapper } from "@/components/features/profile/profile-client-wrapper";
+import { ProfileClient } from "@/components/features/profile/profile-client";
+import { databaseService } from "@/lib/database";
+import { users, products, parcelles } from "@/lib/database/schema";
+import { eq } from "drizzle-orm";
 
 export default async function ProfilePage() {
   const user = await getSessionUser();
@@ -9,55 +12,50 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  // Fetch full user profile data
-  let initialData = {
-    id: user.id,
-    username: user.username,
-    bio: "",
-    avatar: user.avatar || "",
-    language: user.language || "fr",
-    theme: user.theme || "system",
-    role: user.isAdmin ? "admin" : "user",
-    createdAt: "",
-    lastLoginAt: "",
+  // Charger les données du profil côté serveur
+  const db = await databaseService.getDb();
+  const profile = await db.select().from(users).where(eq(users.id, user.id)).get();
+
+  if (!profile) {
+    redirect("/login");
+  }
+
+  // Calculer les statistiques
+  const totalProducts = await db.select().from(products).where(eq(products.userId, user.id)).all();
+  const totalParcels = await db.select().from(parcelles).where(eq(parcelles.userId, user.id)).all();
+  
+  const createdDate = new Date(profile.createdAt);
+  const now = new Date();
+  const daysActive = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+
+  const profileData = {
+    id: profile.id,
+    username: profile.username,
+    email: profile.email,
+    bio: profile.bio,
+    avatar: profile.avatar,
+    language: profile.language,
+    theme: profile.theme,
+    role: profile.role,
+    lastLoginAt: profile.lastLoginAt,
+    createdAt: profile.createdAt,
+    updatedAt: profile.updatedAt,
     stats: {
-      totalProducts: 0,
-      totalParcels: 0,
-      daysActive: 0,
-      profileCompleteness: 60,
+      totalProducts: totalProducts.length,
+      totalParcels: totalParcels.length,
+      daysActive,
     },
   };
 
-  try {
-    // Fetch additional profile data from API
-    const response = await fetch(
-      `${process.env['NEXT_PUBLIC_BASE_URL']}/api/v1/profile`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      },
-    );
-
-    if (response.ok) {
-      const profileData = await response.json();
-      initialData = {
-        ...initialData,
-        bio: profileData.bio || "",
-        avatar: profileData.avatar || "",
-        language: profileData.language || "fr",
-        theme: profileData.theme || "system",
-        role: profileData.role || "user",
-        createdAt: profileData.createdAt || "",
-        lastLoginAt: profileData.lastLoginAt || "",
-        stats: profileData.stats || initialData.stats,
-      };
-    }
-  } catch (error) {
-    console.error("Error fetching profile data:", error);
-  }
-
-  return <ProfileClientWrapper initialData={initialData} />;
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Mon Profil</h1>
+        <p className="text-sm text-muted-foreground">
+          Gérez vos informations personnelles et la sécurité de votre compte
+        </p>
+      </div>
+      <ProfileClient initialData={profileData} />
+    </div>
+  );
 }

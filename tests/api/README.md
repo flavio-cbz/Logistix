@@ -5,16 +5,16 @@ This directory contains comprehensive tests for all API routes in the Logistix a
 ## Test Files
 
 - `auth.test.ts` - Tests for authentication-related routes
-- `products.test.ts` - Tests for product-related routes  
+- `products.test.ts` - Tests for product-related routes
 - `parcelles.test.ts` - Tests for parcelle-related routes
 - `other-routes.test.ts` - Tests for other API routes
 - `basic-api.test.ts` - Basic connectivity and functionality tests
 - `test-config.ts` - Configuration for API testing
-- `run-all-api-tests.ts` - Comprehensive test runner script
 
 ## Running Tests
 
-### Run all tests with vitest:
+### Run all tests with vitest
+
 ```bash
 npm test
 # or
@@ -23,13 +23,15 @@ npm run test
 npx vitest tests/api/
 ```
 
-### Run the comprehensive API test suite:
+### Run the comprehensive API test suite
+
 ```bash
 npm run test:runner
 # This will start the dev server and run all API tests
 ```
 
-### Run specific test files:
+### Run specific test files
+
 ```bash
 npx vitest tests/api/auth.test.ts
 npx vitest tests/api/products.test.ts
@@ -50,16 +52,14 @@ The tests cover:
 
 ## Test Results
 
-The comprehensive test runner (`run-all-api-tests.ts`) will:
+Note: the legacy comprehensive runner `run-all-api-tests.ts` was removed as part of test cleanup.
+Use the project scripts to run tests:
 
-1. Start the development server
-2. Run tests against all API routes
-3. Generate a detailed report showing:
-   - Working routes
-   - Failing routes
-   - Success rate percentage
-   - Individual route status codes
-4. Save the detailed report as JSON in the `reports/` directory
+- `npm test` or `npm run test` — run vitest suites
+- `npm run test:runner` — start the dev server and run the scripted runner (`scripts/run-tests.ts`)
+- For API tests use: `npx vitest tests/api/`
+
+The recommended CI-friendly runner remains `npm run test:runner` which delegates to `scripts/run-tests.ts`.
 
 ## Expected Results
 

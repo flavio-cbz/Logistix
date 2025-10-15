@@ -19,23 +19,10 @@ export enum ProductStatus {
 }
 
 export enum Platform {
-  VINTED = "Vinted",
   LEBONCOIN = "leboncoin",
   OTHER = "autre",
 }
 
-export enum VintedSessionStatus {
-  ACTIVE = "active",
-  EXPIRED = "expired",
-  ERROR = "error",
-  REQUIRES_CONFIGURATION = "requires_configuration",
-}
-
-export enum MarketAnalysisStatus {
-  PENDING = "pending",
-  COMPLETED = "completed",
-  FAILED = "failed",
-}
 
 export enum RiskTolerance {
   CONSERVATIVE = "conservative",
@@ -77,7 +64,7 @@ export interface User {
 
 /**
  * Product entity with comprehensive product information
- * Unified interface combining both schema definitions
+ * Aligned with database schema (lib/database/schema.ts)
  */
 export interface Product {
   id: string;
@@ -86,26 +73,26 @@ export interface Product {
 
   // Basic information
   name: string;
+  description?: string | null;
   poids: number; // Weight in grams
 
   // Financial information
-  price: number;
+  price: number; // Purchase price
   currency: string;
   coutLivraison?: number | null; // Shipping cost
-  benefices?: number | null; // Profit/benefits
+  sellingPrice?: number | null; // Actual selling price
+  prixVente?: number | null; // Legacy field for compatibility
+  benefices?: number | null; // Profit/benefits (calculated)
 
-  // Vinted/Order information
-  vintedItemId?: string | null;
-
-  // Sale status (legacy compatibility)
-  vendu: "0" | "1" | "2" | "3"; // 0=not sold, 1=sold, 2=reserved, 3=removed
-  dateMiseEnLigne?: string | null;
-  dateVente?: string | null;
-  prixVente?: number | null;
+  // Platform and external information
   plateforme?: Platform | null;
+  externalId?: string | null; // Generic external ID
+  url?: string | null;
+  photoUrl?: string | null;
 
-  // Modern status system
+  // Status and lifecycle
   status: ProductStatus;
+  vendu: "0" | "1"; // Legacy compatibility: 0=not sold, 1=sold
 
   // Additional product details
   brand?: string | null;
@@ -113,13 +100,14 @@ export interface Product {
   subcategory?: string | null;
   size?: string | null;
   color?: string | null;
-  url?: string | null;
-  photoUrl?: string | null;
 
-  // Timestamps
+  // Timestamps (unified naming)
   createdAt: string;
   updatedAt?: string | null;
-  soldAt?: string | null;
+  dateMiseEnLigne?: string | null; // Legacy: listing date
+  listedAt?: string | null; // Modern: listing date
+  dateVente?: string | null; // Legacy: sold date
+  soldAt?: string | null; // Modern: sold date
 }
 
 /**
@@ -141,25 +129,6 @@ export interface Parcelle {
   updatedAt?: string;
 }
 
-/**
- * Market Analysis entity for Vinted market analysis
- */
-export interface MarketAnalysis {
-  id: string;
-  userId: string;
-  productName: string;
-  catalogId?: number;
-  categoryName?: string;
-  brandId?: number;
-  status: MarketAnalysisStatus;
-  input?: any;
-  result?: any;
-  rawData?: any;
-  error?: string;
-  createdAt: string;
-  updatedAt?: string;
-  expiresAt?: string;
-}
 
 /**
  * Historical Price entity for price tracking
@@ -199,27 +168,6 @@ export interface UserQueryHistory {
   parsedMaterialId?: string;
   parsedStatusId?: string;
   createdAt: string;
-}
-
-/**
- * Vinted Session entity for managing Vinted authentication
- */
-export interface VintedSession {
-  id: string;
-  userId: string;
-  sessionCookie?: string;
-  encryptedDek?: string;
-  encryptionMetadata?: any;
-  sessionExpiresAt?: string;
-  tokenExpiresAt?: string;
-  status: VintedSessionStatus;
-  lastValidatedAt?: string;
-  lastRefreshedAt?: string;
-  lastRefreshAttemptAt?: string;
-  refreshAttemptCount?: number;
-  refreshErrorMessage?: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 /**
@@ -315,8 +263,7 @@ export interface CreateProductInput {
   price: number;
   currency?: string;
   coutLivraison?: number;
-  vintedItemId?: string;
-  vendu?: "0" | "1" | "2" | "3";
+  vendu?: "0" | "1"; // Simplified: 0=not sold, 1=sold
   dateMiseEnLigne?: string;
   dateVente?: string;
   prixVente?: number;
@@ -365,8 +312,7 @@ export interface UpdateProductInput {
   price?: number;
   currency?: string;
   coutLivraison?: number;
-  vintedItemId?: string;
-  vendu?: "0" | "1" | "2" | "3";
+  vendu?: "0" | "1"; // Simplified: 0=not sold, 1=sold
   dateMiseEnLigne?: string;
   dateVente?: string;
   prixVente?: number;

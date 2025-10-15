@@ -9,7 +9,7 @@ const systemFontClass = "font-sans";
 
 export const metadata: Metadata = {
   title: "Logistix",
-  description: "Plateforme d'analyse de marché Vinted",
+  description: "Plateforme d'analyse et gestion Logistix",
 };
 
 export default function RootLayout({

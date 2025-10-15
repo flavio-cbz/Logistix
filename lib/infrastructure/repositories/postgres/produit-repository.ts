@@ -6,7 +6,7 @@
  */
 
 import { Pool, PoolClient } from 'pg';
-import { Product, ProductStatus } from '@/lib/shared/types/entities';
+import { Product, ProductStatus, Platform } from '@/lib/shared/types/entities';
 import {
   IProduitRepository,
   CreateProduitDto,
@@ -52,7 +52,6 @@ interface ProductRow {
   selling_price?: number;
   prix_vente?: number;
   plateforme?: string;
-  vinted_item_id?: string;
   external_id?: string;
   url?: string;
   photo_url?: string;
@@ -112,15 +111,12 @@ export class PostgresProduitRepository implements IProduitRepository {
       coutLivraison: row.cout_livraison || null,
       benefices: null, // À calculer côté applicatif
       
-      // Vinted/Order information
-      vintedItemId: row.vinted_item_id || null,
-      
-      // Sale status (legacy compatibility)
-      vendu: (row.vendu || '0') as '0' | '1' | '2' | '3',
+      // Sale status (legacy compatibility - simplified)
+      vendu: (row.vendu === '1' ? '1' : '0') as '0' | '1',
       dateMiseEnLigne: row.date_mise_en_ligne || row.listed_at || null,
       dateVente: row.date_vente || row.sold_at || null,
       prixVente: row.prix_vente || row.selling_price || null,
-      plateforme: (row.plateforme || null) as any,
+      plateforme: row.plateforme ? (row.plateforme as Platform) : null,
       
       // Modern status system
       status: row.status as ProductStatus,

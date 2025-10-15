@@ -42,20 +42,6 @@ export async function POST(request: NextRequest) {
             clearResults.cleared.push("user_sessions");
             break;
 
-          case "market_analysis":
-          case "all":
-            await databaseService.execute(
-              "DELETE FROM cache_entries WHERE type = ? AND userId = ? AND createdAt < ?",
-              [
-                "market_analysis",
-                user.id,
-                new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-              ],
-              "clear-market-cache",
-            );
-            clearResults.cleared.push("market_analysis");
-            break;
-
           case "statistics":
           case "all":
             await databaseService.execute(

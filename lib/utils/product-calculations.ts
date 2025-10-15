@@ -211,7 +211,7 @@ export interface ProductMetrics {
  * @example
  * ```typescript
  * const metrics = calculateProductMetrics(25, 250, 35, '2025-01-01', '2025-01-10', parcelle);
- * console.log(metrics.benefice); // Profit amount
+ * // metrics.benefice contains the profit amount
  * ```
  * @since 1.0.0
  */
@@ -267,35 +267,33 @@ export function calculateProductMetrics(
 }
 
 /**
- * Validates if a product has all required fields to be marked as sold
+ * Validates that all required fields are present for marking a product as sold
  * 
- * @description Checks that all mandatory fields for a sold product are present and valid.
- * Required fields include listing date, sale date, sale price (> 0), and platform.
+ * @description Checks if the core required fields (listing date, sale date, sale price) are provided
+ * and valid for marking a product as sold. Platform is now optional for flexibility.
  * @param {string | null | undefined} dateMiseEnLigne - Date when product was listed
  * @param {string | null | undefined} dateVente - Date when product was sold
  * @param {number | null | undefined} prixVente - Sale price in euros
- * @param {string | null | undefined} plateforme - Platform where product was sold
  * @returns {boolean} True if all required fields are present and valid
  * @example
  * ```typescript
- * const isValid = validateSoldProductFields('2025-01-01', '2025-01-10', 35.00, 'Vinted');
+ * const isValid = validateSoldProductFields('2025-01-01', '2025-01-10', 35.00);
+ * // Returns: true
  * ```
  * @since 1.0.0
  */
 export function validateSoldProductFields(
   dateMiseEnLigne: string | null | undefined,
   dateVente: string | null | undefined,
-  prixVente: number | null | undefined,
-  plateforme: string | null | undefined
+  prixVente: number | null | undefined
 ): boolean {
-  // Business logic: All fields are required to mark a product as sold
+  // Business logic: Core fields are required to mark a product as sold
   // This ensures data integrity and prevents incomplete sale records
   return !!(
     dateMiseEnLigne &&    // Must have listing date for performance tracking
     dateVente &&          // Must have sale date for completion tracking
     prixVente &&          // Must have sale price for profit calculation
-    prixVente > 0 &&      // Sale price must be positive (business rule)
-    plateforme            // Must specify platform for analytics and reporting
+    prixVente > 0         // Sale price must be positive (business rule)
   );
 }
 
@@ -303,15 +301,14 @@ export function validateSoldProductFields(
  * Returns the missing fields for a sold product
  * 
  * @description Identifies which required fields are missing for marking a product as sold.
- * Returns an array of field names that need to be provided.
+ * Returns an array of field names that need to be provided. Platform is now optional.
  * @param {string | null | undefined} dateMiseEnLigne - Date when product was listed
  * @param {string | null | undefined} dateVente - Date when product was sold
  * @param {number | null | undefined} prixVente - Sale price in euros
- * @param {string | null | undefined} plateforme - Platform where product was sold
  * @returns {string[]} Array of missing field names
  * @example
  * ```typescript
- * const missing = getMissingSoldFields(null, '2025-01-10', 35.00, 'Vinted');
+ * const missing = getMissingSoldFields(null, '2025-01-10', 35.00);
  * // Returns: ['Date de mise en ligne']
  * ```
  * @since 1.0.0
@@ -319,8 +316,7 @@ export function validateSoldProductFields(
 export function getMissingSoldFields(
   dateMiseEnLigne: string | null | undefined,
   dateVente: string | null | undefined,
-  prixVente: number | null | undefined,
-  plateforme: string | null | undefined
+  prixVente: number | null | undefined
 ): string[] {
   const missing: string[] = [];
 
@@ -329,7 +325,7 @@ export function getMissingSoldFields(
   if (!dateMiseEnLigne) missing.push("Date de mise en ligne");  // Required for performance tracking
   if (!dateVente) missing.push("Date de vente");                // Required for completion status
   if (!prixVente || prixVente <= 0) missing.push("Prix de vente"); // Required for profit calculation
-  if (!plateforme) missing.push("Plateforme");                  // Required for analytics and reporting
+  // plateforme is now optional
 
   return missing;
 }

@@ -4,6 +4,35 @@ import { UpdateProductInput } from '@/lib/shared/types/entities';
 import { AbstractRepository } from './base/abstract-repository';
 import { getDatabaseAdapter } from './base/database-adapter-factory';
 
+// Types pour les opérations database
+interface DatabaseProductRow {
+  id: string;
+  user_id: string;
+  parcelle_id: string | null;
+  name: string;
+  brand: string | null;
+  category: string | null;
+  subcategory: string | null;
+  size: string | null;
+  color: string | null;
+  poids: number;
+  price: number;
+  currency: string;
+  cout_livraison: number | null;
+  prix_livraison?: number | null; // Legacy compatibility
+  selling_price: number | null;
+  plateforme: string | null;
+  external_id: string | null;
+  url: string | null;
+  photo_url: string | null;
+  status: string;
+  vendu: string;
+  created_at: string;
+  updated_at: string;
+  listed_at: string | null;
+  sold_at: string | null;
+}
+
 export class SQLiteProductRepository extends AbstractRepository implements IProductRepository {
   constructor() {
     super(getDatabaseAdapter());
@@ -14,7 +43,6 @@ export class SQLiteProductRepository extends AbstractRepository implements IProd
       id: `prod_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       user_id: data.userId,
       parcelle_id: data.parcelleId || null,
-      vinted_item_id: data.vintedItemId || null,
       name: data.name,
       brand: data.brand || null,
       category: data.category || null,
@@ -27,42 +55,42 @@ export class SQLiteProductRepository extends AbstractRepository implements IProd
       updated_at: new Date().toISOString()
     };
 
-    return (this as any).createRecord(
+    return this.createRecord(
       'products',
       dbData,
-      (row: any) => this.buildProductEntity(row),
+      (row: DatabaseProductRow) => this.buildProductEntity(row),
       'repo:products:create'
     );
   }
 
   async findById(id: string): Promise<Product | null> {
-    const rows = await (this as any).db.query(
+    const rows = await this.db.query<DatabaseProductRow>(
       'SELECT * FROM products WHERE id = ?',
       [id],
       'repo:products:findById'
     );
 
-    return rows.length > 0 ? this.buildProductEntity(rows[0]) : null;
+    return rows.length > 0 ? this.buildProductEntity(rows[0]!) : null;
   }
 
   async findByUserId(userId: string): Promise<Product[]> {
-    const rows = await (this as any).db.query(
+    const rows = await this.db.query<DatabaseProductRow>(
       'SELECT * FROM products WHERE user_id = ? ORDER BY created_at DESC',
       [userId],
       'repo:products:findByUserId'
     );
 
-    return rows.map((row: any) => this.buildProductEntity(row));
+    return rows.map((row) => this.buildProductEntity(row));
   }
 
   async findByParcelleId(parcelleId: string): Promise<Product[]> {
-    const rows = await (this as any).db.query(
+    const rows = await this.db.query<DatabaseProductRow>(
       'SELECT * FROM products WHERE parcelle_id = ? ORDER BY created_at DESC',
       [parcelleId],
       'repo:products:findByParcelleId'
     );
 
-    return rows.map((row: any) => this.buildProductEntity(row));
+    return rows.map((row) => this.buildProductEntity(row));
   }
 
   async update(id: string, data: UpdateProductInput): Promise<Product> {
@@ -96,10 +124,6 @@ export class SQLiteProductRepository extends AbstractRepository implements IProd
     if (data.coutLivraison !== undefined) {
       updateFields.push('cout_livraison = ?');
       values.push(data.coutLivraison);
-    }
-    if (data.vintedItemId !== undefined) {
-      updateFields.push('vinted_item_id = ?');
-      values.push(data.vintedItemId);
     }
     if (data.vendu !== undefined) {
       updateFields.push('vendu = ?');
@@ -162,7 +186,7 @@ export class SQLiteProductRepository extends AbstractRepository implements IProd
     values.push(new Date().toISOString());
     values.push(id);
 
-    await (this as any).db.execute(
+    await this.db.execute(
       `UPDATE products SET ${updateFields.join(', ')} WHERE id = ?`,
       values,
       'repo:products:update'
@@ -177,14 +201,14 @@ export class SQLiteProductRepository extends AbstractRepository implements IProd
   }
 
   async delete(id: string): Promise<void> {
-    await (this as any).db.execute(
+    await this.db.execute(
       'DELETE FROM products WHERE id = ?',
       [id],
       'repo:products:delete'
     );
   }
 
-  private buildProductEntity(row: any): Product {
+  private buildProductEntity(row: DatabaseProductRow): Product {
     return Product.fromDatabase({
       id: row.id,
       userId: row.user_id,
@@ -198,13 +222,11 @@ export class SQLiteProductRepository extends AbstractRepository implements IProd
       poids: row.poids,
       price: row.price,
       currency: row.currency,
-  // Some migrations / legacy scripts used the column name `prix_livraison`.
-  // Read either `cout_livraison` or `prix_livraison` to preserve backward compatibility.
-  coutLivraison: row.cout_livraison ?? row.prix_livraison,
+      // Some migrations / legacy scripts used the column name `prix_livraison`.
+      // Read either `cout_livraison` or `prix_livraison` to preserve backward compatibility.
+      coutLivraison: row.cout_livraison ?? row.prix_livraison,
       sellingPrice: row.selling_price,
-      prixVente: row.prix_vente,
       plateforme: row.plateforme,
-      vintedItemId: row.vinted_item_id,
       externalId: row.external_id,
       url: row.url,
       photoUrl: row.photo_url,
@@ -212,9 +234,7 @@ export class SQLiteProductRepository extends AbstractRepository implements IProd
       vendu: row.vendu,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      dateMiseEnLigne: row.date_mise_en_ligne,
       listedAt: row.listed_at,
-      dateVente: row.date_vente,
       soldAt: row.sold_at,
     });
   }

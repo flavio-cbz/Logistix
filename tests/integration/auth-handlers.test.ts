@@ -46,7 +46,7 @@ describe('Auth Handlers Integration', () => {
       const json = await response.json();
 
       expect(response.status).toBe(201);
-      expect(json.success).toBe(true);
+      expect(json.ok).toBe(true);
       expect(json.data).toBeDefined();
       expect(json.data.username).toBe(TEST_USERNAME);
       expect(json.data.id).toBeDefined();
@@ -65,7 +65,7 @@ describe('Auth Handlers Integration', () => {
         },
       });
       await handleRegister(req1);
-
+    
       // Tenter de créer le même utilisateur
       const req2 = new NextRequest('http://localhost:3000/api/v1/auth/register', {
         method: 'POST',
@@ -77,12 +77,12 @@ describe('Auth Handlers Integration', () => {
           'Content-Type': 'application/json',
         },
       });
-
+    
       const response = await handleRegister(req2);
       const json = await response.json();
-
+    
       expect(response.status).toBe(409);
-      expect(json.success).toBe(false);
+      expect(json.ok).toBe(false);
       expect(json.error).toBeDefined();
     });
 
@@ -102,7 +102,7 @@ describe('Auth Handlers Integration', () => {
       const json = await response.json();
 
       expect(response.status).toBe(422);
-      expect(json.success).toBe(false);
+      expect(json.ok).toBe(false);
     });
 
     it('retourne 422 pour un password invalide', async () => {
@@ -121,7 +121,7 @@ describe('Auth Handlers Integration', () => {
       const json = await response.json();
 
       expect(response.status).toBe(422);
-      expect(json.success).toBe(false);
+      expect(json.ok).toBe(false);
     });
   });
 
@@ -157,7 +157,7 @@ describe('Auth Handlers Integration', () => {
       const json = await response.json();
 
       expect(response.status).toBe(200);
-      expect(json.success).toBe(true);
+      expect(json.ok).toBe(true);
       expect(json.data.username).toBe(TEST_USERNAME);
       expect(json.data.userId).toBeDefined();
       expect(json.data.expiresAt).toBeDefined();
@@ -167,6 +167,84 @@ describe('Auth Handlers Integration', () => {
       const setCookieHeader = response.headers.get('set-cookie');
       expect(setCookieHeader).toBeDefined();
       expect(setCookieHeader).toContain(cookieName);
+    });
+
+    it('retourne 400 pour username manquant', async () => {
+      const req = new NextRequest('http://localhost:3000/api/v1/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          password: TEST_PASSWORD,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await handleLogin(req);
+      const json = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(json.ok).toBe(false);
+      expect(json.error).toBeDefined();
+    });
+
+    it('retourne 400 pour password manquant', async () => {
+      const req = new NextRequest('http://localhost:3000/api/v1/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: TEST_USERNAME,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await handleLogin(req);
+      const json = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(json.ok).toBe(false);
+      expect(json.error).toBeDefined();
+    });
+
+    it('retourne 400 pour username invalid (trop court)', async () => {
+      const req = new NextRequest('http://localhost:3000/api/v1/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: 'a',
+          password: TEST_PASSWORD,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await handleLogin(req);
+      const json = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(json.ok).toBe(false);
+      expect(json.error).toBeDefined();
+    });
+
+    it('retourne 400 pour password trop court', async () => {
+      const req = new NextRequest('http://localhost:3000/api/v1/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: TEST_USERNAME,
+          password: '123',
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await handleLogin(req);
+      const json = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(json.ok).toBe(false);
+      expect(json.error).toBeDefined();
     });
 
     it('retourne 401 pour un username inexistant', async () => {
@@ -185,7 +263,8 @@ describe('Auth Handlers Integration', () => {
       const json = await response.json();
 
       expect(response.status).toBe(401);
-      expect(json.success).toBe(false);
+      expect(json.ok).toBe(false);
+      expect(json.error).toBeDefined();
     });
 
     it('retourne 401 pour un mot de passe incorrect', async () => {
@@ -204,7 +283,23 @@ describe('Auth Handlers Integration', () => {
       const json = await response.json();
 
       expect(response.status).toBe(401);
-      expect(json.success).toBe(false);
+      expect(json.ok).toBe(false);
+      expect(json.error).toBeDefined();
+    });
+
+    it('retourne 400 pour un body JSON invalide', async () => {
+      const req = new NextRequest('http://localhost:3000/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: 'invalid json'
+      } as any);
+
+      const response = await handleLogin(req as any);
+      const json = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(json.ok).toBe(false);
+      expect(json.error).toBeDefined();
     });
   });
 
@@ -257,7 +352,7 @@ describe('Auth Handlers Integration', () => {
       const json = await response.json();
 
       expect(response.status).toBe(200);
-      expect(json.success).toBe(true);
+      expect(json.ok).toBe(true);
       expect(json.data.user).toBeDefined();
       expect(json.data.user.username).toBe(TEST_USERNAME);
       expect(json.data.session).toBeDefined();
@@ -321,16 +416,16 @@ describe('Auth Handlers Integration', () => {
 
       const response = await handleLogout(req);
       const json = await response.json();
-
+      
       expect(response.status).toBe(200);
-      expect(json.success).toBe(true);
-
+      expect(json.ok).toBe(true);
+      
       // Vérifier que le cookie a été supprimé (Expires au passé ou Max-Age=0)
       const setCookieHeader = response.headers.get('set-cookie');
       expect(setCookieHeader).toBeDefined();
       expect(setCookieHeader).toContain(cookieName);
       // Vérifier que le cookie est expiré (soit Max-Age=0, soit Expires au passé)
-      const isExpired = 
+      const isExpired =
         setCookieHeader!.includes('Max-Age=0') ||
         setCookieHeader!.includes('Expires=Thu, 01 Jan 1970');
       expect(isExpired).toBe(true);
@@ -343,9 +438,9 @@ describe('Auth Handlers Integration', () => {
 
       const response = await handleLogout(req);
       const json = await response.json();
-
+  
       expect(response.status).toBe(200);
-      expect(json.success).toBe(true);
+      expect(json.ok).toBe(true);
     });
   });
 });

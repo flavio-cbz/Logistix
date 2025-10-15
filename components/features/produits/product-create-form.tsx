@@ -112,8 +112,7 @@ function ProductCreateFormRefactored({
       dateMiseEnLigne: "",
       dateVente: "",
       prixVente: 0,
-      plateforme: Platform.VINTED,
-      vintedItemId: "",
+      plateforme: "leboncoin" as Platform,
       currency: "EUR",
       status: ProductStatus.DRAFT,
     };
@@ -169,8 +168,7 @@ function ProductCreateFormRefactored({
     const missing = getMissingSoldFields(
       watchedValues.dateMiseEnLigne,
       watchedValues.dateVente,
-      watchedValues.prixVente,
-      watchedValues.plateforme
+      watchedValues.prixVente
     );
 
     return {
@@ -217,7 +215,6 @@ function ProductCreateFormRefactored({
         dateMiseEnLigne: values.dateMiseEnLigne || null,
         dateVente: values.dateVente || null,
         coutLivraison: values.coutLivraison ?? null,
-        vintedItemId: values.vintedItemId && values.vintedItemId.trim() !== "" ? values.vintedItemId : null,
         prixVente: values.prixVente ?? null,
         plateforme: values.plateforme ?? null,
         photoUrl: values.photoUrl && values.photoUrl.trim() !== "" ? values.photoUrl : null,
@@ -332,27 +329,6 @@ function ProductCreateFormRefactored({
                 <h3 className="text-sm font-semibold">Informations de base</h3>
                 <Separator className="flex-1" />
               </div>
-
-              {/* ID Produit/Commande */}
-              <FormField
-                control={form.control}
-                name="vintedItemId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ID du produit / commande</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="ex: VIN123456"
-                        {...field}
-                        value={field.value ?? ""}
-                        className="h-10"
-                        autoComplete="off"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               {/* Nom */}
               <FormField
@@ -722,7 +698,6 @@ function ProductCreateFormRefactored({
                               <SelectValue placeholder="Choisir" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Vinted">Vinted</SelectItem>
                               <SelectItem value="leboncoin">
                                 Le Bon Coin
                               </SelectItem>

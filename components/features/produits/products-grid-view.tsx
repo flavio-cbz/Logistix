@@ -5,6 +5,7 @@ import { MoreVertical, Edit, Trash2, DollarSign, Package, TrendingUp } from "luc
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { calculateProductProfit, type ProductWithLegacyFields } from "@/lib/utils/product-field-normalizers";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,7 +56,7 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
     if (product.vendu === "1") {
       return <Badge variant="default" className="bg-green-500">Vendu</Badge>;
     }
-    if (product.vendu === "3") {
+    if (product.status === "removed") {
       return <Badge variant="destructive">Retiré</Badge>;
     }
     if (product.status === "archived") {
@@ -65,10 +66,7 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
   };
 
   const calculateProfit = (product: Product) => {
-    const prixVente = (product as any).prixVente || (product as any).prix_vente || 0;
-    const coutAchat = product.price || 0;
-    const coutLivraison = (product as any).coutLivraison || (product as any).cout_livraison || 0;
-    return prixVente - (coutAchat + coutLivraison);
+    return calculateProductProfit(product as ProductWithLegacyFields) ?? 0;
   };
 
   if (products.length === 0) {

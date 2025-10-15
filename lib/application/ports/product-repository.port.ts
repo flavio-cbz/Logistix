@@ -2,7 +2,6 @@ import { Product } from '@/lib/domain/entities/product.entity';
 import { UpdateProductInput } from '@/lib/shared/types/entities';
 
 export interface CreateProductDTO {
-  vintedItemId?: string;
   name: string;
   brand?: string;
   category?: string;
@@ -20,8 +19,7 @@ export interface UpdateProductDTO {
   poids?: number;
   currency?: string;
   coutLivraison?: number;
-  vintedItemId?: string;
-  vendu?: "0" | "1" | "2" | "3";
+  vendu?: "0" | "1"; // Simplified: 0=not sold, 1=sold
   dateMiseEnLigne?: string;
   dateVente?: string;
   prixVente?: number;

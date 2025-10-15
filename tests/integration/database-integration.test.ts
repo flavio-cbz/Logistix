@@ -26,9 +26,9 @@ describe('Database Integration Tests', () => {
       // Arrange
       const testUser = createTestUser();
 
-      // Act - Insert user
+      // Act - Insert user (use snake_case column names matching migrations)
       await db.run(`
-        INSERT INTO users (id, username, email, passwordHash, encryptionSecret, createdAt, updatedAt)
+        INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [
         testUser.id,
@@ -37,7 +37,7 @@ describe('Database Integration Tests', () => {
         testUser.passwordHash,
         testUser.encryptionSecret,
         testUser.createdAt,
-        testUser.updatedAt
+        testUser.updated_at
       ]);
 
       // Act - Retrieve user
@@ -57,9 +57,9 @@ describe('Database Integration Tests', () => {
       const user1 = createTestUser({ username: 'duplicate' });
       const user2 = createTestUser({ username: 'duplicate' });
 
-      // Act - Insert first user
+      // Act - Insert first user (use snake_case column names)
       await db.run(`
-        INSERT INTO users (id, username, email, passwordHash, encryptionSecret, createdAt, updatedAt)
+        INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [
         user1.id,
@@ -68,13 +68,13 @@ describe('Database Integration Tests', () => {
         user1.passwordHash,
         user1.encryptionSecret,
         user1.createdAt,
-        user1.updatedAt
+        user1.updated_at
       ]);
 
       // Act & Assert - Try to insert duplicate username
       await expect(async () => {
         await db.run(`
-          INSERT INTO users (id, username, email, passwordHash, encryptionSecret, createdAt, updatedAt)
+          INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
           VALUES (?, ?, ?, ?, ?, ?, ?)
         `, [
           user2.id,
@@ -83,7 +83,7 @@ describe('Database Integration Tests', () => {
           user2.passwordHash,
           user2.encryptionSecret,
           user2.createdAt,
-          user2.updatedAt
+          user2.updated_at
         ]);
       }).rejects.toThrow();
     });
@@ -94,7 +94,7 @@ describe('Database Integration Tests', () => {
       
       // Insert user
       await db.run(`
-        INSERT INTO users (id, username, email, passwordHash, encryptionSecret, createdAt, updatedAt)
+        INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [
         testUser.id,
@@ -103,7 +103,7 @@ describe('Database Integration Tests', () => {
         testUser.passwordHash,
         testUser.encryptionSecret,
         testUser.createdAt,
-        testUser.updatedAt
+        testUser.updated_at
       ]);
 
       // Act - Update user
@@ -111,7 +111,7 @@ describe('Database Integration Tests', () => {
       const newUpdatedAt = new Date().toISOString();
       
       await db.run(`
-        UPDATE users SET email = ?, updatedAt = ? WHERE id = ?
+        UPDATE users SET email = ?, updated_at = ? WHERE id = ?
       `, [newEmail, newUpdatedAt, testUser.id]);
 
       // Retrieve updated user
@@ -121,7 +121,7 @@ describe('Database Integration Tests', () => {
 
       // Assert
       expect(updatedUser.email).toBe(newEmail);
-      expect(updatedUser.updatedAt).toBe(newUpdatedAt);
+      expect(updatedUser.updated_at).toBe(newUpdatedAt);
       expect(updatedUser.username).toBe(testUser.username); // Should remain unchanged
     });
 
@@ -131,7 +131,7 @@ describe('Database Integration Tests', () => {
       
       // Insert user
       await db.run(`
-        INSERT INTO users (id, username, email, passwordHash, encryptionSecret, createdAt, updatedAt)
+        INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [
         testUser.id,
@@ -140,7 +140,7 @@ describe('Database Integration Tests', () => {
         testUser.passwordHash,
         testUser.encryptionSecret,
         testUser.createdAt,
-        testUser.updatedAt
+        testUser.updated_at
       ]);
 
       // Act - Delete user
@@ -164,7 +164,7 @@ describe('Database Integration Tests', () => {
       
       // Insert test user
       await db.run(`
-        INSERT INTO users (id, username, email, passwordHash, encryptionSecret, createdAt, updatedAt)
+        INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [
         testUser.id,
@@ -173,7 +173,7 @@ describe('Database Integration Tests', () => {
         testUser.passwordHash,
         testUser.encryptionSecret,
         testUser.createdAt,
-        testUser.updatedAt
+        testUser.updated_at
       ]);
     });
 
@@ -183,7 +183,7 @@ describe('Database Integration Tests', () => {
 
       // Act - Insert parcelle
       await db.run(`
-        INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updatedAt)
+        INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         testParcelle.id,
@@ -195,7 +195,7 @@ describe('Database Integration Tests', () => {
         testParcelle.prixTotal,
         testParcelle.prixParGramme,
         testParcelle.createdAt,
-        testParcelle.updatedAt
+        testParcelle.updated_at
       ]);
 
       // Act - Retrieve parcelle
@@ -218,7 +218,7 @@ describe('Database Integration Tests', () => {
       // Act & Assert - Try to insert parcelle with non-existent user
       await expect(async () => {
         await db.run(`
-          INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updatedAt)
+          INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updated_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           testParcelle.id,
@@ -230,7 +230,7 @@ describe('Database Integration Tests', () => {
           testParcelle.prixTotal,
           testParcelle.prixParGramme,
           testParcelle.createdAt,
-          testParcelle.updatedAt
+          testParcelle.updated_at
         ]);
       }).rejects.toThrow();
     });
@@ -243,7 +243,7 @@ describe('Database Integration Tests', () => {
       // Insert parcelles
       for (const parcelle of [parcelle1, parcelle2]) {
         await db.run(`
-          INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updatedAt)
+          INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updated_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           parcelle.id,
@@ -255,7 +255,7 @@ describe('Database Integration Tests', () => {
           parcelle.prixTotal,
           parcelle.prixParGramme,
           parcelle.createdAt,
-          parcelle.updatedAt
+          parcelle.updated_at
         ]);
       }
 
@@ -281,7 +281,7 @@ describe('Database Integration Tests', () => {
       
       // Insert test user
       await db.run(`
-        INSERT INTO users (id, username, email, passwordHash, encryptionSecret, createdAt, updatedAt)
+        INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [
         testUser.id,
@@ -290,12 +290,12 @@ describe('Database Integration Tests', () => {
         testUser.passwordHash,
         testUser.encryptionSecret,
         testUser.createdAt,
-        testUser.updatedAt
+        testUser.updated_at
       ]);
 
       // Insert test parcelle
       await db.run(`
-        INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updatedAt)
+        INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         testParcelle.id,
@@ -307,7 +307,7 @@ describe('Database Integration Tests', () => {
         testParcelle.prixTotal,
         testParcelle.prixParGramme,
         testParcelle.createdAt,
-        testParcelle.updatedAt
+        testParcelle.updated_at
       ]);
     });
 
@@ -324,7 +324,7 @@ describe('Database Integration Tests', () => {
           id, userId, parcelleId, name, titre, description, brand, marque, 
           category, size, taille, color, couleur, condition, weight, poids,
           purchasePrice, prix, sellingPrice, prixVente, currency, status,
-          createdAt, updatedAt
+          createdAt, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         testProduct.id,
@@ -350,7 +350,7 @@ describe('Database Integration Tests', () => {
         testProduct.currency,
         testProduct.status,
         testProduct.createdAt,
-        testProduct.updatedAt
+        testProduct.updated_at
       ]);
 
       // Act - Retrieve product
@@ -380,7 +380,7 @@ describe('Database Integration Tests', () => {
             id, userId, parcelleId, name, titre, description, brand, marque, 
             category, size, taille, color, couleur, condition, weight, poids,
             purchasePrice, prix, sellingPrice, prixVente, currency, status,
-            createdAt, updatedAt
+            createdAt, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           testProduct.id,
@@ -406,7 +406,7 @@ describe('Database Integration Tests', () => {
           testProduct.currency,
           testProduct.status,
           testProduct.createdAt,
-          testProduct.updatedAt
+          testProduct.updated_at
         ]);
       }).rejects.toThrow();
     });
@@ -423,7 +423,7 @@ describe('Database Integration Tests', () => {
             id, userId, parcelleId, name, titre, description, brand, marque, 
             category, size, taille, color, couleur, condition, weight, poids,
             purchasePrice, prix, sellingPrice, prixVente, currency, status,
-            createdAt, updatedAt
+            createdAt, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           product.id,
@@ -449,7 +449,7 @@ describe('Database Integration Tests', () => {
           product.currency,
           product.status,
           product.createdAt,
-          product.updatedAt
+          product.updated_at
         ]);
       }
 
@@ -477,7 +477,7 @@ describe('Database Integration Tests', () => {
           id, userId, parcelleId, name, titre, description, brand, marque, 
           category, size, taille, color, couleur, condition, weight, poids,
           purchasePrice, prix, sellingPrice, prixVente, currency, status,
-          createdAt, updatedAt
+          createdAt, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         testProduct.id,
@@ -503,7 +503,7 @@ describe('Database Integration Tests', () => {
         testProduct.currency,
         testProduct.status,
         testProduct.createdAt,
-        testProduct.updatedAt
+        testProduct.updated_at
       ]);
 
       // Act - Retrieve product
@@ -527,7 +527,7 @@ describe('Database Integration Tests', () => {
       
       // Insert test data
       await db.run(`
-        INSERT INTO users (id, username, email, passwordHash, encryptionSecret, createdAt, updatedAt)
+        INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [
         testUser.id,
@@ -536,11 +536,11 @@ describe('Database Integration Tests', () => {
         testUser.passwordHash,
         testUser.encryptionSecret,
         testUser.createdAt,
-        testUser.updatedAt
+        testUser.updated_at
       ]);
 
       await db.run(`
-        INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updatedAt)
+        INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         testParcelle.id,
@@ -552,7 +552,7 @@ describe('Database Integration Tests', () => {
         testParcelle.prixTotal,
         testParcelle.prixParGramme,
         testParcelle.createdAt,
-        testParcelle.updatedAt
+        testParcelle.updated_at
       ]);
     });
 
@@ -583,7 +583,7 @@ describe('Database Integration Tests', () => {
             id, userId, parcelleId, name, titre, description, brand, marque, 
             category, size, taille, color, couleur, condition, weight, poids,
             purchasePrice, prix, sellingPrice, prixVente, currency, status,
-            createdAt, updatedAt
+            createdAt, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           product.id,
@@ -609,7 +609,7 @@ describe('Database Integration Tests', () => {
           product.currency,
           product.status,
           product.createdAt,
-          product.updatedAt
+          product.updated_at
         ]);
       }
 
@@ -642,7 +642,7 @@ describe('Database Integration Tests', () => {
             id, userId, parcelleId, name, titre, description, brand, marque, 
             category, size, taille, color, couleur, condition, weight, poids,
             purchasePrice, prix, sellingPrice, prixVente, currency, status,
-            createdAt, updatedAt
+            createdAt, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           product1.id, product1.userId, product1.parcelleId, product1.name, product1.titre,
@@ -650,7 +650,7 @@ describe('Database Integration Tests', () => {
           product1.size, product1.taille, product1.color, product1.couleur,
           product1.condition, product1.weight, product1.poids, product1.purchasePrice,
           product1.prix, product1.sellingPrice, product1.prixVente, product1.currency,
-          product1.status, product1.createdAt, product1.updatedAt
+          product1.status, product1.createdAt, product1.updated_at
         ]);
 
         // Insert second product
@@ -659,7 +659,7 @@ describe('Database Integration Tests', () => {
             id, userId, parcelleId, name, titre, description, brand, marque, 
             category, size, taille, color, couleur, condition, weight, poids,
             purchasePrice, prix, sellingPrice, prixVente, currency, status,
-            createdAt, updatedAt
+            createdAt, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           product2.id, product2.userId, product2.parcelleId, product2.name, product2.titre,
@@ -667,7 +667,7 @@ describe('Database Integration Tests', () => {
           product2.size, product2.taille, product2.color, product2.couleur,
           product2.condition, product2.weight, product2.poids, product2.purchasePrice,
           product2.prix, product2.sellingPrice, product2.prixVente, product2.currency,
-          product2.status, product2.createdAt, product2.updatedAt
+          product2.status, product2.createdAt, product2.updated_at
         ]);
 
         await db.exec('COMMIT');

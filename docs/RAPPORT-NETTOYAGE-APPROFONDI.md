@@ -105,9 +105,9 @@ LogistiX/
 
 ## 📝 Fichier Mis à Jour
 
-**`tests/api/run-all-api-tests.ts`**:
+**`tests/api/run-all-api-tests.ts`**: (removed)
 
-- Commenté la référence à `/api/client/products` (route obsolète)
+- This legacy runner file was deleted during cleanup. References updated to point to `scripts/run-tests.ts` or `npm run test:runner`.
 
 ---
 

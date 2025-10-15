@@ -1,4 +1,4 @@
-import { getLogger } from "@/lib/utils/logging/simple-logger";
+import { getLogger } from "@/lib/utils/logging/logger";
 
 // Importer le SDK Sentry si nécessaire, ou un type stub s'il est optionnel
 // import * as Sentry from '@sentry/node'; // ou '@sentry/nextjs'
@@ -82,7 +82,7 @@ export class ErrorTrackingService {
       );
       return;
     }
-    logger.error("Captured exception:", error, context);
+    logger.error("Captured exception:", { error, ...context });
     // Sentry.captureException(error, { extra: context });
   }
 
@@ -108,16 +108,16 @@ export class ErrorTrackingService {
     // Utiliser les méthodes spécifiques du logger au lieu de l'indexation dynamique
     switch (level) {
       case "info":
-        logger.info("Captured message:", message, context);
+        logger.info(message, { ...context });
         break;
       case "warning":
-        logger.warn("Captured message:", message, context);
+        logger.warn(message, { ...context });
         break;
       case "error":
-        logger.error("Captured message:", message, context);
+        logger.error(message, { ...context });
         break;
       default:
-        logger.info("Captured message:", message, context);
+        logger.info(message, { ...context });
     }
     // Sentry.captureMessage(message, level, { extra: context });
   }

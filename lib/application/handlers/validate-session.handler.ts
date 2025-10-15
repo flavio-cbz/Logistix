@@ -8,7 +8,7 @@ async function validateSessionHandler(req: NextRequest): Promise<NextResponse> {
   if (!result.success) {
     return NextResponse.json(
       {
-        success: false,
+        ok: false,
         error: {
           code: 'AUTHENTICATION_ERROR',
           message: result.message || 'Non authentifié',
@@ -19,11 +19,14 @@ async function validateSessionHandler(req: NextRequest): Promise<NextResponse> {
   }
 
   const response = createSuccessResponse({
-    user: {
-      id: result.user!.id,
-      username: result.user!.username,
-      isAdmin: result.user!.isAdmin,
-      aiConfig: result.user!.aiConfig,
+    ok: true,
+    data: {
+      user: {
+        id: result.user!.id,
+        username: result.user!.username,
+        isAdmin: result.user!.isAdmin,
+        aiConfig: result.user!.aiConfig,
+      },
     },
   });
 

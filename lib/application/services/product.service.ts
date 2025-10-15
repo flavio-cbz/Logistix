@@ -30,7 +30,6 @@ export class ProductService {
   }
 
   async createProduct(data: {
-    vintedItemId?: string;
     name: string;
     brand?: string;
     category?: string;

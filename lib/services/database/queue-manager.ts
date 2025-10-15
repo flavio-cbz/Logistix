@@ -1,4 +1,4 @@
-import { getLogger } from "@/lib/utils/logging/simple-logger";
+import { getLogger } from "@/lib/utils/logging/logger";
 import Database from "better-sqlite3";
 
 const logger = getLogger("QueueManager");

@@ -1,4 +1,4 @@
-import { getLogger } from "@/lib/utils/logging/simple-logger";
+import { getLogger } from "@/lib/utils/logging/logger";
 
 const logger = getLogger("RetryManager");
 

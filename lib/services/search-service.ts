@@ -368,4 +368,4 @@ export class SearchService {
 }
 
 // Export a singleton instance of the SearchService
-export const vintedSearchService = SearchService.getInstance();
+export const searchService = SearchService.getInstance();

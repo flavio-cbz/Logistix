@@ -35,6 +35,14 @@ export const users = sqliteTable(
     language: text("language"),
     theme: text("theme"),
     aiConfig: text("ai_config", { mode: "json" }).$type<Record<string, unknown>>(),
+    lastLoginAt: text("last_login_at"),
+    preferences: text("preferences", { mode: "json" }).$type<{
+      currency?: "EUR" | "USD" | "CNY";
+      weightUnit?: "g" | "kg";
+      dateFormat?: "DD/MM/YYYY" | "MM/DD/YYYY";
+      autoExchangeRate?: boolean;
+      animations?: boolean;
+    }>(),
     createdAt: text("created_at")
       .notNull()
       .$defaultFn(() => new Date().toISOString()),
@@ -46,6 +54,33 @@ export const users = sqliteTable(
     usernameIdx: index("user_username_idx").on(table.username),
     createdAtIdx: index("user_created_at_idx").on(table.createdAt),
     updatedAtIdx: index("user_updated_at_idx").on(table.updatedAt),
+  }),
+);
+
+// User Sessions table - for managing active sessions
+export const userSessions = sqliteTable(
+  "user_sessions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    deviceName: text("device_name"),
+    deviceType: text("device_type"),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    lastActivityAt: text("last_activity_at").notNull(),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    expiresAt: text("expires_at").notNull(),
+  },
+  (table) => ({
+    userIdx: index("user_sessions_user_idx").on(table.userId),
+    expiresAtIdx: index("user_sessions_expires_at_idx").on(table.expiresAt),
+    lastActivityIdx: index("user_sessions_last_activity_idx").on(table.lastActivityAt),
   }),
 );
 
@@ -112,13 +147,11 @@ export const products = sqliteTable(
     currency: text("currency").notNull().default("EUR"),
     coutLivraison: real("cout_livraison"), // Calculated automatically
     sellingPrice: real("selling_price"), // Actual selling price
-    prixVente: real("prix_vente"), // Legacy field for compatibility
 
     // Platform and external information
     plateforme: text("plateforme", {
-      enum: ["Vinted", "leboncoin", "autre"],
+      enum: ["leboncoin", "autre"],
     }),
-    vintedItemId: text("vinted_item_id"), // External platform ID
     externalId: text("external_id"), // Generic external ID
     url: text("url"),
     photoUrl: text("photo_url"),
@@ -140,9 +173,7 @@ export const products = sqliteTable(
     updatedAt: text("updated_at")
       .notNull()
       .$onUpdate(() => new Date().toISOString()),
-    dateMiseEnLigne: text("date_mise_en_ligne"),
     listedAt: text("listed_at"),
-    dateVente: text("date_vente"),
     soldAt: text("sold_at"),
   },
   (table) => ({
@@ -153,7 +184,6 @@ export const products = sqliteTable(
     priceIdx: index("product_price_idx").on(table.price),
     createdAtIdx: index("product_created_at_idx").on(table.createdAt),
     updatedAtIdx: index("product_updated_at_idx").on(table.updatedAt),
-    vintedItemIdIdx: index("product_vinted_item_id_idx").on(table.vintedItemId),
     brandIdx: index("product_brand_idx").on(table.brand),
     categoryIdx: index("product_category_idx").on(table.category),
   }),
@@ -281,55 +311,6 @@ export const userActions = sqliteTable(
 // SECURITY AND SESSION MANAGEMENT
 // ============================================================================
 
-// Vinted sessions table - from drizzle-schema.ts
-export const vintedSessions = sqliteTable(
-  "vinted_sessions",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id),
-
-    // Encrypted session data
-    sessionCookie: text("session_cookie"),
-    encryptedDek: text("encrypted_dek"),
-    encryptionMetadata: text("encryption_metadata", {
-      mode: "json",
-    }).$type<Record<string, unknown>>(),
-
-    // Session lifecycle
-    sessionExpiresAt: text("session_expires_at"),
-    tokenExpiresAt: text("token_expires_at"),
-
-    // Status and monitoring
-    status: text("status", {
-      enum: ["active", "expired", "error", "requires_configuration"],
-    })
-      .notNull()
-      .default("requires_configuration")
-      .$type<"active" | "expired" | "error" | "requires_configuration">(),
-    lastValidatedAt: text("last_validated_at"),
-    lastRefreshedAt: text("last_refreshed_at"),
-    lastRefreshAttemptAt: text("last_refresh_attempt_at"),
-    refreshAttemptCount: integer("refresh_attempt_count"),
-    refreshErrorMessage: text("refresh_error_message"),
-
-    // Timestamps
-    createdAt: text("created_at")
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    updatedAt: text("updated_at")
-      .notNull()
-      .$onUpdate(() => new Date().toISOString()),
-  },
-  (table) => ({
-    userIdx: uniqueIndex("idx_vinted_sessions_user_id").on(table.userId),
-    statusIdx: index("idx_vinted_sessions_status").on(table.status),
-  }),
-);
-
 // Application secrets table - from drizzle-schema.ts
 export const appSecrets = sqliteTable(
   "app_secrets",
@@ -380,9 +361,6 @@ export type UserAction = typeof userActions.$inferSelect;
 export type NewUserAction = typeof userActions.$inferInsert;
 
 // Security types
-export type VintedSession = typeof vintedSessions.$inferSelect;
-export type NewVintedSession = typeof vintedSessions.$inferInsert;
-
 export type AppSecret = typeof appSecrets.$inferSelect;
 export type NewAppSecret = typeof appSecrets.$inferInsert;
 
@@ -395,7 +373,7 @@ export type ProductStatus =
   | "removed"
   | "archived"
   | "online";
-export type Platform = "Vinted" | "leboncoin" | "autre";
+export type Platform = "leboncoin" | "autre";
 // MarketAnalysisStatus enum removed as part of feature removal
 export type RiskTolerance = "conservative" | "moderate" | "aggressive";
 export type UserActionType =
@@ -406,11 +384,7 @@ export type UserActionType =
   | "save_analysis"
   | "share_analysis"
   | "feedback";
-export type VintedSessionStatus =
-  | "active"
-  | "expired"
-  | "error"
-  | "requires_configuration";
+
 
 
 

@@ -62,29 +62,40 @@ export const setupInMemoryDatabase = async () => {
       id TEXT PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
       email TEXT,
-      passwordHash TEXT NOT NULL,
-      encryptionSecret TEXT,
-      createdAt TEXT NOT NULL,
-      updatedAt TEXT NOT NULL
+      -- keep canonical snake_case columns used by test SQL inserts
+      password_hash TEXT,
+      encryption_secret TEXT,
+      created_at TEXT,
+      updated_at TEXT
     );
     
     CREATE TABLE IF NOT EXISTS parcelles (
       id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
+      -- user_id / userId compatibility
+      user_id TEXT,
+      userId TEXT,
       numero TEXT NOT NULL,
       transporteur TEXT NOT NULL,
       poids REAL NOT NULL,
-      prixAchat REAL NOT NULL,
+      prix_achat REAL,
+      prixAchat REAL,
+      prix_total REAL,
       prixTotal REAL,
+      prix_par_gramme REAL,
       prixParGramme REAL,
-      createdAt TEXT NOT NULL,
-      updatedAt TEXT NOT NULL,
-      FOREIGN KEY (userId) REFERENCES users(id)
+      created_at TEXT,
+      createdAt TEXT,
+      updated_at TEXT,
+      updatedAt TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id)
     );
     
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
+      -- userId / user_id compatibility
+      user_id TEXT,
+      userId TEXT,
+      parcelle_id TEXT,
       parcelleId TEXT,
       name TEXT,
       titre TEXT,
@@ -101,8 +112,10 @@ export const setupInMemoryDatabase = async () => {
       condition TEXT,
       weight REAL,
       poids REAL,
+      purchase_price REAL,
       purchasePrice REAL,
       prix REAL,
+      selling_price REAL,
       sellingPrice REAL,
       prixVente REAL,
       currency TEXT DEFAULT 'EUR',
@@ -113,16 +126,17 @@ export const setupInMemoryDatabase = async () => {
       vintedItemId TEXT,
       url TEXT,
       photoUrl TEXT,
+      frais_port REAL,
       fraisPort REAL,
       vendu TEXT,
       dateMiseEnLigne TEXT,
       dateVente TEXT,
-      createdAt TEXT NOT NULL,
-      updatedAt TEXT NOT NULL,
+      created_at TEXT,
+      updated_at TEXT,
       listedAt TEXT,
       soldAt TEXT,
-      FOREIGN KEY (userId) REFERENCES users(id),
-      FOREIGN KEY (parcelleId) REFERENCES parcelles(id)
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (parcelle_id) REFERENCES parcelles(id)
     );
   `);
   
