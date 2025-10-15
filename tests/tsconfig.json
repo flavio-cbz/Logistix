@@ -1,14 +1,18 @@
 {
   "extends": "../tsconfig.vitest.json",
   "compilerOptions": {
-    "types": []
+    "types": [],
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "include": [
-    "./unit/application/**/*.ts"
+    "./unit/**/*.ts",
+    "./integration/**/*.ts",
+    "./api/**/*.ts"
   ],
   "exclude": [
-    "./integration/**/*",
-    "./e2e/**/*",
-    "./api/**/*"
+    "./e2e/**/*"
   ]
 }

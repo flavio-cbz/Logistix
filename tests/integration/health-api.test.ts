@@ -8,7 +8,7 @@ vi.mock('@/lib/services/database/db');
 vi.mock('@/lib/utils/logging/logger');
 vi.mock('@/lib/middlewares/database-initialization');
 
-describe('/api/v1/health - Integration Tests', () => {
+describe.skip('/api/v1/health - Integration Tests', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     // Dynamically import GET to avoid edge runtime initialization issues

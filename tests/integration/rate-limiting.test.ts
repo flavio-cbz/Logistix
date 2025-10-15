@@ -142,11 +142,11 @@ describe('Rate Limiting Integration - Auth Endpoints', () => {
 
       // Atteindre la limite
       for (let i = 0; i < 5; i++) {
-        await handleLogin(createLoginRequest(username, 'wrong', '192.168.1.105'));
+        await handleLogin(createLoginRequest(username, 'WrongPassword123', '192.168.1.105'));
       }
 
       // Tenter une 6ème
-      const response = await handleLogin(createLoginRequest(username, 'wrong', '192.168.1.105'));
+      const response = await handleLogin(createLoginRequest(username, 'WrongPassword123', '192.168.1.105'));
 
       expect(response.status).toBe(429);
 
@@ -155,7 +155,7 @@ describe('Rate Limiting Integration - Auth Endpoints', () => {
       expect(data.error.details).toBeDefined();
       
       // Vérifier que details contient les infos de rate limit
-      expect(data.error.details).toMatchObject({
+      expect(data.error.details.rateLimitDetails).toMatchObject({
         limit: expect.any(Number),
         remaining: 0,
         reset: expect.any(Number),

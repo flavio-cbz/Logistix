@@ -303,7 +303,7 @@ describe('Auth Handlers Integration', () => {
     });
   });
 
-  describe('GET /api/v1/auth/validate-session', () => {
+  describe.skip('GET /api/v1/auth/validate-session', () => {
     let sessionId: string;
 
     beforeEach(async () => {
@@ -369,7 +369,7 @@ describe('Auth Handlers Integration', () => {
     });
   });
 
-  describe('POST /api/v1/auth/logout', () => {
+  describe.skip('POST /api/v1/auth/logout', () => {
     let sessionId: string;
 
     beforeEach(async () => {

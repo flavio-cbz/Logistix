@@ -49,11 +49,9 @@ const loginRequestSchema = z.object({
 // LoginRequest interface removed (validation uses Zod schema)
 
 interface LoginSuccessData {
-  message: string;
-  user: {
-    id: string;
-    username: string;
-  };
+  username: string;
+  userId: string;
+  expiresAt: string;
 }
 
 // =============================================================================
@@ -163,6 +161,7 @@ export const POST = withErrorHandling(
       
       if (blockStatus.blocked) {
         const remainingMinutes = Math.ceil(blockStatus.remainingTime! / 60000);
+        const remainingSeconds = Math.ceil(blockStatus.remainingTime! / 1000);
         
         logger.warn("Login attempt blocked due to brute force protection", {
           requestId: context.requestId,
@@ -186,9 +185,18 @@ export const POST = withErrorHandling(
           startTime,
           context.requestId,
         );
+        
+        const rateLimitDetails = {
+          limit: 5,
+          remaining: 0,
+          reset: Math.ceil(Date.now() / 1000) + remainingSeconds,
+          retryAfter: remainingSeconds,
+        };
+        
         const response = createErrorResponse(
           new AuthError(
-            `Trop de tentatives échouées. Veuillez réessayer dans ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}.`
+            `Trop de tentatives échouées. Veuillez réessayer dans ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}.`,
+            { rateLimitDetails }
           ),
           options,
         );
@@ -232,6 +240,13 @@ export const POST = withErrorHandling(
           errorMessage: authError instanceof Error ? authError.message : String(authError),
           errorStack: authError instanceof Error ? authError.stack : undefined,
           errorName: authError instanceof Error ? authError.name : undefined,
+        });
+        
+        // Enregistrer la tentative échouée pour le brute-force protection
+        loginBruteForceProtection.recordFailedAttempt(identifier, {
+          username: validatedData.username,
+          clientIp,
+          requestId: context.requestId,
         });
         
         // Gérer les erreurs d'authentification
@@ -315,11 +330,9 @@ export const POST = withErrorHandling(
       });
 
       const responseData: LoginSuccessData = {
-        message: "Connexion réussie",
-        user: {
-          id: userId,
-          username: validatedData.username,
-        },
+        username: validatedData.username,
+        userId,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       };
 
       const options = createResponseOptions(

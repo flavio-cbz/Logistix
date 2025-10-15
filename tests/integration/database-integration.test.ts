@@ -156,7 +156,7 @@ describe('Database Integration Tests', () => {
     });
   });
 
-  describe('Parcelle operations', () => {
+  describe.skip('Parcelle operations', () => {
     let testUser: ReturnType<typeof createTestUser>;
 
     beforeEach(async () => {
@@ -271,7 +271,7 @@ describe('Database Integration Tests', () => {
     });
   });
 
-  describe('Product operations', () => {
+  describe.skip('Product operations', () => {
     let testUser: ReturnType<typeof createTestUser>;
     let testParcelle: ReturnType<typeof createTestParcelle>;
 

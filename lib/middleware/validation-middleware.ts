@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { z, ZodError, ZodSchema } from "zod";
 import { logger } from "@/lib/utils/logging/logger";
-import { ValidationError } from "@/lib/core/exceptions/custom-error";
 import type { ValidationErrorDetail as ApiValidationErrorDetail } from "@/lib/utils/api-response";
 
 // =============================================================================
@@ -26,7 +25,9 @@ export type ValidationErrorDetail = ApiValidationErrorDetail;
 // VALIDATION ERROR CLASSES
 // =============================================================================
 
-export class RequestValidationError extends ValidationError {
+export class RequestValidationError extends Error {
+  public readonly code: string = "VALIDATION_ERROR";
+  public readonly statusCode: number = 400;
   public readonly field: string | undefined;
   public readonly validationErrors: ValidationErrorDetail[];
 
@@ -35,10 +36,11 @@ export class RequestValidationError extends ValidationError {
     validationErrors: ValidationErrorDetail[] = [],
     field?: string,
   ) {
-    super(message, { validationErrors, field });
+    super(message);
     this.field = field;
     this.validationErrors = validationErrors;
     this.name = "RequestValidationError";
+    Object.setPrototypeOf(this, RequestValidationError.prototype);
   }
 }
 
