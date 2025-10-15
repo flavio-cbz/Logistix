@@ -2,7 +2,7 @@
  * Tests d'intégration pour le rate limiting sur les endpoints auth
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { handleLogin } from '@/lib/interfaces/http/login.handler';
 import { handleRegister } from '@/lib/interfaces/http/register.handler';
@@ -32,6 +32,12 @@ function createRegisterRequest(username: string, password: string): NextRequest 
 }
 
 describe('Rate Limiting Integration - Auth Endpoints', () => {
+  // Initialiser la base de données avant tous les tests
+  beforeAll(async () => {
+    // Force l'initialisation du schéma DB via une requête simple
+    await databaseService.execute('SELECT 1', [], 'init-test-db');
+  });
+
   beforeEach(async () => {
     // Nettoyer le rate limit store
     resetRateLimitStore();

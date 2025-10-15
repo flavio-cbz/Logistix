@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 // Use dynamic import to avoid edge runtime issues
 let GET: any;
 
@@ -40,14 +40,14 @@ describe.skip('/api/v1/health - Integration Tests', () => {
     // Attach stub to global so the health route can detect it if needed
     (global as any).__TEST_VINTED_STUB__ = localVintedStub;
 
-    mockDatabaseInit.checkDatabaseStatus = vi.fn().mockResolvedValue({
+    mockDatabaseInit["checkDatabaseStatus"] = vi.fn().mockResolvedValue({
       status: 'healthy',
       connectionPool: { active: 2, idle: 8, total: 10 },
       lastMigration: '2025-01-01T00:00:00Z',
       tablesCount: 15,
     });
 
-    mockDatabaseService.databaseService = {
+    mockDatabaseService["databaseService"] = {
       isHealthy: vi.fn().mockResolvedValue(true),
     };
 
@@ -60,14 +60,14 @@ describe.skip('/api/v1/health - Integration Tests', () => {
     
     // Vérifier que les services sont appelés
   // Vérifier que la base de données a été interrogée
-  expect(mockDatabaseInit.checkDatabaseStatus).toHaveBeenCalled();
+  expect(mockDatabaseInit["checkDatabaseStatus"]).toHaveBeenCalled();
   });
 
   it('should handle database connection errors gracefully', async () => {
     // Arrange - Mock database error
     const mockDatabaseInit = await vi.importMock('@/lib/middlewares/database-initialization');
 
-    mockDatabaseInit.checkDatabaseStatus = vi.fn().mockRejectedValue(
+    mockDatabaseInit["checkDatabaseStatus"] = vi.fn().mockRejectedValue(
       new Error('Database connection failed')
     );
 
@@ -101,7 +101,7 @@ describe.skip('/api/v1/health - Integration Tests', () => {
     };
     (global as any).__TEST_VINTED_STUB__ = localVintedStub;
 
-    mockDatabaseInit.checkDatabaseStatus = vi.fn().mockResolvedValue({
+    mockDatabaseInit["checkDatabaseStatus"] = vi.fn().mockResolvedValue({
       status: 'healthy',
       connectionPool: { active: 3, idle: 7, total: 10 },
     });
@@ -135,7 +135,7 @@ describe.skip('/api/v1/health - Integration Tests', () => {
     };
     (global as any).__TEST_VINTED_STUB__ = localVintedStub;
 
-    mockDatabaseInit.checkDatabaseStatus = vi.fn().mockResolvedValue({ status: 'healthy' });
+    mockDatabaseInit["checkDatabaseStatus"] = vi.fn().mockResolvedValue({ status: 'healthy' });
 
     // Act
     const response = await GET();
@@ -162,7 +162,7 @@ describe.skip('/api/v1/health - Integration Tests', () => {
     };
     (global as any).__TEST_VINTED_STUB__ = localVintedStub;
 
-    mockDatabaseInit.checkDatabaseStatus = vi.fn().mockResolvedValue({ status: 'healthy' });
+    mockDatabaseInit["checkDatabaseStatus"] = vi.fn().mockResolvedValue({ status: 'healthy' });
 
     // Act
     const response = await GET();

@@ -2,7 +2,7 @@
  * Tests d'intégration pour les handlers d'authentification
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { handleRegister } from '@/lib/interfaces/http/register.handler';
 import { handleLogin } from '@/lib/interfaces/http/login.handler';
@@ -14,6 +14,12 @@ import { getCookieName } from '@/lib/config/edge-config';
 describe('Auth Handlers Integration', () => {
   const TEST_USERNAME = 'testuser_' + Date.now();
   const TEST_PASSWORD = 'password123';
+
+  // Initialiser la base de données avant tous les tests
+  beforeAll(async () => {
+    // Force l'initialisation du schéma DB via une requête simple
+    await databaseService.execute('SELECT 1', [], 'init-test-db');
+  });
 
   // Helper pour nettoyer la DB après les tests
   afterEach(async () => {
@@ -336,7 +342,7 @@ describe('Auth Handlers Integration', () => {
       const setCookieHeader = loginResponse.headers.get('set-cookie');
       const cookieName = getCookieName();
       const match = setCookieHeader?.match(new RegExp(`${cookieName}=([^;]+)`));
-      sessionId = match ? match[1] : '';
+      sessionId = (match && match[1]) || '';
     });
 
     it('valide une session active', async () => {
@@ -370,7 +376,7 @@ describe('Auth Handlers Integration', () => {
   });
 
   describe.skip('POST /api/v1/auth/logout', () => {
-    let sessionId: string;
+    // let sessionId: string;
 
     beforeEach(async () => {
       // Créer un utilisateur et se connecter
@@ -386,35 +392,35 @@ describe('Auth Handlers Integration', () => {
       });
       await handleRegister(registerReq);
 
-      const loginReq = new NextRequest('http://localhost:3000/api/v1/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          username: TEST_USERNAME,
-          password: TEST_PASSWORD,
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      const loginResponse = await handleLogin(loginReq);
+      // const loginReq = new NextRequest('http://localhost:3000/api/v1/auth/login', {
+      //   method: 'POST',
+      //   body: JSON.stringify({
+      //     username: TEST_USERNAME,
+      //     password: TEST_PASSWORD,
+      //   }),
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      // });
+      // const loginResponse = await handleLogin(loginReq);
 
       // Extraire le sessionId du cookie
-      const setCookieHeader = loginResponse.headers.get('set-cookie');
-      const cookieName = getCookieName();
-      const match = setCookieHeader?.match(new RegExp(`${cookieName}=([^;]+)`));
-      sessionId = match ? match[1] : '';
+      // const setCookieHeader = loginResponse.headers.get('set-cookie');
+      // const cookieName = getCookieName();
+      // const match = setCookieHeader?.match(new RegExp(`${cookieName}=([^;]+)`));
+      // sessionId = (match && match[1]) || '';
     });
 
     it('déconnecte un utilisateur avec succès', async () => {
       const cookieName = getCookieName();
-      const req = new NextRequest('http://localhost:3000/api/v1/auth/logout', {
-        method: 'POST',
-        headers: {
-          Cookie: `${cookieName}=${sessionId}`,
-        },
-      });
+      // const req = new NextRequest('http://localhost:3000/api/v1/auth/logout', {
+      //   method: 'POST',
+      //   headers: {
+      //     Cookie: `${cookieName}=${sessionId}`,
+      //   },
+      // });
 
-      const response = await handleLogout(req);
+      const response = await handleLogout();
       const json = await response.json();
       
       expect(response.status).toBe(200);
@@ -432,11 +438,11 @@ describe('Auth Handlers Integration', () => {
     });
 
     it('réussit même sans cookie de session', async () => {
-      const req = new NextRequest('http://localhost:3000/api/v1/auth/logout', {
-        method: 'POST',
-      });
+      // const req = new NextRequest('http://localhost:3000/api/v1/auth/logout', {
+      //   method: 'POST',
+      // });
 
-      const response = await handleLogout(req);
+      const response = await handleLogout();
       const json = await response.json();
   
       expect(response.status).toBe(200);

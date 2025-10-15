@@ -37,7 +37,7 @@ describe('Database Integration Tests', () => {
         testUser.passwordHash,
         testUser.encryptionSecret,
         testUser.createdAt,
-        testUser.updated_at
+        testUser.updatedAt
       ]);
 
       // Act - Retrieve user
@@ -68,7 +68,7 @@ describe('Database Integration Tests', () => {
         user1.passwordHash,
         user1.encryptionSecret,
         user1.createdAt,
-        user1.updated_at
+        user1.updatedAt
       ]);
 
       // Act & Assert - Try to insert duplicate username
@@ -83,7 +83,7 @@ describe('Database Integration Tests', () => {
           user2.passwordHash,
           user2.encryptionSecret,
           user2.createdAt,
-          user2.updated_at
+          user2.updatedAt
         ]);
       }).rejects.toThrow();
     });
@@ -103,7 +103,7 @@ describe('Database Integration Tests', () => {
         testUser.passwordHash,
         testUser.encryptionSecret,
         testUser.createdAt,
-        testUser.updated_at
+        testUser.updatedAt
       ]);
 
       // Act - Update user
@@ -140,7 +140,7 @@ describe('Database Integration Tests', () => {
         testUser.passwordHash,
         testUser.encryptionSecret,
         testUser.createdAt,
-        testUser.updated_at
+        testUser.updatedAt
       ]);
 
       // Act - Delete user
@@ -173,7 +173,7 @@ describe('Database Integration Tests', () => {
         testUser.passwordHash,
         testUser.encryptionSecret,
         testUser.createdAt,
-        testUser.updated_at
+        testUser.updatedAt
       ]);
     });
 
@@ -195,7 +195,7 @@ describe('Database Integration Tests', () => {
         testParcelle.prixTotal,
         testParcelle.prixParGramme,
         testParcelle.createdAt,
-        testParcelle.updated_at
+        testParcelle.updatedAt
       ]);
 
       // Act - Retrieve parcelle
@@ -230,7 +230,7 @@ describe('Database Integration Tests', () => {
           testParcelle.prixTotal,
           testParcelle.prixParGramme,
           testParcelle.createdAt,
-          testParcelle.updated_at
+          testParcelle.updatedAt
         ]);
       }).rejects.toThrow();
     });
@@ -255,7 +255,7 @@ describe('Database Integration Tests', () => {
           parcelle.prixTotal,
           parcelle.prixParGramme,
           parcelle.createdAt,
-          parcelle.updated_at
+          parcelle.updatedAt
         ]);
       }
 
@@ -290,7 +290,7 @@ describe('Database Integration Tests', () => {
         testUser.passwordHash,
         testUser.encryptionSecret,
         testUser.createdAt,
-        testUser.updated_at
+        testUser.updatedAt
       ]);
 
       // Insert test parcelle
@@ -307,7 +307,7 @@ describe('Database Integration Tests', () => {
         testParcelle.prixTotal,
         testParcelle.prixParGramme,
         testParcelle.createdAt,
-        testParcelle.updated_at
+        testParcelle.updatedAt
       ]);
     });
 
@@ -350,7 +350,7 @@ describe('Database Integration Tests', () => {
         testProduct.currency,
         testProduct.status,
         testProduct.createdAt,
-        testProduct.updated_at
+        testProduct.updatedAt
       ]);
 
       // Act - Retrieve product
@@ -406,7 +406,7 @@ describe('Database Integration Tests', () => {
           testProduct.currency,
           testProduct.status,
           testProduct.createdAt,
-          testProduct.updated_at
+          testProduct.updatedAt
         ]);
       }).rejects.toThrow();
     });
@@ -449,7 +449,7 @@ describe('Database Integration Tests', () => {
           product.currency,
           product.status,
           product.createdAt,
-          product.updated_at
+          product.updatedAt
         ]);
       }
 
@@ -503,7 +503,7 @@ describe('Database Integration Tests', () => {
         testProduct.currency,
         testProduct.status,
         testProduct.createdAt,
-        testProduct.updated_at
+        testProduct.updatedAt
       ]);
 
       // Act - Retrieve product
@@ -536,7 +536,7 @@ describe('Database Integration Tests', () => {
         testUser.passwordHash,
         testUser.encryptionSecret,
         testUser.createdAt,
-        testUser.updated_at
+        testUser.updatedAt
       ]);
 
       await db.run(`
@@ -552,7 +552,7 @@ describe('Database Integration Tests', () => {
         testParcelle.prixTotal,
         testParcelle.prixParGramme,
         testParcelle.createdAt,
-        testParcelle.updated_at
+        testParcelle.updatedAt
       ]);
     });
 
@@ -609,7 +609,7 @@ describe('Database Integration Tests', () => {
           product.currency,
           product.status,
           product.createdAt,
-          product.updated_at
+          product.updatedAt
         ]);
       }
 
@@ -650,7 +650,7 @@ describe('Database Integration Tests', () => {
           product1.size, product1.taille, product1.color, product1.couleur,
           product1.condition, product1.weight, product1.poids, product1.purchasePrice,
           product1.prix, product1.sellingPrice, product1.prixVente, product1.currency,
-          product1.status, product1.createdAt, product1.updated_at
+          product1.status, product1.createdAt, product1.updatedAt
         ]);
 
         // Insert second product
@@ -667,7 +667,7 @@ describe('Database Integration Tests', () => {
           product2.size, product2.taille, product2.color, product2.couleur,
           product2.condition, product2.weight, product2.poids, product2.purchasePrice,
           product2.prix, product2.sellingPrice, product2.prixVente, product2.currency,
-          product2.status, product2.createdAt, product2.updated_at
+          product2.status, product2.createdAt, product2.updatedAt
         ]);
 
         await db.exec('COMMIT');
