@@ -115,7 +115,7 @@
     "knip": "^5.64.3",
     "playwright": "^1.54.1",
     "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^4.1.15",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
     "typescript": "^5.8.3",
