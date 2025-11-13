@@ -68,7 +68,7 @@ export class CaptchaTrainingService {
       id: nanoid(),
       attemptId: annotation.attemptId,
       imageUrl: attempt.imageUrl,
-      puzzlePieceUrl: attempt.puzzlePieceUrl,
+      puzzlePieceUrl: attempt.puzzlePieceUrl ?? undefined,
       gapPosition: annotation.gapPosition,
       annotationSource: 'manual',
       annotatedBy: annotation.annotatedBy,
@@ -179,7 +179,7 @@ export class CaptchaTrainingService {
       .orderBy(modelMetrics.recordedAt)
       .limit(limit);
 
-    return results.map((r) => ({
+    return results.map((r: typeof modelMetrics.$inferSelect) => ({
       modelVersion: r.modelVersion,
       successRate: r.successRate,
       averageConfidence: r.averageConfidence,

@@ -63,12 +63,15 @@ export class CaptchaSolverService {
         id: nanoid(),
         userId: request.userId,
         imageUrl: request.imageUrl,
-        puzzlePieceUrl: request.puzzlePieceUrl,
+        puzzlePieceUrl: request.puzzlePieceUrl ?? undefined,
         detectedPosition: detection.position,
         confidence: detection.confidence,
         status: 'pending',
         attemptedAt: new Date().toISOString(),
-        metadata: request.metadata,
+        metadata: request.metadata ?? undefined,
+        actualPosition: undefined,
+        solvedAt: undefined,
+        errorMessage: undefined,
       });
 
       await this.attemptRepository.create(attempt);
@@ -88,13 +91,15 @@ export class CaptchaSolverService {
         id: nanoid(),
         userId: request.userId,
         imageUrl: request.imageUrl,
-        puzzlePieceUrl: request.puzzlePieceUrl,
+        puzzlePieceUrl: request.puzzlePieceUrl ?? undefined,
         detectedPosition: 0,
         confidence: 0,
         status: 'failure',
         attemptedAt: new Date().toISOString(),
         errorMessage,
-        metadata: request.metadata,
+        metadata: request.metadata ?? undefined,
+        actualPosition: undefined,
+        solvedAt: undefined,
       });
 
       await this.attemptRepository.create(failedAttempt);
@@ -146,11 +151,12 @@ export class CaptchaSolverService {
       id: nanoid(),
       attemptId: attempt.id,
       imageUrl: attempt.imageUrl,
-      puzzlePieceUrl: attempt.puzzlePieceUrl,
+      puzzlePieceUrl: attempt.puzzlePieceUrl ?? undefined,
       gapPosition: actualPosition,
       annotationSource: 'automatic',
       annotatedAt: new Date().toISOString(),
       isValidated: false,
+      annotatedBy: undefined,
       metadata: {
         detectedPosition: attempt.detectedPosition,
         confidence: attempt.confidence,

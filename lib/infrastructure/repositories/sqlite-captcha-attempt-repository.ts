@@ -2,7 +2,7 @@
  * SQLite implementation of CaptchaAttemptRepository
  */
 
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { db } from '@/lib/database/db';
 import { captchaAttempts } from '@/lib/database/schema';
 import type { CaptchaAttemptRepository } from '@/lib/repositories/captcha-attempt-repository';
@@ -51,7 +51,7 @@ export class SQLiteCaptchaAttemptRepository implements CaptchaAttemptRepository 
       .orderBy(desc(captchaAttempts.attemptedAt))
       .limit(limit);
 
-    return results.map((r) => this.toDomain(r));
+    return results.map((r: typeof captchaAttempts.$inferSelect) => this.toDomain(r));
   }
 
   async findByStatus(status: CaptchaStatus, limit: number = 100): Promise<CaptchaAttempt[]> {
@@ -62,7 +62,7 @@ export class SQLiteCaptchaAttemptRepository implements CaptchaAttemptRepository 
       .orderBy(desc(captchaAttempts.attemptedAt))
       .limit(limit);
 
-    return results.map((r) => this.toDomain(r));
+    return results.map((r: typeof captchaAttempts.$inferSelect) => this.toDomain(r));
   }
 
   async update(attempt: CaptchaAttempt): Promise<CaptchaAttempt> {
@@ -93,7 +93,7 @@ export class SQLiteCaptchaAttemptRepository implements CaptchaAttemptRepository 
       return 0;
     }
 
-    const successfulAttempts = results.filter((r) => r.status === 'success').length;
+    const successfulAttempts = results.filter((r: typeof captchaAttempts.$inferSelect) => r.status === 'success').length;
     return (successfulAttempts / results.length) * 100;
   }
 
@@ -105,7 +105,7 @@ export class SQLiteCaptchaAttemptRepository implements CaptchaAttemptRepository 
       .limit(limit)
       .offset(offset);
 
-    return results.map((r) => this.toDomain(r));
+    return results.map((r: typeof captchaAttempts.$inferSelect) => this.toDomain(r));
   }
 
   async delete(id: string): Promise<void> {

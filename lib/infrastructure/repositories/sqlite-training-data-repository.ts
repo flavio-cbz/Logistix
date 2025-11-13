@@ -63,7 +63,7 @@ export class SQLiteTrainingDataRepository implements TrainingDataRepository {
       .orderBy(desc(trainingData.annotatedAt))
       .limit(limit);
 
-    return results.map((r) => this.toDomain(r));
+    return results.map((r: typeof trainingData.$inferSelect) => this.toDomain(r));
   }
 
   async findUnvalidated(limit: number = 100): Promise<TrainingData[]> {
@@ -74,7 +74,7 @@ export class SQLiteTrainingDataRepository implements TrainingDataRepository {
       .orderBy(desc(trainingData.annotatedAt))
       .limit(limit);
 
-    return results.map((r) => this.toDomain(r));
+    return results.map((r: typeof trainingData.$inferSelect) => this.toDomain(r));
   }
 
   async findBySource(source: AnnotationSource, limit: number = 100): Promise<TrainingData[]> {
@@ -85,7 +85,7 @@ export class SQLiteTrainingDataRepository implements TrainingDataRepository {
       .orderBy(desc(trainingData.annotatedAt))
       .limit(limit);
 
-    return results.map((r) => this.toDomain(r));
+    return results.map((r: typeof trainingData.$inferSelect) => this.toDomain(r));
   }
 
   async update(data: TrainingData): Promise<TrainingData> {
