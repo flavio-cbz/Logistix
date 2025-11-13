@@ -65,6 +65,46 @@ class ServiceContainer {
   }
 
   /**
+   * Convenience getter for CaptchaSolverService (creates default instance if needed)
+   */
+  getCaptchaSolverService(): any {
+    if (this.has("CaptchaSolverService")) {
+      return this.get("CaptchaSolverService");
+    }
+
+    const { CaptchaSolverService } = require('@/lib/services/captcha-solver-service');
+    const { SQLiteCaptchaAttemptRepository } = require('@/lib/infrastructure/repositories/sqlite-captcha-attempt-repository');
+    const { SQLiteTrainingDataRepository } = require('@/lib/infrastructure/repositories/sqlite-training-data-repository');
+    
+    const attemptRepo = new SQLiteCaptchaAttemptRepository();
+    const trainingRepo = new SQLiteTrainingDataRepository();
+    const service = new CaptchaSolverService(attemptRepo, trainingRepo);
+    
+    this.register("CaptchaSolverService", () => service, true);
+    return service;
+  }
+
+  /**
+   * Convenience getter for CaptchaTrainingService (creates default instance if needed)
+   */
+  getCaptchaTrainingService(): any {
+    if (this.has("CaptchaTrainingService")) {
+      return this.get("CaptchaTrainingService");
+    }
+
+    const { CaptchaTrainingService } = require('@/lib/services/captcha-training-service');
+    const { SQLiteCaptchaAttemptRepository } = require('@/lib/infrastructure/repositories/sqlite-captcha-attempt-repository');
+    const { SQLiteTrainingDataRepository } = require('@/lib/infrastructure/repositories/sqlite-training-data-repository');
+    
+    const attemptRepo = new SQLiteCaptchaAttemptRepository();
+    const trainingRepo = new SQLiteTrainingDataRepository();
+    const service = new CaptchaTrainingService(trainingRepo, attemptRepo);
+    
+    this.register("CaptchaTrainingService", () => service, true);
+    return service;
+  }
+
+  /**
    * Gets the singleton instance of the service container
    */
   static getInstance(): ServiceContainer {
