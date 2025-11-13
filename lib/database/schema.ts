@@ -385,7 +385,99 @@ export type UserActionType =
   | "share_analysis"
   | "feedback";
 
+// ============================================================================
+// CAPTCHA SOLVER TABLES
+// ============================================================================
 
+// Captcha attempts table - stores all captcha solving attempts
+export const captchaAttempts = sqliteTable(
+  "captcha_attempts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    imageUrl: text("image_url").notNull(),
+    puzzlePieceUrl: text("puzzle_piece_url"),
+    detectedPosition: real("detected_position").notNull(),
+    actualPosition: real("actual_position"),
+    confidence: real("confidence").notNull(),
+    status: text("status", {
+      enum: ["pending", "success", "failure"],
+    })
+      .notNull()
+      .$type<"pending" | "success" | "failure">(),
+    attemptedAt: text("attempted_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    solvedAt: text("solved_at"),
+    errorMessage: text("error_message"),
+    metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(),
+  },
+  (table) => ({
+    userIdx: index("captcha_attempts_user_idx").on(table.userId),
+    statusIdx: index("captcha_attempts_status_idx").on(table.status),
+    attemptedAtIdx: index("captcha_attempts_attempted_at_idx").on(table.attemptedAt),
+  }),
+);
+
+// Training data table - stores labeled captcha images for model training
+export const trainingData = sqliteTable(
+  "training_data",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    attemptId: text("attempt_id")
+      .notNull()
+      .references(() => captchaAttempts.id),
+    imageUrl: text("image_url").notNull(),
+    puzzlePieceUrl: text("puzzle_piece_url"),
+    gapPosition: real("gap_position").notNull(),
+    annotationSource: text("annotation_source", {
+      enum: ["manual", "automatic", "validated"],
+    })
+      .notNull()
+      .$type<"manual" | "automatic" | "validated">(),
+    annotatedBy: text("annotated_by"),
+    annotatedAt: text("annotated_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    isValidated: integer("is_validated", { mode: "boolean" }).notNull().default(false),
+    metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(),
+  },
+  (table) => ({
+    attemptIdx: index("training_data_attempt_idx").on(table.attemptId),
+    validatedIdx: index("training_data_validated_idx").on(table.isValidated),
+    sourceIdx: index("training_data_source_idx").on(table.annotationSource),
+  }),
+);
+
+// Model performance metrics table - tracks model performance over time
+export const modelMetrics = sqliteTable(
+  "model_metrics",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    modelVersion: text("model_version").notNull(),
+    successRate: real("success_rate").notNull(),
+    averageConfidence: real("average_confidence").notNull(),
+    averageError: real("average_error").notNull(),
+    totalAttempts: integer("total_attempts").notNull(),
+    successfulAttempts: integer("successful_attempts").notNull(),
+    recordedAt: text("recorded_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(),
+  },
+  (table) => ({
+    versionIdx: index("model_metrics_version_idx").on(table.modelVersion),
+    recordedAtIdx: index("model_metrics_recorded_at_idx").on(table.recordedAt),
+  }),
+);
 
 
 // Legacy compatibility exports (for backward compatibility during migration)
