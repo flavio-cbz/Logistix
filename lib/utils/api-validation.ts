@@ -88,21 +88,24 @@ const productSchema = z.object({
   soldAt: z.string().optional(),
 });
 
-// Parcelle entity schema
+// Parcelle entity schema - Format camelCase (frontend)
 const parcelleSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
   numero: z.string().min(1),
+  numeroSuivi: z.string().optional().nullable(),
   transporteur: z.string().min(1),
   nom: z.string().min(1),
   statut: z.string().min(1),
   actif: z.boolean(),
-  prixAchat: z.number().min(0).nullable(),
-  poids: z.number().positive().nullable(),
-  prixTotal: z.number().min(0).nullable(),
-  prixParGramme: z.number().min(0).nullable(),
+  prixAchat: z.number().min(0).optional().nullable(),
+  // Poids 0 est acceptable (nonnegative), sinon certains enregistrements échouent la validation
+  poids: z.number().nonnegative().optional().nullable(),
+  prixTotal: z.number().min(0).optional().nullable(),
+  prixParGramme: z.number().min(0).optional().nullable(),
   createdAt: z.string(),
-  updatedAt: z.string(),
+  // Aligné avec le type: updatedAt peut être absent selon l'origine des données
+  updatedAt: z.string().optional(),
 });
 
 // User entity schema (without sensitive fields)

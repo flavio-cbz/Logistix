@@ -95,6 +95,7 @@ export const parcelles = sqliteTable(
       .notNull()
       .references(() => users.id),
     numero: text("numero").notNull(),
+    numero_suivi: text("numero_suivi"), // Carrier tracking number (e.g., CJ140286057DE)
     transporteur: text("transporteur").notNull(),
     nom: text("nom").notNull().default(""),
     statut: text("statut").notNull().default("En attente"),
@@ -113,6 +114,7 @@ export const parcelles = sqliteTable(
   (table) => ({
     userIdx: index("parcelle_user_idx").on(table.userId),
     numeroIdx: index("parcelle_numero_idx").on(table.numero),
+    numeroSuiviIdx: index("parcelle_numero_suivi_idx").on(table.numero_suivi),
     transporteurIdx: index("parcelle_transporteur_idx").on(table.transporteur),
     createdAtIdx: index("parcelle_created_at_idx").on(table.createdAt),
   }),
@@ -385,8 +387,42 @@ export type UserActionType =
   | "share_analysis"
   | "feedback";
 
+// ============================================================================
+// SUPERBUY SYNCHRONIZATION
+// ============================================================================
 
-
+/**
+ * Superbuy Sync table - tracks synchronization between Superbuy and LogistiX
+ * Allows deduplication, audit trail, and rollback capabilities
+ */
+export const superbuySync = sqliteTable(
+  "superbuy_sync",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    superbuyId: text("superbuy_id").notNull(), // packageOrderNo, itemBarcode, etc.
+    logistixId: text("logistix_id").notNull(), // parcelle.id or product.id
+    entityType: text("entity_type", { enum: ["parcel", "product"] }).notNull(),
+    lastSyncedAt: text("last_synced_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    superbuyData: text("superbuy_data", { mode: "json" }).$type<Record<string, unknown>>(), // Raw Superbuy payload
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => ({
+    userSuperbuyEntityIdx: uniqueIndex("superbuy_sync_user_superbuy_entity_idx")
+      .on(table.userId, table.superbuyId, table.entityType),
+    userIdx: index("superbuy_sync_user_idx").on(table.userId),
+    entityTypeIdx: index("superbuy_sync_entity_type_idx").on(table.entityType),
+    logistixIdx: index("superbuy_sync_logistix_idx").on(table.logistixId),
+  }),
+);
 
 // Legacy compatibility exports (for backward compatibility during migration)
 export const parcels = parcelles; // Alias for legacy code

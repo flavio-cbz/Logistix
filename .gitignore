@@ -147,3 +147,4 @@ pids/
 tmp/
 temp/
 .kiro/
+.venv/

@@ -1,11 +1,10 @@
 /**
  * @vitest-environment node
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ParcelleService } from '@/lib/services/parcelle-service';
 import { 
-  createMockParcelleRepository, 
-  createMockLogger 
+  createMockParcelleRepository
 } from '../../setup/service-mocks';
 import { 
   createTestParcelle, 
@@ -14,11 +13,8 @@ import {
 } from '../../setup/test-data-factory';
 import { 
   expectValidationError, 
-  expectNotFoundError, 
-  expectAuthorizationError,
   expectCustomError 
 } from '../../utils/test-helpers';
-import { ValidationError, NotFoundError, AuthorizationError } from '@/lib/errors/custom-error';
 
 describe('ParcelleService', () => {
   let parcelleService: ParcelleService;
@@ -29,7 +25,7 @@ describe('ParcelleService', () => {
     mockParcelleRepository = createMockParcelleRepository();
     testUser = createTestUser();
     
-    parcelleService = new ParcelleService(mockParcelleRepository);
+  parcelleService = new ParcelleService(mockParcelleRepository as any);
     parcelleService.setUserId(testUser.id);
     parcelleService.setRequestId('test-request-id');
   });
@@ -126,7 +122,7 @@ describe('ParcelleService', () => {
       const parcelleData = {
         numero: 'PAR001',
         transporteur: 'DHL',
-        poids: 1.5,
+        poids: 1500, // en grammes
         prixAchat: 50.00
       };
       const createdParcelle = createTestParcelle({ 
@@ -138,7 +134,7 @@ describe('ParcelleService', () => {
 
       // Act
   // include required fields 'nom' and 'statut' expected by schema
-  const result = await parcelleService.createParcelle(testUser.id, { ...parcelleData, nom: 'Test Parcelle', statut: 'active' } as any);
+  const result = await parcelleService.createParcelle(testUser.id, { ...parcelleData, nom: 'Test Parcelle', statut: 'En attente' } as any);
 
       // Assert
       expect(result).toEqual(createdParcelle);
@@ -169,7 +165,7 @@ describe('ParcelleService', () => {
       // Act & Assert
       // Allow either localized message or generic 'Required'
       await expectValidationError(
-        () => parcelleService.createParcelle(testUser.id, parcelleData),
+        () => parcelleService.createParcelle(testUser.id, parcelleData as any),
         undefined,
         undefined
       );
@@ -186,7 +182,7 @@ describe('ParcelleService', () => {
 
       // Act & Assert
       await expectValidationError(
-        () => parcelleService.createParcelle(testUser.id, parcelleData),
+        () => parcelleService.createParcelle(testUser.id, parcelleData as any),
         undefined,
         undefined
       );
@@ -203,7 +199,7 @@ describe('ParcelleService', () => {
 
       // Act & Assert
       await expectValidationError(
-        () => parcelleService.createParcelle(testUser.id, parcelleData),
+        () => parcelleService.createParcelle(testUser.id, parcelleData as any),
         undefined,
         undefined
       );
@@ -220,7 +216,7 @@ describe('ParcelleService', () => {
 
       // Act & Assert
       await expectValidationError(
-        () => parcelleService.createParcelle(testUser.id, parcelleData),
+        () => parcelleService.createParcelle(testUser.id, parcelleData as any),
         undefined,
         undefined
       );
@@ -298,7 +294,7 @@ describe('ParcelleService', () => {
       await expectCustomError(
         () => parcelleService.updateParcelle(existingParcelle.id, testUser.id, { poids: -1 }),
         'VALIDATION_ERROR',
-        'Le poids doit être positif'
+        'Le poids doit être positif (en grammes)'
       );
     });
   });

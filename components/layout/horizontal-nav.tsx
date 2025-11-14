@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Sparkles,
   Zap,
-  
   BarChart3,
   Package,
   ShoppingCart

@@ -9,7 +9,10 @@ import {
   Truck,
   CheckCircle2,
   Edit,
-  Trash2
+  Trash2,
+  ArrowUpDown,
+  ChevronUp,
+  ChevronDown
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +22,9 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { useParcelles, useDeleteParcelle } from "@/lib/hooks/use-parcelles";
 import type { Parcelle } from "@/lib/types/entities";
+import { ParcelleStatut } from "@/lib/types/entities";
+import { SuperbuyDirectSyncButton } from "@/components/sync/superbuy-direct-sync-button";
+import { normalizeParcelleStatut, getStatutBadgeConfig } from "@/lib/utils/parcelle-statuts";
 import {
   Table,
   TableBody,
@@ -40,12 +46,84 @@ export default function ParcellesPage() {
 
   const parcellesList = useMemo(() => parcelles || [], [parcelles]);
 
-  // Calculer les statistiques
+  type SortKey =
+    | "numero"
+    | "nom"
+    | "transporteur"
+    | "statut"
+    | "poids"
+    | "prixAchat"
+    | "prixParGramme"
+    | "createdAt";
+
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  const onSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
+
+  const sortedParcelles = useMemo(() => {
+    if (!sortKey) return parcellesList;
+    const dir = sortDirection === "asc" ? 1 : -1;
+    const list = [...parcellesList];
+
+    const compare = (a: Parcelle, b: Parcelle): number => {
+      const nullLast = (va: unknown, vb: unknown) => {
+        const aNull = va === null || va === undefined || va === "";
+        const bNull = vb === null || vb === undefined || vb === "";
+        if (aNull && bNull) return 0;
+        if (aNull) return 1; // null/empty always last
+        if (bNull) return -1;
+        return null;
+      };
+
+      switch (sortKey) {
+        case "numero":
+        case "nom":
+        case "transporteur":
+        case "statut": {
+          const pre = nullLast(a[sortKey], b[sortKey]);
+          if (pre !== null) return pre * dir;
+          const sa = String(a[sortKey] ?? "");
+          const sb = String(b[sortKey] ?? "");
+          return sa.localeCompare(sb, "fr", { sensitivity: "base" }) * dir;
+        }
+        case "poids":
+        case "prixAchat":
+        case "prixParGramme": {
+          const pre = nullLast(a[sortKey] as number | null, b[sortKey] as number | null);
+          if (pre !== null) return pre * dir;
+          const na = Number(a[sortKey] ?? 0);
+          const nb = Number(b[sortKey] ?? 0);
+          return (na - nb) * dir;
+        }
+        case "createdAt": {
+          const pre = nullLast(a.createdAt, b.createdAt);
+          if (pre !== null) return pre * dir;
+          const ta = new Date(a.createdAt as string).getTime();
+          const tb = new Date(b.createdAt as string).getTime();
+          return (ta - tb) * dir;
+        }
+        default:
+          return 0;
+      }
+    };
+
+    return list.sort(compare);
+  }, [parcellesList, sortKey, sortDirection]);
+
+  // Calculer les statistiques avec normalisation des statuts
   const stats = useMemo(() => {
     const total = parcellesList.length;
-    const enTransit = parcellesList.filter(p => p.statut === "En transit").length;
-    const livrees = parcellesList.filter(p => p.statut === "Livré").length;
-    const enAttente = parcellesList.filter(p => p.statut === "En attente").length;
+    const enTransit = parcellesList.filter(p => normalizeParcelleStatut(p.statut) === ParcelleStatut.EN_TRANSIT).length;
+    const livrees = parcellesList.filter(p => normalizeParcelleStatut(p.statut) === ParcelleStatut.LIVRE).length;
+    const enAttente = parcellesList.filter(p => normalizeParcelleStatut(p.statut) === ParcelleStatut.EN_ATTENTE).length;
     return { total, enTransit, livrees, enAttente };
   }, [parcellesList]);
 
@@ -66,21 +144,23 @@ export default function ParcellesPage() {
 
   const formatPricePerGram = (price: number | null) => {
     if (!price) return "N/A";
-    return `${price.toFixed(2)} €/g`;
+    // Affichage plus précis demandé: 4 décimales (0.0001)
+    return `${price.toFixed(4)} €/g`;
   };
 
   const getStatutBadge = (statut: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
-      "En attente": { variant: "secondary", icon: AlertTriangle },
-      "En transit": { variant: "default", icon: Truck },
-      "Livré": { variant: "outline", icon: CheckCircle2 },
+    const config = getStatutBadgeConfig(statut);
+    const iconMap = {
+      secondary: AlertTriangle,
+      default: Truck,
+      outline: CheckCircle2,
+      destructive: AlertTriangle,
     };
-    const config = variants[statut] || { variant: "secondary" as const, icon: AlertTriangle };
-    const Icon = config!.icon;
+    const Icon = iconMap[config.variant];
     return (
       <Badge variant={config.variant} className="gap-1">
         <Icon className="w-3 h-3" />
-        {statut}
+        {config.label}
       </Badge>
     );
   };
@@ -96,6 +176,7 @@ export default function ParcellesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+         <SuperbuyDirectSyncButton onSync={() => refetch()} />
           <Button 
             variant="outline" 
             size="sm" 
@@ -209,19 +290,155 @@ export default function ParcellesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Numéro</TableHead>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Transporteur</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Poids</TableHead>
-                    <TableHead>Prix</TableHead>
-                    <TableHead>Prix/g</TableHead>
-                    <TableHead>Date création</TableHead>
+                    <TableHead aria-sort={sortKey === "numero" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 hover:underline underline-offset-4"
+                        onClick={() => onSort("numero")}
+                      >
+                        Numéro
+                        {sortKey === "numero" ? (
+                          sortDirection === "asc" ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead aria-sort={sortKey === "nom" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 hover:underline underline-offset-4"
+                        onClick={() => onSort("nom")}
+                      >
+                        Nom
+                        {sortKey === "nom" ? (
+                          sortDirection === "asc" ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead aria-sort={sortKey === "transporteur" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 hover:underline underline-offset-4"
+                        onClick={() => onSort("transporteur")}
+                      >
+                        Transporteur
+                        {sortKey === "transporteur" ? (
+                          sortDirection === "asc" ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead aria-sort={sortKey === "statut" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 hover:underline underline-offset-4"
+                        onClick={() => onSort("statut")}
+                      >
+                        Statut
+                        {sortKey === "statut" ? (
+                          sortDirection === "asc" ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead aria-sort={sortKey === "poids" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 hover:underline underline-offset-4"
+                        onClick={() => onSort("poids")}
+                      >
+                        Poids
+                        {sortKey === "poids" ? (
+                          sortDirection === "asc" ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead aria-sort={sortKey === "prixAchat" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 hover:underline underline-offset-4"
+                        onClick={() => onSort("prixAchat")}
+                      >
+                        Prix
+                        {sortKey === "prixAchat" ? (
+                          sortDirection === "asc" ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead aria-sort={sortKey === "prixParGramme" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 hover:underline underline-offset-4"
+                        onClick={() => onSort("prixParGramme")}
+                      >
+                        Prix/g
+                        {sortKey === "prixParGramme" ? (
+                          sortDirection === "asc" ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead aria-sort={sortKey === "createdAt" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 hover:underline underline-offset-4"
+                        onClick={() => onSort("createdAt")}
+                      >
+                        Date création
+                        {sortKey === "createdAt" ? (
+                          sortDirection === "asc" ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {parcellesList.map((parcelle) => (
+                  {sortedParcelles.map((parcelle) => (
                     <TableRow key={parcelle.id}>
                       <TableCell className="font-medium">{parcelle.numero}</TableCell>
                       <TableCell>{parcelle.nom}</TableCell>

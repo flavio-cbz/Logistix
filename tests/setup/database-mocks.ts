@@ -4,9 +4,6 @@
  */
 
 import { vi } from 'vitest';
-import type { DatabaseService } from '../../lib/database/database-service';
-import type { ProductRepository } from '../../lib/repositories/product-repository';
-import type { ParcelleRepository } from '../../lib/repositories/parcelle-repository';
 
 // Mock database service
 export const createMockDatabaseService = () => ({

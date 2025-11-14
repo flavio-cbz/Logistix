@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serviceContainer } from '@/lib/services/container';
 import { withErrorHandling, createSuccessResponse } from '@/lib/middleware/error-handling';
 import { requireAuth } from '@/lib/middleware/auth-middleware';
+// Les entités retournées par le repository sont déjà au format camelCase
 
 async function listParcellesHandler(req: NextRequest): Promise<NextResponse> {
   const { user } = await requireAuth(req);

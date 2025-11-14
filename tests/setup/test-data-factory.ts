@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 
-export const createTestUser = (overrides: Partial<any> = {}) => {
+export const createTestUser = (overrides: any = {}) => {
   const now = new Date().toISOString();
   return {
     // Use plain UUIDs to satisfy validators that expect RFC4122 UUIDs
@@ -17,7 +17,7 @@ export const createTestUser = (overrides: Partial<any> = {}) => {
   } as const;
 };
 
-export const createTestParcelle = (overrides: Partial<any> = {}) => {
+export const createTestParcelle = (overrides: any = {}) => {
   const now = new Date().toISOString();
   return {
     id: overrides.id ?? uuidv4(),
@@ -31,11 +31,11 @@ export const createTestParcelle = (overrides: Partial<any> = {}) => {
     createdAt: overrides.createdAt ?? now,
     updatedAt: overrides.updatedAt ?? now,
     nom: overrides.nom ?? overrides.numero ?? 'Parcelle',
-    statut: overrides.statut ?? 'active',
+  statut: overrides.statut ?? 'En attente',
   } as const;
 };
 
-export const createTestProduct = (overrides: Partial<any> = {}) => {
+export const createTestProduct = (overrides: any = {}) => {
   const now = new Date().toISOString();
   const id = overrides.id ?? uuidv4();
   return {

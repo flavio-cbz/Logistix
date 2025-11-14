@@ -8,7 +8,7 @@ Logistix est une application Next.js 14 construite selon les principes de Clean 
 
 ### Organisation des Dossiers
 
-```
+```tree
 logistix/
 ├── app/                    # Next.js App Router
 │   ├── (dashboard)/       # Routes groupées dashboard
@@ -36,14 +36,16 @@ logistix/
 ### Architecture en Couches
 
 #### 1. Couche Présentation (app/, components/)
+
 - **Responsabilité**: Interface utilisateur et interactions
 - **Technologies**: Next.js 14, React, Tailwind CSS
-- **Patterns**: 
+- **Patterns**:
   - Server Components pour les performances
   - Client Components pour l'interactivité
   - Composition de composants réutilisables
 
 #### 2. Couche Application (lib/core/application/)
+
 - **Responsabilité**: Orchestration des use cases
 - **Patterns**:
   - Command/Query Separation (CQRS)
@@ -51,6 +53,7 @@ logistix/
   - Services applicatifs pour l'orchestration
 
 #### 3. Couche Domaine (lib/core/domain/)
+
 - **Responsabilité**: Règles métier et entités
 - **Patterns**:
   - Domain Entities avec encapsulation
@@ -59,6 +62,7 @@ logistix/
   - Repository Interfaces pour l'abstraction des données
 
 #### 4. Couche Infrastructure (lib/core/infrastructure/)
+
 - **Responsabilité**: Implémentations techniques
 - **Technologies**: Drizzle ORM, SQLite, APIs externes
 - **Patterns**:
@@ -450,6 +454,3 @@ export async function createProduct(
 ): Promise<Product> {
   // Implémentation...
 }
-```
-
-Cette architecture garantit la maintenabilité, la scalabilité et la qualité du code tout en respectant les principes SOLID et les bonnes pratiques du développement moderne.

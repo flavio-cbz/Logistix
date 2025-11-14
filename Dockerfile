@@ -1,9 +1,12 @@
-
 # Étape de construction
-FROM node:20-alpine AS builder
+# Utiliser l'image Playwright officielle (navigateurs et deps préinstallés)
+# Version alignée avec package.json (playwright ^1.55.0)
+FROM mcr.microsoft.com/playwright:v1.55.0-jammy AS builder
 
-# Installation des dépendances nécessaires pour better-sqlite3
-RUN apk add --no-cache python3 make g++ gcc
+# Installation des dépendances build nécessaires (pour better-sqlite3)
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+	python3 make g++ gcc \
+	&& rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -27,10 +30,13 @@ RUN npm run db:migrate
 RUN npm run build
 
 # Étape de production
-FROM node:20-alpine AS runner
+# Utiliser la même image Playwright pour garantir la présence des navigateurs en prod
+FROM mcr.microsoft.com/playwright:v1.55.0-jammy AS runner
 
-# Installation des dépendances nécessaires pour better-sqlite3
-RUN apk add --no-cache python3 make g++ gcc
+# Installation des dépendances build nécessaires (pour better-sqlite3)
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+	python3 make g++ gcc \
+	&& rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -48,8 +54,8 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/data ./data
 
-# Recompiler better-sqlite3 pour l'environnement de production
-RUN npm rebuild better-sqlite3
+# Recompiler better-sqlite3 pour l'environnement de production (si nécessaire)
+RUN npm rebuild better-sqlite3 || true
 
 # Exposer le port
 EXPOSE 3000

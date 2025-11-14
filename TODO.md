@@ -13,6 +13,7 @@ Tu es un architecte logiciel expert en TypeScript. Je souhaite intégrer une fon
 ## FOURNISSEURS D'API NON OFFICIELS IDENTIFIÉS
 
 ### **Vinted - Providers disponibles**[1][2][3]
+
 ```bash
 # Options principales
 npm install vinted-api                    # @Androz2091 - Le plus populaire
@@ -27,6 +28,7 @@ npm install @skanix/vinted-client        # Moderne mais deprecated
 - `@skanix/vinted-client` : TypeScript natif mais plus maintenu[4]
 
 ### **eBay - Scrapers disponibles**[5]
+
 ```bash
 # Python-based (à adapter en TypeScript)
 git clone https://github.com/Simple-Python-Scrapy-Scrapers/ebay-scrapy-scraper
@@ -34,6 +36,7 @@ git clone https://github.com/Simple-Python-Scrapy-Scrapers/ebay-scrapy-scraper
 ```
 
 ### **Leboncoin - Solutions identifiées**[6][7][8]
+
 ```bash
 # API Immobilier (base pour extension)
 git clone https://github.com/Fluximmo/api-immo-scrapper-leboncoin-pap
@@ -41,6 +44,7 @@ git clone https://github.com/Fluximmo/api-immo-scrapper-leboncoin-pap
 ```
 
 ### **Templates/Frameworks génériques**[9][10][11]
+
 ```bash
 # Templates TypeScript + Puppeteer
 npm install puppeteer crawlee          # Crawlee = Apify's framework
@@ -50,7 +54,9 @@ git clone https://github.com/NoxelS/scraper  # Template TypeScript + Puppeteer
 ## EXIGENCES TECHNIQUES SPÉCIFIQUES
 
 ### 1. **Architecture Provider Abstraction**
+
 Supporte multiple providers avec fallback automatique :
+
 ```typescript
 interface MarketplaceProvider {
   name: 'vinted' | 'leboncoin' | 'ebay';
@@ -62,6 +68,7 @@ interface MarketplaceProvider {
 ```
 
 ### 2. **Provider Factory avec Auto-Detection**
+
 ```typescript
 // Doit supporter ces providers automatiquement
 const providers = [
@@ -92,7 +99,7 @@ const providers = [
 
 1. **Architecture modulaire** : Comment wrapper proprement ces packages npm dans mon abstraction
 
-2. **Provider Integration Strategy** : 
+2. **Provider Integration Strategy** :
    - Comment intégrer `vinted-api` d'Androz2091 comme fallback
    - Utiliser `@eliottoblinger/vinted` comme provider principal
    - Préparer l'architecture pour eBay/Leboncoin scrapers
@@ -110,6 +117,7 @@ const providers = [
 ## INTÉGRATION AVEC PROVIDERS EXISTANTS
 
 ### Provider Vinted - Stratégie de fallback
+
 ```typescript
 // Utilise @eliottoblinger en primary, fallback sur Androz2091
 class VintedProvider {
@@ -128,9 +136,11 @@ class VintedProvider {
 ```
 
 ### Provider eBay - Adaptation du scraper Python
+
 Comment adapter le scraper Scrapy eBay en TypeScript avec Crawlee/Puppeteer.[11][5]
 
 ### Provider Leboncoin - Extension du scraper immo
+
 Comment étendre l'API immobilier Fluximmo pour tous les produits.[7]
 
 ## CRITÈRES DE SUCCÈS

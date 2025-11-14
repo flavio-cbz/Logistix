@@ -124,11 +124,13 @@ export function transformParcelleFormToUpdateInput(
 export function transformParcelleApiToFormData(
   parcelle: Parcelle,
 ): ParcelleFormData {
+  const { normalizeParcelleStatut } = require('@/lib/utils/parcelle-statuts');
   return {
     numero: parcelle.numero,
     transporteur: parcelle.transporteur,
     nom: parcelle.nom,
-    statut: parcelle.statut,
+    // Normaliser le statut pour respecter l'énum strict du schéma de formulaire
+    statut: normalizeParcelleStatut(String(parcelle.statut)),
     prixAchat: parcelle.prixAchat ?? 0,
     poids: parcelle.poids ?? 0,
     prixTotal: parcelle.prixTotal ?? undefined,

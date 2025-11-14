@@ -200,7 +200,13 @@ export const useDeleteParcelle = () => {
   return useMutation<void, Error, string>({
     mutationFn: deleteParcelle,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["parcelles"] });
+      // Invalider et refetch le cache React Query - ATTENDRE la fin
+      await queryClient.invalidateQueries({ 
+        queryKey: ['parcelles'],
+        refetchType: 'active' // Force le refetch immédiat des queries actives
+      });
+      // Petit délai pour s'assurer que le refetch est terminé
+      await new Promise(resolve => setTimeout(resolve, 100));
     },
     onError: (error: any) => {
       const status = (error as any)?.status;

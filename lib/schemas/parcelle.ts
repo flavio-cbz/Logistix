@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// Statuts valides pour les parcelles
+const PARCELLE_STATUTS = ['En attente', 'En transit', 'Livré', 'Retourné', 'Perdu'] as const;
+
 // Base schema aligned with backend API validation and shared types
 const baseParcelleSchema = z.object({
   numero: z
@@ -7,6 +10,11 @@ const baseParcelleSchema = z.object({
     .min(1, "Le numéro de parcelle est requis")
     .max(50, "Le numéro de parcelle ne peut pas dépasser 50 caractères")
     .trim(),
+  numero_suivi: z
+    .string()
+    .max(100, "Le numéro de suivi ne peut pas dépasser 100 caractères")
+    .trim()
+    .optional(),
   transporteur: z
     .string()
     .min(1, "Le transporteur est requis")
@@ -18,10 +26,9 @@ const baseParcelleSchema = z.object({
     .max(200, "Le nom de la parcelle ne peut pas dépasser 200 caractères")
     .trim(),
   statut: z
-    .string()
-    .min(1, "Le statut est requis")
-    .max(100, "Le statut ne peut pas dépasser 100 caractères")
-    .trim(),
+    .enum(PARCELLE_STATUTS, {
+      errorMap: () => ({ message: `Le statut doit être: ${PARCELLE_STATUTS.join(', ')}` })
+    }),
   prixAchat: z.union([
     z.number().positive("Le prix d'achat doit être positif"),
     z
@@ -31,11 +38,11 @@ const baseParcelleSchema = z.object({
       .refine((val) => val > 0, "Le prix d'achat doit être positif"),
   ]),
   poids: z.union([
-    z.number().positive("Le poids doit être positif"),
+    z.number().positive("Le poids doit être positif (en grammes)"),
     z
       .string()
-      .regex(/^\d+(\.\d{1,3})?$/, "Le poids doit être un nombre valide")
-      .transform((val) => parseFloat(val))
+      .regex(/^\d+(\.\d*)?$/, "Le poids doit être un nombre valide (en grammes)")
+      .transform((val) => Math.round(parseFloat(val)))
       .refine((val) => val > 0, "Le poids doit être positif"),
   ]),
   // Calculated fields - will be computed from prixAchat and poids

@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS parcelles (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   numero TEXT NOT NULL,
+  numero_suivi TEXT,
   transporteur TEXT NOT NULL,
   nom TEXT NOT NULL DEFAULT '',
   statut TEXT NOT NULL DEFAULT 'En attente',
@@ -90,6 +91,7 @@ CREATE TABLE IF NOT EXISTS parcelles (
 
 CREATE INDEX IF NOT EXISTS parcelle_user_idx ON parcelles(user_id);
 CREATE INDEX IF NOT EXISTS parcelle_numero_idx ON parcelles(numero);
+CREATE INDEX IF NOT EXISTS parcelle_numero_suivi_idx ON parcelles(numero_suivi);
 CREATE INDEX IF NOT EXISTS parcelle_transporteur_idx ON parcelles(transporteur);
 CREATE INDEX IF NOT EXISTS parcelle_created_at_idx ON parcelles(created_at);
 
@@ -207,6 +209,26 @@ CREATE TABLE IF NOT EXISTS user_actions (
 
 CREATE INDEX IF NOT EXISTS idx_user_actions_user_timestamp ON user_actions(user_id, timestamp);
 CREATE INDEX IF NOT EXISTS idx_user_actions_action_type ON user_actions(action_type);
+
+-- ============================================================================
+-- TABLE: superbuy_sync
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS superbuy_sync (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  superbuy_id TEXT NOT NULL,
+  logistix_id TEXT NOT NULL,
+  entity_type TEXT NOT NULL CHECK(entity_type IN ('parcel','product')),
+  last_synced_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  superbuy_data TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS superbuy_sync_user_superbuy_entity_idx
+  ON superbuy_sync(user_id, superbuy_id, entity_type);
+CREATE INDEX IF NOT EXISTS superbuy_sync_user_idx ON superbuy_sync(user_id);
+CREATE INDEX IF NOT EXISTS superbuy_sync_entity_type_idx ON superbuy_sync(entity_type);
+CREATE INDEX IF NOT EXISTS superbuy_sync_logistix_idx ON superbuy_sync(logistix_id);
 
 -- ============================================================================
 -- TABLE: vinted_sessions

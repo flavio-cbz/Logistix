@@ -20,7 +20,7 @@ export function useProducts() {
   return useQuery<ProductListResponse>({
     queryKey: ["products"],
     queryFn: async () => {
-      const response = await fetch("/api/v1/products");
+      const response = await fetch("/api/v1/produits");
       if (!response.ok) {
         throw new Error("Erreur lors de la récupération des produits");
       }

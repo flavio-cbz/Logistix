@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import ProductCreateForm from "@/components/features/produits/product-create-form";
 import { useProducts } from "@/lib/hooks/use-products";
 import { Product } from "@/lib/shared/types/entities";
+import { SuperbuyLiveSyncButton } from "@/components/sync/superbuy-live-sync-button";
 import { 
   calculateProductProfit,
   type ProductWithLegacyFields 
@@ -150,6 +151,7 @@ export default function RevolutionaryProductsPage() {
               Liste
             </Button>
           </div>
+            <SuperbuyLiveSyncButton />
           <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Actualiser

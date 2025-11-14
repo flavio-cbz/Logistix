@@ -23,6 +23,13 @@ export enum Platform {
   OTHER = "autre",
 }
 
+export enum ParcelleStatut {
+  EN_ATTENTE = "En attente",
+  EN_TRANSIT = "En transit",
+  LIVRE = "Livré",
+  RETOURNE = "Retourné",
+  PERDU = "Perdu",
+}
 
 export enum RiskTolerance {
   CONSERVATIVE = "conservative",
@@ -119,7 +126,7 @@ export interface Parcelle {
   numero: string;
   transporteur: string;
   nom: string;
-  statut: string;
+  statut: ParcelleStatut | string; // Accepte enum ou string pour compatibilité DB
   actif: boolean;
   prixAchat?: number | null;
   poids: number | null;
@@ -288,6 +295,7 @@ export interface CreateParcelleInput {
   poids: number;
   prixTotal: number;
   prixParGramme: number;
+  numero_suivi?: string; // Tracking number from carrier (e.g., CJ140286057DE)
 }
 
 /**

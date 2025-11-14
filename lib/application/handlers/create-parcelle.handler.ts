@@ -3,6 +3,7 @@ import { serviceContainer } from '@/lib/services/container';
 import { withErrorHandling, createSuccessResponse } from '@/lib/middleware/error-handling';
 import { requireAuth } from '@/lib/middleware/auth-middleware';
 import { CreateParcelleInput } from '@/lib/types/entities';
+// Les entités retournées par le service sont déjà au format camelCase
 
 async function createParcelleHandler(req: NextRequest): Promise<NextResponse> {
   const { user } = await requireAuth(req);
@@ -12,9 +13,7 @@ async function createParcelleHandler(req: NextRequest): Promise<NextResponse> {
   const parcelle = await parcelleService.createParcelle(user.id, body);
 
   const response = createSuccessResponse({
-    id: parcelle.id,
-    numero: parcelle.numero,
-    transporteur: parcelle.transporteur,
+    parcelle,
     message: 'Parcelle créée avec succès',
   });
 

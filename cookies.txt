@@ -1,0 +1,26 @@
+# Netscape HTTP Cookie File
+# https://curl.se/docs/http-cookies.html
+# This file was generated from Playwright storageState by Kilo Code. Edit at your own risk.
+
+#HttpOnly_.superbuy.com	TRUE	/	TRUE	1793297750	cf_clearance	ZqbXIyxVcmgstuH0GLy..ga7oVC8.yO7VnNauogiSUk-1761761750-1.2.1.1-PiD3.ketvs5tBTDeceUukGSYKp7y6JeB3885.1ngqfPPZuxL8_YtjIAtWDFpmNTEABeuU1Ti3pZxKv4iWR2bPHViS.HxgfwwCu0gQ5V6UFZiYbhoA0vPPMf0RbhIFCTTUYdLsGqmRiSI5GJ9RS0M44cu8ymuvC27GqHdDBOyWXbeAb.LeQGYZiGUACuwaY8ZWxCK0m8BROP6q1ArkxcffurpTBlGqkLlEQwrj4ktjYM
+.superbuy.com	TRUE	/	FALSE	0	_nhp	1
+.superbuy.com	TRUE	/	FALSE	1793297809	lang	en-us
+.superbuy.com	TRUE	/	FALSE	1764353809	loginInWebsite	en
+.superbuy.com	TRUE	/	FALSE	1764353809	client	1
+.superbuy.com	TRUE	/	FALSE	1762366610	currency	USD
+.superbuy.com	TRUE	/	FALSE	1796321810	_ga	GA1.2.1423793709.1761761751
+www.superbuy.com	FALSE	/	FALSE	1777313751	g_state	{"i_l":0,"i_ll":1761761751162,"i_b":"JqfCH72ftDwBdN5v/SGwJp8X5ZAjZZjs5PzxP2W2BWg"}
+#HttpOnly_.superbuy.com	TRUE	/	FALSE	0	PHPSESSID	n4bfcr2vd95lmbosakpjjadsk5
+#HttpOnly_.superbuy.com	TRUE	/	FALSE	0	LOGSTATE	logged
+#HttpOnly_.superbuy.com	TRUE	/	FALSE	1761848207	LOGTOKEN	6780cf33090200ade3c0a938cacb5ac34d5be1b2%7E3613661
+#HttpOnly_.superbuy.com	TRUE	/	FALSE	1761848207	BBS_LOGTOKEN	906e7TCdy%2B0Z%2BX%2BigqcI2YaQKNtEc1xbaWOfVj7Dk5oh73pP
+#HttpOnly_.superbuy.com	TRUE	/	FALSE	1762366607	login_token_name	86faed0bbcdad769efd917ca87c7e743fb1b5ce9fe025607d9b213c6f24e6a97a%3A2%3A%7Bi%3A0%3Bs%3A16%3A%22login_token_name%22%3Bi%3A1%3Bs%3A23%3A%22flaviocomblez%40gmail.com%22%3B%7D
+.superbuy.com	TRUE	/	FALSE	1764353808	loginUser	flaviocomblez@gmail.com
+#HttpOnly_.superbuy.com	TRUE	/	TRUE	0	AUTH_TOKEN	7d305e9e8973bfaf912b3e97485a47a1
+.superbuy.com	TRUE	/	TRUE	1769537810	_rdt_uuid	1761761750903.6f0ee1f0-e0d1-418a-bf7c-fcbd27ee37d4
+.superbuy.com	TRUE	/	FALSE	1796321810	_ga_Z0L2RZJYRN	GS2.2.s1761761751$o1$g1$t1761761810$j1$l0$h0
+#HttpOnly_login.superbuy.com	FALSE	/	TRUE	1761763609	__cf_bm	iueiRTeeb63STrLfCN5Tv9asCSiiMG8rmBud5YhU0gY-1761761808.48455-1.0.1.1-XFChOwBalh..hGJ6H_cHrKrNdXu5P7AMcSM3i2xKbNmSQY8ezeKPEF9N1Y8Ztu09kdxg3tGFPaY.BHFgjc20X7tr8Dig2tTWXDbSj.bD4XOgmcYND8RRkT7Ut9cyuGZu
+#HttpOnly_superbuy.com	FALSE	/	TRUE	1761763609	__cf_bm	Z9bTh2np_fYKDSfOuUL8beF30PnBo62wzfuvjbzzFz4-1761761809.3050427-1.0.1.1-lMrELojHgJBAIzoupAKAH5Y01t4GUTihdHBGi8kPuKVK1tVpEopqfickk6WrivM1rXgq7ArsKADP7l6X5HrPnnvTfTxgultsFoG_1XnP.NLxFYPhCGEkLBJ9DyuC82tU
+#HttpOnly_www.superbuy.com	FALSE	/	TRUE	1761763609	__cf_bm	SovicXMkaTnzIVmjS_bT7dr4Bp8n23qAm.q0TowIFas-1761761809.642873-1.0.1.1-IchOrN4DS0q2_89vsaGYdF1DcSvAAHNtrPc.1aHX29ii7VeqXoFROpUT8JjrgQ5MUYjAcir4blcuR4uMeAC.s4yotJkTwEljgoesf8qx.IrA2CrfRflK_X8.IKVL9eiV
+#HttpOnly_cdn.superbuy.com	FALSE	/	TRUE	1761763611	__cf_bm	rg4H6OTGNHXjks8gg9R9EalpgMM8sLUJhwkwOglqJhI-1761761810.8104641-1.0.1.1-CBcNoztQNlU9zhDMDnufg0rQDeU9szUbuK20nFTeOvOpBIcIPVhTeMLajBL3HT3fccPczrmxiAgQmvhdCE4k2mLv9G9dl06np8fF4IYbkk6VUp5aOBe06FDDFhgNp4OH
+#HttpOnly_.superbuy.com	TRUE	/	TRUE	1761763611	__cf_bm	Pmzfwz7.FqU79dlXnQDcRjSmeQH1CNX7TEuzSg_rIvE-1761761810.3327646-1.0.1.1-zGsUXAGGOlBssz_hrq24B9AC_G_E2B78aOrlC4M3Giue3f0j5bteadyO88moxhqWdefqG6Kx2wjfA3k2454zZhBANNJ4TQAp4DtLNkwLPe7_r3QZMqWPpaDh7AXmH9Wq

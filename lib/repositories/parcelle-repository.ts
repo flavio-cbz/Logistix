@@ -95,7 +95,7 @@ export class ParcelleRepository extends BaseRepository<
   }
 
   /**
-   * Find parcelles by user ID
+   * Find parcelles by user ID (active only)
    */
   public async findByUserId(
     userId: string,
@@ -104,7 +104,13 @@ export class ParcelleRepository extends BaseRepository<
     try {
       return await this.findAll({
         ...options,
-        where: combineConditions(eq(this.table.userId, userId), options.where),
+        where: combineConditions(
+          and(
+            eq(this.table.userId, userId),
+            eq(this.table.actif, 1) // SQLite: 1 = actif, 0 = inactif
+          ),
+          options.where
+        ),
         orderBy: options.orderBy || "createdAt",
         orderDirection: options.orderDirection || "desc",
       });
@@ -115,7 +121,37 @@ export class ParcelleRepository extends BaseRepository<
   }
 
   /**
-   * Find parcelle by numero
+   * Find parcelle by ID and user ID (secure, active only)
+   * Ensures the parcelle belongs to the specified user and is active
+   */
+  public async findByIdAndUserId(
+    id: string,
+    userId: string,
+  ): Promise<Parcelle | null> {
+    try {
+      return await this.executeCustomQuery((db) => {
+        const result = db
+          .select()
+          .from(this.table)
+          .where(
+            and(
+              eq(this.table.id, id),
+              eq(this.table.userId, userId),
+              eq(this.table.actif, 1) // SQLite: 1 = actif, 0 = inactif
+            )
+          )
+          .get();
+
+        return result ? transformDbParcelleToEntity(result) : null;
+      }, "findByIdAndUserId");
+    } catch (error) {
+      this.logError("findByIdAndUserId failed", error, { id, userId });
+      throw error;
+    }
+  }
+
+  /**
+   * Find parcelle by numero (active only)
    */
   public async findByNumero(
     numero: string,
@@ -123,18 +159,22 @@ export class ParcelleRepository extends BaseRepository<
   ): Promise<Parcelle | null> {
     try {
       return await this.executeCustomQuery((db) => {
-        let query = db.select().from(this.table) as any;
-
-        query = query.where(eq(this.table.numero, numero));
+        const conditions = [
+          eq(this.table.numero, numero),
+          eq(this.table.actif, 1) // SQLite: 1 = actif, 0 = inactif
+        ];
 
         if (userId) {
-          query = query.where(
-            and(eq(this.table.numero, numero), eq(this.table.userId, userId)),
-          );
+          conditions.push(eq(this.table.userId, userId));
         }
 
-        const result = query.get();
-        return (result as Parcelle | undefined) || null;
+        const result = db
+          .select()
+          .from(this.table)
+          .where(and(...conditions))
+          .get();
+
+        return result ? transformDbParcelleToEntity(result) : null;
       }, "findByNumero");
     } catch (error) {
       this.logError("findByNumero failed", error, { numero, userId });
