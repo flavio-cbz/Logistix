@@ -3,8 +3,6 @@ import type { Browser, BrowserContext, Page, Frame, Locator } from 'playwright';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PNG } from 'pngjs';
-import { CaptchaApiClient, solveCaptchaViaAPI } from '../lib/utils/captcha-api-client';
-import { CaptchaSDK, CaptchaAttemptLog } from '../lib/captcha/captcha-sdk';
 
 type CaptchaSolveResult = 'no-captcha' | 'solved' | 'failed';
 
@@ -386,7 +384,7 @@ async function solveGeetestCaptcha(page: Page): Promise<CaptchaSolveResult> {
       '.tc-imgarea',
     ];
     await Promise.race(
-      interactiveSelectors.map((sel) => context.waitForSelector(sel, { state: 'visible', timeout: 15000 }))
+      interactiveSelectors.map((sel) => context!.waitForSelector(sel, { state: 'visible', timeout: 15000 }))
     );
     console.log('[Auth Interactive] Captcha container appears visible (extended race)');
 
@@ -438,7 +436,7 @@ async function solveGeetestCaptcha(page: Page): Promise<CaptchaSolveResult> {
         '.tc-opera',
       ];
       await Promise.race(
-        retrySelectors.map((sel) => context.waitForSelector(sel, { state: 'visible', timeout: 8000 }))
+        retrySelectors.map((sel) => context!.waitForSelector(sel, { state: 'visible', timeout: 8000 }))
       );
       console.log('[Auth Interactive] Captcha became visible after retry');
     } catch (err2) {
