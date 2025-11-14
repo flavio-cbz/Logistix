@@ -69,7 +69,7 @@
     "drizzle-orm": "^0.44.5",
     "framer-motion": "^12.23.12",
     "jsdom": "^26.1.0",
-    "lucide-react": "^0.294.0",
+    "lucide-react": "^0.553.0",
     "mysql2": "^3.14.4",
     "nanoid": "^5.1.6",
     "next": "^14.2.32",
