@@ -113,7 +113,7 @@
     "eslint-plugin-react-hooks": "^7.0.0",
     "jsdom": "^26.1.0",
     "knip": "^5.64.3",
-    "playwright": "^1.54.1",
+    "playwright": "^1.57.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "ts-node": "^10.9.2",
