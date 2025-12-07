@@ -136,7 +136,6 @@ export interface Parcelle {
   updatedAt?: string;
 }
 
-<<<<<<< HEAD
 /**
  * Order entity for Superbuy orders
  */
@@ -153,8 +152,6 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
 }
-=======
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
 
 /**
  * Historical Price entity for price tracking
@@ -303,7 +300,6 @@ export interface CreateProductInput {
   description?: string | null;
   poids: number;
   price: number;
-<<<<<<< HEAD
   currency: string;
   coutLivraison?: number | null;
   sellingPrice?: number | null;
@@ -327,23 +323,6 @@ export interface CreateProductInput {
 
 export interface UpdateProductInput extends Partial<Omit<CreateProductInput, 'userId'>> {
   id?: string;
-=======
-  currency?: string;
-  coutLivraison?: number;
-  vendu?: "0" | "1"; // Simplified: 0=not sold, 1=sold
-  dateMiseEnLigne?: string;
-  dateVente?: string;
-  prixVente?: number;
-  plateforme?: Platform;
-  status?: ProductStatus;
-  brand?: string;
-  category?: string;
-  subcategory?: string;
-  size?: string;
-  color?: string;
-  url?: string;
-  photoUrl?: string;
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
 }
 
 export interface CreateParcelleInput {
@@ -351,7 +330,6 @@ export interface CreateParcelleInput {
   numero: string;
   transporteur: string;
   nom: string;
-<<<<<<< HEAD
   statut: ParcelleStatut | string;
   actif: boolean;
   prixAchat?: number | null;
@@ -362,62 +340,6 @@ export interface CreateParcelleInput {
 
 export interface UpdateParcelleInput extends Partial<Omit<CreateParcelleInput, 'userId'>> {
   id?: string;
-=======
-  statut: string;
-  prixAchat?: number;
-  poids: number;
-  prixTotal: number;
-  prixParGramme: number;
-  numero_suivi?: string; // Tracking number from carrier (e.g., CJ140286057DE)
-}
-
-/**
- * Input types for updating existing entities
- */
-export interface UpdateUserInput {
-  username?: string;
-  passwordHash?: string;
-  encryptionSecret?: string;
-  email?: string;
-  bio?: string;
-  avatar?: string;
-  language?: string;
-  theme?: string;
-  aiConfig?: any;
-}
-
-export interface UpdateProductInput {
-  parcelleId?: string;
-  name?: string;
-  poids?: number;
-  price?: number;
-  currency?: string;
-  coutLivraison?: number;
-  vendu?: "0" | "1"; // Simplified: 0=not sold, 1=sold
-  dateMiseEnLigne?: string;
-  dateVente?: string;
-  prixVente?: number;
-  plateforme?: Platform;
-  status?: ProductStatus;
-  brand?: string;
-  category?: string;
-  subcategory?: string;
-  size?: string;
-  color?: string;
-  url?: string;
-  photoUrl?: string;
-}
-
-export interface UpdateParcelleInput {
-  numero?: string;
-  transporteur?: string;
-  nom?: string;
-  statut?: string;
-  prixAchat?: number;
-  poids?: number;
-  prixTotal?: number;
-  prixParGramme?: number;
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
 }
 
 // ============================================================================

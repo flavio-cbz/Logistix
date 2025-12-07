@@ -22,11 +22,7 @@ export interface ApiError {
   statusCode: number;
 }
 
-<<<<<<< HEAD
 export interface ApiResponse<T = unknown> {
-=======
-export interface ApiResponse<T = any> {
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   ok: boolean;
   success: boolean;
   data?: T;

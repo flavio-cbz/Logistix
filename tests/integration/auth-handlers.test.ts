@@ -425,11 +425,7 @@ describe('Auth Handlers Integration', () => {
       
       expect(response.status).toBe(200);
       expect(json.ok).toBe(true);
-<<<<<<< HEAD
 
-=======
-      
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       // Vérifier que le cookie a été supprimé (Expires au passé ou Max-Age=0)
       const setCookieHeader = response.headers.get('set-cookie');
       expect(setCookieHeader).toBeDefined();

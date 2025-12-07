@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as fs from 'fs';
-<<<<<<< HEAD
 import * as os from 'os';
-=======
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
 import * as path from 'path';
 import type { Browser, BrowserContext, Frame, Locator, Page } from 'playwright';
 import { PNG } from 'pngjs';
@@ -31,10 +28,7 @@ const TCAPTCHA_SLIDER_BUTTON_SELECTORS = ['.tc-slider-normal', '.tc-slider-ie', 
 const TCAPTCHA_TRACK_SELECTORS = ['.tcaptcha-drag-wrap', '.tc-drag', '.tc-opera'];
 const TCAPTCHA_REFRESH_SELECTORS = ['.tc-action--refresh', '.tc-action.tc-icon'];
 const TCAPTCHA_CONTAINER_SELECTORS = ['.tc-captcha', '#tcWrap', '.tc-drag', '.tc-opera'];
-<<<<<<< HEAD
 const IS_DEBUG = (process.env['CAPTCHA_DEBUG'] === 'true') || (process.env['SUPERBUY_CAPTCHA_DEBUG'] === 'true');
-=======
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
 
 function isCredentialsPayload(payload: unknown): payload is CredentialsPayload {
   if (!payload || typeof payload !== 'object') {
@@ -54,29 +48,17 @@ async function closeResources(resources: { page?: Page | null; context?: Browser
   if (page) {
     try {
       await page.close();
-<<<<<<< HEAD
     } catch { }
-=======
-    } catch {}
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   }
   if (context) {
     try {
       await context.close();
-<<<<<<< HEAD
     } catch { }
-=======
-    } catch {}
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   }
   if (browser) {
     try {
       await browser.close();
-<<<<<<< HEAD
     } catch { }
-=======
-    } catch {}
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   }
 }
 
@@ -92,22 +74,15 @@ function isFrameLikeDetached(target: FrameLike): boolean {
 
 async function resolveCaptchaContext(page: Page): Promise<FrameLike | null> {
   const seen = new Set<FrameLike>();
-<<<<<<< HEAD
 
   // Priority 1: Check for Tencent Captcha iframe
 
-=======
-  
-  // Priority 1: Check for Tencent Captcha iframe
-  console.log('[Auth Interactive] Searching for Tencent Captcha iframe...');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   for (const selector of TCAPTCHA_IFRAME_SELECTORS) {
     try {
       const iframeElement = await page.$(selector);
       if (iframeElement) {
         const frame = await iframeElement.contentFrame();
         if (frame && !frame.isDetached()) {
-<<<<<<< HEAD
 
 
           // CRITIQUE : Attendre que l'iframe charge son contenu
@@ -130,35 +105,10 @@ async function resolveCaptchaContext(page: Page): Promise<FrameLike | null> {
               await page.waitForTimeout(3000);
               const recheckContent = await frame.locator('.tc-captcha, #tcWrap, canvas').count();
 
-=======
-          console.log(`[Auth Interactive] Found Tencent Captcha iframe via selector: ${selector}`);
-          
-          // CRITIQUE : Attendre que l'iframe charge son contenu
-          try {
-            console.log('[Auth Interactive] Waiting for iframe to load content...');
-            await frame.waitForLoadState('domcontentloaded', { timeout: 10000 });
-            console.log('[Auth Interactive] Iframe DOM content loaded');
-            
-            // Attendre que le script du captcha s'initialise
-            await page.waitForTimeout(2000);
-            
-            // Vérifier si le contenu du captcha est présent
-            const hasContent = await frame.locator('.tc-captcha, #tcWrap, canvas').count();
-            console.log(`[Auth Interactive] Iframe has ${hasContent} captcha elements`);
-            
-            if (hasContent > 0) {
-              return frame;
-            } else {
-              console.log('[Auth Interactive] Iframe found but no captcha content yet, waiting more...');
-              await page.waitForTimeout(3000);
-              const recheckContent = await frame.locator('.tc-captcha, #tcWrap, canvas').count();
-              console.log(`[Auth Interactive] After additional wait: ${recheckContent} captcha elements`);
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
               if (recheckContent > 0) {
                 return frame;
               }
             }
-<<<<<<< HEAD
           } catch {
             // Ignore initial wait error
           }
@@ -177,26 +127,6 @@ async function resolveCaptchaContext(page: Page): Promise<FrameLike | null> {
 
 
 
-=======
-          } catch (loadError) {
-            console.log('[Auth Interactive] Iframe load error:', loadError instanceof Error ? loadError.message : String(loadError));
-          }
-          
-          return frame;
-        }
-      }
-    } catch (error) {
-      console.log(`[Auth Interactive] Error checking iframe ${selector}:`, error instanceof Error ? error.message : String(error));
-    }
-  }
-  
-  // Priority 2: Check all frames for Tencent Captcha elements
-  const allFrames = page.frames().filter((frame) => !frame.isDetached());
-  const contexts: FrameLike[] = [page, ...allFrames];
-  
-  console.log(`[Auth Interactive] Checking ${contexts.length} contexts (1 page + ${allFrames.length} frames)`);
-  
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   // Look for Tencent Captcha container classes
   for (let i = 0; i < contexts.length; i += 1) {
     const context = contexts[i];
@@ -204,15 +134,9 @@ async function resolveCaptchaContext(page: Page): Promise<FrameLike | null> {
       continue;
     }
     seen.add(context);
-<<<<<<< HEAD
 
 
 
-=======
-    
-    const contextType = i === 0 ? 'page' : `frame-${i}`;
-    
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
     for (const selector of TCAPTCHA_CONTAINER_SELECTORS) {
       const locator = context.locator(selector).first();
       try {
@@ -220,7 +144,6 @@ async function resolveCaptchaContext(page: Page): Promise<FrameLike | null> {
         if (count > 0) {
           const isVisible = await locator.isVisible().catch(() => false);
           if (isVisible) {
-<<<<<<< HEAD
 
             return context;
           }
@@ -232,19 +155,6 @@ async function resolveCaptchaContext(page: Page): Promise<FrameLike | null> {
   // Priority 3: Look for canvas elements (Tencent uses canvas for puzzle)
   const canvasSelectors = TCAPTCHA_CANVAS_SELECTORS;
 
-=======
-            console.log(`[Auth Interactive] Found Tencent Captcha container in ${contextType} via selector: ${selector}`);
-            return context;
-          }
-        }
-      } catch {}
-    }
-  }
-  
-  // Priority 3: Look for canvas elements (Tencent uses canvas for puzzle)
-  const canvasSelectors = TCAPTCHA_CANVAS_SELECTORS;
-  
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   seen.clear();
   for (let i = 0; i < contexts.length; i += 1) {
     const context = contexts[i];
@@ -252,15 +162,9 @@ async function resolveCaptchaContext(page: Page): Promise<FrameLike | null> {
       continue;
     }
     seen.add(context);
-<<<<<<< HEAD
 
 
 
-=======
-    
-    const contextType = i === 0 ? 'page' : `frame-${i}`;
-    
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
     for (const selector of canvasSelectors) {
       const locator = context.locator(selector).first();
       try {
@@ -268,7 +172,6 @@ async function resolveCaptchaContext(page: Page): Promise<FrameLike | null> {
         if (count > 0) {
           const isVisible = await locator.isVisible().catch(() => false);
           if (isVisible || count >= 1) {
-<<<<<<< HEAD
 
             return context;
           }
@@ -277,26 +180,12 @@ async function resolveCaptchaContext(page: Page): Promise<FrameLike | null> {
     }
   }
 
-=======
-            console.log(`[Auth Interactive] Found captcha canvases in ${contextType} via selector: ${selector} (count: ${count})`);
-            return context;
-          }
-        }
-      } catch {}
-    }
-  }
-  
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   // Priority 4: Fallback to slider/drag elements
   const fallbackSelectors = [
     ...TCAPTCHA_SLIDER_BUTTON_SELECTORS,
     ...TCAPTCHA_TRACK_SELECTORS,
   ];
-<<<<<<< HEAD
 
-=======
-  
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   seen.clear();
   for (let i = 0; i < contexts.length; i += 1) {
     const context = contexts[i];
@@ -304,21 +193,14 @@ async function resolveCaptchaContext(page: Page): Promise<FrameLike | null> {
       continue;
     }
     seen.add(context);
-<<<<<<< HEAD
 
 
 
-=======
-    
-    const contextType = i === 0 ? 'page' : `frame-${i}`;
-    
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
     for (const selector of fallbackSelectors) {
       const locator = context.locator(selector).first();
       try {
         const count = await locator.count();
         if (count > 0 && (await locator.isVisible())) {
-<<<<<<< HEAD
 
           return context;
         }
@@ -327,16 +209,6 @@ async function resolveCaptchaContext(page: Page): Promise<FrameLike | null> {
   }
 
 
-=======
-          console.log(`[Auth Interactive] Found captcha UI in ${contextType} via selector: ${selector}`);
-          return context;
-        }
-      } catch {}
-    }
-  }
-
-  console.log('[Auth Interactive] No Tencent Captcha context found in any frame');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   return null;
 }
 
@@ -344,23 +216,15 @@ async function waitForCaptchaContext(page: Page, timeoutMs = 10000): Promise<Fra
   if (timeoutMs === 0) {
     return resolveCaptchaContext(page);
   }
-<<<<<<< HEAD
 
   const deadline = Date.now() + timeoutMs;
   let lastAttempt = 0;
 
-=======
-  
-  const deadline = Date.now() + timeoutMs;
-  let lastAttempt = 0;
-  
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   while (Date.now() < deadline) {
     const context = await resolveCaptchaContext(page);
     if (context) {
       return context;
     }
-<<<<<<< HEAD
 
     const elapsed = Date.now() - lastAttempt;
     if (elapsed > 2000) {
@@ -371,18 +235,6 @@ async function waitForCaptchaContext(page: Page, timeoutMs = 10000): Promise<Fra
     await page.waitForTimeout(300);
   }
 
-=======
-    
-    const elapsed = Date.now() - lastAttempt;
-    if (elapsed > 2000) {
-      console.log(`[Auth Interactive] Still waiting for captcha context... ${Math.round((deadline - Date.now()) / 1000)}s remaining`);
-      lastAttempt = Date.now();
-    }
-    
-    await page.waitForTimeout(300);
-  }
-  
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   return null;
 }
 
@@ -407,7 +259,6 @@ async function isCaptchaActive(context: FrameLike): Promise<boolean> {
 }
 
 async function solveGeetestCaptcha(page: Page): Promise<CaptchaSolveResult> {
-<<<<<<< HEAD
 
 
   // Give Tencent Captcha more time to appear (it loads in an iframe)
@@ -421,21 +272,6 @@ async function solveGeetestCaptcha(page: Page): Promise<CaptchaSolveResult> {
 
   // Attendre que le captcha soit visible et interactif
 
-=======
-  console.log('[Auth Interactive] Starting Tencent Captcha solver - waiting for context...');
-  
-  // Give Tencent Captcha more time to appear (it loads in an iframe)
-  let context = await waitForCaptchaContext(page, 20000);
-  if (!context) {
-    console.log('[Auth Interactive] No Tencent Captcha context detected after 20s wait');
-    return 'no-captcha';
-  }
-
-  console.log('[Auth Interactive] Tencent Captcha context found, beginning solve attempts');
-
-  // Attendre que le captcha soit visible et interactif
-  console.log('[Auth Interactive] Waiting for captcha to become interactive...');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   try {
     // Attendre les éléments visuels du captcha
     await Promise.race([
@@ -443,26 +279,16 @@ async function solveGeetestCaptcha(page: Page): Promise<CaptchaSolveResult> {
       context.waitForSelector('#tcWrap', { state: 'visible', timeout: 15000 }),
       context.waitForSelector('.tc-opera', { state: 'visible', timeout: 15000 }),
     ]);
-<<<<<<< HEAD
 
 
     // Attendre un peu pour que tout soit chargé
     await page.waitForTimeout(2000);
   } catch {
     // Captcha visibility timeout
-=======
-    console.log('[Auth Interactive] Captcha container is visible');
-    
-    // Attendre un peu pour que tout soit chargé
-    await page.waitForTimeout(2000);
-  } catch (error) {
-    console.log('[Auth Interactive] Captcha visibility timeout:', error instanceof Error ? error.message : String(error));
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   }
 
   // Save debug screenshot of captcha
   try {
-<<<<<<< HEAD
     let captchaScreenshot: string;
     let tmpDir: string | null = null;
     if (IS_DEBUG) {
@@ -479,13 +305,6 @@ async function solveGeetestCaptcha(page: Page): Promise<CaptchaSolveResult> {
     }
   } catch {
     // Failed to save captcha screenshot
-=======
-    const captchaScreenshot = path.resolve(process.cwd(), 'debug_captcha.png');
-    await page.screenshot({ path: captchaScreenshot, fullPage: false });
-    console.log('[Auth Interactive] Captcha screenshot saved to:', captchaScreenshot);
-  } catch (error) {
-    console.log('[Auth Interactive] Failed to save captcha screenshot:', error instanceof Error ? error.message : String(error));
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   }
 
   for (let attempt = 1; attempt <= 4; attempt += 1) {
@@ -494,16 +313,11 @@ async function solveGeetestCaptcha(page: Page): Promise<CaptchaSolveResult> {
     if (freshContext) {
       context = freshContext;
     } else if (!context || isFrameLikeDetached(context)) {
-<<<<<<< HEAD
 
-=======
-      console.log(`[Auth Interactive] Context lost, searching again...`);
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       context = await waitForCaptchaContext(page, 4000);
     }
 
     if (!context) {
-<<<<<<< HEAD
 
       return 'failed';
     }
@@ -517,21 +331,6 @@ async function solveGeetestCaptcha(page: Page): Promise<CaptchaSolveResult> {
       const fallbackImages = await captureGeetestImages(page);
       if (!fallbackImages) {
 
-=======
-      console.log(`[Auth Interactive] Captcha context lost before attempt ${attempt}`);
-      return 'failed';
-    }
-
-    console.log(`[Auth Interactive] Captcha attempt ${attempt}`);
-
-    const images = await captureGeetestImages(context);
-    if (!images) {
-      console.log('[Auth Interactive] Unable to capture captcha images, searching all frames...');
-      // If selected context doesn't have canvases, try page directly to trigger fallback
-      const fallbackImages = await captureGeetestImages(page);
-      if (!fallbackImages) {
-        console.log('[Auth Interactive] Fallback frame search also failed');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
         await refreshGeetest(page, context);
         await page.waitForTimeout(800);
         context = null;
@@ -539,41 +338,26 @@ async function solveGeetestCaptcha(page: Page): Promise<CaptchaSolveResult> {
       }
       // Use fallback images but keep context for UI interactions
       const { full, background } = fallbackImages;
-<<<<<<< HEAD
 
       const gapOffset = findGapOffset(full, background);
       if (gapOffset < 0) {
 
-=======
-      console.log(`[Auth Interactive] Computing gap offset for ${full.width}x${full.height} images (from fallback)`);
-      const gapOffset = findGapOffset(full, background);
-      if (gapOffset < 0) {
-        console.log('[Auth Interactive] Gap offset not detected');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
         await refreshGeetest(page, context);
         await page.waitForTimeout(800);
         context = null;
         continue;
       }
 
-<<<<<<< HEAD
 
       const dragged = await dragGeetestSlider(page, context, gapOffset, full.width);
       if (!dragged) {
 
-=======
-      console.log(`[Auth Interactive] Gap detected at x=${gapOffset}, dragging slider...`);
-      const dragged = await dragGeetestSlider(page, context, gapOffset, full.width);
-      if (!dragged) {
-        console.log('[Auth Interactive] Slider drag failed');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
         await refreshGeetest(page, context);
         await page.waitForTimeout(800);
         context = null;
         continue;
       }
 
-<<<<<<< HEAD
 
       const solved = await waitForCaptchaSolved(page, context);
       if (solved) {
@@ -582,16 +366,6 @@ async function solveGeetestCaptcha(page: Page): Promise<CaptchaSolveResult> {
       }
 
 
-=======
-      console.log('[Auth Interactive] Drag complete, checking solution...');
-      const solved = await waitForCaptchaSolved(page, context);
-      if (solved) {
-        console.log('[Auth Interactive] Captcha solved automatically');
-        return 'solved';
-      }
-
-      console.log('[Auth Interactive] Solution check failed, refreshing...');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       await refreshGeetest(page, context);
       await page.waitForTimeout(1000);
       context = null;
@@ -599,41 +373,26 @@ async function solveGeetestCaptcha(page: Page): Promise<CaptchaSolveResult> {
     }
 
     const { full, background } = images;
-<<<<<<< HEAD
 
     const gapOffset = findGapOffset(full, background);
     if (gapOffset < 0) {
 
-=======
-    console.log(`[Auth Interactive] Computing gap offset for ${full.width}x${full.height} images`);
-    const gapOffset = findGapOffset(full, background);
-    if (gapOffset < 0) {
-      console.log('[Auth Interactive] Gap offset not detected');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       await refreshGeetest(page, context);
       await page.waitForTimeout(800);
       context = null;
       continue;
     }
 
-<<<<<<< HEAD
 
     const dragged = await dragGeetestSlider(page, context, gapOffset, full.width);
     if (!dragged) {
 
-=======
-    console.log(`[Auth Interactive] Gap detected at x=${gapOffset}, dragging slider...`);
-    const dragged = await dragGeetestSlider(page, context, gapOffset, full.width);
-    if (!dragged) {
-      console.log('[Auth Interactive] Slider drag failed');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       await refreshGeetest(page, context);
       await page.waitForTimeout(800);
       context = null;
       continue;
     }
 
-<<<<<<< HEAD
 
     const solved = await waitForCaptchaSolved(page, context);
     if (solved) {
@@ -642,32 +401,17 @@ async function solveGeetestCaptcha(page: Page): Promise<CaptchaSolveResult> {
     }
 
 
-=======
-    console.log('[Auth Interactive] Drag complete, checking solution...');
-    const solved = await waitForCaptchaSolved(page, context);
-    if (solved) {
-      console.log('[Auth Interactive] Captcha solved automatically');
-      return 'solved';
-    }
-
-    console.log('[Auth Interactive] Solution check failed, refreshing...');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
     await refreshGeetest(page, context);
     await page.waitForTimeout(1000);
     context = null;
   }
 
-<<<<<<< HEAD
 
-=======
-  console.log('[Auth Interactive] All solve attempts exhausted');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   return 'failed';
 }
 
 async function captureGeetestImages(context: FrameLike): Promise<{ background: PNG; full: PNG } | null> {
   // Pour Tencent Captcha, il faut attendre que le contenu de l'iframe soit chargé
-<<<<<<< HEAD
 
 
   // Attendre que le captcha soit complètement initialisé
@@ -678,34 +422,17 @@ async function captureGeetestImages(context: FrameLike): Promise<{ background: P
     // Iframe load state timeout
   }
 
-=======
-  console.log('[Auth Interactive] Waiting for captcha content to load in iframe...');
-  
-  // Attendre que le captcha soit complètement initialisé
-  try {
-    await context.waitForLoadState('domcontentloaded', { timeout: 10000 });
-    console.log('[Auth Interactive] Iframe DOM loaded');
-  } catch (error) {
-    console.log('[Auth Interactive] Iframe load state timeout:', error instanceof Error ? error.message : String(error));
-  }
-  
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   // Attendre explicitement les éléments du captcha Tencent
   let canvasFound = false;
   for (let attempt = 0; attempt < 10; attempt += 1) {
     const canvasCount = await context.locator('canvas').count();
     if (canvasCount > 0) {
-<<<<<<< HEAD
 
-=======
-      console.log(`[Auth Interactive] Found ${canvasCount} canvas elements after ${attempt * 500}ms`);
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       canvasFound = true;
       break;
     }
     await context.waitForTimeout(500);
   }
-<<<<<<< HEAD
 
   if (!canvasFound) {
 
@@ -737,37 +464,6 @@ async function captureGeetestImages(context: FrameLike): Promise<{ background: P
 
       const allFrames = (context as Page).frames().filter((f) => !f.isDetached());
 
-=======
-  
-  if (!canvasFound) {
-    console.log('[Auth Interactive] No canvas found after waiting 5 seconds');
-    // Essayer de voir si d'autres éléments du captcha sont présents
-    try {
-      const sliderCount = await context.locator('.tc-slider-normal, .tc-slider-ie, .tcaptcha-drag-el').count();
-      const containerCount = await context.locator('.tc-captcha, #tcWrap, .tc-drag').count();
-      console.log(`[Auth Interactive] Debug - sliders: ${sliderCount}, containers: ${containerCount}`);
-      
-      // Dump du HTML de l'iframe pour debug
-      const iframeHTML = await context.content().catch(() => '');
-      if (iframeHTML) {
-        const iframeHtmlPath = path.resolve(process.cwd(), 'debug_captcha_iframe.html');
-        fs.writeFileSync(iframeHtmlPath, iframeHTML);
-        console.log('[Auth Interactive] Iframe HTML saved to:', iframeHtmlPath);
-      }
-    } catch {}
-  }
-  
-  try {
-    await context.waitForSelector('canvas', { timeout: 5000 });
-  } catch (error) {
-    console.log('[Auth Interactive] Canvas wait timeout in selected context:', error instanceof Error ? error.message : String(error));
-    
-    // Try to find canvases in a different frame if this is a Page
-    if ('frames' in context && typeof context.frames === 'function') {
-      console.log('[Auth Interactive] Searching for canvases in all frames...');
-      const allFrames = (context as Page).frames().filter((f) => !f.isDetached());
-      
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       for (let i = 0; i < allFrames.length; i += 1) {
         const frame = allFrames[i];
         if (!frame) {
@@ -776,32 +472,19 @@ async function captureGeetestImages(context: FrameLike): Promise<{ background: P
         try {
           const canvasCount = await frame.locator('canvas').count();
           if (canvasCount >= 2) {
-<<<<<<< HEAD
 
             context = frame;
             break;
           }
         } catch { }
-=======
-            console.log(`[Auth Interactive] Found ${canvasCount} canvases in frame-${i}, using that instead`);
-            context = frame;
-            break;
-          }
-        } catch {}
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       }
     }
   }
 
   const canvases = context.locator('canvas');
   const count = await canvases.count();
-<<<<<<< HEAD
 
 
-=======
-  console.log(`[Auth Interactive] Found ${count} canvas elements`);
-  
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   if (count < 1) {
     return null;
   }
@@ -811,21 +494,13 @@ async function captureGeetestImages(context: FrameLike): Promise<{ background: P
     const locator = canvases.nth(index);
     try {
       await locator.scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => undefined);
-<<<<<<< HEAD
 
       let className = '';
-=======
-      
-      let className = '';
-      let width = 0;
-      let height = 0;
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       try {
         const attrs = await locator.evaluate((node) => {
           const canvas = node as HTMLCanvasElement;
           return {
             className: canvas.className ?? '',
-<<<<<<< HEAD
           };
         });
         className = attrs.className;
@@ -847,33 +522,6 @@ async function captureGeetestImages(context: FrameLike): Promise<{ background: P
 
 
 
-=======
-            width: canvas.width,
-            height: canvas.height,
-          };
-        });
-        className = attrs.className;
-        width = attrs.width;
-        height = attrs.height;
-      } catch {}
-
-      const buffer = await locator.screenshot({ type: 'png' });
-      if (buffer.length === 0) {
-        console.log(`[Auth Interactive] Canvas ${index} screenshot empty`);
-        continue;
-      }
-      
-      const png = PNG.sync.read(buffer);
-      console.log(`[Auth Interactive] Canvas ${index}: class="${className}", size=${png.width}x${png.height}, original=${width}x${height}`);
-      decoded.push({ className, png, width: png.width, height: png.height });
-    } catch (error) {
-      console.log(`[Auth Interactive] Canvas ${index} screenshot error:`, error instanceof Error ? error.message : String(error));
-    }
-  }
-
-  console.log(`[Auth Interactive] Decoded ${decoded.length} canvas images`);
-  
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   if (decoded.length < 2) {
     return null;
   }
@@ -884,7 +532,6 @@ async function captureGeetestImages(context: FrameLike): Promise<{ background: P
   const fullEntry = decoded.length > 1 ? decoded[1] : decoded[0];
 
   if (!backgroundEntry || !fullEntry) {
-<<<<<<< HEAD
 
     return null;
   }
@@ -894,17 +541,6 @@ async function captureGeetestImages(context: FrameLike): Promise<{ background: P
   const { background, full } = alignPngDimensions(fullEntry.png, backgroundEntry.png);
   if (background.width === 0 || background.height === 0) {
 
-=======
-    console.log('[Auth Interactive] Could not identify background/full canvas pair');
-    return null;
-  }
-
-  console.log(`[Auth Interactive] Using background: ${backgroundEntry.width}x${backgroundEntry.height}, full: ${fullEntry.width}x${fullEntry.height}`);
-
-  const { background, full } = alignPngDimensions(fullEntry.png, backgroundEntry.png);
-  if (background.width === 0 || background.height === 0) {
-    console.log('[Auth Interactive] Aligned dimensions are zero');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
     return null;
   }
 
@@ -985,11 +621,7 @@ async function dragGeetestSlider(page: Page, context: FrameLike, gapOffset: numb
   const track = await locateFirstVisible(context, TCAPTCHA_TRACK_SELECTORS);
 
   if (!sliderButton || !track) {
-<<<<<<< HEAD
 
-=======
-    console.log('[Auth Interactive] Slider button or track not found');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
     return false;
   }
 
@@ -1020,11 +652,7 @@ async function locateFirstVisible(target: FrameLike, selectors: readonly string[
       if ((await locator.count()) > 0 && (await locator.isVisible())) {
         return locator;
       }
-<<<<<<< HEAD
     } catch { }
-=======
-    } catch {}
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   }
   return null;
 }
@@ -1082,39 +710,22 @@ async function waitForCaptchaSolved(page: Page, context: FrameLike): Promise<boo
   try {
     // Tencent Captcha success indicators
     await context.waitForSelector('.tc-success, .tc-success-icon, .tc-success-text', { timeout: 4000 });
-<<<<<<< HEAD
 
     return true;
   } catch {
     // No success indicator found
     if (isFrameLikeDetached(context)) {
 
-=======
-    console.log('[Auth Interactive] Captcha success indicator found');
-    return true;
-  } catch (error) {
-    console.log('[Auth Interactive] No success indicator found:', error instanceof Error ? error.message : String(error));
-    if (isFrameLikeDetached(context)) {
-      console.log('[Auth Interactive] Context detached, assuming solved');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       return true;
     }
     try {
       const stillActive = await isCaptchaActive(context);
       if (!stillActive) {
-<<<<<<< HEAD
 
         const newContext = await resolveCaptchaContext(page);
         return !newContext;
       }
     } catch { }
-=======
-        console.log('[Auth Interactive] Captcha no longer active, checking if new one appeared');
-        const newContext = await resolveCaptchaContext(page);
-        return !newContext;
-      }
-    } catch {}
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   }
 
   return false;
@@ -1124,7 +735,6 @@ async function refreshGeetest(page: Page, context: FrameLike): Promise<void> {
   try {
     const refreshButton = await locateFirstVisible(context, TCAPTCHA_REFRESH_SELECTORS);
     if (refreshButton) {
-<<<<<<< HEAD
 
       await refreshButton.click({ delay: 100 });
     } else {
@@ -1132,15 +742,6 @@ async function refreshGeetest(page: Page, context: FrameLike): Promise<void> {
     }
   } catch {
     // Error clicking refresh
-=======
-      console.log('[Auth Interactive] Clicking refresh button');
-      await refreshButton.click({ delay: 100 });
-    } else {
-      console.log('[Auth Interactive] Refresh button not found');
-    }
-  } catch (error) {
-    console.log('[Auth Interactive] Error clicking refresh:', error instanceof Error ? error.message : String(error));
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   }
 
   await page.waitForTimeout(1200);
@@ -1159,20 +760,14 @@ async function handleHeadlessLogin(payload: CredentialsPayload): Promise<NextRes
   const shutdown = async () => closeResources({ page, context, browser });
 
   try {
-<<<<<<< HEAD
     const loginUrl = 'https://www.superbuy.com/en/page/login/';
 
-=======
-  const loginUrl = 'https://www.superbuy.com/en/page/login/';
-  console.log('[Auth Interactive] Navigating to:', loginUrl);
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
     await page.goto(loginUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     await page.waitForSelector('input[type="text"], input[type="email"]', { timeout: 10000 });
     await page.fill('input[type="text"], input[type="email"]', payload.username);
     await page.fill('input[type="password"]', payload.password);
 
-<<<<<<< HEAD
     let screenshotPath: string;
     let tmpDirLogin: string | null = null;
     if (IS_DEBUG) {
@@ -1196,49 +791,24 @@ async function handleHeadlessLogin(payload: CredentialsPayload): Promise<NextRes
         fs.writeFileSync(htmlPath, htmlContent);
 
       }
-=======
-    const screenshotPath = path.resolve(process.cwd(), 'debug_login.png');
-    await page.screenshot({ path: screenshotPath, fullPage: true }).catch(() => {});
-    console.log('[Auth Interactive] Screenshot saved to:', screenshotPath);
-
-    // Also save page HTML for debugging
-    const htmlPath = path.resolve(process.cwd(), 'debug_login.html');
-    const htmlContent = await page.content().catch(() => '');
-    if (htmlContent) {
-      fs.writeFileSync(htmlPath, htmlContent);
-      console.log('[Auth Interactive] HTML saved to:', htmlPath);
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
     }
 
     await page.waitForTimeout(1000);
     const signInButton = page.locator('button:has-text("Sign In")').first();
     const buttonVisible = await signInButton.isVisible().catch(() => false);
     if (buttonVisible) {
-<<<<<<< HEAD
 
       await signInButton.click();
     } else {
 
-=======
-      console.log('[Auth Interactive] Clicking Sign In button');
-      await signInButton.click();
-    } else {
-      console.log('[Auth Interactive] Sign In button not visible, pressing Enter');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       await page.keyboard.press('Enter');
     }
 
     // CRITIQUE : Le captcha Tencent n'apparaît QU'APRÈS le clic sur Sign In
     // Il faut attendre plus longtemps pour que le captcha se charge
-<<<<<<< HEAD
 
     await page.waitForTimeout(10000);
 
-=======
-    console.log('[Auth Interactive] Waiting for captcha to load after login attempt (10s)...');
-    await page.waitForTimeout(10000);
-    console.log('[Auth Interactive] URL after attempt:', page.url());
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
 
     let redirected = false;
     let errorText: string | null = null;
@@ -1247,11 +817,7 @@ async function handleHeadlessLogin(payload: CredentialsPayload): Promise<NextRes
     if (errorMsgLocator) {
       errorText = (await errorMsgLocator.textContent())?.trim() ?? null;
       if (errorText) {
-<<<<<<< HEAD
 
-=======
-        console.log('[Auth Interactive] Login error message:', errorText);
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       }
     }
 
@@ -1261,29 +827,17 @@ async function handleHeadlessLogin(payload: CredentialsPayload): Promise<NextRes
         page.waitForSelector('[data-user], .user-menu, .account-menu', { timeout: 30000 }),
       ]);
       redirected = true;
-<<<<<<< HEAD
     } catch {
       // Initial wait error
-=======
-    } catch (initialWaitError) {
-      console.log('[Auth Interactive] Initial redirect not detected', initialWaitError);
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
     }
 
     let captchaResult: CaptchaSolveResult = 'no-captcha';
     if (!redirected) {
       // Le captcha Tencent se charge APRÈS le clic sur Sign In, pas besoin d'attendre ici
-<<<<<<< HEAD
 
 
       captchaResult = await solveGeetestCaptcha(page);
 
-=======
-      console.log('[Auth Interactive] Checking for Tencent Captcha...');
-      
-      captchaResult = await solveGeetestCaptcha(page);
-      console.log('[Auth Interactive] Captcha result:', captchaResult);
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       if (captchaResult === 'solved') {
         try {
           await Promise.race([
@@ -1291,13 +845,8 @@ async function handleHeadlessLogin(payload: CredentialsPayload): Promise<NextRes
             page.waitForSelector('[data-user], .user-menu, .account-menu', { timeout: 20000 }),
           ]);
           redirected = true;
-<<<<<<< HEAD
         } catch {
           // After captcha error
-=======
-        } catch (afterCaptchaError) {
-          console.log('[Auth Interactive] Still no redirect after captcha', afterCaptchaError);
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
         }
       }
     }
@@ -1337,24 +886,14 @@ async function handleHeadlessLogin(payload: CredentialsPayload): Promise<NextRes
       const json = JSON.parse(raw);
       json.timestamp = new Date().toISOString();
       fs.writeFileSync(targetPath, JSON.stringify(json, null, 2));
-<<<<<<< HEAD
     } catch {
       // Ignore timestamp write error
-=======
-    } catch (timestampError) {
-      console.log('[Auth Interactive] Timestamp write error:', timestampError);
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
     }
 
     await shutdown();
     return NextResponse.json({ started: true, mode: 'headless', captcha: captchaResult === 'solved' ? 'solved' : 'not-required' });
   } catch (error) {
-<<<<<<< HEAD
     await shutdown();
-=======
-  await shutdown();
-  console.error('[Auth Interactive] Headless login failed:', error);
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
     return NextResponse.json(
       {
         started: false,
@@ -1374,15 +913,9 @@ export async function POST(req: NextRequest) {
     let payload: unknown = null;
     try {
       payload = await req.json().catch(() => null);
-<<<<<<< HEAD
     } catch { }
 
 
-=======
-    } catch {}
-
-  console.log('[Auth Interactive] Payload received:', payload ? 'present' : 'empty');
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
 
     const isProd = process.env['NODE_ENV'] === 'production';
     const allowHeadful = process.env['ALLOW_HEADFUL'] === 'true' || !isProd;
@@ -1411,15 +944,7 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   } catch (error) {
-<<<<<<< HEAD
     // Unexpected error
     return NextResponse.json({ started: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
-=======
-  console.error('[Auth Interactive] Unexpected error:', error);
-    return NextResponse.json({ started: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
-  }
-}
-
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94

@@ -10,7 +10,6 @@ import { toast } from "sonner"
 import { useCreateProduct, useUpdateProduct, useDeleteProduct, useProducts } from "@/lib/hooks/use-products"
 import { useParcelles } from "@/lib/hooks/use-parcelles"
 import { Product, ProductStatus, Platform } from "@/lib/shared/types/entities"
-<<<<<<< HEAD
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import ProductCreateForm from "./product-create-form"
 import { ProductSaleDialog } from "./product-sale-dialog"
@@ -20,15 +19,6 @@ import {
   calculateProductProfit,
   type ProductWithLegacyFields
 } from "@/lib/utils/product-field-normalizers"
-=======
-
-import { useCreateProduct, useUpdateProduct, useDeleteProduct, useProducts } from "@/lib/hooks/use-products";
-import { useParcelles } from "@/lib/hooks/use-parcelles";
-import {
-  calculateProductProfit,
-  type ProductWithLegacyFields
-} from "@/lib/utils/product-field-normalizers";
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
 
 
 interface ProduitsListProps {
@@ -504,14 +494,7 @@ export default function ProduitsList({ onUpdate }: ProduitsListProps) {
                         />
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           {parcelle && (
-<<<<<<< HEAD
                             <span title={`Parcelle: ${parcelle.nom}`}>📦 {parcelle.numero}</span>
-=======
-                            <>
-                              <span>•</span>
-                              <span title={`Parcelle: ${parcelle.nom}`}>📦 {parcelle.numero}</span>
-                            </>
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
                           )}
                         </div>
                       </div>

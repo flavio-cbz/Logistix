@@ -11,11 +11,7 @@ export async function GET(request: NextRequest) {
     // Récupération du cookie de session
     const cookieName = process.env['COOKIE_NAME'] || 'logistix_session';
     const sessionId = request.cookies.get(cookieName)?.value;
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
     if (!sessionId) {
       return NextResponse.json(
         {
@@ -26,16 +22,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-<<<<<<< HEAD
     // Validation basique du format UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(sessionId)) {
-=======
-    // Validation UUID puis database
-    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId);
-    
-    if (!isValidUUID) {
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       return NextResponse.json(
         {
           success: false,

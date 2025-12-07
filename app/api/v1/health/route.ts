@@ -38,11 +38,7 @@ export async function GET(): Promise<NextResponse> {
         tablesCount: status?.tablesCount,
         context: status?.context,
       };
-<<<<<<< HEAD
     } catch (_err) {
-=======
-    } catch (err) {
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
       dbStatus = { status: 'unhealthy' };
     }
 
