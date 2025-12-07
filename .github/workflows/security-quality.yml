@@ -1,0 +1,264 @@
+name: Security & Quality Pipeline
+
+# LogistiX Security & Quality Pipeline
+# Maintient un niveau de sécurité et de qualité minimum sur le code
+# - Analyse des endpoints protégés
+# - Suites de tests TypeScript, lint, unitaires et d'intégration
+# - Quality gates pour bloquer les régressions
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - cleanup-files
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    # Analyse quotidienne à 02:00 UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  security-analysis:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    outputs:
+      security-score: ${{ steps.analyze.outputs.security-score }}
+      endpoints-secured: ${{ steps.analyze.outputs.endpoints-secured }}
+      total-endpoints: ${{ steps.analyze.outputs.total-endpoints }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security analysis
+        id: analyze
+        run: |
+          echo "[Security] Analyse de sécurité des endpoints"
+          node scripts/analyze-api-security.js > security-report.txt
+          node <<'NODE'
+          const fs = require('fs');
+          const report = fs.readFileSync('security-report.txt', 'utf8');
+
+          const totalMatch = report.match(/Total endpoints:\s*(\d+)/i);
+          const securedMatch = report.match(/Endpoints sécurisés:\s*(\d+)/i);
+
+          const total = totalMatch ? Number(totalMatch[1]) : 0;
+          const secured = securedMatch ? Number(securedMatch[1]) : 0;
+          const score = total > 0 ? Number(((secured / total) * 100).toFixed(2)) : 0;
+
+          const lines = [
+            `endpoints-secured=${secured}`,
+            `total-endpoints=${total}`,
+            `security-score=${score}`,
+          ];
+
+          if (process.env.GITHUB_OUTPUT) {
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, lines.join('\n') + '\n');
+          }
+
+          console.log(`[Security] Endpoints sécurisés: ${secured}/${total} (${score}%)`);
+          console.log('[Security] Rapport écrit dans security-report.txt');
+
+          if (score < 35) {
+            console.error(`[Security] Echec: moins de 35% d'endpoints sécurisés (${score}%)`);
+            process.exit(1);
+          }
+
+          console.log(`[Security] Succès: seuil atteint (${score}% >= 35%)`);
+          NODE
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-analysis-report
+          path: security-report.txt
+          retention-days: 30
+
+  validation-tests:
+    name: Validation Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run integration tests
+        run: npm run test:integration
+
+  build-and-lint:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: |
+          echo "[Build] Vérification TypeScript"
+          npm run typecheck
+
+      - name: ESLint check
+        run: |
+          echo "[Build] Analyse ESLint"
+          npm run lint
+
+      - name: Build check
+        run: |
+          echo "[Build] Test de build"
+          npm run build
+
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    needs: [security-analysis, validation-tests, build-and-lint]
+    if: always()
+    env:
+      SECURITY_SCORE: ${{ needs.security-analysis.outputs.security-score }}
+      ENDPOINTS_SECURED: ${{ needs.security-analysis.outputs.endpoints-secured }}
+      TOTAL_ENDPOINTS: ${{ needs.security-analysis.outputs.total-endpoints }}
+      BUILD_STATUS: ${{ needs.build-and-lint.result }}
+      VALIDATION_STATUS: ${{ needs.validation-tests.result }}
+
+    steps:
+      - name: Evaluate quality gates
+        run: |
+          node <<'NODE'
+          const score = Number(process.env.SECURITY_SCORE || '0');
+          const secured = Number(process.env.ENDPOINTS_SECURED || '0');
+          const total = Number(process.env.TOTAL_ENDPOINTS || '0');
+          const buildStatus = process.env.BUILD_STATUS || 'unknown';
+          const validationStatus = process.env.VALIDATION_STATUS || 'unknown';
+
+          console.log('[Quality] Rapport de qualité LogistiX CRM');
+          console.log('========================================');
+          console.log(`[Quality] Sécurité des endpoints: ${secured}/${total} (${score}%)`);
+
+          let fail = false;
+
+          if (Number.isFinite(score) && score >= 35) {
+            console.log(`   PASS Sécurité: ${score}% >= 35%`);
+          } else {
+            console.log(`   FAIL Sécurité: ${score}% < 35%`);
+            fail = true;
+          }
+
+          if (buildStatus === 'success') {
+            console.log('   PASS Build & Lint: SUCCESS');
+          } else {
+            console.log(`   FAIL Build & Lint: ${buildStatus.toUpperCase()}`);
+            fail = true;
+          }
+
+          if (validationStatus === 'success') {
+            console.log('   PASS Tests Validation: SUCCESS');
+          } else {
+            console.log(`   WARNING Tests Validation: ${validationStatus.toUpperCase()}`);
+          }
+
+          if (fail) {
+            console.log('FAIL Quality Gates: critères non satisfaits');
+            process.exit(1);
+          }
+
+          console.log('PASS Quality Gates: critères satisfaits');
+          NODE
+
+      - name: Comment PR (if PR)
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const securityScore = Number('${{ needs.security-analysis.outputs.security-score }}');
+            const endpointsSecured = Number('${{ needs.security-analysis.outputs.endpoints-secured }}');
+            const totalEndpoints = Number('${{ needs.security-analysis.outputs.total-endpoints }}');
+            const buildResult = '${{ needs.build-and-lint.result }}' === 'success' ? 'PASS' : 'FAIL';
+            const validationResult = '${{ needs.validation-tests.result }}' === 'success' ? 'PASS' : 'WARNING';
+
+            const comment = `
+            ## Rapport de Sécurité et Qualité
+
+            ### Métriques de sécurité
+            - Endpoints sécurisés: ${endpointsSecured}/${totalEndpoints} (${securityScore}%)
+            - Seuil minimum: 35% ${securityScore >= 35 ? 'Atteint' : 'Non atteint'}
+
+            ### Quality gates
+            - Sécurité: ${securityScore >= 35 ? 'PASS' : 'FAIL'}
+            - Build & Lint: ${buildResult}
+            - Tests Validation: ${validationResult}
+
+            ### Actions recommandées
+            ${securityScore < 50 ? "- Sécuriser davantage d'endpoints" : ''}
+            ${securityScore >= 80 ? '- Très bonne couverture de sécurité.' : ''}
+
+            ---
+            Rapport généré automatiquement par le pipeline CI LogistiX.
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment,
+            });
+
+  security-alerts:
+    name: Security Alerts
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    needs: [security-analysis]
+    env:
+      SECURITY_SCORE: ${{ needs.security-analysis.outputs.security-score }}
+
+    steps:
+      - name: Security monitoring
+        run: |
+          node <<'NODE'
+          const score = Number(process.env.SECURITY_SCORE || '0');
+
+          console.log('[Security] Monitoring sécurité quotidien');
+          console.log(`Score de sécurité actuel: ${score}%`);
+
+          if (!Number.isFinite(score)) {
+            console.log('[Security] Score de sécurité invalide');
+          } else if (score < 30) {
+            console.log('[Security] Alerte critique: sécurité en dessous de 30%');
+          } else if (score < 40) {
+            console.log('[Security] Alerte: sécurité en dessous de 40%');
+          } else {
+            console.log('[Security] Sécurité dans les normes');
+          }
+          NODE

@@ -1,0 +1,284 @@
+<<<<<<< HEAD
+name: PR Security Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    types: [ opened, synchronize, reopened ]
+
+jobs:
+  pr-security-check:
+    name: PR Security Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Analyze Changed Files
+        id: analyze-changes
+        run: |
+          echo "🔍 Analyse des fichiers modifiés..."
+          
+          # Obtenir la liste des fichiers modifiés
+          git diff --name-only ${{ github.event.pull_request.base.sha }}..HEAD > changed-files.txt
+          
+          # Vérifier si des endpoints API ont été modifiés
+          API_CHANGES=$(grep -E "app/api/.*route\.(ts|js)$" changed-files.txt || echo "")
+          
+          if [ -n "$API_CHANGES" ]; then
+            echo "api-changes=true" >> $GITHUB_OUTPUT
+            echo "📝 Endpoints API modifiés détectés:"
+            echo "$API_CHANGES"
+          else
+            echo "api-changes=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ Aucun endpoint API modifié"
+          fi
+          
+      - name: Validate API Security (if API changes)
+        if: steps.analyze-changes.outputs.api-changes == 'true'
+        run: |
+          echo "🔒 Validation de la sécurité des endpoints modifiés..."
+          
+          # Analyser la sécurité actuelle
+          node scripts/analyze-api-security.js > current-security.txt
+          
+          node <<'NODE'
+          const fs = require('fs');
+          const report = fs.readFileSync('current-security.txt', 'utf8');
+          const match = report.match(/Pourcentage sécurisé:\s*([\d.]+)/i);
+          const score = match ? Number(match[1]) : NaN;
+
+          if (!Number.isFinite(score)) {
+            console.error('❌ Impossible de déterminer le score de sécurité.');
+            process.exit(1);
+          }
+
+          console.log(`📊 Score de sécurité actuel: ${score}%`);
+
+          if (score < 35) {
+            console.error('❌ ÉCHEC: Le PR fait régresser la sécurité en dessous de 35%');
+            console.error('💡 Veuillez sécuriser les nouveaux endpoints avec validation Zod');
+            process.exit(1);
+          }
+
+          console.log('✅ Sécurité maintenue ou améliorée');
+          NODE
+          
+      - name: Test Zod Schemas (if API changes)
+        if: steps.analyze-changes.outputs.api-changes == 'true'
+        run: |
+          echo "🧪 Tests de validation via Vitest..."
+          npm run test:unit
+          
+      - name: Security Summary Comment
+        if: steps.analyze-changes.outputs.api-changes == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Lire le rapport de sécurité
+            let securityReport = '';
+            try {
+              securityReport = fs.readFileSync('current-security.txt', 'utf8');
+            } catch (error) {
+              securityReport = 'Rapport non disponible';
+            }
+            
+            // Extraire les métriques
+            const securedMatch = securityReport.match(/Endpoints sécurisés: (\d+)/);
+            const totalMatch = securityReport.match(/Total endpoints: (\d+)/);
+            const percentageMatch = securityReport.match(/Pourcentage sécurisé: ([\d.]+)%/);
+            
+            const secured = securedMatch ? Number(securedMatch[1]) : 'N/A';
+            const total = totalMatch ? Number(totalMatch[1]) : 'N/A';
+            const percentage = percentageMatch ? Number(percentageMatch[1]) : 'N/A';
+            
+            const comment = `
+            ## 🔐 Analyse de Sécurité du PR
+            
+            ### 📊 État Actuel de la Sécurisation
+            - **Endpoints sécurisés:** ${secured}/${total}
+            - **Pourcentage:** ${percentage}%
+            - **Seuil minimum:** 35% ${percentage !== 'N/A' && percentage >= 35 ? '✅' : '❌'}
+            
+            ### 🔍 Fichiers API Modifiés
+            Ce PR modifie des endpoints API. La sécurité a été automatiquement vérifiée.
+            
+            ### 📝 Checklist de Sécurité
+            ${percentage !== 'N/A' && percentage >= 35 ? '- ✅ Seuil de sécurité respecté' : '- ❌ Seuil de sécurité non respecté'}
+            - ${percentage !== 'N/A' && percentage > 50 ? '✅' : '⚠️'} Couverture de sécurisation ${percentage !== 'N/A' && percentage > 50 ? 'satisfaisante' : 'à améliorer'}
+            
+            ### 💡 Recommandations
+            ${percentage !== 'N/A' && percentage < 40 ? '- ⚠️ Considérer l\'ajout de validation Zod aux nouveaux endpoints\n- 📚 Consulter `lib/schemas/index.ts` pour les schémas existants\n- 🔧 Utiliser `lib/middleware/validation.ts` pour l\'intégration' : '- 🎉 Bonne pratique de sécurisation maintenue !'}
+            
+            ---
+            *Analyse automatique par le système de sécurité LogistiX*
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+            
+      - name: PR Security Status
+        run: |
+          echo "✅ VALIDATION PR TERMINÉE"
+          echo "🔐 Les critères de sécurité sont respectés"
+=======
+name: PR Security Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    types: [ opened, synchronize, reopened ]
+
+jobs:
+  pr-security-check:
+    name: PR Security Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Analyze Changed Files
+        id: analyze-changes
+        run: |
+          echo "🔍 Analyse des fichiers modifiés..."
+          
+          # Obtenir la liste des fichiers modifiés
+          git diff --name-only ${{ github.event.pull_request.base.sha }}..HEAD > changed-files.txt
+          
+          # Vérifier si des endpoints API ont été modifiés
+          API_CHANGES=$(grep -E "app/api/.*route\.(ts|js)$" changed-files.txt || echo "")
+          
+          if [ -n "$API_CHANGES" ]; then
+            echo "api-changes=true" >> $GITHUB_OUTPUT
+            echo "📝 Endpoints API modifiés détectés:"
+            echo "$API_CHANGES"
+          else
+            echo "api-changes=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ Aucun endpoint API modifié"
+          fi
+          
+      - name: Validate API Security (if API changes)
+        if: steps.analyze-changes.outputs.api-changes == 'true'
+        run: |
+          echo "🔒 Validation de la sécurité des endpoints modifiés..."
+          
+          # Analyser la sécurité actuelle
+          node scripts/analyze-api-security.js > current-security.txt
+          
+          node <<'NODE'
+          const fs = require('fs');
+          const report = fs.readFileSync('current-security.txt', 'utf8');
+          const match = report.match(/Pourcentage sécurisé:\s*([\d.]+)/i);
+          const score = match ? Number(match[1]) : NaN;
+
+          if (!Number.isFinite(score)) {
+            console.error('❌ Impossible de déterminer le score de sécurité.');
+            process.exit(1);
+          }
+
+          console.log(`📊 Score de sécurité actuel: ${score}%`);
+
+          if (score < 35) {
+            console.error('❌ ÉCHEC: Le PR fait régresser la sécurité en dessous de 35%');
+            console.error('💡 Veuillez sécuriser les nouveaux endpoints avec validation Zod');
+            process.exit(1);
+          }
+
+          console.log('✅ Sécurité maintenue ou améliorée');
+          NODE
+          
+      - name: Test Zod Schemas (if API changes)
+        if: steps.analyze-changes.outputs.api-changes == 'true'
+        run: |
+          echo "🧪 Tests de validation via Vitest..."
+          npm run test:unit
+          
+      - name: Security Summary Comment
+        if: steps.analyze-changes.outputs.api-changes == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Lire le rapport de sécurité
+            let securityReport = '';
+            try {
+              securityReport = fs.readFileSync('current-security.txt', 'utf8');
+            } catch (error) {
+              securityReport = 'Rapport non disponible';
+            }
+            
+            // Extraire les métriques
+            const securedMatch = securityReport.match(/Endpoints sécurisés: (\d+)/);
+            const totalMatch = securityReport.match(/Total endpoints: (\d+)/);
+            const percentageMatch = securityReport.match(/Pourcentage sécurisé: ([\d.]+)%/);
+            
+            const secured = securedMatch ? Number(securedMatch[1]) : 'N/A';
+            const total = totalMatch ? Number(totalMatch[1]) : 'N/A';
+            const percentage = percentageMatch ? Number(percentageMatch[1]) : 'N/A';
+            
+            const comment = `
+            ## 🔐 Analyse de Sécurité du PR
+            
+            ### 📊 État Actuel de la Sécurisation
+            - **Endpoints sécurisés:** ${secured}/${total}
+            - **Pourcentage:** ${percentage}%
+            - **Seuil minimum:** 35% ${percentage !== 'N/A' && percentage >= 35 ? '✅' : '❌'}
+            
+            ### 🔍 Fichiers API Modifiés
+            Ce PR modifie des endpoints API. La sécurité a été automatiquement vérifiée.
+            
+            ### 📝 Checklist de Sécurité
+            ${percentage !== 'N/A' && percentage >= 35 ? '- ✅ Seuil de sécurité respecté' : '- ❌ Seuil de sécurité non respecté'}
+            - ${percentage !== 'N/A' && percentage > 50 ? '✅' : '⚠️'} Couverture de sécurisation ${percentage !== 'N/A' && percentage > 50 ? 'satisfaisante' : 'à améliorer'}
+            
+            ### 💡 Recommandations
+            ${percentage !== 'N/A' && percentage < 40 ? '- ⚠️ Considérer l\'ajout de validation Zod aux nouveaux endpoints\n- 📚 Consulter `lib/schemas/index.ts` pour les schémas existants\n- 🔧 Utiliser `lib/middleware/validation.ts` pour l\'intégration' : '- 🎉 Bonne pratique de sécurisation maintenue !'}
+            
+            ---
+            *Analyse automatique par le système de sécurité LogistiX*
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+            
+      - name: PR Security Status
+        run: |
+          echo "✅ VALIDATION PR TERMINÉE"
+          echo "🔐 Les critères de sécurité sont respectés"
+>>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
+          echo "💡 Le PR peut être mergé du point de vue sécurité"

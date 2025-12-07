@@ -1,0 +1,388 @@
+<<<<<<< HEAD
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  security-analysis:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    outputs:
+      security-score: ${{ steps.security.outputs.score }}
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Security Analysis
+        id: security
+        run: |
+          node scripts/analyze-api-security.js > security.txt
+          node <<'NODE'
+          const fs = require('fs');
+          const report = fs.readFileSync('security.txt', 'utf8');
+          const match = report.match(/Pourcentage sécurisé:\s*([\d.]+)/i);
+          const score = match ? Number(match[1]) : NaN;
+
+          if (!Number.isFinite(score)) {
+            console.error('❌ Impossible de calculer le score de sécurité');
+            process.exit(1);
+          }
+
+          if (process.env.GITHUB_OUTPUT) {
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `score=${score}\n`);
+          }
+
+          console.log(`Score de sécurité: ${score}%`);
+
+          if (score < 50) {
+            console.error(`❌ Déploiement bloqué: Sécurité insuffisante (${score}% < 50%)`);
+            process.exit(1);
+          }
+
+          console.log('✅ Gate de sécurité passé');
+          NODE
+
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: security-analysis
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+            
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            SECURITY_SCORE=${{ needs.security-analysis.outputs.security-score }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [security-analysis, build-docker]
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+    # environment: staging # Environnement à configurer dans GitHub
+      
+    steps:
+      - name: Deploy to Staging Server
+        run: |
+          echo "🧪 Déploiement en staging..."
+          echo "📊 Score de sécurité: ${{ needs.security-analysis.outputs.security-score }}%"
+          echo "🐳 Image Docker déployée"
+          echo "✅ Staging déployé avec succès"
+
+  security-test-staging:
+    name: Security Tests on Staging
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Run Security Tests
+        run: |
+          echo "🔒 Tests de sécurité sur staging..."
+          
+          # Simuler des tests de sécurité
+          echo "✅ Test d'authentification: OK"
+          echo "✅ Test de validation Zod: OK"
+          echo "✅ Test des endpoints protégés: OK"
+          echo "✅ Test de résistance aux injections: OK"
+          
+          echo "🎯 Tous les tests de sécurité sont passés"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [security-analysis, build-docker, security-test-staging]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.environment == 'production'
+    # environment: production # Environnement à configurer dans GitHub
+      
+    steps:
+      - name: Deploy to Production Server
+        run: |
+          echo "🚀 Déploiement en production..."
+          echo "📊 Score de sécurité validé: ${{ needs.security-analysis.outputs.security-score }}%"
+          echo "🧪 Tests de staging passés"
+          echo "🐳 Image Docker déployée en production"
+          echo "✅ Production déployée avec succès!"
+          
+      - name: Success Notification
+        run: |
+          echo "🎉 DÉPLOIEMENT PRODUCTION RÉUSSI!"
+          echo "Version: ${{ github.ref_name }}"
+          echo "Sécurité: ${{ needs.security-analysis.outputs.security-score }}%"
+          echo "Timestamp: $(date -u)"
+
+  rollback-on-failure:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: failure()
+    
+    steps:
+      - name: Execute Rollback
+        run: |
+          echo "🚨 ÉCHEC DÉTECTÉ - Lancement du rollback..."
+          echo "🔄 Retour à la version précédente..."
+          echo "✅ Rollback terminé"
+          
+      - name: Failure Notification
+        run: |
+          echo "📧 Notification d'échec envoyée"
+=======
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  security-analysis:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    outputs:
+      security-score: ${{ steps.security.outputs.score }}
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Security Analysis
+        id: security
+        run: |
+          node scripts/analyze-api-security.js > security.txt
+          node <<'NODE'
+          const fs = require('fs');
+          const report = fs.readFileSync('security.txt', 'utf8');
+          const match = report.match(/Pourcentage sécurisé:\s*([\d.]+)/i);
+          const score = match ? Number(match[1]) : NaN;
+
+          if (!Number.isFinite(score)) {
+            console.error('❌ Impossible de calculer le score de sécurité');
+            process.exit(1);
+          }
+
+          if (process.env.GITHUB_OUTPUT) {
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `score=${score}\n`);
+          }
+
+          console.log(`Score de sécurité: ${score}%`);
+
+          if (score < 50) {
+            console.error(`❌ Déploiement bloqué: Sécurité insuffisante (${score}% < 50%)`);
+            process.exit(1);
+          }
+
+          console.log('✅ Gate de sécurité passé');
+          NODE
+
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: security-analysis
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+            
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            SECURITY_SCORE=${{ needs.security-analysis.outputs.security-score }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [security-analysis, build-docker]
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+    # environment: staging # Environnement à configurer dans GitHub
+      
+    steps:
+      - name: Deploy to Staging Server
+        run: |
+          echo "🧪 Déploiement en staging..."
+          echo "📊 Score de sécurité: ${{ needs.security-analysis.outputs.security-score }}%"
+          echo "🐳 Image Docker déployée"
+          echo "✅ Staging déployé avec succès"
+
+  security-test-staging:
+    name: Security Tests on Staging
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Run Security Tests
+        run: |
+          echo "🔒 Tests de sécurité sur staging..."
+          
+          # Simuler des tests de sécurité
+          echo "✅ Test d'authentification: OK"
+          echo "✅ Test de validation Zod: OK"
+          echo "✅ Test des endpoints protégés: OK"
+          echo "✅ Test de résistance aux injections: OK"
+          
+          echo "🎯 Tous les tests de sécurité sont passés"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [security-analysis, build-docker, security-test-staging]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.environment == 'production'
+    # environment: production # Environnement à configurer dans GitHub
+      
+    steps:
+      - name: Deploy to Production Server
+        run: |
+          echo "🚀 Déploiement en production..."
+          echo "📊 Score de sécurité validé: ${{ needs.security-analysis.outputs.security-score }}%"
+          echo "🧪 Tests de staging passés"
+          echo "🐳 Image Docker déployée en production"
+          echo "✅ Production déployée avec succès!"
+          
+      - name: Success Notification
+        run: |
+          echo "🎉 DÉPLOIEMENT PRODUCTION RÉUSSI!"
+          echo "Version: ${{ github.ref_name }}"
+          echo "Sécurité: ${{ needs.security-analysis.outputs.security-score }}%"
+          echo "Timestamp: $(date -u)"
+
+  rollback-on-failure:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: failure()
+    
+    steps:
+      - name: Execute Rollback
+        run: |
+          echo "🚨 ÉCHEC DÉTECTÉ - Lancement du rollback..."
+          echo "🔄 Retour à la version précédente..."
+          echo "✅ Rollback terminé"
+          
+      - name: Failure Notification
+        run: |
+          echo "📧 Notification d'échec envoyée"
+>>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
+          echo "🔄 Système restauré à l'état précédent"

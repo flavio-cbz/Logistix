@@ -1,0 +1,154 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# logs and cache
+logs/*
+.jest-cache/
+test-results/
+coverage/
+
+# database
+data/logistix.db
+data/logistix.db-shm
+data/logistix.db-wal
+data/captcha-dataset/
+
+# IDE settings
+kilo-code-settings.json
+
+# Additional temporary files and cache
+node_modules/
+dist/
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+logs/*.log
+
+# Test results and coverage
+test-results/
+coverage/
+reports/
+*.lcov
+junit.xml
+test-report.html
+
+# Cache directories
+.cache/
+.vite/
+.turbo/
+.swc/
+.parcel-cache/
+
+# Build artifacts
+build/
+out/
+dist/
+
+# Backup files
+*.backup
+*-backup-*/
+cleanup-backup-*/
+
+# Python cache (for scripts)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Editor and IDE files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.kilo-settings.json
+.kilocode/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Package manager files
+package-lock.json.backup
+yarn.lock.backup
+pnpm-lock.yaml.backup
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variable files
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# Temporary folders
+tmp/
+temp/
+<<<<<<< HEAD
+=======
+.kiro/
+>>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
+.venv/

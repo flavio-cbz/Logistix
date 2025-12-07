@@ -1,0 +1,215 @@
+{
+  "cookies": [
+    {
+      "name": "_nhp",
+      "value": "1",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "lang",
+      "value": "en-us",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": 1795262188,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "loginInWebsite",
+      "value": "en",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": 1766318188,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "client",
+      "value": "1",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": 1766318188,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "cf_clearance",
+      "value": "kfab_GPNDYLihQSNGdxkp5QPLqwnjmpMjZFDAHYeVGQ-1763726189-1.2.1.1-.9mEDlr5MzobsSq4K4iXBJ9ct1suz0G1hDUGrZOVARTjXMi3Q94MCxWLgKhSMpZ7OY0L.zz1LGqdWLBJlzqMCEGfmVxZ2na1PlHF_276ivnJcGqPeZ6IfH.VKyTOqEakI3PvUv3aIE.Ls.RZEnmwLt8eE4gz1sCHUgRRR3MS3TgHQJTi.ZMAVAYzBV8VLAVih3Xc8r4DsjEp6_ptEjANwYZuSm_H.ZP8jdu4bT0Bgbw",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": 1795262189.791597,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None",
+      "partitionKey": "https://superbuy.com",
+      "_crHasCrossSiteAncestor": false
+    },
+    {
+      "name": "_rdt_uuid",
+      "value": "1763726189810.f125d06a-3731-4da4-8b50-2dc4d83bbf60",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": 1771502189,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "currency",
+      "value": "USD",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": 1764330990,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_ga",
+      "value": "GA1.2.1827655446.1763726191",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": 1798286190.551415,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "g_state",
+      "value": "{\"i_l\":0,\"i_ll\":1763726190683,\"i_b\":\"v1O1ndNGSvrQpWPVSaPJF4nnEAlzSLz6gHD+yhCXjGM\"}",
+      "domain": "www.superbuy.com",
+      "path": "/",
+      "expires": 1779278190,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_fbp",
+      "value": "fb.1.1763726190759.250809129283311107",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": 1771502190,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "marker_id_660383f3ca30f8d3213f4634",
+      "value": "4a3a3962-f038-454a-aa46-3a7e12d591d6",
+      "domain": "www.superbuy.com",
+      "path": "/",
+      "expires": 1787054193,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "intercom-id-hz9epbqr",
+      "value": "d389d9d4-60b5-4e31-8c00-677906a9e2ed",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": 1787056194,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "intercom-session-hz9epbqr",
+      "value": "",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": 1764330994,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "intercom-device-id-hz9epbqr",
+      "value": "2ba4d45b-e80d-4053-9227-751159c826fe",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": 1787056194,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "__cf_bm",
+      "value": "2zMMtj5sX9mO5xVM_DNk7JIKCm.fLOre8CN6kAssX7M-1763726268.5952177-1.0.1.1-bdFm5U1giHOW7U4.brhF0cN12D8oP8SUrVq7B0NoJm_LKVpAZVpq_ve136EbwAXvp5UacpUo9plj6YrHRqdv2l5k0orGH47Lhj4HBSH.EpU2zFXyXHY3QQrHY9XtfOE6",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": 1763728068.496344,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_ga_Z0L2RZJYRN",
+      "value": "GS2.2.s1763726190$o1$g1$t1763726270$j60$l0$h0",
+      "domain": ".superbuy.com",
+      "path": "/",
+      "expires": 1798286270.708219,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://www.superbuy.com",
+      "localStorage": [
+        {
+          "name": "cookiesUserRule",
+          "value": "1"
+        },
+        {
+          "name": "lastExternalReferrerTime",
+          "value": "1763726190740"
+        },
+        {
+          "name": "captcha_webworker_supported",
+          "value": "1"
+        },
+        {
+          "name": "mrkrui",
+          "value": "{\"hasSeenIntroductionTip\":false}"
+        },
+        {
+          "name": "topicsLastReferenceTime",
+          "value": "1763726190776"
+        },
+        {
+          "name": "lastExternalReferrer",
+          "value": "empty"
+        },
+        {
+          "name": "mrkrui:custom-url-param",
+          "value": ""
+        },
+        {
+          "name": "intercom.intercom-state-hz9epbqr",
+          "value": "{\"app\":{\"openConfig\":{\"unifiedStyling\":true,\"openTo\":\"home\",\"spaces\":[{\"type\":\"home\",\"label\":\"Home\",\"navigationLabel\":\"Home\",\"badge\":null},{\"type\":\"messages\",\"label\":\"Messages\",\"navigationLabel\":\"Messages\",\"badge\":null},{\"type\":\"tickets\",\"label\":\"Tickets\",\"navigationLabel\":\"Tickets\",\"badge\":null}],\"userHasReceivedChecklists\":false,\"userHasLiveNewsfeed\":false,\"userHasTickets\":false},\"selfServeSuggestionsMatch\":false,\"name\":\"Superbuy\",\"features\":{\"anonymousInboundMessages\":true,\"googleAnalytics\":false,\"hubspotInstalled\":false,\"inboundMessages\":true,\"marketoEnrichmentInstalled\":false,\"googleAnalytics4Integration\":true},\"helpCenterSiteUrl\":\"https://intercom.help/staritgp\",\"inboundConversationsDisabled\":false,\"isDeveloperWorkspace\":false,\"customGoogleAnalyticsTrackerId\":null},\"launcher\":{\"isLauncherEnabled\":true},\"launcherDiscoveryMode\":{\"hasDiscoveredLauncher\":true},\"launcherSettings\":{\"alignment\":\"right\",\"color\":\"#1a9dff\",\"colorDark\":\"#1a9dff\",\"hasRequiredFeatures\":true,\"horizontalPadding\":25,\"instantBootEnabled\":true,\"launcherLogoUrl\":null,\"launcherLogoDarkUrl\":null,\"secondaryColor\":\"#0083ef\",\"secondaryColorDark\":\"#0083ef\",\"showLauncher\":true,\"themeMode\":\"system\",\"updatedAt\":1763709489,\"verticalPadding\":25,\"isLoading\":false,\"colorLight\":\"#0083EF\",\"secondaryColorLight\":\"#0083ef\",\"launcherLogoLightUrl\":\"https://downloads.intercomcdn.com/i/o/hz9epbqr/709987/085a387df0be4e43a1b0ef84de4b/e1e96219645d2c0658973305cfc640ec.png\"},\"user\":{\"role\":\"visitor\",\"locale\":\"en\",\"hasConversations\":false},\"message\":{},\"conversations\":{\"byId\":{}},\"openOnBoot\":{\"type\":null,\"metadata\":{},\"lastOpenAtTimestamp\":1763726269825},\"operator\":{\"lastComposerEvent\":0},\"router\":{\"isInitialized\":false,\"navigationQueue\":[]}}"
+        }
+      ]
+    },
+    {
+      "origin": "https://turing.captcha.gtimg.com",
+      "localStorage": [
+        {
+          "name": "TDC_itoken",
+          "value": "1749712067:1763726197"
+        }
+      ]
+    }
+  ],
+  "timestamp": "2025-11-21T11:57:52.285Z"
+}
