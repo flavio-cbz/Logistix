@@ -58,8 +58,8 @@ import { useParcelles } from "@/lib/hooks/use-parcelles";
 import {
   calculateProductMetrics,
   getMissingSoldFields,
-  formatWeight,
 } from "@/lib/utils/product-calculations";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 import { ProductMetricsDisplay } from "./product-metrics-display";
 import { ParcelleSelect } from "./parcelle-select";
 
@@ -79,6 +79,7 @@ function ProductCreateFormRefactored({
   editProduct,
 }: ProductCreateFormProps) {
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const { formatWeight, getCurrencySymbol } = useFormatting();
 
 
   const isEditMode = !!editProduct;
@@ -470,7 +471,7 @@ function ProductCreateFormRefactored({
                             min="0"
                           />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                            €
+                            {getCurrencySymbol()}
                           </span>
                         </div>
                       </FormControl>
@@ -670,7 +671,7 @@ function ProductCreateFormRefactored({
                               min="0"
                             />
                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                              €
+                              {getCurrencySymbol()}
                             </span>
                           </div>
                         </FormControl>

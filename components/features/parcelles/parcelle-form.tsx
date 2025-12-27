@@ -33,6 +33,7 @@ import {
   useUpdateParcelle,
 } from "@/lib/hooks/use-parcelles";
 import { transformParcelleApiToFormData } from "@/lib/transformers/parcelle-transformer";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 
 const formSchema = createParcelleSchema;
@@ -61,6 +62,7 @@ export default function ParcelleForm({
   const [internalOpen, setInternalOpen] = useState(false);
   const createParcelleMutation = useCreateParcelle();
   const updateParcelleMutation = useUpdateParcelle();
+  const { getCurrencySymbol, formatCurrency } = useFormatting();
 
 
   // Transform parcelle data for form if editing
@@ -382,14 +384,14 @@ export default function ParcelleForm({
                           min="0"
                         />
                         <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
-                          €
+                          {getCurrencySymbol()}
                         </span>
                       </div>
                     </FormControl>
                     <FormMessage />
                     {field.value > 0 && form.watch("poids") > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        Prix/g: {(field.value / form.watch("poids")).toFixed(3)} €
+                        Prix/g: {formatCurrency(field.value / form.watch("poids"))}/g
                       </p>
                     )}
                   </FormItem>

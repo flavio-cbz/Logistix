@@ -20,10 +20,12 @@ import { Badge } from "@/components/ui/badge";
 import { MetricCard, AlertCard, QuickAction } from "@/components/features/dashboard/metric-cards";
 import { InteractiveChart, ChartGrid } from "@/components/features/dashboard/interactive-charts";
 import { useOptimizedDashboard, useRealTimeAlerts } from "@/lib/hooks/useDashboardData";
-import { cn, formatCurrency, formatPercentage } from "@/lib/shared/utils";
+import { cn, formatPercentage } from "@/lib/shared/utils";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 export default function RevolutionaryDashboard() {
   const router = useRouter();
+  const { formatCurrency } = useFormatting();
   const {
     data,
     loading,
@@ -285,7 +287,7 @@ export default function RevolutionaryDashboard() {
                     <div className="space-y-1">
                       <p className="font-medium">{produit.nom}</p>
                       <p className="text-sm text-muted-foreground">
-                        {produit.ventesCount} unités • {produit.ventesRevenue.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })} CA • {produit.benefices}€ bénéfices
+                        {produit.ventesCount} unités • {formatCurrency(produit.ventesRevenue)} CA • {formatCurrency(produit.benefices)} bénéfices
                       </p>
                     </div>
                     <Badge variant={produit.stock < 5 ? "destructive" : "secondary"}>
@@ -305,11 +307,11 @@ export default function RevolutionaryDashboard() {
               <div className="grid gap-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Panier Moyen</span>
-                  <span className="text-xl font-bold">{data.panierMoyen}€</span>
+                  <span className="text-xl font-bold">{formatCurrency(data.panierMoyen)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Bénéfices Totaux</span>
-                  <span className="text-xl font-bold">{data.beneficesTotaux.toLocaleString()}€</span>
+                  <span className="text-xl font-bold">{formatCurrency(data.beneficesTotaux)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Colis Actifs</span>
@@ -323,7 +325,7 @@ export default function RevolutionaryDashboard() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Valeur Stock</span>
-                      <span className="text-xl font-bold">{data.rotationStock.valeurStockTotal.toLocaleString()}€</span>
+                      <span className="text-xl font-bold">{formatCurrency(data.rotationStock.valeurStockTotal)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Âge Moyen</span>
@@ -371,7 +373,7 @@ export default function RevolutionaryDashboard() {
                         </span>
                         <span className="text-muted-foreground">•</span>
                         <span className="text-muted-foreground">
-                          Coût: {parcelle.coutTotal.toLocaleString()}€
+                          Coût: {formatCurrency(parcelle.coutTotal)}
                         </span>
                       </div>
                     </div>
@@ -390,7 +392,7 @@ export default function RevolutionaryDashboard() {
                       <div className="text-right">
                         <p className="text-sm text-muted-foreground">Bénéfices</p>
                         <p className="text-xl font-bold text-green-600">
-                          +{parcelle.benefices.toLocaleString()}€
+                          +{formatCurrency(parcelle.benefices)}
                         </p>
                       </div>
                     </div>

@@ -29,7 +29,8 @@ import {
   PieChart as PieChartIcon,
   Maximize2
 } from "lucide-react";
-import { cn, formatNumber, formatCurrency } from "@/lib/shared/utils";
+import { cn, formatNumber } from "@/lib/shared/utils";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -72,6 +73,7 @@ export function InteractiveChart({
   gradient = true
 }: InteractiveChartProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const { formatCurrency } = useFormatting();
 
   const filteredData = useMemo(() => data || [], [data]);
 

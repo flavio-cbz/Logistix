@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, RefreshCw, Trash2, Eye, EyeOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 interface IntegrationStatus {
   connected: boolean;
@@ -24,6 +25,7 @@ export function SuperbuyConnect() {
   const [syncing, setSyncing] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
+  const { formatDateTime } = useFormatting();
 
   // Fetch current integration status on mount
   const fetchStatus = useCallback(async () => {
@@ -127,17 +129,6 @@ export function SuperbuyConnect() {
     });
   };
 
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   if (checkingStatus) {
     return (
       <Card>
@@ -184,13 +175,13 @@ export function SuperbuyConnect() {
               {status.lastSyncAt && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Dernière synchronisation</span>
-                  <span className="text-sm">{formatDate(status.lastSyncAt)}</span>
+                  <span className="text-sm">{formatDateTime(status.lastSyncAt)}</span>
                 </div>
               )}
               {status.configuredAt && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Configuré le</span>
-                  <span className="text-sm">{formatDate(status.configuredAt)}</span>
+                  <span className="text-sm">{formatDateTime(status.configuredAt)}</span>
                 </div>
               )}
             </div>

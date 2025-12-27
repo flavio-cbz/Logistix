@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import {
   Package,
   RefreshCw,
@@ -9,14 +9,17 @@ import {
   Truck,
   CheckCircle2,
   Edit,
-  Trash2
+  Trash2,
+  Copy
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { EditableCell } from "@/components/ui/editable-cell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import ParcelleForm from "@/components/features/parcelles/parcelle-form";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { toast } from "sonner";
-import { useParcelles, useDeleteParcelle, useUpdateParcelle } from "@/lib/hooks/use-parcelles";
+import { useParcelles, useDeleteParcelle, useUpdateParcelle, useCreateParcelle } from "@/lib/hooks/use-parcelles";
 import type { Parcelle } from "@/lib/types/entities";
 import {
   Table,
@@ -27,19 +30,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 
-// Options pour le statut
-const statutOptions: SelectOption[] = [
-  { value: "En attente", label: "En attente" },
-  { value: "En transit", label: "En transit" },
-  { value: "Livré", label: "Livré" },
-  { value: "Retourné", label: "Retourné" },
-  { value: "Perdu", label: "Perdu" },
-];
+
+
+
+
 
 export default function ParcellesPage() {
   const { data: parcelles, isLoading, isError, error, refetch } = useParcelles();
+  const { formatDate, formatWeight, formatCurrency } = useFormatting();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editParcelle, setEditParcelle] = useState<Parcelle | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -49,80 +50,84 @@ export default function ParcellesPage() {
 
   const deleteMutation = useDeleteParcelle();
   const updateMutation = useUpdateParcelle();
+  const createMutation = useCreateParcelle();
+
+
 
   const parcellesList = useMemo(() => parcelles || [], [parcelles]);
 
-  type SortKey =
-    | "numero"
-    | "nom"
-    | "transporteur"
-    | "statut"
-    | "poids"
-    | "prixAchat"
-    | "prixParGramme"
-    | "createdAt";
 
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-
-  const onSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDirection("asc");
+  const handleInlineUpdate = async (id: string, field: string, value: any) => {
+    try {
+      // Find the parcelle to get other required fields if necessary, 
+      // but assuming patch allows partial or the transformer handles it.
+      // We pass the field as part of the data object.
+      await updateMutation.mutateAsync({
+        id,
+        data: { [field]: value }
+      });
+      toast.success("Mise à jour réussie");
+    } catch (error) {
+      console.error("Update error:", error);
+      toast.error("Erreur lors de la mise à jour");
     }
   };
 
-  const sortedParcelles = useMemo(() => {
-    if (!sortKey) return parcellesList;
-    const dir = sortDirection === "asc" ? 1 : -1;
-    const list = [...parcellesList];
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
 
-    const compare = (a: Parcelle, b: Parcelle): number => {
-      const nullLast = (va: unknown, vb: unknown) => {
-        const aNull = va === null || va === undefined || va === "";
-        const bNull = vb === null || vb === undefined || vb === "";
-        if (aNull && bNull) return 0;
-        if (aNull) return 1; // null/empty always last
-        if (bNull) return -1;
-        return null;
-      };
+    setBulkActionLoading(true);
+    try {
+      const promises = Array.from(selectedIds).map(id => deleteMutation.mutateAsync(id));
+      await Promise.all(promises);
 
-      switch (sortKey) {
-        case "numero":
-        case "nom":
-        case "transporteur":
-        case "statut": {
-          const pre = nullLast(a[sortKey], b[sortKey]);
-          if (pre !== null) return pre * dir;
-          const sa = String(a[sortKey] ?? "");
-          const sb = String(b[sortKey] ?? "");
-          return sa.localeCompare(sb, "fr", { sensitivity: "base" }) * dir;
-        }
-        case "poids":
-        case "prixAchat":
-        case "prixParGramme": {
-          const pre = nullLast(a[sortKey] as number | null, b[sortKey] as number | null);
-          if (pre !== null) return pre * dir;
-          const na = Number(a[sortKey] ?? 0);
-          const nb = Number(b[sortKey] ?? 0);
-          return (na - nb) * dir;
-        }
-        case "createdAt": {
-          const pre = nullLast(a.createdAt, b.createdAt);
-          if (pre !== null) return pre * dir;
-          const ta = new Date(a.createdAt as string).getTime();
-          const tb = new Date(b.createdAt as string).getTime();
-          return (ta - tb) * dir;
-        }
-        default:
-          return 0;
-      }
-    };
+      toast.success(`${selectedIds.size} parcelles supprimées`);
+      setSelectedIds(new Set());
+      setBulkDeleteOpen(false);
+    } catch (error) {
+      console.error("Bulk delete error:", error);
+      toast.error("Erreur lors de la suppression groupée");
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
 
-    return list.sort(compare);
-  }, [parcellesList, sortKey, sortDirection]);
+  const handleBulkDuplicate = async () => {
+    if (selectedIds.size === 0) return;
+
+    setBulkActionLoading(true);
+    try {
+      const promises = Array.from(selectedIds).map(async (id) => {
+        const parcelle = parcellesList.find(p => p.id === id);
+        if (!parcelle) return;
+
+        // Remove id, createdAt, updatedAt and append " (Copie)" to nom
+        const newParcelleData = {
+          ...parcelle,
+          nom: `${parcelle.nom} (Copie)`,
+          id: undefined,
+          createdAt: undefined,
+          updatedAt: undefined
+        };
+
+        // We need to cast or transform to CreateParcelleFormData. 
+        // Ideally we should use a proper transformer, but for now passing as is 
+        // might work if the API accepts it, or we rely on the form data types.
+        // Let's assume the basic fields are compatible.
+        await createMutation.mutateAsync(newParcelleData as any);
+      });
+
+      await Promise.all(promises);
+      toast.success(`${selectedIds.size} parcelles dupliquées`);
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error("Bulk duplicate error:", error);
+      toast.error("Erreur lors de la duplication");
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
 
   // Calculer les statistiques avec normalisation des statuts
   const stats = useMemo(() => {
@@ -132,26 +137,6 @@ export default function ParcellesPage() {
     const enAttente = parcellesList.filter(p => p.statut === "En attente").length;
     return { total, enTransit, livrees, enAttente };
   }, [parcellesList]);
-
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    });
-  };
-
-  const formatWeight = (grams: number | null) => {
-    if (!grams) return "N/A";
-    const kg = grams / 1000;
-    return `${kg.toFixed(2)} kg`;
-  };
-
-  const formatPricePerGram = (price: number | null) => {
-    if (!price) return "N/A";
-    return `${price.toFixed(2)} €/g`;
-  };
 
   const getStatutBadge = (statut: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
@@ -180,9 +165,9 @@ export default function ParcellesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => refetch()}
             disabled={isLoading}
           >
@@ -358,14 +343,14 @@ export default function ParcellesPage() {
                           min={0}
                           step={0.01}
                           onSave={(val) => handleInlineUpdate(parcelle.id, "prixAchat", val)}
-                          formatter={(val) => val ? `${Number(val).toFixed(2)} €` : "N/A"}
+                          formatter={(val) => val ? `${formatCurrency(Number(val))}` : "N/A"}
                         />
                       </TableCell>
                       <TableCell>
-                        {formatPricePerGram(parcelle.prixParGramme)}
+                        {formatCurrency(parcelle.prixParGramme)}/g
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {formatDate(parcelle.createdAt)}
+                        {formatDate(parcelle.createdAt) || "N/A"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -442,6 +427,6 @@ export default function ParcellesPage() {
         title={`Supprimer ${selectedIds.size} parcelle${selectedIds.size > 1 ? 's' : ''}`}
         description="Êtes-vous sûr de vouloir supprimer les parcelles sélectionnées ? Cette action est irréversible."
       />
-    </div>
+    </div >
   );
 }

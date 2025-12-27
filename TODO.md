@@ -21,35 +21,6 @@
 - [ ] Développer le parsing intelligent des requêtes Vinted avec analyse sémantique
 - [ ] Intégrer les données de marché Vinted dans les analyses de prix historiques
 
-### Superbuy (Achats Automatisés)
-
-- [ ] Étudier et documenter l'API Superbuy (endpoints, authentification, rate limits)
-- [ ] Développer le service d'authentification Superbuy avec gestion des tokens
-- [ ] Créer le connecteur API Superbuy pour récupérer les commandes et produits
-- [ ] Implémenter la synchronisation automatique des nouvelles commandes Superbuy
-- [ ] Développer le mapping automatique des données Superbuy vers le modèle LogistiX
-- [ ] Ajouter la validation et nettoyage des données importées depuis Superbuy
-- [ ] Créer l'interface utilisateur pour configurer l'intégration Superbuy
-- [ ] Implémenter la gestion des erreurs et retry automatique pour l'API Superbuy
-- [ ] Développer les webhooks Superbuy pour les mises à jour en temps réel
-- [ ] Ajouter la déduplication automatique des produits déjà importés
-- [ ] Créer les scripts de synchronisation initiale pour l'historique Superbuy
-- [ ] Implémenter le monitoring et alertes pour l'intégration Superbuy
-- [ ] Développer les rapports d'import avec statistiques et erreurs
-- [ ] Ajouter la configuration des catégories et tags automatiques selon les données Superbuy
-- [ ] Créer les tests d'intégration pour valider l'import automatique Superbuy
-
-### Architecture Backend Superbuy
-
-- [ ] Créer le modèle de données pour stocker les configurations d'intégration Superbuy
-- [ ] Développer le service de cache pour les réponses API Superbuy (éviter les appels répétés)
-- [ ] Implémenter le système de queue pour traiter les imports Superbuy en arrière-plan
-- [ ] Ajouter les migrations de base de données pour les tables liées à Superbuy
-- [ ] Créer les endpoints API internes pour gérer l'intégration Superbuy
-- [ ] Développer le service de transformation des devises (yuan → euro) avec taux actualisés
-- [ ] Implémenter la gestion des statuts de commandes Superbuy (en transit, livré, etc.)
-- [ ] Ajouter la réconciliation automatique entre commandes Superbuy et parcelles LogistiX
-
 ### Sources Multiples d'Analyses (Extension)
 
 #### 🔥 PRIORITAIRES (7 plateformes clés)

@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { cn } from "@/lib/shared/utils";
 import type { StatistiquesData } from "@/lib/hooks/useStatistiques";
 import { Package } from "lucide-react";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 interface ParcellesTabProps {
     data: StatistiquesData;
@@ -11,6 +12,7 @@ interface ParcellesTabProps {
 
 export function ParcellesTab({ data }: ParcellesTabProps) {
     const d = data;
+    const { formatCurrency, formatWeight } = useFormatting();
 
     return (
         <div className="space-y-6">
@@ -38,11 +40,11 @@ export function ParcellesTab({ data }: ParcellesTabProps) {
                                         </span>
                                         <span className="text-muted-foreground">•</span>
                                         <span className="text-muted-foreground">
-                                            Coût: {parcelle.coutTotal.toLocaleString()}€
+                                            Coût: {formatCurrency(parcelle.coutTotal)}
                                         </span>
                                         <span className="text-muted-foreground">•</span>
                                         <span className="text-muted-foreground">
-                                            Poids: {parcelle.poidsTotal.toLocaleString()}g
+                                            Poids: {formatWeight(parcelle.poidsTotal)}
                                         </span>
                                     </div>
                                 </div>
@@ -61,7 +63,7 @@ export function ParcellesTab({ data }: ParcellesTabProps) {
                                     <div className="text-right">
                                         <p className="text-sm text-muted-foreground">Bénéfices</p>
                                         <p className="text-xl font-bold text-green-600">
-                                            +{parcelle.beneficesTotal.toLocaleString()}€
+                                            +{formatCurrency(parcelle.beneficesTotal)}
                                         </p>
                                     </div>
                                 </div>

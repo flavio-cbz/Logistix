@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 interface UserProfile {
   id: string;
@@ -57,6 +58,7 @@ export function ProfileClientWrapper({
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState<Partial<UserProfile>>({});
   const [saving, setSaving] = useState(false);
+  const { formatDate } = useFormatting();
 
 
   useEffect(() => {
@@ -101,14 +103,6 @@ export function ProfileClientWrapper({
         bio: profile.bio || "",
       });
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("fr-FR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
   };
 
   if (loading || !profile) {
@@ -302,14 +296,14 @@ export function ProfileClientWrapper({
             <div className="flex items-center space-x-2">
               <Calendar className="h-4 w-4" />
               <span>
-                Créé le {formatDate(userData.created_at || userData.createdAt)}
+                Créé le {formatDate(userData.created_at || userData.createdAt) || "Non disponible"}
               </span>
             </div>
             <div className="flex items-center space-x-2">
               <Calendar className="h-4 w-4" />
               <span>
                 Modifié le{" "}
-                {formatDate(userData.updated_at || userData.lastLoginAt)}
+                {formatDate(userData.updated_at || userData.lastLoginAt) || "Non disponible"}
               </span>
             </div>
           </div>

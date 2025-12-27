@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "next-themes";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Card,
     CardContent,
@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SuperbuyConnect } from "./superbuy-connect";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 // Types
 interface ProfileData {
@@ -77,6 +78,7 @@ interface SettingsData {
         weightUnit: string;
         dateFormat: string;
         autoExchangeRate: boolean;
+        manualExchangeRate?: number;
     };
 }
 
@@ -91,6 +93,16 @@ export function AccountSettingsClient({
 }: AccountSettingsClientProps) {
     // Theme hook for visual application
     const { setTheme } = useTheme();
+    const { formatDateTime } = useFormatting();
+
+    // Hydration fix - only render tabs after client mount
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Tab state - controlled mode to fix navigation issue
+    const [activeTab, setActiveTab] = useState("profile");
 
     // Profile state
     const [profile, setProfile] = useState<ProfileData>(initialProfileData);
@@ -140,17 +152,6 @@ export function AccountSettingsClient({
         } catch {
             return fallback;
         }
-    };
-
-    const formatDate = (dateString: string | null) => {
-        if (!dateString) return "Non disponible";
-        return new Date(dateString).toLocaleDateString("fr-FR", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
     };
 
     // Profile handlers
@@ -328,9 +329,19 @@ export function AccountSettingsClient({
 
     const hasProfileChanges = editedUsername !== profile.username || editedAvatar !== (profile.avatar || "");
 
+    // Prevent hydration mismatch - show skeleton until client-side mounted
+    if (!mounted) {
+        return (
+            <div className="space-y-6">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-96 w-full" />
+            </div>
+        );
+    }
+
     return (
         <>
-            <Tabs defaultValue="profile" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-5 mb-6">
                     <TabsTrigger value="profile" className="flex items-center gap-2" data-testid="tab-profile">
                         <User className="h-4 w-4" />
@@ -355,424 +366,448 @@ export function AccountSettingsClient({
                 </TabsList>
 
                 {/* Profile Tab */}
-                <TabsContent value="profile" className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <User className="h-5 w-5 text-primary" />
-                                Informations du profil
-                            </CardTitle>
-                            <CardDescription>
-                                Modifiez votre nom d'utilisateur et votre avatar
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {/* Avatar Section */}
-                            <div className="flex items-center gap-6">
-                                <Avatar className="h-20 w-20">
-                                    <AvatarImage src={editedAvatar || undefined} alt={profile.username} />
-                                    <AvatarFallback className="text-2xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground">
-                                        {profile.username.slice(0, 2).toUpperCase()}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 space-y-2">
-                                    <Label htmlFor="avatar-url" className="flex items-center gap-2">
-                                        <Camera className="h-4 w-4" />
-                                        URL de l'avatar
+                {activeTab === "profile" && (
+                    <div className="space-y-6 mt-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <User className="h-5 w-5 text-primary" />
+                                    Informations du profil
+                                </CardTitle>
+                                <CardDescription>
+                                    Modifiez votre nom d'utilisateur et votre avatar
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {/* Avatar Section */}
+                                <div className="flex items-center gap-6">
+                                    <Avatar className="h-20 w-20">
+                                        <AvatarImage src={editedAvatar || undefined} alt={profile.username} />
+                                        <AvatarFallback className="text-2xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground">
+                                            {profile.username.slice(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 space-y-2">
+                                        <Label htmlFor="avatar-url" className="flex items-center gap-2">
+                                            <Camera className="h-4 w-4" />
+                                            URL de l'avatar
+                                        </Label>
+                                        <Input
+                                            id="avatar-url"
+                                            type="url"
+                                            value={editedAvatar}
+                                            onChange={(e) => setEditedAvatar(e.target.value)}
+                                            placeholder="https://exemple.com/avatar.jpg"
+                                        />
+                                    </div>
+                                </div>
+
+                                <Separator />
+
+                                {/* Username */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="username" className="flex items-center gap-2">
+                                        <User className="h-4 w-4" />
+                                        Nom d'utilisateur
                                     </Label>
                                     <Input
-                                        id="avatar-url"
-                                        type="url"
-                                        value={editedAvatar}
-                                        onChange={(e) => setEditedAvatar(e.target.value)}
-                                        placeholder="https://exemple.com/avatar.jpg"
+                                        id="username"
+                                        value={editedUsername}
+                                        onChange={(e) => setEditedUsername(e.target.value)}
+                                        placeholder="Votre nom d'utilisateur"
                                     />
-                                </div>
-                            </div>
-
-                            <Separator />
-
-                            {/* Username */}
-                            <div className="space-y-2">
-                                <Label htmlFor="username" className="flex items-center gap-2">
-                                    <User className="h-4 w-4" />
-                                    Nom d'utilisateur
-                                </Label>
-                                <Input
-                                    id="username"
-                                    value={editedUsername}
-                                    onChange={(e) => setEditedUsername(e.target.value)}
-                                    placeholder="Votre nom d'utilisateur"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    Ce nom sera visible dans l'application
-                                </p>
-                            </div>
-
-                            {/* Save Button */}
-                            {hasProfileChanges && (
-                                <Button onClick={handleSaveProfile} disabled={savingProfile} className="w-full">
-                                    {savingProfile ? "Sauvegarde..." : (
-                                        <>
-                                            <Save className="h-4 w-4 mr-2" />
-                                            Sauvegarder les modifications
-                                        </>
-                                    )}
-                                </Button>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Security Card */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Lock className="h-5 w-5 text-primary" />
-                                Sécurité
-                            </CardTitle>
-                            <CardDescription>
-                                Gérez la sécurité de votre compte
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium">Mot de passe</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Changez votre mot de passe régulièrement
+                                    <p className="text-xs text-muted-foreground">
+                                        Ce nom sera visible dans l'application
                                     </p>
                                 </div>
-                                <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline">
-                                            <Lock className="h-4 w-4 mr-2" />
-                                            Changer
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Changer le mot de passe</DialogTitle>
-                                            <DialogDescription>
-                                                Entrez votre mot de passe actuel et choisissez-en un nouveau.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="space-y-4 py-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="currentPassword">Mot de passe actuel</Label>
-                                                <Input
-                                                    id="currentPassword"
-                                                    type="password"
-                                                    value={passwordData.currentPassword}
-                                                    onChange={(e) => setPasswordData((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="newPassword">Nouveau mot de passe</Label>
-                                                <Input
-                                                    id="newPassword"
-                                                    type="password"
-                                                    value={passwordData.newPassword}
-                                                    onChange={(e) => setPasswordData((prev) => ({ ...prev, newPassword: e.target.value }))}
-                                                />
-                                                <p className="text-xs text-muted-foreground">
-                                                    Minimum 8 caractères
-                                                </p>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="confirmPassword">Confirmer</Label>
-                                                <Input
-                                                    id="confirmPassword"
-                                                    type="password"
-                                                    value={passwordData.confirmPassword}
-                                                    onChange={(e) => setPasswordData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-                                                />
-                                            </div>
-                                        </div>
-                                        <DialogFooter>
-                                            <Button variant="outline" onClick={() => setShowPasswordDialog(false)} disabled={changingPassword}>
-                                                Annuler
-                                            </Button>
-                                            <Button onClick={handlePasswordChange} disabled={changingPassword}>
-                                                {changingPassword ? "Changement..." : "Changer"}
-                                            </Button>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
 
-                            <Separator />
+                                {/* Save Button */}
+                                {hasProfileChanges && (
+                                    <Button onClick={handleSaveProfile} disabled={savingProfile} className="w-full">
+                                        {savingProfile ? "Sauvegarde..." : (
+                                            <>
+                                                <Save className="h-4 w-4 mr-2" />
+                                                Sauvegarder les modifications
+                                            </>
+                                        )}
+                                    </Button>
+                                )}
+                            </CardContent>
+                        </Card>
 
-                            {/* Sessions Management */}
-                            <div className="space-y-4">
+                        {/* Security Card */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Lock className="h-5 w-5 text-primary" />
+                                    Sécurité
+                                </CardTitle>
+                                <CardDescription>
+                                    Gérez la sécurité de votre compte
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="font-medium">Sessions actives</p>
+                                        <p className="font-medium">Mot de passe</p>
                                         <p className="text-sm text-muted-foreground">
-                                            Gérez vos sessions sur différents appareils
+                                            Changez votre mot de passe régulièrement
                                         </p>
                                     </div>
-                                    <Button variant="outline" onClick={() => setShowDeleteAllDialog(true)}>
-                                        <LogOut className="h-4 w-4 mr-2" />
-                                        Terminer les autres
-                                    </Button>
+                                    <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline">
+                                                <Lock className="h-4 w-4 mr-2" />
+                                                Changer
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Changer le mot de passe</DialogTitle>
+                                                <DialogDescription>
+                                                    Entrez votre mot de passe actuel et choisissez-en un nouveau.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="space-y-4 py-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="currentPassword">Mot de passe actuel</Label>
+                                                    <Input
+                                                        id="currentPassword"
+                                                        type="password"
+                                                        value={passwordData.currentPassword}
+                                                        onChange={(e) => setPasswordData((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+                                                    <Input
+                                                        id="newPassword"
+                                                        type="password"
+                                                        value={passwordData.newPassword}
+                                                        onChange={(e) => setPasswordData((prev) => ({ ...prev, newPassword: e.target.value }))}
+                                                    />
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Minimum 8 caractères
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="confirmPassword">Confirmer</Label>
+                                                    <Input
+                                                        id="confirmPassword"
+                                                        type="password"
+                                                        value={passwordData.confirmPassword}
+                                                        onChange={(e) => setPasswordData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <DialogFooter>
+                                                <Button variant="outline" onClick={() => setShowPasswordDialog(false)} disabled={changingPassword}>
+                                                    Annuler
+                                                </Button>
+                                                <Button onClick={handlePasswordChange} disabled={changingPassword}>
+                                                    {changingPassword ? "Changement..." : "Changer"}
+                                                </Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
                                 </div>
 
-                                {sessionsLoading ? (
-                                    <div className="space-y-2">
-                                        <Skeleton className="h-16 w-full" />
-                                        <Skeleton className="h-16 w-full" />
+                                <Separator />
+
+                                {/* Sessions Management */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-medium">Sessions actives</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                Gérez vos sessions sur différents appareils
+                                            </p>
+                                        </div>
+                                        <Button variant="outline" onClick={() => setShowDeleteAllDialog(true)}>
+                                            <LogOut className="h-4 w-4 mr-2" />
+                                            Terminer les autres
+                                        </Button>
                                     </div>
-                                ) : sessions.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">Aucune session active</p>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {sessions.map((s: any) => (
-                                            <div key={s.id} className="flex items-center justify-between p-3 border rounded-lg">
-                                                <div>
-                                                    <div className="font-medium">{s.deviceName || "Appareil inconnu"}</div>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {s.deviceType} • {s.ipAddress}
+
+                                    {sessionsLoading ? (
+                                        <div className="space-y-2">
+                                            <Skeleton className="h-16 w-full" />
+                                            <Skeleton className="h-16 w-full" />
+                                        </div>
+                                    ) : sessions.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground">Aucune session active</p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {sessions.map((s: any) => (
+                                                <div key={s.id} className="flex items-center justify-between p-3 border rounded-lg">
+                                                    <div>
+                                                        <div className="font-medium">{s.deviceName || "Appareil inconnu"}</div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {s.deviceType} • {s.ipAddress}
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            Dernière activité: {new Date(s.lastActivityAt).toLocaleString()}
+                                                        </div>
                                                     </div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        Dernière activité: {new Date(s.lastActivityAt).toLocaleString()}
-                                                    </div>
+                                                    {s.isCurrent ? (
+                                                        <span className="px-2 py-1 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded">
+                                                            Actuelle
+                                                        </span>
+                                                    ) : (
+                                                        <Button variant="ghost" size="sm" onClick={() => setSessionToDelete(s)}>
+                                                            <Trash className="w-4 h-4" />
+                                                        </Button>
+                                                    )}
                                                 </div>
-                                                {s.isCurrent ? (
-                                                    <span className="px-2 py-1 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded">
-                                                        Actuelle
-                                                    </span>
-                                                ) : (
-                                                    <Button variant="ghost" size="sm" onClick={() => setSessionToDelete(s)}>
-                                                        <Trash className="w-4 h-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+
+                {activeTab === "stats" && (
+                    <div className="space-y-6 mt-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <BarChart3 className="h-5 w-5 text-primary" />
+                                    Statistiques du compte
+                                </CardTitle>
+                                <CardDescription>
+                                    Vue d'ensemble de votre activité
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="flex items-center gap-4 p-4 border rounded-lg bg-gradient-to-br from-blue-50 to-transparent dark:from-blue-950/20">
+                                        <Package className="h-10 w-10 text-blue-500" />
+                                        <div>
+                                            <p className="text-3xl font-bold">{profile.stats?.totalProducts || 0}</p>
+                                            <p className="text-sm text-muted-foreground">Produits</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 p-4 border rounded-lg bg-gradient-to-br from-green-50 to-transparent dark:from-green-950/20">
+                                        <ShoppingBag className="h-10 w-10 text-green-500" />
+                                        <div>
+                                            <p className="text-3xl font-bold">{profile.stats?.totalParcels || 0}</p>
+                                            <p className="text-sm text-muted-foreground">Parcelles</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 p-4 border rounded-lg bg-gradient-to-br from-purple-50 to-transparent dark:from-purple-950/20">
+                                        <Calendar className="h-10 w-10 text-purple-500" />
+                                        <div>
+                                            <p className="text-3xl font-bold">{profile.stats?.daysActive || 0}</p>
+                                            <p className="text-sm text-muted-foreground">Jours d'activité</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <Separator />
+
+                                <div className="space-y-3">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">Compte créé le</span>
+                                        <span className="font-medium">{formatDateTime(profile.createdAt) || "Non disponible"}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">Dernière connexion</span>
+                                        <span className="font-medium">{formatDateTime(profile.lastLoginAt) || "Non disponible"}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">Rôle</span>
+                                        <span className="font-medium capitalize">{profile.role}</span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+
+                {activeTab === "appearance" && (
+                    <div className="space-y-6 mt-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Palette className="h-5 w-5 text-primary" />
+                                    Apparence
+                                </CardTitle>
+                                <CardDescription>
+                                    Personnalisez l'interface selon vos préférences
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="space-y-2">
+                                    <Label>Thème</Label>
+                                    <Select value={settings.theme} onValueChange={handleThemeChange}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="light">Clair</SelectItem>
+                                            <SelectItem value="dark">Sombre</SelectItem>
+                                            <SelectItem value="system">Système</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Langue</Label>
+                                    <Select value={settings.language} onValueChange={handleLanguageChange}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="fr">Français</SelectItem>
+                                            <SelectItem value="en">English</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label>Animations</Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            Activer les animations d'interface
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        checked={settings.animations}
+                                        onCheckedChange={handleAnimationsChange}
+                                        disabled={saving}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+
+                {activeTab === "preferences" && (
+                    <div className="space-y-6 mt-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <SettingsIcon className="h-5 w-5 text-primary" />
+                                    Préférences métier
+                                </CardTitle>
+                                <CardDescription>
+                                    Configurez les paramètres par défaut
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="space-y-2">
+                                    <Label>Devise par défaut</Label>
+                                    <Select
+                                        value={settings.preferences.currency}
+                                        onValueChange={(value) => handlePreferenceChange("currency", value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="EUR">Euro (€)</SelectItem>
+                                            <SelectItem value="USD">Dollar US ($)</SelectItem>
+                                            <SelectItem value="CNY">Yuan chinois (¥)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Unité de poids</Label>
+                                    <Select
+                                        value={settings.preferences.weightUnit}
+                                        onValueChange={(value) => handlePreferenceChange("weightUnit", value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="g">Grammes (g)</SelectItem>
+                                            <SelectItem value="kg">Kilogrammes (kg)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Format de date</Label>
+                                    <Select
+                                        value={settings.preferences.dateFormat}
+                                        onValueChange={(value) => handlePreferenceChange("dateFormat", value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="DD/MM/YYYY">JJ/MM/AAAA</SelectItem>
+                                            <SelectItem value="MM/DD/YYYY">MM/JJ/AAAA</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label>Taux de change automatique</Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            Mise à jour automatique des taux
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        checked={settings.preferences.autoExchangeRate}
+                                        onCheckedChange={(value) => handlePreferenceChange("autoExchangeRate", value)}
+                                    />
+                                </div>
+
+                                {!settings.preferences.autoExchangeRate && settings.preferences.currency !== "EUR" && (
+                                    <div className="space-y-2 p-4 rounded-lg bg-muted/50 border">
+                                        <Label>Taux de change manuel (EUR → {settings.preferences.currency})</Label>
+                                        <Input
+                                            type="number"
+                                            step="0.0001"
+                                            min="0.0001"
+                                            value={settings.preferences.manualExchangeRate || 1}
+                                            onChange={(e) => handlePreferenceChange("manualExchangeRate", parseFloat(e.target.value) || 1)}
+                                            placeholder="ex: 1.08"
+                                            className="max-w-xs"
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            1 EUR = {settings.preferences.manualExchangeRate || 1} {settings.preferences.currency}
+                                        </p>
                                     </div>
                                 )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
 
-                {/* Stats Tab */}
-                <TabsContent value="stats" className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <BarChart3 className="h-5 w-5 text-primary" />
-                                Statistiques du compte
-                            </CardTitle>
-                            <CardDescription>
-                                Vue d'ensemble de votre activité
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="flex items-center gap-4 p-4 border rounded-lg bg-gradient-to-br from-blue-50 to-transparent dark:from-blue-950/20">
-                                    <Package className="h-10 w-10 text-blue-500" />
-                                    <div>
-                                        <p className="text-3xl font-bold">{profile.stats?.totalProducts || 0}</p>
-                                        <p className="text-sm text-muted-foreground">Produits</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4 p-4 border rounded-lg bg-gradient-to-br from-green-50 to-transparent dark:from-green-950/20">
-                                    <ShoppingBag className="h-10 w-10 text-green-500" />
-                                    <div>
-                                        <p className="text-3xl font-bold">{profile.stats?.totalParcels || 0}</p>
-                                        <p className="text-sm text-muted-foreground">Parcelles</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4 p-4 border rounded-lg bg-gradient-to-br from-purple-50 to-transparent dark:from-purple-950/20">
-                                    <Calendar className="h-10 w-10 text-purple-500" />
-                                    <div>
-                                        <p className="text-3xl font-bold">{profile.stats?.daysActive || 0}</p>
-                                        <p className="text-sm text-muted-foreground">Jours d'activité</p>
-                                    </div>
-                                </div>
-                            </div>
+                                <Button onClick={savePreferences} disabled={saving} className="w-full">
+                                    {saving ? "Sauvegarde..." : "Sauvegarder les préférences"}
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
 
-                            <Separator />
+                {activeTab === "integrations" && (
+                    <div className="space-y-6 mt-2">
+                        <SuperbuyConnect />
 
-                            <div className="space-y-3">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Compte créé le</span>
-                                    <span className="font-medium">{formatDate(profile.createdAt)}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Dernière connexion</span>
-                                    <span className="font-medium">{formatDate(profile.lastLoginAt)}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Rôle</span>
-                                    <span className="font-medium capitalize">{profile.role}</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Appearance Tab */}
-                <TabsContent value="appearance" className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Palette className="h-5 w-5 text-primary" />
-                                Apparence
-                            </CardTitle>
-                            <CardDescription>
-                                Personnalisez l'interface selon vos préférences
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="space-y-2">
-                                <Label>Thème</Label>
-                                <Select value={settings.theme} onValueChange={handleThemeChange}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="light">Clair</SelectItem>
-                                        <SelectItem value="dark">Sombre</SelectItem>
-                                        <SelectItem value="system">Système</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Langue</Label>
-                                <Select value={settings.language} onValueChange={handleLanguageChange}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="fr">Français</SelectItem>
-                                        <SelectItem value="en">English</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <Label>Animations</Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        Activer les animations d'interface
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Autres Intégrations</CardTitle>
+                                <CardDescription>
+                                    Connectez vos comptes marketplace
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <Plug className="h-12 w-12 text-muted-foreground mb-4" />
+                                    <h3 className="text-lg font-semibold mb-2">Bientôt disponible</h3>
+                                    <p className="text-sm text-muted-foreground max-w-md">
+                                        Les intégrations avec Vinted, eBay et d'autres plateformes seront bientôt disponibles.
                                     </p>
                                 </div>
-                                <Switch
-                                    checked={settings.animations}
-                                    onCheckedChange={handleAnimationsChange}
-                                    disabled={saving}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Preferences Tab */}
-                <TabsContent value="preferences" className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <SettingsIcon className="h-5 w-5 text-primary" />
-                                Préférences métier
-                            </CardTitle>
-                            <CardDescription>
-                                Configurez les paramètres par défaut
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="space-y-2">
-                                <Label>Devise par défaut</Label>
-                                <Select
-                                    value={settings.preferences.currency}
-                                    onValueChange={(value) => handlePreferenceChange("currency", value)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="EUR">Euro (€)</SelectItem>
-                                        <SelectItem value="USD">Dollar US ($)</SelectItem>
-                                        <SelectItem value="CNY">Yuan chinois (¥)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Unité de poids</Label>
-                                <Select
-                                    value={settings.preferences.weightUnit}
-                                    onValueChange={(value) => handlePreferenceChange("weightUnit", value)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="g">Grammes (g)</SelectItem>
-                                        <SelectItem value="kg">Kilogrammes (kg)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Format de date</Label>
-                                <Select
-                                    value={settings.preferences.dateFormat}
-                                    onValueChange={(value) => handlePreferenceChange("dateFormat", value)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="DD/MM/YYYY">JJ/MM/AAAA</SelectItem>
-                                        <SelectItem value="MM/DD/YYYY">MM/JJ/AAAA</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <Label>Taux de change automatique</Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        Mise à jour automatique des taux
-                                    </p>
-                                </div>
-                                <Switch
-                                    checked={settings.preferences.autoExchangeRate}
-                                    onCheckedChange={(value) => handlePreferenceChange("autoExchangeRate", value)}
-                                />
-                            </div>
-
-                            <Button onClick={savePreferences} disabled={saving} className="w-full">
-                                {saving ? "Sauvegarde..." : "Sauvegarder les préférences"}
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Integrations Tab */}
-                <TabsContent value="integrations" className="space-y-6">
-                    <SuperbuyConnect />
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Autres Intégrations</CardTitle>
-                            <CardDescription>
-                                Connectez vos comptes marketplace
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <Plug className="h-12 w-12 text-muted-foreground mb-4" />
-                                <h3 className="text-lg font-semibold mb-2">Bientôt disponible</h3>
-                                <p className="text-sm text-muted-foreground max-w-md">
-                                    Les intégrations avec Vinted, eBay et d'autres plateformes seront bientôt disponibles.
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
             </Tabs>
 
             {/* Delete All Sessions Dialog */}

@@ -36,6 +36,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 interface ProfileData {
   id: string;
@@ -75,6 +76,7 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
     confirmPassword: "",
   });
   const [changingPassword, setChangingPassword] = useState(false);
+  const { formatDateTime } = useFormatting();
 
 
   const getApiErrorMessage = (
@@ -232,17 +234,6 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
     } finally {
       setChangingPassword(false);
     }
-  };
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "Non disponible";
-    return new Date(dateString).toLocaleDateString("fr-FR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   if (loading || !profile) {
@@ -552,13 +543,13 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Compte créé le</span>
               <span className="font-medium">
-                {formatDate(profile.createdAt)}
+                {formatDateTime(profile.createdAt) || "Non disponible"}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Dernière connexion</span>
               <span className="font-medium">
-                {formatDate(profile.lastLoginAt)}
+                {formatDateTime(profile.lastLoginAt) || "Non disponible"}
               </span>
             </div>
             <div className="flex justify-between text-sm">

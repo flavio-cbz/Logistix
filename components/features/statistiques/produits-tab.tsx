@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import type { StatistiquesData } from "@/lib/hooks/useStatistiques";
 import { Package } from "lucide-react";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 interface ProduitsTabProps {
     data: StatistiquesData;
@@ -11,6 +12,7 @@ interface ProduitsTabProps {
 
 export function ProduitsTab({ data }: ProduitsTabProps) {
     const d = data;
+    const { formatCurrency } = useFormatting();
 
     return (
         <div className="space-y-6">
@@ -38,15 +40,15 @@ export function ProduitsTab({ data }: ProduitsTabProps) {
                                 <div className="flex gap-6 text-right">
                                     <div>
                                         <p className="text-xs text-muted-foreground">Achat</p>
-                                        <p className="text-sm font-medium">{produit.prixAchat}€</p>
+                                        <p className="text-sm font-medium">{formatCurrency(produit.prixAchat)}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground">Vente</p>
-                                        <p className="text-sm font-medium">{produit.prixVente}€</p>
+                                        <p className="text-sm font-medium">{formatCurrency(produit.prixVente)}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground">Bénéfice</p>
-                                        <p className="text-lg font-bold text-emerald-600">+{produit.benefice.toFixed(2)}€</p>
+                                        <p className="text-lg font-bold text-emerald-600">+{formatCurrency(produit.benefice)}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground">Marge</p>
@@ -79,7 +81,7 @@ export function ProduitsTab({ data }: ProduitsTabProps) {
                                     <div className="flex-1">
                                         <p className="font-medium">{produit.nom}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            Parcelle: {produit.parcelleNumero} • Coût total: {((produit.prixAchat || 0) + (produit.coutLivraison || 0)).toFixed(2)}€
+                                            Parcelle: {produit.parcelleNumero} • Coût total: {formatCurrency((produit.prixAchat || 0) + (produit.coutLivraison || 0))}
                                         </p>
                                     </div>
                                     <div className="flex gap-4 text-right">

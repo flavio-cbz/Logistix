@@ -19,6 +19,7 @@ import {
   calculateProductProfit,
   type ProductWithLegacyFields
 } from "@/lib/utils/product-field-normalizers"
+import { useFormatting } from "@/lib/hooks/use-formatting"
 
 
 interface ProduitsListProps {
@@ -35,6 +36,8 @@ export default function ProduitsList({ onUpdate }: ProduitsListProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
+
+  const { formatCurrency, formatWeight } = useFormatting();
 
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
@@ -363,7 +366,7 @@ export default function ProduitsList({ onUpdate }: ProduitsListProps) {
         <div className="bg-card border rounded-lg p-3 shadow-sm">
           <p className="text-xs text-muted-foreground mb-1">Bénéfices totaux</p>
           <p className={`text-2xl font-bold ${stats.totalBenefices >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-            {stats.totalBenefices >= 0 ? '+' : ''}{stats.totalBenefices.toFixed(2)} €
+            {stats.totalBenefices >= 0 ? '+' : ''}{formatCurrency(stats.totalBenefices)}
           </p>
         </div>
       </div>
@@ -548,7 +551,7 @@ export default function ProduitsList({ onUpdate }: ProduitsListProps) {
                         min={0}
                         step={0.01}
                         onSave={(val) => handleInlineUpdate(product.id, "price", val)}
-                        formatter={(val) => `${Number(val || 0).toFixed(2)} €`}
+                        formatter={(val) => formatCurrency(Number(val || 0))}
                         displayClassName="font-medium tabular-nums"
                       />
                     </TableCell>
@@ -561,21 +564,21 @@ export default function ProduitsList({ onUpdate }: ProduitsListProps) {
                         min={0}
                         step={1}
                         onSave={(val) => handleInlineUpdate(product.id, "poids", val)}
-                        formatter={(val) => val ? `${Number(val)}g` : "—"}
+                        formatter={(val) => val ? formatWeight(Number(val)) : "—"}
                         displayClassName="tabular-nums text-sm"
                       />
                     </TableCell>
 
                     {/* Coût total (achat + livraison) */}
-                    <TableCell className="text-right tabular-nums" title={`Prix: ${product.price?.toFixed(2)}€ + Livraison: ${coutLivraison.toFixed(2)}€`}>
-                      <span className="font-semibold">{coutTotal.toFixed(2)} €</span>
+                    <TableCell className="text-right tabular-nums" title={`Prix: ${formatCurrency(product.price)} + Livraison: ${formatCurrency(coutLivraison)}`}>
+                      <span className="font-semibold">{formatCurrency(coutTotal)}</span>
                     </TableCell>
 
                     {/* Prix de vente */}
                     <TableCell className="text-right tabular-nums">
                       {isVendu && product.prixVente ? (
                         <span className="font-semibold text-green-700 dark:text-green-400">
-                          {product.prixVente.toFixed(2)} €
+                          {formatCurrency(product.prixVente)}
                         </span>
                       ) : (
                         <span className="text-muted-foreground/40 text-xs">—</span>
@@ -586,7 +589,7 @@ export default function ProduitsList({ onUpdate }: ProduitsListProps) {
                     <TableCell className="text-right tabular-nums">
                       {benefice !== null ? (
                         <span className={`font-bold text-base ${benefice >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                          {benefice >= 0 ? "+" : ""}{benefice.toFixed(2)} €
+                          {benefice >= 0 ? "+" : ""}{formatCurrency(benefice)}
                         </span>
                       ) : (
                         <span className="text-muted-foreground/40 text-xs">—</span>

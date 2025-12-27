@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Search, CheckCircle2, ShoppingBag, ExternalLink, RefreshCw, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/shared/utils";
 import { useMarketAnalysis } from "@/lib/hooks/useMarketAnalysis";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 export function MarketAnalysisWizard() {
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [query, setQuery] = useState("");
+    const { formatCurrency } = useFormatting();
 
     const {
         isSearching,
@@ -158,9 +160,9 @@ export function MarketAnalysisWizard() {
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Prix Moyen</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-bold">{analysis.averagePrice.toFixed(2)}€</div>
+                                <div className="text-3xl font-bold">{formatCurrency(analysis.averagePrice)}</div>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Fourchette: {analysis.minPrice.toFixed(0)}€ - {analysis.maxPrice.toFixed(0)}€
+                                    Fourchette: {formatCurrency(analysis.minPrice)} - {formatCurrency(analysis.maxPrice)}
                                 </p>
                             </CardContent>
                         </Card>
@@ -200,7 +202,7 @@ export function MarketAnalysisWizard() {
                         <CardContent>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <div className="text-4xl font-bold text-primary">{analysis.recommendation.suggestedPrice.toFixed(2)}€</div>
+                                    <div className="text-4xl font-bold text-primary">{formatCurrency(analysis.recommendation.suggestedPrice)}</div>
                                     <p className="text-sm text-muted-foreground mt-2 max-w-lg">
                                         {analysis.recommendation.reasoning}
                                     </p>

@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import type { Parcelle } from "@/lib/types/entities";
 import { cn } from "@/lib/shared/utils";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 interface ParcelleSelectProps {
   value: string | null | undefined;
@@ -43,6 +44,7 @@ export function ParcelleSelect({
   className,
 }: ParcelleSelectProps) {
   const [open, setOpen] = useState(false);
+  const { formatCurrency } = useFormatting();
 
 
   const selectedParcelle = (parcelles ?? []).find((p) => p.id === value);
@@ -78,7 +80,7 @@ export function ParcelleSelect({
                 <span className="truncate">
                   #{selectedParcelle.numero} - {selectedParcelle.transporteur}
                   <span className="text-xs text-muted-foreground ml-2">
-                    ({selectedParcelle.prixParGramme?.toFixed(3) || "N/A"} €/g)
+                    ({selectedParcelle.prixParGramme ? formatCurrency(selectedParcelle.prixParGramme) : "N/A"}/g)
                   </span>
                 </span>
               ) : value ? (
@@ -143,7 +145,7 @@ export function ParcelleSelect({
                         </div>
                       </div>
                       <div className="text-xs font-mono text-muted-foreground">
-                        {parcelle.prixParGramme?.toFixed(3) || "N/A"} €/g
+                        {parcelle.prixParGramme ? formatCurrency(parcelle.prixParGramme) : "N/A"}/g
                       </div>
                     </div>
                   </CommandItem>

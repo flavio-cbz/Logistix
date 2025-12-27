@@ -12,6 +12,7 @@ import {
     CreditCard,
     Wallet
 } from "lucide-react";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 interface OverviewTabProps {
     data: StatistiquesData;
@@ -33,12 +34,13 @@ interface StatMetric {
 
 export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
     const d = data;
+    const { formatCurrency } = useFormatting();
 
     const metrics: StatMetric[] = [
         {
             id: 'revenue',
             title: 'Chiffre d\'Affaires',
-            value: `${d.vueEnsemble.chiffreAffaires.toLocaleString('fr-FR')}€`,
+            value: formatCurrency(d.vueEnsemble.chiffreAffaires),
             change: d.vueEnsemble.trends?.chiffreAffaires || 0,
             trend: (d.vueEnsemble.trends?.chiffreAffaires || 0) >= 0 ? 'up' : 'down',
             period: selectedPeriod,
@@ -86,7 +88,7 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
         {
             id: 'avgprice',
             title: 'Prix Moyen Vente',
-            value: `${d.vueEnsemble.prixMoyenVente.toFixed(2)}€`,
+            value: formatCurrency(d.vueEnsemble.prixMoyenVente),
             change: d.vueEnsemble.trends?.prixMoyenVente || 0,
             trend: (d.vueEnsemble.trends?.prixMoyenVente || 0) >= 0 ? 'up' : 'down',
             period: selectedPeriod,
@@ -96,7 +98,7 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
         {
             id: 'benefits',
             title: 'Bénéfices Totaux',
-            value: `${d.vueEnsemble.beneficesTotal.toLocaleString('fr-FR')}€`,
+            value: formatCurrency(d.vueEnsemble.beneficesTotal),
             change: d.vueEnsemble.trends?.beneficesTotal || 0,
             trend: (d.vueEnsemble.trends?.beneficesTotal || 0) >= 0 ? 'up' : 'down',
             period: selectedPeriod,
@@ -145,9 +147,9 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
                                     </div>
                                     <Progress value={plateforme.partMarche} className="h-2" />
                                     <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-                                        <span>CA: {plateforme.chiffreAffaires.toLocaleString()}€</span>
-                                        <span>Bénéfices: {plateforme.benefices.toLocaleString()}€</span>
-                                        <span>Prix moyen: {plateforme.prixMoyenVente ? plateforme.prixMoyenVente.toFixed(2) : '0'}€</span>
+                                        <span>CA: {formatCurrency(plateforme.chiffreAffaires)}</span>
+                                        <span>Bénéfices: {formatCurrency(plateforme.benefices)}</span>
+                                        <span>Prix moyen: {formatCurrency(plateforme.prixMoyenVente)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -163,9 +165,9 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
                         <CardTitle className="text-sm font-medium">Coût Achat Total</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{d.analyseCouts.coutAchatTotal.toLocaleString()}€</div>
+                        <div className="text-2xl font-bold">{formatCurrency(d.analyseCouts.coutAchatTotal)}</div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Moyen: {d.analyseCouts.coutMoyenParProduit.toFixed(2)}€/produit
+                            Moyen: {formatCurrency(d.analyseCouts.coutMoyenParProduit)}/produit
                         </p>
                     </CardContent>
                 </Card>
@@ -174,9 +176,9 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
                         <CardTitle className="text-sm font-medium">Coût Livraison Total</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{d.analyseCouts.coutLivraisonTotal.toLocaleString()}€</div>
+                        <div className="text-2xl font-bold">{formatCurrency(d.analyseCouts.coutLivraisonTotal)}</div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Moyen: {d.analyseCouts.coutMoyenLivraison.toFixed(2)}€/produit
+                            Moyen: {formatCurrency(d.analyseCouts.coutMoyenLivraison)}/produit
                         </p>
                     </CardContent>
                 </Card>
@@ -185,7 +187,7 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
                         <CardTitle className="text-sm font-medium">Investissement Total</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{d.analyseCouts.coutTotalInvesti.toLocaleString()}€</div>
+                        <div className="text-2xl font-bold">{formatCurrency(d.analyseCouts.coutTotalInvesti)}</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             {d.analyseCouts.nbParcelles} parcelle(s)
                         </p>

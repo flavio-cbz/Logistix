@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 interface SuperbuySyncDialogProps {
   trigger?: React.ReactNode;
@@ -36,6 +37,7 @@ export function SuperbuySyncDialog({ trigger, onSyncComplete }: SuperbuySyncDial
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
   const [statusMessage, setStatusMessage] = useState("Initialisation...");
   const [error, setError] = useState<string | null>(null);
+  const { formatDateTime } = useFormatting();
 
   // Fetch integration status when dialog opens
   const fetchStatus = useCallback(async () => {
@@ -124,17 +126,6 @@ export function SuperbuySyncDialog({ trigger, onSyncComplete }: SuperbuySyncDial
     }
   };
 
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   return (
     <Dialog open={open} onOpenChange={(val) => {
       if (loading) return; // Prevent closing while loading
@@ -201,7 +192,7 @@ export function SuperbuySyncDialog({ trigger, onSyncComplete }: SuperbuySyncDial
                 {status.lastSyncAt && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Dernière sync</span>
-                    <span className="text-sm">{formatDate(status.lastSyncAt)}</span>
+                    <span className="text-sm">{formatDateTime(status.lastSyncAt)}</span>
                   </div>
                 )}
               </div>

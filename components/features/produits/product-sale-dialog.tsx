@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button"
 import { Product, Platform } from "@/lib/shared/types/entities"
 import { getSellingPrice, getListedAt, getSoldAt, type ProductWithLegacyFields } from "@/lib/utils/product-field-normalizers"
 import { DollarSign, Calendar, Store } from "lucide-react"
+import { useFormatting } from "@/lib/hooks/use-formatting"
 
 // Schéma de validation pour les informations de vente
 const saleFormSchema = z.object({
@@ -61,6 +62,7 @@ export function ProductSaleDialog({
   coutTotal = 0,
 }: ProductSaleDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { formatCurrency, getCurrencySymbol } = useFormatting();
 
   // S'assurer que coutTotal est un nombre
   const coutTotalNum = Number(coutTotal) || 0
@@ -120,12 +122,12 @@ export function ProductSaleDialog({
             <div className="bg-muted/50 border rounded-lg p-3 space-y-1">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Coût total</span>
-                <span className="font-medium">{coutTotalNum.toFixed(2)} €</span>
+                <span className="font-medium">{formatCurrency(coutTotalNum)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Prix de vente</span>
                 <span className="font-semibold text-green-600">
-                  {prixVente ? prixVente.toFixed(2) : "0.00"} €
+                  {formatCurrency(prixVente)}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
@@ -144,7 +146,7 @@ export function ProductSaleDialog({
                       }`}
                   >
                     {beneficeEstime >= 0 ? "+" : ""}
-                    {beneficeEstime.toFixed(2)} €
+                    {formatCurrency(beneficeEstime)}
                   </span>
                 </div>
               </div>
@@ -170,7 +172,7 @@ export function ProductSaleDialog({
                         className="pr-8"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        €
+                        {getCurrencySymbol()}
                       </span>
                     </div>
                   </FormControl>

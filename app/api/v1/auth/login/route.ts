@@ -14,7 +14,7 @@ const loginSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     const validationResult = loginSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
@@ -26,10 +26,10 @@ export async function POST(request: NextRequest) {
     const { username, password } = validationResult.data;
 
     const authService = serviceContainer.getAuthService();
-    
+
     // Authenticate user
     const user = await authService.verifyCredentials(username, password);
-    
+
     if (!user) {
       return NextResponse.json(
         createErrorResponse(new AuthError("Identifiants invalides")),
