@@ -63,7 +63,7 @@
     "clsx": "^2.0.0",
     "cmdk": "^1.0.0",
     "dotenv": "^17.2.3",
-    "drizzle-orm": "^0.44.5",
+    "drizzle-orm": "^0.45.1",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.294.0",
     "nanoid": "^5.1.6",
