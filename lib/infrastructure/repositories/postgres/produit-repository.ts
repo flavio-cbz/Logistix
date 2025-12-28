@@ -100,27 +100,27 @@ export class PostgresProduitRepository implements IProduitRepository {
       id: row.id,
       userId: row.user_id,
       parcelleId: row.parcelle_id || null,
-      
+
       // Basic information
       name: row.name,
       poids: row.poids,
-      
+
       // Financial information
       price: row.price,
       currency: row.currency,
       coutLivraison: row.cout_livraison || null,
       benefices: null, // À calculer côté applicatif
-      
+
       // Sale status (legacy compatibility - simplified)
       vendu: (row.vendu === '1' ? '1' : '0') as '0' | '1',
       dateMiseEnLigne: row.date_mise_en_ligne || row.listed_at || null,
       dateVente: row.date_vente || row.sold_at || null,
       prixVente: row.prix_vente || row.selling_price || null,
       plateforme: row.plateforme ? (row.plateforme as Platform) : null,
-      
+
       // Modern status system
       status: row.status as ProductStatus,
-      
+
       // Additional product details
       brand: row.brand || null,
       category: row.category || null,
@@ -129,7 +129,7 @@ export class PostgresProduitRepository implements IProduitRepository {
       color: row.color || null,
       url: row.url || null,
       photoUrl: row.photo_url || null,
-      
+
       // Timestamps
       createdAt: row.created_at,
       updatedAt: row.updated_at || null,
@@ -146,7 +146,7 @@ export class PostgresProduitRepository implements IProduitRepository {
     operation: string
   ): Promise<T[]> {
     let client: PoolClient | null = null;
-    
+
     try {
       client = await this.pool.connect();
       const result = await client.query(query, params);
@@ -205,7 +205,7 @@ export class PostgresProduitRepository implements IProduitRepository {
     ];
 
     const row = await this.executeQueryOne<ProductRow>(query, params, 'create');
-    
+
     if (!row) {
       throw new DatabaseError('Failed to create product: no row returned');
     }
@@ -216,21 +216,21 @@ export class PostgresProduitRepository implements IProduitRepository {
   async findById(id: string): Promise<Product | null> {
     const query = 'SELECT * FROM products WHERE id = $1';
     const row = await this.executeQueryOne<ProductRow>(query, [id], 'findById');
-    
+
     return row ? this.mapRowToProduit(row) : null;
   }
 
   async findByUserId(userId: string): Promise<Product[]> {
     const query = 'SELECT * FROM products WHERE user_id = $1 ORDER BY created_at DESC';
     const rows = await this.executeQuery<ProductRow>(query, [userId], 'findByUserId');
-    
+
     return rows.map(row => this.mapRowToProduit(row));
   }
 
   async findByParcelleId(parcelleId: string): Promise<Product[]> {
     const query = 'SELECT * FROM products WHERE parcelle_id = $1 ORDER BY created_at DESC';
     const rows = await this.executeQuery<ProductRow>(query, [parcelleId], 'findByParcelleId');
-    
+
     return rows.map(row => this.mapRowToProduit(row));
   }
 
@@ -269,7 +269,7 @@ export class PostgresProduitRepository implements IProduitRepository {
       params.push(data.vendu ? '1' : '0');
     }
     if (data.dateVente !== undefined) {
-      updates.push(`date_vente = $${paramIndex++}`);
+      updates.push(`sold_at = $${paramIndex++}`);
       params.push(data.dateVente);
     }
     if (data.prixVente !== undefined) {
@@ -293,7 +293,7 @@ export class PostgresProduitRepository implements IProduitRepository {
     `;
 
     const row = await this.executeQueryOne<ProductRow>(query, params, 'update');
-    
+
     if (!row) {
       throw new NotFoundError('Product', id);
     }
@@ -303,13 +303,13 @@ export class PostgresProduitRepository implements IProduitRepository {
 
   async delete(id: string): Promise<void> {
     const query = 'DELETE FROM products WHERE id = $1';
-    
+
     let client: PoolClient | null = null;
-    
+
     try {
       client = await this.pool.connect();
       const result = await client.query(query, [id]);
-      
+
       if (result.rowCount === 0) {
         throw new NotFoundError('Product', id);
       }
@@ -317,7 +317,7 @@ export class PostgresProduitRepository implements IProduitRepository {
       if (error instanceof NotFoundError) {
         throw error;
       }
-      
+
       const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
       throw new DatabaseError(`Delete failed: ${errorMessage}`, 'delete', {
         query,
@@ -333,7 +333,7 @@ export class PostgresProduitRepository implements IProduitRepository {
   async countByUserId(userId: string): Promise<number> {
     const query = 'SELECT COUNT(*) as count FROM products WHERE user_id = $1';
     const row = await this.executeQueryOne<{ count: string }>(query, [userId], 'countByUserId');
-    
+
     return row ? parseInt(row.count) : 0;
   }
 
@@ -345,7 +345,7 @@ export class PostgresProduitRepository implements IProduitRepository {
     `;
     const searchPattern = `%${searchTerm}%`;
     const rows = await this.executeQuery<ProductRow>(query, [userId, searchPattern], 'searchByName');
-    
+
     return rows.map(row => this.mapRowToProduit(row));
   }
 }

@@ -76,7 +76,7 @@ export async function signUp(formData: FormData) {
     } as LogContext);
 
     if (error instanceof ZodError) {
-      const errorMessages = error.errors
+      const errorMessages = error.issues
         .map((err: any) => err.message)
         .join(", ");
       return { success: false, _message: errorMessages };
@@ -121,7 +121,7 @@ export async function signIn(formData: FormData) {
     } as LogContext);
 
     if (error instanceof ZodError) {
-      const errorMessages = error.errors
+      const errorMessages = error.issues
         .map((err: any) => err.message)
         .join(", ");
       return { success: false, _message: errorMessages };
@@ -215,7 +215,7 @@ export async function addParcelle(formData: FormData) {
     });
 
     if (error instanceof ZodError) {
-      const errorMessages = error.errors
+      const errorMessages = error.issues
         .map((err: any) => err.message)
         .join(", ");
       return { success: false, message: errorMessages };
@@ -344,6 +344,13 @@ export async function updateAppProfile(data: Record<string, unknown>) {
       logger.warn("Erreur API lors de la mise à jour du profil", {
         userId: user.id,
         status: response.status,
+        validationErrors: errorData.issues // Assuming errorData contains Zod-like issues
+          ? errorData.issues.map((e: any) => ({
+            field: e.path.join("."),
+            message: e.message,
+            code: e.code,
+          }))
+          : undefined,
         error: errorData.message,
       });
       return {

@@ -285,7 +285,7 @@ export const EnvironmentVariableMapping = {
  */
 export function validateConfig(
   config: unknown,
-): z.SafeParseReturnType<unknown, z.infer<typeof ConfigSchema>> {
+): ReturnType<typeof ConfigSchema.safeParse> {
   return ConfigSchema.safeParse(config);
 }
 

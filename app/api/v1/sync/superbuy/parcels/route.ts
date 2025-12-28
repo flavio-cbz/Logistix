@@ -39,9 +39,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/middleware/auth-middleware";
-import { SuperbuySyncService } from "@/lib/integrations/superbuy";
 import { serviceContainer } from "@/lib/services/container";
-import { DatabaseService } from "@/lib/database";
+// import { DatabaseService } from "@/lib/database";
 import { z } from "zod";
 
 // ============================================================================
@@ -91,14 +90,14 @@ export async function POST(req: NextRequest) {
     // 4. Determine source and load parcels
     let parcels = body.parcels;
     let dataSource = "direct";
-    
+
     // Mode AUTO: detect based on whether parcels are provided
     if (mode === "auto" || mode === "file") {
       if (!parcels || parcels.length === 0) {
         // Load from file
         parcels = await loadLatestExtractedData();
         dataSource = "file";
-        
+
         if (parcels.length === 0) {
           return NextResponse.json(
             {
@@ -142,10 +141,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Merge options from query params and body
-  const options = { ...(body.options || {}) } as { skipExisting?: boolean; forceUpdate?: boolean };
+    const options = { ...(body.options || {}) } as { skipExisting?: boolean; forceUpdate?: boolean };
     if (skipExistingParam !== null) options.skipExisting = skipExistingParam === "true";
     if (forceUpdateParam !== null) options.forceUpdate = forceUpdateParam === "true";
-    
+
     // Set defaults
     if (options.skipExisting === undefined) options.skipExisting = true;
     if (options.forceUpdate === undefined) options.forceUpdate = false;
@@ -154,17 +153,13 @@ export async function POST(req: NextRequest) {
     const validated = syncRequestSchema.parse({ parcels, options });
 
     // 4. Initialise les services
-    const databaseService = DatabaseService.getInstance();
-    const parcelleService = serviceContainer.getParcelleService();
+    // const databaseService = DatabaseService.getInstance(); // Removed
+    // const parcelleService = serviceContainer.getParcelleService(); // Removed
 
-    const syncService = new SuperbuySyncService(
-      parcelleService,
-      databaseService,
-      user.id
-    );
-
+    const syncService = serviceContainer.getSuperbuySyncService();
     // 5. Lance la synchronisation
     const summary = await syncService.syncParcels(
+      user.id,
       validated.parcels,
       validated.options
     );
@@ -199,7 +194,7 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           error: "Validation error",
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       );
@@ -225,17 +220,11 @@ export async function GET(req: NextRequest) {
     const { user } = await requireAuth(req);
 
     // 2. Initialise les services
-    const databaseService = DatabaseService.getInstance();
-    const parcelleService = serviceContainer.getParcelleService();
-
-    const syncService = new SuperbuySyncService(
-      parcelleService,
-      databaseService,
-      user.id
-    );
+    // 2. Obtient le service depuis le conteneur
+    const syncService = serviceContainer.getSuperbuySyncService();
 
     // 3. Récupère l'historique de sync
-    const history = await syncService.getSyncHistory();
+    const history = await syncService.getSyncHistory(user.id);
 
     return NextResponse.json(
       {
@@ -281,17 +270,11 @@ export async function DELETE(req: NextRequest) {
     }
 
     // 3. Initialise les services
-    const databaseService = DatabaseService.getInstance();
-    const parcelleService = serviceContainer.getParcelleService();
-
-    const syncService = new SuperbuySyncService(
-      parcelleService,
-      databaseService,
-      user.id
-    );
+    // 3. Obtient le service depuis le conteneur
+    const syncService = serviceContainer.getSuperbuySyncService();
 
     // 4. Supprime le record de sync
-    await syncService.deleteSyncRecord(superbuyId, "parcel");
+    await syncService.deleteSyncRecordWithUser(user.id, superbuyId, "parcel");
 
     return NextResponse.json(
       {
@@ -365,39 +348,39 @@ function normalizeExtractedData(rawData: any): any {
 async function loadLatestExtractedData(): Promise<any[]> {
   const fs = await import('fs');
   const path = await import('path');
-  
+
   const extractedDataDir = path.resolve(process.cwd(), 'extracted_data');
-  
+
   if (!fs.existsSync(extractedDataDir)) {
     console.warn('Extracted data directory not found');
     return [];
   }
-  
+
   // Lister tous les fichiers parcels_*.json
   const files = fs.readdirSync(extractedDataDir)
     .filter(f => f.startsWith('parcels_') && f.endsWith('.json'))
     .sort()
     .reverse(); // Plus récent en premier
-  
+
   if (files.length === 0) {
     console.warn('No parcel files found in extracted_data');
     return [];
   }
-  
+
   // Charger le plus récent
   const latestFile = files[0];
-  
+
   if (!latestFile) {
     console.warn('No latest file found');
     return [];
   }
-  
+
   const filePath = path.join(extractedDataDir, latestFile);
-  
+
   console.log(`Loading data from ${latestFile}`);
-  
+
   const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-  
+
   // Normaliser les données extraites
   return (Array.isArray(data) ? data : []).map(normalizeExtractedData);
 }

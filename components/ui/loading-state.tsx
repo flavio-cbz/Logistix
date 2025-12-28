@@ -4,7 +4,7 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/shared/utils";
 import { Spinner } from "./spinner";
-import { Loader2, RefreshCw, Clock, AlertCircle } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 const loadingStateVariants = cva(
     "flex items-center justify-center transition-all duration-300",

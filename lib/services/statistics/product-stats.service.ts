@@ -177,7 +177,7 @@ export class ProductStatsService extends BaseService {
         id, name as nom, category as categorie, price as prixAchat, selling_price as prixVente, 
         (selling_price - price - COALESCE(cout_livraison, 0)) as benefices,
         ((selling_price - price - COALESCE(cout_livraison, 0)) * 100.0 / price) as rentabilitePercent,
-        date_vente as dateVente
+        sold_at as dateVente
       FROM products 
       WHERE user_id = ? AND vendu = '1'
       ORDER BY benefices DESC

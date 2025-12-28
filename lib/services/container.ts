@@ -8,7 +8,7 @@ import { SearchService } from "./search-service";
 import { StatisticsService } from "./statistics-service";
 import { UserService } from "./user-service";
 
-import { ParcelleRepository, OrderRepository, IntegrationRepository, ProductRepository, UserRepository } from "@/lib/repositories";
+import { ParcelleRepository, OrderRepository, ProductRepository, UserRepository, SuperbuySyncRepository } from "@/lib/repositories";
 import { DatabaseService } from "@/lib/database";
 
 /**
@@ -93,13 +93,24 @@ class ServiceContainer {
       return this.get("SuperbuySyncService");
     }
 
-    const databaseService = DatabaseService.getInstance();
-    const integrationRepository = new IntegrationRepository(databaseService);
-    const parcelleService = this.getParcelleService();
-    const orderService = this.getOrderService();
-    const service = new SuperbuySyncService(parcelleService, orderService, integrationRepository);
+    // The new signature only requires SuperbuySyncRepository
+    const service = new SuperbuySyncService(this.getSuperbuySyncRepository());
     this.register("SuperbuySyncService", () => service, true);
     return service;
+  }
+
+  /**
+   * Convenience getter for SuperbuySyncRepository
+   */
+  getSuperbuySyncRepository(): SuperbuySyncRepository {
+    if (this.has("SuperbuySyncRepository")) {
+      return this.get("SuperbuySyncRepository");
+    }
+
+    const databaseService = DatabaseService.getInstance();
+    const repository = new SuperbuySyncRepository(databaseService);
+    this.register("SuperbuySyncRepository", () => repository, true);
+    return repository;
   }
 
   /**

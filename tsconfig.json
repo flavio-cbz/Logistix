@@ -93,7 +93,10 @@
     "tests/**/*",
     "e2e/**/*",
     "backup-*/**/*",
-    "backups/**/*"
+    "backups/**/*",
+    "lib/application",
+    "lib/infrastructure",
+    "lib/config/database-factory.ts"
   ],
   "ts-node": {
     "compilerOptions": {

@@ -3,7 +3,9 @@
  * Comprehensive performance monitoring and metrics collection
  */
 
-import { getLogger } from "@/lib/utils/logging";
+import {
+  getLogger,
+} from "@/lib/utils/logging/logger";
 import { auditPerformanceEvent } from "@/lib/services/audit-logger";
 
 interface MetricData {
@@ -25,7 +27,7 @@ interface PerformanceThreshold {
 // SystemMetrics interface removed (unused)
 
 class PerformanceMetricsService {
-  private logger = getLogger;
+  private logger = getLogger("PerformanceMetricsService");
   private metrics: MetricData[] = [];
   private thresholds: Map<string, PerformanceThreshold> = new Map();
   private systemMetricsInterval: NodeJS.Timeout | undefined;
@@ -105,7 +107,7 @@ class PerformanceMetricsService {
     this.metrics.push(metric);
 
     // Log the metric
-    this.logger.info(`Metric recorded: ${name}`, {
+    this.logger.info(`Metric recorded: ${name} `, {
       value,
       unit,
       tags,
@@ -136,7 +138,7 @@ class PerformanceMetricsService {
     },
   ): void {
     this.recordMetric(
-      `operation_duration_${operation}`,
+      `operation_duration_${operation} `,
       duration,
       "ms",
       {
@@ -233,7 +235,7 @@ class PerformanceMetricsService {
     },
   ): void {
     this.recordMetric(
-      `database_${operation}`,
+      `database_${operation} `,
       duration,
       "ms",
       {
@@ -324,7 +326,7 @@ class PerformanceMetricsService {
     },
   ): void {
     this.recordMetric(
-      `external_service_${service}`,
+      `external_service_${service} `,
       duration,
       "ms",
       {
@@ -351,7 +353,7 @@ class PerformanceMetricsService {
     },
   ): void {
     this.recordMetric(
-      `file_operation_${operation}`,
+      `file_operation_${operation} `,
       duration,
       "ms",
       {
@@ -462,7 +464,7 @@ class PerformanceMetricsService {
 
     if (metric.value > threshold.errorThreshold) {
       this.logger.error(
-        `Performance threshold exceeded: ${metric.name}`,
+        `Performance threshold exceeded: ${metric.name} `,
         undefined,
         {
           value: metric.value,
@@ -473,7 +475,7 @@ class PerformanceMetricsService {
         },
       );
     } else if (metric.value > threshold.warningThreshold) {
-      this.logger.warn(`Performance threshold warning: ${metric.name}`, {
+      this.logger.warn(`Performance threshold warning: ${metric.name} `, {
         value: metric.value,
         _threshold: threshold.warningThreshold,
         unit: metric.unit,
@@ -580,9 +582,9 @@ class PerformanceMetricsService {
             .join(",")
           : "";
 
-        const labelStr = labels ? `{${labels}}` : "";
+        const labelStr = labels ? `{${labels} } ` : "";
         lines.push(
-          `${sanitizedName}${labelStr} ${metric.value} ${metric.timestamp.getTime()}`,
+          `${sanitizedName}${labelStr} ${metric.value} ${metric.timestamp.getTime()} `,
         );
       });
     });

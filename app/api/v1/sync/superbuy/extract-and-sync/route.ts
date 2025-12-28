@@ -17,9 +17,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/middleware/auth-middleware';
-import { SuperbuySyncService } from '@/lib/integrations/superbuy';
 import { serviceContainer } from '@/lib/services/container';
-import { DatabaseService } from '@/lib/database';
+// import { DatabaseService } from '@/lib/database';
 import { logger } from '@/lib/utils/logging/logger';
 
 interface ExtractionStep {
@@ -67,14 +66,7 @@ export async function POST(req: NextRequest) {
     // 3. Lancer l'extraction Puppeteer directe (pas de fichier)
     pushStep('extraction', 'running', 'Connexion à Superbuy et extraction des parcelles...');
 
-    const databaseService = DatabaseService.getInstance();
-    const parcelleService = serviceContainer.getParcelleService();
-
-    const syncService = new SuperbuySyncService(
-      parcelleService,
-      databaseService,
-      user.id
-    );
+    const syncService = serviceContainer.getSuperbuySyncService();
 
     let extractedData: any[] = [];
 
@@ -85,11 +77,11 @@ export async function POST(req: NextRequest) {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Erreur inconnue';
       pushStep('extraction', 'error', `Erreur extraction: ${errorMsg}`);
-      
+
       // Détecter les erreurs d'authentification/session
-      const isAuthError = 
-        errorMsg.includes('authentifié') || 
-        errorMsg.includes('login') || 
+      const isAuthError =
+        errorMsg.includes('authentifié') ||
+        errorMsg.includes('login') ||
         errorMsg.includes('Session') ||
         errorMsg.includes('expire') ||
         errorMsg.includes('reconnecter') ||
@@ -105,7 +97,7 @@ export async function POST(req: NextRequest) {
           steps,
         }, { status: 401 });
       }
-      
+
       // Autres erreurs d'extraction
       console.log('[Extract & Sync] ❌ Erreur extraction:', errorMsg);
       return NextResponse.json({
@@ -143,7 +135,7 @@ export async function POST(req: NextRequest) {
     // 4.5 Convertir vers un format proche de SuperbuyParcel (comme l'autre endpoint) pour un mapping robuste
     const superbuyLikeParcels = normalizedData.map((raw: any) => ({
       packageOrderNo: raw.parcelId,
-      packageId: parseInt(String(raw.packageId || String(raw.parcelId || '').replace(/\D/g, '') || '0')), 
+      packageId: parseInt(String(raw.packageId || String(raw.parcelId || '').replace(/\D/g, '') || '0')),
       trackingNumber: raw.trackingNumber,
       carrier: raw.carrier,
       status: raw.status,
@@ -169,7 +161,7 @@ export async function POST(req: NextRequest) {
     // 5. Synchroniser en base
     pushStep('sync', 'running', `Synchronisation de ${superbuyLikeParcels.length} parcelles en base...`);
 
-    const summary = await syncService.syncParcels(superbuyLikeParcels, {
+    const summary = await syncService.syncParcels(user.id, superbuyLikeParcels, {
       skipExisting,
       forceUpdate,
     });
@@ -269,22 +261,22 @@ async function runSuperbuyExtractionDirect(): Promise<any[]> {
     // Vérifier authentification: Plusieurs vérifications pour détecter un logout
     const authCheckResult = await page.evaluate(() => {
       const href = window.location.href;
-      
+
       // Indicateur 1: URL contient login/signin
       const urlLooksLikeLogin = /login|signin|account\/login|user\/login/i.test(href);
-      
+
       // Indicateur 2: Champs de mot de passe visibles
       const hasPasswordField = !!document.querySelector('input[type="password"]');
-      
+
       // Indicateur 3: Formulaire de login détecté
       const formLooksLikeLogin = !!document.querySelector('form[action*="login" i]');
-      
+
       // Indicateur 4: Éléments de login spécifiques
       const loginMarkers = !!document.querySelector('#login, .login, [data-login]');
-      
+
       // Indicateur 5: Page de home (redirection de logout)
       const redirectedToHome = /^https:\/\/www\.superbuy\.com\/?$/.test(href);
-      
+
       return {
         isLoggedIn: !urlLooksLikeLogin && !hasPasswordField && !formLooksLikeLogin && !loginMarkers && !redirectedToHome,
         details: {
@@ -413,7 +405,7 @@ async function runSuperbuyExtractionDirect(): Promise<any[]> {
         // Log un extrait pour aide au debug
         try {
           console.log('[Extraction] Structure API reçue:', JSON.stringify(json, null, 2).substring(0, 500));
-        } catch {}
+        } catch { }
         throw new Error('Session Superbuy invalide ou expirée. Veuillez vous reconnecter.');
       }
     }
@@ -443,7 +435,7 @@ async function runSuperbuyExtractionDirect(): Promise<any[]> {
       // Log la structure pour debug
       try {
         console.log('[Extraction] Structure API reçue:', JSON.stringify(json, null, 2).substring(0, 500));
-      } catch {}
+      } catch { }
       throw new Error('Aucune parcelle trouvée dans la réponse Superbuy');
     }
 

@@ -13,7 +13,7 @@ import {
   recordOperationDuration,
 } from "@/lib/services/performance-metrics";
 import { errorTrackingService } from "@/lib/services/error-tracking"; // Changed import
-import { getLogger } from "@/lib/utils/logging";
+import { getLogger } from "@/lib/utils/logging/logger";
 import { v4 as uuidv4 } from "uuid";
 
 interface UserActionContext {
@@ -48,7 +48,7 @@ interface UserSession {
 }
 
 class UserActionLoggerService {
-  private logger = getLogger;
+  private logger = getLogger("UserActionLoggerService");
   private activeSessions = new Map<string, UserSession>();
   private recentActions: Array<{
     context: UserActionContext;

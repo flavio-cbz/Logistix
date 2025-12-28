@@ -5,3 +5,4 @@ export * from "./parcelle-repository";
 export * from "./order-repository";
 export * from "./integration-repository";
 export * from "./product-repository";
+export * from "./superbuy-sync-repository";

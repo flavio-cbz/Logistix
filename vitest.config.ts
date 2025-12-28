@@ -42,13 +42,16 @@ export default defineConfig({
     alias: aliasFromTsconfig
   },
   test: {
-  environment: (process.env['VITEST_NODE_ENV'] === 'true' ? 'node' : 'jsdom'),
+    environment: (process.env['VITEST_NODE_ENV'] === 'true' ? 'node' : 'jsdom'),
     setupFiles: ['./vitest.setup.ts', './tests/setup/test-setup.ts'],
     globals: true,
     environmentOptions: {
       jsdom: {
         html: '<html lang="fr"><body></body></html>',
       },
+    },
+    env: {
+      JWT_SECRET: 'test-secret',
     },
     include: [
       '**/*.test.ts',

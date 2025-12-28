@@ -40,7 +40,7 @@ const saleFormSchema = z.object({
   dateVente: z.string().min(1, "La date de vente est requise"),
   dateMiseEnLigne: z.string().min(1, "La date de mise en ligne est requise"),
   plateforme: z.nativeEnum(Platform, {
-    errorMap: () => ({ message: "Veuillez sélectionner une plateforme" }),
+    message: "Veuillez sélectionner une plateforme",
   }),
 })
 

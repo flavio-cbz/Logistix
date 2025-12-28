@@ -13,17 +13,17 @@ export const updateSettingsSchema = z.object({
   // Apparence
   theme: z
     .enum(["light", "dark", "system"], {
-      errorMap: () => ({ message: "Le thème doit être 'light', 'dark' ou 'system'" }),
+      message: "Le thème doit être 'light', 'dark' ou 'system'",
     })
     .optional(),
   language: z
     .enum(["fr", "en"], {
-      errorMap: () => ({ message: "La langue doit être 'fr' ou 'en'" }),
+      message: "La langue doit être 'fr' ou 'en'",
     })
     .optional(),
   animations: z
     .boolean({
-      errorMap: () => ({ message: "La valeur doit être un booléen" }),
+      message: "La valeur doit être un booléen",
     })
     .optional(),
 
@@ -32,33 +32,33 @@ export const updateSettingsSchema = z.object({
     .object({
       currency: z
         .enum(["EUR", "USD", "CNY"], {
-          errorMap: () => ({ message: "La devise doit être EUR, USD ou CNY" }),
+          message: "La devise doit être EUR, USD ou CNY",
         })
         .optional(),
       weightUnit: z
         .enum(["g", "kg"], {
-          errorMap: () => ({ message: "L'unité de poids doit être g ou kg" }),
+          message: "L'unité de poids doit être g ou kg",
         })
         .optional(),
       dateFormat: z
         .enum(["DD/MM/YYYY", "MM/DD/YYYY"], {
-          errorMap: () => ({ message: "Le format de date doit être DD/MM/YYYY ou MM/DD/YYYY" }),
+          message: "Le format de date doit être DD/MM/YYYY ou MM/DD/YYYY",
         })
         .optional(),
       autoExchangeRate: z
         .boolean({
-          errorMap: () => ({ message: "La valeur doit être un booléen" }),
+          message: "La valeur doit être un booléen",
         })
         .optional(),
       manualExchangeRate: z
         .number({
-          errorMap: () => ({ message: "Le taux doit être un nombre" }),
+          message: "Le taux doit être un nombre",
         })
         .min(0, "Le taux doit être positif")
         .optional(),
       animations: z
         .boolean({
-          errorMap: () => ({ message: "La valeur doit être un booléen" }),
+          message: "La valeur doit être un booléen",
         })
         .optional(),
     })

@@ -26,8 +26,8 @@ const baseParcelleSchema = z.object({
     .max(200, "Le nom de la parcelle ne peut pas dépasser 200 caractères")
     .trim(),
   statut: z
-    .enum(PARCELLE_STATUTS, {
-      errorMap: () => ({ message: `Le statut doit être: ${PARCELLE_STATUTS.join(', ')}` })
+    .enum([...PARCELLE_STATUTS], {
+      message: `Le statut doit être: ${PARCELLE_STATUTS.join(', ')}`
     }),
   prixAchat: z.union([
     z.number().positive("Le prix d'achat doit être positif"),

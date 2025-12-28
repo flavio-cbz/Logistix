@@ -21,7 +21,7 @@ export const FeatureFlagSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   description: z.string().optional(),
-  metadata: z.record(z.any()).default({}),
+  metadata: z.record(z.string(), z.any()).default({}),
 });
 
 export type FeatureFlag = z.infer<typeof FeatureFlagSchema>;
@@ -33,6 +33,9 @@ export const FeatureFlagsConfigSchema = z.object({
     rolloutPercentage: 0,
     description:
       "Use the new unified database service instead of legacy database clients",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   standardizedApiRoutes: FeatureFlagSchema.default({
@@ -40,24 +43,36 @@ export const FeatureFlagsConfigSchema = z.object({
     rolloutPercentage: 0,
     description:
       "Use standardized API routes with new middleware and validation",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   newAuthenticationSystem: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Use the new authentication service and middleware",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   enhancedErrorHandling: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Use the new error handling system with custom error classes",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   centralizedConfiguration: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Use the centralized configuration service",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   // Performance and monitoring flags
@@ -65,18 +80,27 @@ export const FeatureFlagsConfigSchema = z.object({
     enabled: false,
     rolloutPercentage: 0,
     description: "Enable database query optimization and monitoring",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   cachingLayer: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Enable caching layer for frequently accessed data",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   performanceMonitoring: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Enable performance monitoring and metrics collection",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   // Frontend-backend alignment flags
@@ -85,12 +109,18 @@ export const FeatureFlagsConfigSchema = z.object({
     rolloutPercentage: 0,
     description:
       "Use aligned TypeScript type definitions between frontend and backend",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   standardizedFormValidation: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Use standardized form validation aligned with API schemas",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   // A/B Testing flags
@@ -98,6 +128,9 @@ export const FeatureFlagsConfigSchema = z.object({
     enabled: false,
     rolloutPercentage: 50,
     description: "A/B test for new product form UI design",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   // Development and debugging flags
@@ -106,12 +139,18 @@ export const FeatureFlagsConfigSchema = z.object({
     rolloutPercentage: 0,
     userGroups: ["developers", "testers"],
     description: "Enable debug mode with additional logging and error details",
+    // userGroups is already defined here
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   maintenanceMode: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Enable maintenance mode to prevent certain operations",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 });
 

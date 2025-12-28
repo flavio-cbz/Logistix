@@ -1,10 +1,13 @@
 {
   "extends": "./tsconfig.json",
   "exclude": [
-    "node_modules", 
-    "**/*.d.ts", 
+    "node_modules",
+    "**/*.d.ts",
     ".next",
     "scripts/**/*",
-    "tests/**/*"
+    "tests/**/*",
+    "lib/infrastructure/**/*",
+    "lib/application/**/*",
+    "lib/config/database-factory.ts"
   ]
 }

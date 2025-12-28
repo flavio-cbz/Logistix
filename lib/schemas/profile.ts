@@ -34,12 +34,12 @@ export const updateProfileSchema = z.object({
     .or(z.null()), // Allow null to clear avatar
   language: z
     .enum(["fr", "en"], {
-      errorMap: () => ({ message: "La langue doit être 'fr' ou 'en'" }),
+      message: "La langue doit être 'fr' ou 'en'",
     })
     .optional(),
   theme: z
     .enum(["light", "dark", "system"], {
-      errorMap: () => ({ message: "Le thème doit être 'light', 'dark' ou 'system'" }),
+      message: "Le thème doit être 'light', 'dark' ou 'system'",
     })
     .optional(),
 });

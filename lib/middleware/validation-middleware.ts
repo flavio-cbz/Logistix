@@ -70,7 +70,7 @@ function createValidationContext(request?: NextRequest): ValidationContext {
  * Converts Zod errors to validation error details
  */
 function formatZodErrors(zodError: ZodError): ValidationErrorDetail[] {
-  return zodError.errors.map((error) => ({
+  return zodError.issues.map((error) => ({
     field: error.path.join("."),
     message: error.message,
     code: error.code,

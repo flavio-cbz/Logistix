@@ -5,7 +5,7 @@
 
 import {
   getLogger,
-} from "@/lib/utils/logging";
+} from "@/lib/utils/logging/logger";
 import { v4 as uuidv4 } from "uuid";
 
 export interface AuditEvent {
@@ -52,7 +52,7 @@ export interface PerformanceEvent {
 }
 
 class AuditLoggerService {
-  private logger = getLogger;
+  private logger = getLogger("AuditLoggerService");
 
   /**
    * Log user action with full audit trail

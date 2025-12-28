@@ -12,10 +12,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/middleware/auth-middleware';
-import { SuperbuySyncService } from '@/lib/integrations/superbuy/sync-service';
-import { DatabaseService } from '@/lib/database';
-import { ParcelleService } from '@/lib/services/parcelle-service';
-import { ParcelleRepository } from '@/lib/repositories/parcelle-repository';
+import { serviceContainer } from '@/lib/services/container';
+// import { SuperbuySyncService } from '@/lib/integrations/superbuy/sync-service';
+// import { DatabaseService } from '@/lib/database';
+// import { ParcelleService } from '@/lib/services/parcelle-service';
+// import { ParcelleRepository } from '@/lib/repositories/parcelle-repository';
 import { logger } from '@/lib/utils/logging/logger';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -50,19 +51,19 @@ export async function POST(req: NextRequest) {
 
   try {
     logStep('auth', 'running', 'Vérification de l\'authentification LogistiX');
-    
+
     // 1. Authentification LogistiX
     const { user } = await requireAuth(req);
     logStep('auth', 'success', `Utilisateur authentifié: ${user.id}`);
 
     // 2. Vérifier si session Superbuy existe et est valide
     logStep('superbuy-session', 'running', 'Vérification de la session Superbuy');
-    
+
     const sessionValid = await checkSuperbuySession();
-    
+
     if (!sessionValid) {
       logStep('superbuy-session', 'error', 'Session Superbuy invalide ou expirée');
-      
+
       return NextResponse.json({
         success: false,
         needsAuth: true,
@@ -71,12 +72,12 @@ export async function POST(req: NextRequest) {
         authUrl: '/api/v1/superbuy/auth/init', // URL pour initialiser OAuth
       }, { status: 401 });
     }
-    
+
     logStep('superbuy-session', 'success', 'Session Superbuy valide');
 
     // 3. Lancer l'extraction Puppeteer
     logStep('extraction', 'running', 'Lancement de l\'extraction des données Superbuy');
-    
+
     let extractedData: any[];
     try {
       extractedData = await runSuperbuyExtraction();
@@ -107,19 +108,19 @@ export async function POST(req: NextRequest) {
 
     // 4. Sauvegarder dans extracted_data (backup)
     logStep('save', 'running', 'Sauvegarde des données extraites');
-    
+
     try {
       const timestamp = new Date().toISOString().replace(/:/g, '-');
       const filename = `parcels_${timestamp}.json`;
       const extractedDataDir = path.resolve(process.cwd(), 'extracted_data');
-      
+
       if (!fs.existsSync(extractedDataDir)) {
         fs.mkdirSync(extractedDataDir, { recursive: true });
       }
-      
+
       const filePath = path.join(extractedDataDir, filename);
       fs.writeFileSync(filePath, JSON.stringify(extractedData, null, 2));
-      
+
       logStep('save', 'success', `Données sauvegardées: ${filename}`);
     } catch (saveError) {
       logStep('save', 'error', `Échec sauvegarde: ${saveError instanceof Error ? saveError.message : 'Erreur inconnue'}`);
@@ -128,18 +129,12 @@ export async function POST(req: NextRequest) {
 
     // 5. Synchroniser avec la base de données
     logStep('sync', 'running', 'Synchronisation avec la base de données');
-    
-    const databaseService = DatabaseService.getInstance();
-    const parcelleRepository = new ParcelleRepository(databaseService);
-    const parcelleService = new ParcelleService(parcelleRepository);
 
-    const syncService = new SuperbuySyncService(
-      parcelleService,
-      databaseService,
-      user.id
-    );
+    // Utilisation du conteneur de services
+    const syncService = serviceContainer.getSuperbuySyncService();
 
-    const result = await syncService.syncParcels(extractedData, {
+    // syncParcels attend (userId, parcels, options)
+    const result = await syncService.syncParcels(user.id, extractedData, {
       skipExisting: true,
       forceUpdate: false,
     });
@@ -160,9 +155,9 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     logStep('error', 'error', error instanceof Error ? error.message : 'Erreur inconnue');
-    
+
     logger.error('[Superbuy Live Sync] Fatal error', { error, steps });
-    
+
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Une erreur est survenue',
@@ -177,28 +172,28 @@ export async function POST(req: NextRequest) {
 async function checkSuperbuySession(): Promise<boolean> {
   try {
     console.log('[Session Check] Vérification du fichier auth_state.json');
-    
+
     const rootPath = path.resolve(process.cwd(), 'auth_state.json');
     const scriptsPath = path.resolve(process.cwd(), 'scripts', 'superbuy', 'auth_state.json');
     const authStatePath = fs.existsSync(scriptsPath) ? scriptsPath : rootPath;
-    
+
     if (!fs.existsSync(authStatePath)) {
       console.log('[Session Check] ❌ Fichier auth_state.json introuvable');
       return false;
     }
-    
+
     const authState = JSON.parse(fs.readFileSync(authStatePath, 'utf-8'));
-    console.log('[Session Check] État d\'auth chargé:', { 
-      hasCookies: !!authState.cookies, 
+    console.log('[Session Check] État d\'auth chargé:', {
+      hasCookies: !!authState.cookies,
       cookieCount: authState.cookies?.length || 0,
-      timestamp: authState.timestamp 
+      timestamp: authState.timestamp
     });
-    
+
     if (!authState.cookies || authState.cookies.length === 0) {
       console.log('[Session Check] ❌ Aucun cookie trouvé');
       return false;
     }
-    
+
     // Vérifier si les cookies ont expiré (> 24h) via timestamp ou mtime
     const now = new Date();
     let hoursSinceAuth: number;
@@ -215,17 +210,17 @@ async function checkSuperbuySession(): Promise<boolean> {
       console.log('[Session Check] ❌ Impossible de déterminer l\'âge de la session');
       return false;
     }
-    
+
     console.log('[Session Check] Âge de la session:', `${hoursSinceAuth.toFixed(2)} heures`);
-    
+
     if (hoursSinceAuth > 24) {
       console.log('[Session Check] ❌ Session expirée (> 24h)');
       return false;
     }
-    
+
     console.log('[Session Check] ✅ Session valide');
     return true;
-    
+
   } catch (error) {
     console.error('[Session Check] ❌ Erreur lors de la vérification:', error);
     return false;
@@ -237,37 +232,37 @@ async function checkSuperbuySession(): Promise<boolean> {
  */
 async function runSuperbuyExtraction(): Promise<any[]> {
   console.log('[Extraction] 🚀 Lancement de Playwright...');
-  
+
   const { chromium } = await import('playwright');
-  
+
   let browser;
   let context;
-  
+
   try {
     // Charger les cookies
     const rootPath = path.resolve(process.cwd(), 'auth_state.json');
     const scriptsPath = path.resolve(process.cwd(), 'scripts', 'superbuy', 'auth_state.json');
     const authStatePath = fs.existsSync(scriptsPath) ? scriptsPath : rootPath;
     const authState = JSON.parse(fs.readFileSync(authStatePath, 'utf-8'));
-    
+
     console.log('[Extraction] 📂 Cookies chargés:', authState.cookies.length);
-    
+
     // Lancer le navigateur
     browser = await chromium.launch({ headless: true });
     console.log('[Extraction] 🌐 Navigateur lancé (headless)');
-    
+
     // Utiliser le storageState généré par le login interactif
     context = await browser.newContext({
       storageState: authStatePath,
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       ignoreHTTPSErrors: true,
     });
-    
+
     const page = await context.newPage();
-    
+
     // Aller sur la page des parcelles
     console.log('[Extraction] 🔗 Navigation vers Superbuy parcels...');
-    await page.goto('https://www.superbuy.com/en/page/buy/shipmentlist/', { 
+    await page.goto('https://www.superbuy.com/en/page/buy/shipmentlist/', {
       waitUntil: 'domcontentloaded',
       timeout: 60000,
     });
@@ -287,7 +282,7 @@ async function runSuperbuyExtraction(): Promise<any[]> {
       await browser.close();
       throw new NeedsAuthError('Session Superbuy invalide - redirection vers login');
     }
-    
+
     console.log('[Extraction] ⏳ Attente du chargement des données...');
     // Attendre que des éléments typiques de la liste apparaissent (best-effort)
     try {
@@ -295,12 +290,12 @@ async function runSuperbuyExtraction(): Promise<any[]> {
     } catch {
       // Pas bloquant, on continue en mode best-effort
     }
-    
+
     // Extraire les données via l'API Superbuy directement
     console.log('[Extraction] 📊 Appel API packages...');
-    
+
     const parcelsData: any[] = [];
-    
+
     try {
       // Appeler l'API packages pour récupérer les parcelles
       const response = await page.context().request.get('https://front.superbuy.com/package/package/list', {
@@ -349,7 +344,7 @@ async function runSuperbuyExtraction(): Promise<any[]> {
               destination: [info.areaName, info.state, info.city, info.address]
                 .filter(Boolean)
                 .join(', ') || null,
-              
+
               // Items de la parcelle
               items: orderItems.map((item: any) => ({
                 itemId: item.itemId,
@@ -380,20 +375,20 @@ async function runSuperbuyExtraction(): Promise<any[]> {
       console.error('[Extraction] ❌ Erreur appel API:', apiError);
       // Continuer avec extraction DOM si API échoue
     }
-    
+
     console.log('[Extraction] ✅ Extraction terminée:', parcelsData.length, 'parcelles');
-    
+
     await browser.close();
-    
+
     return parcelsData;
-    
+
   } catch (error) {
     console.error('[Extraction] ❌ Erreur fatale:', error);
-    
+
     if (browser) {
       await browser.close();
     }
-    
+
     throw error;
   }
 }

@@ -197,7 +197,7 @@ export abstract class BaseService {
           operation,
           fieldName,
           providedValue: value,
-          validationErrors: error.errors,
+          validationErrors: error.issues,
         });
 
         throw new ValidationError(
@@ -246,7 +246,7 @@ export abstract class BaseService {
             operation,
             fieldName,
             providedValue: value,
-            validationErrors: customError.errors,
+            validationErrors: customError.issues,
           });
 
           throw new ValidationError(
@@ -373,12 +373,17 @@ export abstract class BaseService {
 
     // Convert Zod validation errors
     if (error instanceof z.ZodError) {
-      const firstError = error.errors[0];
+      const firstError = error.issues[0];
+      const validationErrors = error.issues.map((e) => ({
+        field: e.path.join("."),
+        message: e.message,
+        code: e.code,
+      }));
       throw new ValidationError(
         firstError?.message || "Validation failed",
         firstError?.path?.[0]?.toString(),
         {
-          validationErrors: error.errors,
+          validationErrors,
           operation,
           requestId: this.requestId,
         },
@@ -546,18 +551,18 @@ export abstract class BaseService {
       return schema.parse(data);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const firstError = error.errors[0];
+        const firstError = error.issues[0]; // Fix Zod v4 issue
 
         this.logger.warn(`Schema validation failed`, {
           service: this.serviceName,
           operation,
-          validationErrors: error.errors,
+          validationErrors: error.issues, // Fix Zod v4 issue
         });
 
         throw new ValidationError(
           firstError?.message || "Validation failed",
           firstError?.path?.[0]?.toString(),
-          { validationErrors: error.errors },
+          { validationErrors: error.issues }, // Fix Zod v4 issue
         );
       }
       throw error;

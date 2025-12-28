@@ -70,7 +70,7 @@ export function validateTransformedData<T>(
     return schema.parse(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors
+      const errorMessages = error.issues
         .map((err) => `${err.path.join(".")}: ${err.message}`)
         .join(", ");
       throw new Error(`Validation failed for ${context}: ${errorMessages}`);
