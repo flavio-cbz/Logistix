@@ -1,5 +1,5 @@
 import { BaseService } from "../base-service";
-import { databaseService } from "@/lib/services/database/db";
+import { databaseService } from "@/lib/database";
 
 interface DashboardVentesData {
     ventesTotales: number;
@@ -67,7 +67,7 @@ export class DashboardStatsService extends BaseService {
 
             // Nombre de colis/parcelles
             const colisData = await databaseService.queryOne<{ nombreColis: number }>(
-                "SELECT COUNT(*) as nombreColis FROM parcelles WHERE user_id = ? AND actif = 1",
+                "SELECT COUNT(*) as nombreColis FROM parcels WHERE user_id = ? AND is_active = 1",
                 [userId],
                 "get-nombre-colis"
             );
@@ -107,6 +107,9 @@ export class DashboardStatsService extends BaseService {
             // Rotation des stocks
             const rotationStock = await this.getRotationStock(userId);
 
+            // Calculate trends (today vs yesterday)
+            const trends = this.calculateTrends(performanceJournaliere);
+
             return {
                 ventesTotales: Math.round((ventesData?.ventesTotales || 0) * 100) / 100,
                 produitsVendus: ventesData?.produitsVendus || 0,
@@ -115,6 +118,7 @@ export class DashboardStatsService extends BaseService {
                 tauxConversion: Math.round(tauxConversion * 100) / 100,
                 panierMoyen: Math.round(panierMoyen * 100) / 100,
                 clientsActifs,
+                trends,
                 statsParcelles: statsParcelles.map(p => ({
                     parcelleId: p.parcelleId,
                     numero: p.numero || 'N/A',
@@ -158,14 +162,51 @@ export class DashboardStatsService extends BaseService {
         }, { userId });
     }
 
+    private calculateTrends(performanceJournaliere: PerformanceJour[]) {
+        if (performanceJournaliere.length < 2) {
+            return { revenue: 0, orders: 0, profit: 0, conversion: 0 };
+        }
+
+        const today = performanceJournaliere[performanceJournaliere.length - 1];
+        const yesterday = performanceJournaliere[performanceJournaliere.length - 2];
+
+        const calcTrend = (current: number, previous: number) => {
+            if (!previous || previous === 0) return current > 0 ? 100 : 0;
+            return Math.round(((current - previous) / previous) * 10000) / 100;
+        };
+
+        return {
+            revenue: calcTrend(today?.ventes || 0, yesterday?.ventes || 0),
+            orders: calcTrend(today?.commandes || 0, yesterday?.commandes || 0),
+            profit: calcTrend(today?.benefices || 0, yesterday?.benefices || 0),
+            conversion: performanceJournaliere.length >= 4
+                ? this.calculateConversionTrend(performanceJournaliere)
+                : 0
+        };
+    }
+
+    private calculateConversionTrend(performanceJournaliere: PerformanceJour[]) {
+        const recent = performanceJournaliere.slice(-2);
+        const previous = performanceJournaliere.slice(-4, -2);
+
+        const recentAvg = recent.reduce((sum, day) => sum + (day.commandes || 0), 0) / recent.length;
+        const previousAvg = previous.reduce((sum, day) => sum + (day.commandes || 0), 0) / previous.length;
+
+        if (previousAvg === 0) return recentAvg > 0 ? 100 : 0;
+        return Math.round(((recentAvg - previousAvg) / previousAvg) * 10000) / 100;
+    }
+
+
+
     private async getVentesData(userId: string): Promise<DashboardVentesData | null> {
         return databaseService.queryOne<DashboardVentesData>(
             `SELECT 
-        COALESCE(SUM(selling_price), 0) as ventesTotales,
-        COALESCE(SUM(selling_price - price - COALESCE(cout_livraison, 0)), 0) as beneficesTotaux,
+        COALESCE(SUM(p.selling_price), 0) as ventesTotales,
+        COALESCE(SUM(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)), 0) as beneficesTotaux,
         COUNT(*) as produitsVendus
-      FROM products 
-      WHERE user_id = ? AND vendu = '1'`,
+      FROM products p
+      LEFT JOIN parcels parc ON p.parcel_id = parc.id
+      WHERE p.user_id = ? AND p.vendu = '1'`,
             [userId],
             "get-ventes-totales"
         );
@@ -174,15 +215,16 @@ export class DashboardStatsService extends BaseService {
     private async getPerformanceJournaliere(userId: string): Promise<PerformanceJour[]> {
         return databaseService.query<PerformanceJour>(
             `SELECT 
-        DATE(sold_at) as date,
-        COALESCE(SUM(selling_price), 0) as ventes,
+        DATE(p.sold_at) as date,
+        COALESCE(SUM(p.selling_price), 0) as ventes,
         COUNT(*) as commandes,
-        COALESCE(SUM(selling_price - price - COALESCE(cout_livraison, 0)), 0) as benefices
-      FROM products 
-      WHERE user_id = ? 
-        AND vendu = '1' 
-        AND sold_at >= DATE('now', '-7 days')
-      GROUP BY DATE(sold_at)
+        COALESCE(SUM(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)), 0) as benefices
+      FROM products p
+      LEFT JOIN parcels parc ON p.parcel_id = parc.id
+      WHERE p.user_id = ? 
+        AND p.vendu = '1' 
+        AND p.sold_at >= DATE('now', '-7 days')
+      GROUP BY DATE(p.sold_at)
       ORDER BY date ASC`,
             [userId],
             "get-performance-journaliere"
@@ -192,14 +234,15 @@ export class DashboardStatsService extends BaseService {
     private async getTopProduits(userId: string): Promise<TopProduit[]> {
         return databaseService.query<TopProduit>(
             `SELECT 
-        name as nom,
-        COALESCE(SUM(selling_price), 0) as ventesRevenue,
+        p.name as nom,
+        COALESCE(SUM(p.selling_price), 0) as ventesRevenue,
         COUNT(*) as ventesCount,
-        COALESCE(SUM(selling_price - price - COALESCE(cout_livraison, 0)), 0) as benefices,
+        COALESCE(SUM(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)), 0) as benefices,
         COUNT(*) as stock
-      FROM products 
-      WHERE user_id = ? AND vendu = '1'
-      GROUP BY name
+      FROM products p
+      LEFT JOIN parcels parc ON p.parcel_id = parc.id
+      WHERE p.user_id = ? AND p.vendu = '1'
+      GROUP BY p.name
       ORDER BY ventesRevenue DESC
       LIMIT 5`,
             [userId],
@@ -211,18 +254,18 @@ export class DashboardStatsService extends BaseService {
         return databaseService.query<StatsParcelle>(
             `SELECT 
         parc.id as parcelleId,
-        parc.numero,
-        parc.nom,
+        parc.superbuy_id as numero,
+        parc.name as nom,
         COUNT(p.id) as nbProduits,
         SUM(CASE WHEN p.vendu = '1' THEN 1 ELSE 0 END) as nbVendus,
         COALESCE(SUM(p.poids), 0) as poidsTotal,
-        COALESCE(SUM(p.price + COALESCE(p.cout_livraison, parc.prix_par_gramme * p.poids, 0)), 0) as coutTotal,
+        COALESCE(SUM(p.price + COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)), 0) as coutTotal,
         COALESCE(SUM(CASE WHEN p.vendu = '1' THEN p.selling_price ELSE 0 END), 0) as chiffreAffaires,
-        COALESCE(SUM(CASE WHEN p.vendu = '1' THEN (p.selling_price - p.price - COALESCE(p.cout_livraison, parc.prix_par_gramme * p.poids, 0)) ELSE 0 END), 0) as benefices
-      FROM parcelles parc
-      LEFT JOIN products p ON parc.id = p.parcelle_id
-      WHERE parc.user_id = ? AND parc.actif = 1
-      GROUP BY parc.id, parc.numero, parc.nom
+        COALESCE(SUM(CASE WHEN p.vendu = '1' THEN (p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) ELSE 0 END), 0) as benefices
+      FROM parcels parc
+      LEFT JOIN products p ON parc.id = p.parcel_id
+      WHERE parc.user_id = ? AND parc.is_active = 1
+      GROUP BY parc.id, parc.superbuy_id, parc.name
       ORDER BY benefices DESC`,
             [userId],
             "get-stats-parcelles"
@@ -308,10 +351,11 @@ export class DashboardStatsService extends BaseService {
         // Alerte bénéfices négatifs
         const beneficesNegatifs = await databaseService.queryOne<{ count: number }>(
             `SELECT COUNT(*) as count 
-      FROM products 
-      WHERE user_id = ? 
-        AND vendu = '1' 
-        AND (selling_price - price - COALESCE(cout_livraison, 0)) < 0`,
+      FROM products p
+      LEFT JOIN parcels parc ON p.parcel_id = parc.id
+      WHERE p.user_id = ? 
+        AND p.vendu = '1' 
+        AND (p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) < 0`,
             [userId],
             "get-benefices-negatifs"
         );

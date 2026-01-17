@@ -10,7 +10,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { cn, formatPercentage } from "@/lib/shared/utils";
 
 interface MetricCardProps {
@@ -20,8 +19,6 @@ interface MetricCardProps {
   trend: 'up' | 'down' | 'stable';
   icon: React.ReactNode;
   description?: string;
-  target?: number | undefined;
-  progressValue?: number | undefined;
   className?: string;
 }
 
@@ -32,8 +29,6 @@ export function MetricCard({
   trend,
   icon,
   description,
-  target,
-  progressValue,
   className
 }: MetricCardProps) {
   const [isAnimated, setIsAnimated] = useState(false);
@@ -45,8 +40,8 @@ export function MetricCard({
 
   const getTrendColor = () => {
     switch (trend) {
-      case 'up': return 'text-green-600 dark:text-green-400';
-      case 'down': return 'text-red-600 dark:text-red-400';
+      case 'up': return 'text-success';
+      case 'down': return 'text-destructive';
       default: return 'text-muted-foreground';
     }
   };
@@ -61,19 +56,22 @@ export function MetricCard({
 
   return (
     <Card className={cn(
-      "relative overflow-hidden transition-all duration-500 hover:shadow-lg hover:scale-[1.02]",
-      "bg-gradient-to-br from-card to-card/50",
-      isAnimated && "animate-in slide-in-from-bottom-4",
+      "relative overflow-hidden transition-all duration-500 hover:shadow-xl hover:scale-[1.02] border-border/50",
+      "bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-md",
+      "dark:from-card/50 dark:to-card/20",
+      "h-full flex flex-col justify-between", // Added h-full and flex-col
+      isAnimated && "animate-in slide-in-from-bottom-4 fade-in duration-700",
       className
     )}>
       {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-50" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute -right-12 -top-12 w-24 h-24 bg-primary/10 blur-3xl rounded-full pointer-events-none" />
 
-      <CardHeader className="relative flex flex-row items-center justify-between pb-2">
-        <div className="flex items-center gap-2">
+      <CardHeader className="relative flex flex-row items-center justify-between pb-2 pt-4 px-4 z-10">
+        <div className="flex items-center gap-3">
           <div className={cn(
-            "p-2 rounded-lg bg-primary/10",
-            "transition-all duration-300 hover:bg-primary/20 hover:scale-110"
+            "p-2 rounded-xl bg-background/50 shadow-sm ring-1 ring-border/50",
+            "transition-all duration-300 group-hover:bg-primary/10 group-hover:scale-110 group-hover:rotate-3"
           )}>
             {icon}
           </div>
@@ -81,14 +79,13 @@ export function MetricCard({
             {title}
           </CardTitle>
         </div>
-
       </CardHeader>
 
-      <CardContent className="relative">
-        <div className="flex items-center justify-between">
+      <CardContent className="relative px-4 pb-4 flex flex-col flex-1 justify-end">
+        <div className="flex items-center justify-between mb-auto py-2">
           <div className="space-y-1">
             <div className={cn(
-              "text-2xl font-bold transition-all duration-500",
+              "text-3xl font-bold transition-all duration-500",
               isAnimated && "animate-in fade-in slide-in-from-left-4"
             )}>
               {value}
@@ -101,25 +98,17 @@ export function MetricCard({
           </div>
 
           <div className={cn("flex items-center gap-1 text-sm", getTrendColor())}>
-            {getTrendIcon()}
-            <span className="font-medium">
-              {change > 0 ? '+' : ''}{formatPercentage(Number(change.toFixed(2)) / 100)}
-            </span>
+            {change !== 0 && (
+              <>
+                {getTrendIcon()}
+                <span className="font-medium">
+                  {change > 0 ? '+' : ''}{formatPercentage(Number(change.toFixed(2)) / 100)}
+                </span>
+              </>
+            )}
+            {change === 0 && <span className="text-muted-foreground">-</span>}
           </div>
         </div>
-
-        {target && (
-          <div className="mt-3">
-            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-              <span>Progression</span>
-              <span>{formatPercentage((progressValue ?? (typeof value === 'number' ? value : parseFloat(value?.toString() ?? '0'))) / target)}</span>
-            </div>
-            <Progress
-              value={(progressValue ?? (typeof value === 'number' ? value : parseFloat(value?.toString() ?? '0'))) / target * 100}
-              className="h-2"
-            />
-          </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -138,31 +127,31 @@ export function AlertCard({ title, message, severity, actionLabel, onAction }: A
     switch (severity) {
       case 'error':
         return {
-          bg: 'bg-red-50 dark:bg-red-950/30',
-          border: 'border-red-200 dark:border-red-800',
-          icon: <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />,
-          titleColor: 'text-red-900 dark:text-red-100'
+          bg: 'bg-destructive/10',
+          border: 'border-destructive/20',
+          icon: <AlertTriangle className="w-4 h-4 text-destructive" />,
+          titleColor: 'text-destructive'
         };
       case 'warning':
         return {
-          bg: 'bg-yellow-50 dark:bg-yellow-950/30',
-          border: 'border-yellow-200 dark:border-yellow-800',
-          icon: <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />,
-          titleColor: 'text-yellow-900 dark:text-yellow-100'
+          bg: 'bg-warning/10',
+          border: 'border-warning/20',
+          icon: <AlertTriangle className="w-4 h-4 text-warning" />,
+          titleColor: 'text-warning'
         };
       case 'success':
         return {
-          bg: 'bg-green-50 dark:bg-green-950/30',
-          border: 'border-green-200 dark:border-green-800',
-          icon: <Target className="w-4 h-4 text-green-600 dark:text-green-400" />,
-          titleColor: 'text-green-900 dark:text-green-100'
+          bg: 'bg-success/10',
+          border: 'border-success/20',
+          icon: <Target className="w-4 h-4 text-success" />,
+          titleColor: 'text-success'
         };
       default:
         return {
-          bg: 'bg-blue-50 dark:bg-blue-950/30',
-          border: 'border-blue-200 dark:border-blue-800',
-          icon: <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />,
-          titleColor: 'text-blue-900 dark:text-blue-100'
+          bg: 'bg-primary/5',
+          border: 'border-primary/20',
+          icon: <Activity className="w-4 h-4 text-primary" />,
+          titleColor: 'text-primary'
         };
     }
   };
@@ -227,7 +216,6 @@ export function QuickAction({
     <Card
       className={cn(
         "cursor-pointer transition-all duration-300 hover:shadow-md hover:scale-[1.02]",
-        "border-2 border-dashed",
         getVariantStyles()
       )}
       onClick={onClick}

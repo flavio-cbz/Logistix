@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/middleware/auth-middleware";
 import { withErrorHandling } from "@/lib/utils/api-response";
-import { databaseService } from "@/lib/services/database/db";
+import { databaseService } from "@/lib/database";
 import { z } from "zod";
 
 const bulkActionSchema = z.object({
@@ -14,12 +14,12 @@ async function handlePost(req: NextRequest) {
     const body = await req.json();
     const { action, ids } = bulkActionSchema.parse(body);
 
-    // Verify all parcelles belong to the user
+    // Verify all parcels belong to the user
     const placeholders = ids.map(() => "?").join(",");
     const existing = await databaseService.query(
-        `SELECT id FROM parcelles WHERE id IN (${placeholders}) AND user_id = ?`,
+        `SELECT id FROM parcels WHERE id IN (${placeholders}) AND user_id = ?`,
         [...ids, user.id]
-    ) as any[];
+    ) as { id: string }[];
 
     if (existing.length !== ids.length) {
         return NextResponse.json(
@@ -33,15 +33,24 @@ async function handlePost(req: NextRequest) {
     if (action === "delete") {
         // Soft delete
         const result = await databaseService.execute(
-            `UPDATE parcelles SET actif = 0, updated_at = datetime('now') WHERE id IN (${placeholders}) AND user_id = ?`,
+            `UPDATE parcels SET is_active = 0, updated_at = datetime('now') WHERE id IN (${placeholders}) AND user_id = ?`,
             [...ids, user.id]
         );
         affected = result.changes || 0;
     } else if (action === "duplicate") {
-        // Duplicate each parcelle
+        // Duplicate each parcel
         for (const id of ids) {
-            const original = await databaseService.queryOne(
-                `SELECT * FROM parcelles WHERE id = ? AND user_id = ?`,
+            const original = await databaseService.queryOne<{
+                id: string;
+                superbuy_id: string;
+                carrier: string | null;
+                name: string | null;
+                status: string;
+                weight: number;
+                total_price: number;
+                price_per_gram: number;
+            }>(
+                `SELECT * FROM parcels WHERE id = ? AND user_id = ?`,
                 [id, user.id]
             );
 
@@ -49,20 +58,19 @@ async function handlePost(req: NextRequest) {
                 const newId = crypto.randomUUID();
                 const now = new Date().toISOString();
                 await databaseService.execute(
-                    `INSERT INTO parcelles (id, user_id, numero, transporteur, nom, statut, actif, poids, prix_achat, prix_total, prix_par_gramme, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO parcels (id, user_id, superbuy_id, carrier, name, status, is_active, weight, total_price, price_per_gram, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         newId,
                         user.id,
-                        `${original.numero} (copie)`,
-                        original.transporteur,
-                        original.nom,
-                        original.statut,
+                        `${original.superbuy_id} (copie)`,
+                        original.carrier,
+                        original.name,
+                        original.status,
                         1,
-                        original.poids,
-                        original.prix_achat,
-                        original.prix_total,
-                        original.prix_par_gramme,
+                        original.weight,
+                        original.total_price,
+                        original.price_per_gram,
                         now,
                         now,
                     ]
@@ -78,4 +86,8 @@ async function handlePost(req: NextRequest) {
     });
 }
 
-export const POST = withErrorHandling(handlePost);
+// Type pour le handler
+type RouteHandler = (req: NextRequest) => Promise<NextResponse>;
+
+export const POST = withErrorHandling(handlePost as RouteHandler);
+

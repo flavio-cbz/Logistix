@@ -4,24 +4,76 @@
 import sharp from 'sharp';
 import * as path from 'path';
 import * as fs from 'fs';
-import {
-  type SliderMovementPlan,
-  type YoloCaptchaResult,
-  type YoloDetection,
-} from '../../../scripts/superbuy/captcha/types';
 
-let ort: any = null;
+// Types inlined from deleted scripts/superbuy/captcha/types.ts
+interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface BoundingBoxNorm {
+  x_center: number;
+  y_center: number;
+  width: number;
+  height: number;
+}
+
+interface YoloDetection {
+  class: string;
+  confidence: number;
+  bbox: BoundingBox;
+  bbox_norm: BoundingBoxNorm;
+}
+
+interface YoloCaptchaResult {
+  image: {
+    path: string;
+    width: number;
+    height: number;
+  };
+  detections: YoloDetection[];
+}
+
+interface SliderMovementPlan {
+  imagePath: string;
+  imageWidthPx: number;
+  imageHeightPx: number;
+  pieceDetection?: YoloDetection;
+  dragDetection?: YoloDetection;
+  deltaXImagePx: number;
+  deltaXRatio: number;
+  deltaXDomPx: number;
+  sliderWidthPx: number;
+  valid: boolean;
+  reason?: string;
+}
+
+interface OrtSession {
+  inputNames: string[];
+  outputNames: string[];
+  run(feeds: Record<string, unknown>): Promise<Record<string, { data: Float32Array; dims: number[] }>>;
+}
+
+interface OrtModule {
+  InferenceSession: {
+    create(path: string): Promise<OrtSession>;
+  };
+  Tensor: new (type: string, data: Float32Array, dims: number[]) => unknown;
+}
+
+let ort: OrtModule | null = null;
 try {
-  ort = require('onnxruntime-node');
+  ort = require('onnxruntime-node') as OrtModule;
 } catch {
   // Ignore error, will be handled at runtime if needed
 }
 
 export class YoloCaptchaService {
   private static instance: YoloCaptchaService;
-  // `ort` is loaded at runtime on the server. Use `any` for the type so
-  // TypeScript doesn't require the native binding at compile time.
-  private session: any = null;
+  // `ort` is loaded at runtime on the server.
+  private session: OrtSession | null = null;
   private readonly modelPath: string;
   private readonly minConf: number;
 
@@ -40,7 +92,7 @@ export class YoloCaptchaService {
     this.minConf = Number(process.env['SUPERBUY_CAPTCHA_YOLO_MIN_CONF'] ?? 0.4);
   }
 
-  private async ensureSession(): Promise<any> {
+  private async ensureSession(): Promise<OrtSession> {
     if (!this.session) {
       if (!ort) {
         throw new Error('onnxruntime-node failed to load. Check server logs for details.');
@@ -48,7 +100,7 @@ export class YoloCaptchaService {
       if (!fs.existsSync(this.modelPath)) {
         throw new Error(`[YoloCaptchaService] Model not found at ${this.modelPath}`);
       }
-      this.session = await ort.InferenceSession.create(this.modelPath);
+      this.session = await (ort as OrtModule).InferenceSession.create(this.modelPath);
     }
     return this.session;
   }
@@ -56,7 +108,7 @@ export class YoloCaptchaService {
   /**
    * Preprocess image: Resize to 640x640 with letterboxing, normalize to 0-1, CHW layout.
    */
-  private async preprocess(imagePath: string): Promise<{ tensor: any; scale: number; padX: number; padY: number; origWidth: number; origHeight: number }> {
+  private async preprocess(imagePath: string): Promise<{ tensor: unknown; scale: number; padX: number; padY: number; origWidth: number; origHeight: number }> {
     const metadata = await sharp(imagePath).metadata();
     const origWidth = metadata.width ?? 0;
     const origHeight = metadata.height ?? 0;
@@ -99,7 +151,7 @@ export class YoloCaptchaService {
       float32Data[2 * targetSize * targetSize + i] = b / 255.0; // B
     }
 
-    const tensor = new ort.Tensor('float32', float32Data, [1, 3, targetSize, targetSize]);
+    const tensor = new (ort as OrtModule).Tensor('float32', float32Data, [1, 3, targetSize, targetSize]);
     return { tensor, scale, padX, padY, origWidth, origHeight };
   }
 
@@ -110,11 +162,11 @@ export class YoloCaptchaService {
     const inputName = session.inputNames[0];
     if (!inputName) throw new Error('Model has no input names');
 
-    const feeds: Record<string, any> = {};
-    feeds[inputName] = tensor;
+    const feeds: Record<string, unknown> = {};
+    feeds[inputName || ''] = tensor;
 
-    const results = await session.run(feeds);
-    const outputName = session.outputNames[0];
+    const results = await (session as OrtSession).run(feeds);
+    const outputName = (session as OrtSession).outputNames[0];
     if (!outputName) throw new Error('Model has no output names');
 
     const output = results[outputName]; // Shape: [1, 4+num_classes, 8400] or similar
@@ -261,8 +313,6 @@ export class YoloCaptchaService {
   ): Promise<SliderMovementPlan> {
     const result = await this.detect(imagePath);
     const { image, detections } = result;
-
-    // console.log('[YoloCaptchaService] Detections:', detections.map(d => `${d.class} (${(d.confidence * 100).toFixed(1)}%) @ [${Math.round(d.bbox.x)},${Math.round(d.bbox.y)}]`));
 
     // Strategy: Explicitly find 'tc-piece' (Moving) and 'tc-drag' (Target)
     // Filter by confidence

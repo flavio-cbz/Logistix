@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   FileText
 } from "lucide-react";
+import { PageLoading } from "@/components/ui/loading-state";
 import { useStatistiques, type PeriodType, type GroupByType } from "@/lib/hooks/useStatistiques";
 import { OverviewTab, ParcellesTab, ProduitsTab } from "@/components/features/statistiques";
 
@@ -35,20 +36,11 @@ export default function StatistiquesPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center space-y-4">
-            <div className="relative">
-              <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
-              <Activity className="w-6 h-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Chargement des Statistiques</h3>
-              <p className="text-muted-foreground">Récupération des données...</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageLoading
+        title="Chargement des Statistiques"
+        message="Récupération des données..."
+        icon={<Activity className="w-6 h-6" />}
+      />
     );
   }
 
@@ -80,21 +72,11 @@ export default function StatistiquesPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center space-y-4">
-            <div className="relative">
-              <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
-              <Activity className="w-5 h-5 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Récupération des statistiques</h3>
-              <p className="text-muted-foreground">Connexion interrompue — tentative de reconnexion…</p>
-              <Button onClick={() => refetch()} className="mt-2">Réessayer</Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageLoading
+        title="Récupération des statistiques"
+        message="Connexion interrompue — tentative de reconnexion…"
+        icon={<Activity className="w-6 h-6" />}
+      />
     );
   }
 

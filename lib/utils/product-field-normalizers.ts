@@ -23,17 +23,17 @@ export interface ProductWithLegacyFields extends Partial<Product> {
   prixVente?: number | null;
   prix_vente?: number | null;
   selling_price?: number | null;
-  
+
   // Legacy listing date fields
   dateMiseEnLigne?: string | null;
   date_mise_en_ligne?: string | null;
   listed_at?: string | null;
-  
+
   // Legacy sold date fields
   dateVente?: string | null;
   date_vente?: string | null;
   sold_at?: string | null;
-  
+
   // Legacy shipping cost fields
   coutLivraison?: number | null;
   cout_livraison?: number | null;
@@ -157,47 +157,47 @@ export function getShippingCost(product: ProductWithLegacyFields): number | null
  * ```
  */
 export function normalizeProduct(raw: ProductWithLegacyFields): Product {
-  const normalized: any = { ...raw };
-  
+  const normalized: Record<string, unknown> = { ...raw } as unknown as Record<string, unknown>;
+
   // Normalize selling price
   const sellingPrice = getSellingPrice(raw);
   if (sellingPrice !== null) {
-    normalized.sellingPrice = sellingPrice;
+    normalized['sellingPrice'] = sellingPrice;
   }
   // Clean up legacy fields
-  delete normalized.prixVente;
-  delete normalized.prix_vente;
-  delete normalized.selling_price;
-  
+  delete normalized['prixVente'];
+  delete normalized['prix_vente'];
+  delete normalized['selling_price'];
+
   // Normalize listed date
   const listedAt = getListedAt(raw);
   if (listedAt !== null) {
-    normalized.listedAt = listedAt;
+    normalized['listedAt'] = listedAt;
   }
   // Clean up legacy fields
-  delete normalized.dateMiseEnLigne;
-  delete normalized.date_mise_en_ligne;
-  delete normalized.listed_at;
-  
+  delete normalized['dateMiseEnLigne'];
+  delete normalized['date_mise_en_ligne'];
+  delete normalized['listed_at'];
+
   // Normalize sold date
   const soldAt = getSoldAt(raw);
   if (soldAt !== null) {
-    normalized.soldAt = soldAt;
+    normalized['soldAt'] = soldAt;
   }
   // Clean up legacy fields
-  delete normalized.dateVente;
-  delete normalized.date_vente;
-  delete normalized.sold_at;
-  
+  delete normalized['dateVente'];
+  delete normalized['date_vente'];
+  delete normalized['sold_at'];
+
   // Normalize shipping cost
   const shippingCost = getShippingCost(raw);
   if (shippingCost !== null) {
-    normalized.coutLivraison = shippingCost; // Keep coutLivraison for now
+    normalized['coutLivraison'] = shippingCost; // Keep coutLivraison for now
   }
-  delete normalized.cout_livraison;
-  delete normalized.shipping_cost;
-  
-  return normalized as Product;
+  delete normalized['cout_livraison'];
+  delete normalized['shipping_cost'];
+
+  return normalized as unknown as Product;
 }
 
 /**
@@ -239,21 +239,21 @@ export function calculateProductProfit(product: ProductWithLegacyFields): number
   const sellingPrice = getSellingPrice(product);
   const purchasePrice = product.price ?? 0;
   const shippingCost = getShippingCost(product) ?? 0;
-  
+
   if (sellingPrice === null || !isProductSold(product)) {
     return null;
   }
-  
+
   return sellingPrice - (purchasePrice + shippingCost);
 }
 
 /**
  * Type guard to check if an object is a ProductWithLegacyFields
  */
-export function isProductWithLegacyFields(obj: any): obj is ProductWithLegacyFields {
-  return (
-    typeof obj === "object" &&
-    obj !== null &&
-    (obj.id !== undefined || obj.name !== undefined)
-  );
+export function isProductWithLegacyFields(obj: unknown): obj is ProductWithLegacyFields {
+  if (typeof obj !== "object" || obj === null) {
+    return false;
+  }
+  const record = obj as Record<string, unknown>;
+  return record["id"] !== undefined || record["name"] !== undefined;
 }

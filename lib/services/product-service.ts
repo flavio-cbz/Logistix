@@ -65,14 +65,80 @@ export class ProductService extends BaseService {
         }, { id, userId });
     }
 
-    async getUserProducts(userId: string): Promise<Product[]> {
+    async getUserProducts(
+        userId: string,
+        options?: { page?: number; limit?: number }
+    ): Promise<Product[] | { data: Product[]; total: number; page: number; limit: number }> {
         return this.executeOperation("getUserProducts", async () => {
+            if (options?.page || options?.limit) {
+                const page = options.page || 1;
+                const limit = options.limit || 50;
+                const offset = (page - 1) * limit;
+
+                const { eq } = await import("drizzle-orm");
+                const { products } = await import("@/lib/database/schema");
+
+                const result = await this.productRepository.findWithPagination({
+                    where: eq(products.userId, userId),
+                    limit,
+                    offset,
+                    orderBy: "createdAt",
+                    orderDirection: "desc"
+                });
+
+                return {
+                    data: result.data,
+                    total: result.total,
+                    limit: result.limit,
+                    page: Math.floor(result.offset / result.limit) + 1
+                };
+            }
             return this.productRepository.findByUser(userId);
-        }, { userId });
+        }, { userId, ...options });
     }
 
-    async searchProducts(userId: string, criteria: { name?: string; category?: string; brand?: string; status?: string }): Promise<Product[]> {
+    async searchProducts(
+        userId: string,
+        criteria: { name?: string; category?: string; brand?: string; status?: string; page?: number; limit?: number }
+    ): Promise<Product[] | { data: Product[]; total: number; page: number; limit: number }> {
         return this.executeOperation("searchProducts", async () => {
+            // If pagination requested, use findWithPagination logic.
+            // But repository.search() implementation is custom.
+            // I should probably enhance repository.search to return { data, total } or use findWithPagination with constructed where.
+
+            if (criteria.page || criteria.limit) {
+                const page = criteria.page || 1;
+                const limit = criteria.limit || 50;
+                const offset = (page - 1) * limit;
+
+                const { eq, and, like } = await import("drizzle-orm");
+                const { products } = await import("@/lib/database/schema");
+
+                const conditions = [eq(products.userId, userId)];
+                if (criteria.name) conditions.push(like(products.name, `%${criteria.name}%`));
+                if (criteria.category) conditions.push(like(products.category, `%${criteria.category}%`));
+                if (criteria.brand) conditions.push(like(products.brand, `%${criteria.brand}%`));
+                // Safe cast assuming the criteria validation layer (if any) or shared type ensures compatibility
+                if (criteria.status) conditions.push(eq(products.status, criteria.status as import("@/lib/database/schema").ProductStatus));
+
+                const where = and(...conditions);
+
+                const result = await this.productRepository.findWithPagination({
+                    where,
+                    limit,
+                    offset,
+                    orderBy: "createdAt",
+                    orderDirection: "desc"
+                });
+
+                return {
+                    data: result.data,
+                    total: result.total,
+                    limit: result.limit,
+                    page: Math.floor(result.offset / result.limit) + 1
+                };
+            }
+
             return this.productRepository.search({ userId, ...criteria });
         }, { userId, ...criteria });
     }

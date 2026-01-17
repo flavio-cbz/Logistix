@@ -54,24 +54,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Lire le corps pour debug puis parser
         const raw = await response.text();
-        let data: any = null;
+        let data: unknown = null;
         try {
           data = raw ? JSON.parse(raw) : null;
         } catch (_parseErr) {
-          // console.error(
-          //   "Impossible de parser le JSON de la réponse session :",
-          //   parseErr,
-          //   "raw:",
-          //   raw,
-          // );
           setUser(null);
           return;
         }
 
+        const dataSafe = data as Record<string, unknown>;
+
         // L'API validate-session renvoie { success: true, data: { valid: true, user: { id, username } } }
         // Gérer les deux formats possibles (legacy et nouveau)
-        const isSuccess = data?.success === true || data?.ok === true;
-        const sessionData = data?.data || data; // Support both wrapper and direct format
+        const isSuccess = dataSafe?.['success'] === true || dataSafe?.['ok'] === true;
+        const sessionData = (dataSafe?.['data'] || dataSafe) as { valid?: boolean; user?: { id: string; username: string; email?: string; isAdmin?: boolean } };
 
         if (response.ok && isSuccess && sessionData?.valid === true && sessionData?.user) {
           const user = {

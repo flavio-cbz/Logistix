@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSuccessResponse, createErrorResponse } from "@/lib/utils/api-response";
 import { logger } from "@/lib/utils/logging/logger";
 import { z } from "zod";
-import { databaseService } from "@/lib/services/database/db";
+import { databaseService } from "@/lib/database";
 import { DatabaseError, ValidationError, ConflictError } from "@/lib/shared/errors/base-errors";
 import { v4 as uuidv4 } from "uuid";
-import { hash } from "bcryptjs";
+import { hash } from "bcrypt";
 import { COOKIE_NAME } from "@/lib/constants/config";
 
 // =============================================================================
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     const validationResult = signupSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        createErrorResponse(new ValidationError("Données invalides", validationResult.error.flatten() as any)),
+        createErrorResponse(new ValidationError("Données invalides", validationResult.error.flatten() as Record<string, unknown>)),
         { status: 400 }
       );
     }

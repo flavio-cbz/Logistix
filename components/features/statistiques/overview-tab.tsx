@@ -26,8 +26,6 @@ interface StatMetric {
     change: number;
     trend: 'up' | 'down' | 'stable';
     period: string;
-    target?: number;
-    progressValue?: number;
     description: string;
     icon: React.ReactNode;
 }
@@ -44,8 +42,6 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
             change: d.vueEnsemble.trends?.chiffreAffaires || 0,
             trend: (d.vueEnsemble.trends?.chiffreAffaires || 0) >= 0 ? 'up' : 'down',
             period: selectedPeriod,
-            target: d.targets?.revenue || 20000,
-            progressValue: d.vueEnsemble.chiffreAffaires,
             description: 'Revenus totaux générés',
             icon: <DollarSign className="w-4 h-4 text-primary" />
         },
@@ -56,10 +52,8 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
             change: d.vueEnsemble.trends?.produitsVendus || 0,
             trend: (d.vueEnsemble.trends?.produitsVendus || 0) >= 0 ? 'up' : 'down',
             period: selectedPeriod,
-            target: d.targets?.productsSold || 500,
-            progressValue: d.vueEnsemble.produitsVendus,
             description: `${d.vueEnsemble.produitsVendus} sur ${d.vueEnsemble.totalProduits} produits`,
-            icon: <Package className="w-4 h-4 text-green-600" />
+            icon: <Package className="w-4 h-4 text-primary" />
         },
         {
             id: 'margin',
@@ -68,10 +62,8 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
             change: d.vueEnsemble.trends?.margeMoyenne || 0,
             trend: (d.vueEnsemble.trends?.margeMoyenne || 0) >= 0 ? 'up' : 'down',
             period: selectedPeriod,
-            target: d.targets?.margin || 35,
-            progressValue: d.vueEnsemble.margeMoyenne,
             description: 'Marge bénéficiaire moyenne',
-            icon: <Percent className="w-4 h-4 text-blue-600" />
+            icon: <Percent className="w-4 h-4 text-primary" />
         },
         {
             id: 'conversion',
@@ -80,10 +72,8 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
             change: d.vueEnsemble.trends?.tauxVente || 0,
             trend: (d.vueEnsemble.trends?.tauxVente || 0) >= 0 ? 'up' : 'down',
             period: selectedPeriod,
-            target: d.targets?.conversionRate || 60,
-            progressValue: d.vueEnsemble.tauxVente,
             description: 'Produits vendus / Total produits',
-            icon: <Target className="w-4 h-4 text-purple-600" />
+            icon: <Target className="w-4 h-4 text-primary" />
         },
         {
             id: 'avgprice',
@@ -93,7 +83,7 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
             trend: (d.vueEnsemble.trends?.prixMoyenVente || 0) >= 0 ? 'up' : 'down',
             period: selectedPeriod,
             description: 'Prix de vente moyen',
-            icon: <CreditCard className="w-4 h-4 text-orange-600" />
+            icon: <CreditCard className="w-4 h-4 text-primary" />
         },
         {
             id: 'benefits',
@@ -102,10 +92,8 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
             change: d.vueEnsemble.trends?.beneficesTotal || 0,
             trend: (d.vueEnsemble.trends?.beneficesTotal || 0) >= 0 ? 'up' : 'down',
             period: selectedPeriod,
-            target: d.vueEnsemble.beneficesTotal > 0 ? d.vueEnsemble.beneficesTotal * 1.2 : 1000,
-            progressValue: d.vueEnsemble.beneficesTotal,
             description: 'Bénéfices nets',
-            icon: <Wallet className="w-4 h-4 text-emerald-600" />
+            icon: <Wallet className="w-4 h-4 text-primary" />
         }
     ];
 
@@ -122,8 +110,6 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
                         trend={metric.trend}
                         icon={metric.icon}
                         description={metric.description}
-                        target={metric.target}
-                        progressValue={metric.progressValue}
                     />
                 ))}
             </div>

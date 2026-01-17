@@ -13,12 +13,13 @@ import { createErrorResponse } from '@/lib/middleware/error-handling';
 /**
  * Helper pour convertir une erreur en NextResponse HTTP
  */
-function toErrorResponse(error: any): NextResponse {
-  const statusCode = error.statusCode || 500;
+function toErrorResponse(error: unknown): NextResponse {
+  const err = error as { statusCode?: number; code?: string; message?: string; context?: Record<string, unknown> };
+  const statusCode = err.statusCode || 500;
   const response = createErrorResponse(
-    error.code || 'INTERNAL_ERROR',
-    error.message || 'Une erreur est survenue',
-    error.context || {},
+    err.code || 'INTERNAL_ERROR',
+    err.message || 'Une erreur est survenue',
+    err.context || {},
   );
   return NextResponse.json(response, { status: statusCode });
 }

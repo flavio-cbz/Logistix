@@ -16,7 +16,7 @@ import {
   createHmac,
 } from "crypto";
 import bcrypt from "bcrypt";
-// import { secretManager } from "../services/security/secret-manager"; // Temporairement désactivé pour éviter dépendance circulaire
+
 
 /**
  * Derives an encryption key from a user ID using SHA-256

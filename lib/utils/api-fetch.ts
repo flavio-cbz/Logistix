@@ -10,14 +10,20 @@ interface ApiErrorDetails {
   code?: string | undefined;
   message: string;
   requestId?: string | undefined;
-  body?: any;
+  body?: unknown;
+}
+
+interface ErrorPayload {
+  code?: string;
+  message?: string;
+  requestId?: string;
 }
 
 export class ApiError extends Error implements ApiErrorDetails {
   status: number;
   code?: string | undefined;
   requestId?: string | undefined;
-  body?: any;
+  body?: unknown;
   constructor(details: ApiErrorDetails) {
     super(details.message);
     this.status = details.status;
@@ -32,7 +38,7 @@ function normalizeStatuses(expected?: number | number[]): number[] | undefined {
   return Array.isArray(expected) ? expected : [expected];
 }
 
-export async function apiFetch<T = any>(url: string, options: ApiFetchOptions = {}): Promise<T> {
+export async function apiFetch<T = unknown>(url: string, options: ApiFetchOptions = {}): Promise<T> {
   const { retryAuthRedirect = true, expectedStatus, headers, ...rest } = options;
   const allowed = normalizeStatuses(expectedStatus);
 
@@ -46,7 +52,7 @@ export async function apiFetch<T = any>(url: string, options: ApiFetchOptions = 
   });
 
   const contentType = response.headers.get('content-type') || '';
-  let payload: any = undefined;
+  let payload: unknown = undefined;
   if (contentType.includes('application/json')) {
     try { payload = await response.json(); } catch { /* noop */ }
   } else {
@@ -56,11 +62,12 @@ export async function apiFetch<T = any>(url: string, options: ApiFetchOptions = 
   const okByExpectation = allowed ? allowed.includes(response.status) : response.ok;
 
   if (!okByExpectation) {
+    const errorPayload = payload as ErrorPayload | undefined;
     const apiErr = new ApiError({
       status: response.status,
-      code: payload?.code,
-      message: payload?.message || `API request failed (${response.status})`,
-      requestId: payload?.requestId,
+      code: errorPayload?.code,
+      message: errorPayload?.message || `API request failed (${response.status})`,
+      requestId: errorPayload?.requestId,
       body: payload,
     });
 
@@ -80,7 +87,7 @@ export async function apiFetch<T = any>(url: string, options: ApiFetchOptions = 
 }
 
 // Helpers spécifiques
-export async function postJson<TReq, TRes = any>(url: string, body: TReq, options: Omit<ApiFetchOptions, 'body' | 'method'> = {}) {
+export async function postJson<TReq, TRes = unknown>(url: string, body: TReq, options: Omit<ApiFetchOptions, 'body' | 'method'> = {}) {
   return apiFetch<TRes>(url, {
     method: 'POST',
     body: JSON.stringify(body),
@@ -88,7 +95,7 @@ export async function postJson<TReq, TRes = any>(url: string, body: TReq, option
   });
 }
 
-export async function putJson<TReq, TRes = any>(url: string, body: TReq, options: Omit<ApiFetchOptions, 'body' | 'method'> = {}) {
+export async function putJson<TReq, TRes = unknown>(url: string, body: TReq, options: Omit<ApiFetchOptions, 'body' | 'method'> = {}) {
   return apiFetch<TRes>(url, {
     method: 'PUT',
     body: JSON.stringify(body),
@@ -96,7 +103,7 @@ export async function putJson<TReq, TRes = any>(url: string, body: TReq, options
   });
 }
 
-export async function patchJson<TReq, TRes = any>(url: string, body: TReq, options: Omit<ApiFetchOptions, 'body' | 'method'> = {}) {
+export async function patchJson<TReq, TRes = unknown>(url: string, body: TReq, options: Omit<ApiFetchOptions, 'body' | 'method'> = {}) {
   return apiFetch<TRes>(url, {
     method: 'PATCH',
     body: JSON.stringify(body),
@@ -104,6 +111,6 @@ export async function patchJson<TReq, TRes = any>(url: string, body: TReq, optio
   });
 }
 
-export async function deleteJson<TRes = any>(url: string, options: Omit<ApiFetchOptions, 'method'> = {}) {
+export async function deleteJson<TRes = unknown>(url: string, options: Omit<ApiFetchOptions, 'method'> = {}) {
   return apiFetch<TRes>(url, { method: 'DELETE', ...options });
 }

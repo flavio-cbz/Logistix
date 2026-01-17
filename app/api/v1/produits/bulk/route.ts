@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/middleware/auth-middleware";
 import { withErrorHandling } from "@/lib/utils/api-response";
-import { databaseService } from "@/lib/services/database/db";
+import { databaseService } from "@/lib/database";
 import { z } from "zod";
 
 const bulkActionSchema = z.object({
@@ -19,7 +19,7 @@ async function handlePost(req: NextRequest) {
     const existing = await databaseService.query(
         `SELECT id FROM products WHERE id IN (${placeholders}) AND user_id = ?`,
         [...ids, user.id]
-    ) as any[];
+    ) as { id: string }[];
 
     if (existing.length !== ids.length) {
         return NextResponse.json(
@@ -47,7 +47,24 @@ async function handlePost(req: NextRequest) {
     } else if (action === "duplicate") {
         // Duplicate each product
         for (const id of ids) {
-            const original = await databaseService.queryOne(
+            const original = await databaseService.queryOne<{
+                id: string;
+                parcelle_id: string | null;
+                name: string;
+                description: string | null;
+                brand: string | null;
+                category: string | null;
+                subcategory: string | null;
+                size: string | null;
+                color: string | null;
+                poids: number | null;
+                price: number | null;
+                currency: string | null;
+                cout_livraison: number | null;
+                plateforme: string | null;
+                url: string | null;
+                photo_url: string | null;
+            }>(
                 `SELECT * FROM products WHERE id = ? AND user_id = ?`,
                 [id, user.id]
             );
@@ -93,4 +110,7 @@ async function handlePost(req: NextRequest) {
     });
 }
 
-export const POST = withErrorHandling(handlePost);
+// Type pour le handler
+type RouteHandler = (req: NextRequest) => Promise<NextResponse>;
+
+export const POST = withErrorHandling(handlePost as RouteHandler);

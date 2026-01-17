@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { cn, formatNumber } from "@/lib/shared/utils";
 import { useFormatting } from "@/lib/hooks/use-formatting";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -39,7 +40,7 @@ interface ChartData {
   value: number;
   date?: string;
   category?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface InteractiveChartProps {
@@ -55,9 +56,10 @@ interface InteractiveChartProps {
   gradient?: boolean;
 }
 
-function getValueFromItem(item: Record<string, any>, key: string) {
+function getValueFromItem(item: Record<string, unknown>, key: string): number {
   if (!item) return 0;
-  return item[key] ?? 0;
+  const val = item[key];
+  return typeof val === 'number' ? val : 0;
 }
 
 export function InteractiveChart({
@@ -80,8 +82,8 @@ export function InteractiveChart({
   const trend = useMemo(() => {
     if (filteredData.length < 2) return { direction: 'stable', percentage: 0 };
 
-    const current = filteredData[filteredData.length - 1]?.[dataKey] || 0;
-    const previous = filteredData[filteredData.length - 2]?.[dataKey] || 0;
+    const current = (filteredData[filteredData.length - 1] as ChartData)?.[dataKey] as number || 0;
+    const previous = (filteredData[filteredData.length - 2] as ChartData)?.[dataKey] as number || 0;
 
     if (previous === 0) return { direction: 'stable', percentage: 0 };
 
@@ -92,9 +94,26 @@ export function InteractiveChart({
   }, [filteredData, dataKey]);
 
   const renderChart = () => {
+    if (!filteredData || filteredData.length === 0) {
+      return (
+        <div
+          className="w-full"
+          style={{ height: height }}
+        >
+          <EmptyState
+            icon={BarChart3}
+            title="Aucune donnée"
+            description="Aucune donnée disponible pour cette période"
+            size="sm"
+            className="h-full border-none bg-accent/5"
+          />
+        </div>
+      );
+    }
+
     const commonProps = {
       data: filteredData,
-      margin: { top: 5, right: 30, left: 20, bottom: 5 }
+      margin: { top: 5, right: 10, left: 0, bottom: 5 } // Reduced margins for better fit
     };
 
     switch (type) {
@@ -116,11 +135,15 @@ export function InteractiveChart({
                 className="text-xs"
                 tickLine={false}
                 axisLine={false}
+                tick={{ fontSize: 11 }}
+                minTickGap={30}
               />
               <YAxis
                 className="text-xs"
                 tickLine={false}
                 axisLine={false}
+                width={35}
+                tick={{ fontSize: 11 }}
               />
               <Tooltip
                 contentStyle={{
@@ -146,8 +169,8 @@ export function InteractiveChart({
           <ResponsiveContainer width="100%" height={height}>
             <BarChart {...commonProps}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey={xAxisKey} className="text-xs" tickLine={false} axisLine={false} />
-              <YAxis className="text-xs" tickLine={false} axisLine={false} />
+              <XAxis dataKey={xAxisKey} className="text-xs" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+              <YAxis className="text-xs" tickLine={false} axisLine={false} width={35} tick={{ fontSize: 11 }} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: 'hsl(var(--popover))',
@@ -165,8 +188,8 @@ export function InteractiveChart({
           <ResponsiveContainer width="100%" height={height}>
             <LineChart {...commonProps}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey={xAxisKey} className="text-xs" tickLine={false} axisLine={false} />
-              <YAxis className="text-xs" tickLine={false} axisLine={false} />
+              <XAxis dataKey={xAxisKey} className="text-xs" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+              <YAxis className="text-xs" tickLine={false} axisLine={false} width={35} tick={{ fontSize: 11 }} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: 'hsl(var(--popover))',
@@ -216,12 +239,12 @@ export function InteractiveChart({
               <Pie
                 data={pieDataWithPercentages}
                 cx="50%"
-                cy="45%"
-                innerRadius={60}
-                outerRadius={100}
+                cy="50%"
+                innerRadius={height * 0.25}
+                outerRadius={height * 0.4}
                 paddingAngle={2}
                 dataKey={dataKey}
-                label={({ percentage }: { percentage: number }) => `${(percentage || 0).toFixed(1)}%`}
+                label={({ percent }: { percent?: number }) => `${((percent ?? 0) * 100).toFixed(0)}%`}
                 labelLine={false}
               >
                 {pieDataWithPercentages.map((_, index) => (
@@ -229,39 +252,42 @@ export function InteractiveChart({
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: number, name: string, props: any) => {
+                formatter={(value: number, name: string, props: { payload?: Record<string, unknown> }) => {
+                  const payload = props.payload;
                   const ventes = formatNumber(value, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                  const ca = props.payload?.['ventesRevenue'] ? ` — ${formatCurrency(props.payload['ventesRevenue'])}` : '';
-                  const pct = props.payload?.['percentage'] ? ` (${props.payload['percentage'].toFixed(1)}%)` : '';
+                  const ca = payload?.['ventesRevenue'] ? ` — ${formatCurrency(payload['ventesRevenue'] as number)}` : '';
+                  const pct = payload?.['percentage'] ? ` (${(payload['percentage'] as number).toFixed(1)}%)` : '';
                   return [`${ventes} ventes${ca}${pct}`, name];
                 }}
                 contentStyle={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                  border: '1px solid rgba(0, 0, 0, 0.1)',
+                  backgroundColor: 'hsl(var(--popover))',
+                  border: '1px solid hsl(var(--border))',
                   borderRadius: '8px',
                   padding: '12px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                  color: '#000'
+                  boxShadow: 'var(--shadow-xl)',
+                  color: 'hsl(var(--popover-foreground))'
                 }}
-                labelStyle={{ color: '#000', fontWeight: 600, marginBottom: '4px' }}
-                itemStyle={{ color: '#666', fontSize: '13px' }}
+                labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600, marginBottom: '4px' }}
+                itemStyle={{ color: 'hsl(var(--muted-foreground))', fontSize: '13px' }}
               />
               <Legend
-                formatter={(value: string, entry: any) => {
-                  const percentage = entry.payload?.['percentage']?.toFixed(1) || '0.0';
+                formatter={(value: string, entry: { payload?: Record<string, unknown> }) => {
+                  const payload = entry.payload;
+                  const percentage = (payload?.['percentage'] as number)?.toFixed(1) || '0.0';
                   const displayValue = value || '';
-                  const shortName = displayValue.length > 18 ? `${displayValue.slice(0, 15)}...` : displayValue;
+                  const shortName = displayValue.length > 15 ? `${displayValue.slice(0, 12)}...` : displayValue;
                   return `${shortName} (${percentage}%)`;
                 }}
                 wrapperStyle={{
-                  paddingTop: '16px',
+                  paddingTop: '8px',
                   fontSize: '11px',
-                  lineHeight: '1.8'
+                  lineHeight: '1.5'
                 }}
                 iconType="circle"
-                iconSize={10}
+                iconSize={8}
                 layout="horizontal"
                 align="center"
+                verticalAlign="bottom"
               />
             </PieChart>
           </ResponsiveContainer>
@@ -276,11 +302,11 @@ export function InteractiveChart({
     switch (type) {
       case 'area':
       case 'line':
-        return <LineChartIcon className="w-4 h-4" />;
+        return <LineChartIcon className="w-4 h-4 text-muted-foreground" />;
       case 'bar':
-        return <BarChart3 className="w-4 h-4" />;
+        return <BarChart3 className="w-4 h-4 text-muted-foreground" />;
       case 'pie':
-        return <PieChartIcon className="w-4 h-4" />;
+        return <PieChartIcon className="w-4 h-4 text-muted-foreground" />;
       default:
         return null;
     }
@@ -292,42 +318,46 @@ export function InteractiveChart({
       isFullscreen && "fixed inset-4 z-50 h-auto",
       className
     )}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {getTypeIcon()}
-            <div>
-              <CardTitle className="text-lg">{title}</CardTitle>
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3 min-w-0 pr-2">
+            <div className="mt-1 shrink-0 p-1.5 bg-muted/50 rounded-md">
+              {getTypeIcon()}
+            </div>
+            <div className="min-w-0">
+              <CardTitle className="text-base font-semibold truncate leading-tight py-0.5" title={title}>
+                {title}
+              </CardTitle>
               {description && (
-                <CardDescription>{description}</CardDescription>
+                <CardDescription className="text-xs truncate" title={description}>
+                  {description}
+                </CardDescription>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 shrink-0">
             {/* Trend indicator */}
             {trend.direction !== 'stable' && (
-              <Badge variant={trend.direction === 'up' ? 'default' : 'destructive'}>
+              <Badge variant={trend.direction === 'up' ? 'default' : 'destructive'} className="h-6 px-1.5 text-[10px]">
                 {trend.direction === 'up' ? (
                   <TrendingUp className="w-3 h-3 mr-1" />
                 ) : (
                   <TrendingDown className="w-3 h-3 mr-1" />
                 )}
-                {trend.percentage.toFixed(1)}%
+                {trend.percentage.toFixed(0)}%
               </Badge>
             )}
 
             {/* Actions */}
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setIsFullscreen(!isFullscreen)}
-              >
-                <Maximize2 className="w-4 h-4" />
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+            >
+              <Maximize2 className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </CardHeader>

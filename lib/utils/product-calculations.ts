@@ -8,7 +8,7 @@
  * @author Development Team
  */
 
-import type { Parcelle } from "@/lib/types/entities";
+import type { Parcel } from "@/lib/types/entities";
 
 /**
  * Calculates the shipping cost for a product based on weight and price per gram
@@ -221,15 +221,15 @@ export function calculateProductMetrics(
   prixVente: number | null | undefined,
   dateMiseEnLigne: string | null | undefined,
   dateVente: string | null | undefined,
-  parcelle: Parcelle | null | undefined
+  parcelle: Parcel | null | undefined
 ): ProductMetrics {
   // Business logic: Calculate shipping cost based on product weight and parcelle pricing
   // This uses the parcelle's price per gram to determine shipping costs
   const coutLivraison = calculateShippingCost(
     poids,
-    parcelle?.prixParGramme
+    parcelle?.pricePerGram
   );
-  
+
   // Business logic: Total cost includes both purchase price and shipping
   // This represents the total investment before any profit calculation
   const coutTotal = calculateTotalCost(prixAchat, coutLivraison);
@@ -244,10 +244,10 @@ export function calculateProductMetrics(
   if (prixVente && prixVente > 0) {
     // Calculate absolute profit amount
     benefice = calculateProfit(prixVente, coutTotal);
-    
+
     // Calculate profit percentage relative to total cost (ROI perspective)
     pourcentageBenefice = calculateProfitPercentage(benefice, coutTotal);
-    
+
     // Calculate profit margin relative to sale price (business margin perspective)
     marge = calculateMargin(benefice, prixVente);
   }

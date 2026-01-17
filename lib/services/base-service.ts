@@ -82,7 +82,7 @@ export abstract class BaseService {
   /**
    * Gets the current log context
    */
-  protected getLogContext(additionalContext?: Record<string, any>): LogContext {
+  protected getLogContext(additionalContext?: Record<string, unknown>): LogContext {
     return {
       requestId: this.requestId,
       userId: this.userId,
@@ -106,7 +106,7 @@ export abstract class BaseService {
    */
   protected logOperationStart(
     operation: string,
-    context: Record<string, any> = {},
+    context: Record<string, unknown> = {},
   ): string {
     const operationId = this.generateOperationId(operation);
 
@@ -129,7 +129,7 @@ export abstract class BaseService {
     operationId: string,
     operation: string,
     startTime: number,
-    context: Record<string, any> = {},
+    context: Record<string, unknown> = {},
   ): void {
     const duration = Date.now() - startTime;
 
@@ -153,7 +153,7 @@ export abstract class BaseService {
     operation: string,
     startTime: number,
     error: unknown,
-    context: Record<string, any> = {},
+    context: Record<string, unknown> = {},
   ): void {
     const duration = Date.now() - startTime;
     const errorMessage = this.getErrorMessage(error);
@@ -351,7 +351,7 @@ export abstract class BaseService {
   protected handleError(
     error: unknown,
     operation: string,
-    context: any = {},
+    context: Record<string, unknown> = {},
   ): never {
     const operationId = this.generateOperationId(`error_${operation}`);
 
@@ -513,7 +513,7 @@ export abstract class BaseService {
    */
   protected createBusinessError(
     message: string,
-    details?: any,
+    details?: Record<string, unknown>,
   ): BusinessLogicError {
     return new BusinessLogicError(message, {
       ...details,
@@ -529,7 +529,7 @@ export abstract class BaseService {
   protected createValidationError(
     message: string,
     field?: string,
-    details?: any,
+    details?: Record<string, unknown>,
   ): ValidationError {
     return new ValidationError(message, field, {
       ...details,
@@ -598,7 +598,7 @@ export abstract class BaseService {
   protected async executeOperation<T>(
     operationName: string,
     operation: () => Promise<T>,
-    context: Record<string, any> = {},
+    context: Record<string, unknown> = {},
   ): Promise<T> {
     const startTime = Date.now();
     const operationId = this.logOperationStart(operationName, context);
@@ -625,66 +625,12 @@ export abstract class BaseService {
         error: isCustomError(error) ? error.code : "UNKNOWN_ERROR",
       });
 
-      // Ensure error has proper correlation context
-      if (!isCustomError(error)) {
-        // Wrap plain errors into a Service-level CustomError so callers/tests can rely on a consistent error shape
-        const enhancedContext = {
-          originalError: this.getErrorMessage(error),
-          requestId: this.requestId,
-          userId: this.userId,
-          service: this.serviceName,
-          operation: operationName,
-        };
-
-        throw new CustomError(
-          `An error occurred in ${operationName}`,
-          "SERVICE_ERROR",
-          enhancedContext,
-        );
-      }
-
-      if (isCustomError(error) && !error.context?.['requestId']) {
-        // Add correlation context to custom errors that don't have it
-        // Different error types have different constructor signatures
-        const enhancedContext = {
-          ...error.context,
-          requestId: this.requestId,
-          userId: this.userId,
-          service: this.serviceName,
-          operation: operationName,
-        };
-
-        let enhancedError: CustomError;
-
-        if (error.constructor.name === 'ValidationError') {
-          // ValidationError(message: string, field?: string, context?: Record<string, any>)
-          enhancedError = new (error.constructor as any)(
-            error.message,
-            error.field,
-            enhancedContext,
-          );
-        } else if (error.constructor.name === 'NotFoundError') {
-          // NotFoundError has a special constructor, let's create a new CustomError instead
-          enhancedError = new CustomError(
-            error.message,
-            error.code,
-            enhancedContext,
-            error.field,
-          );
-        } else {
-          // Default CustomError(message: string, code?: string, context?: Record<string, any>, field?: string)
-          enhancedError = new (error.constructor as any)(
-            error.message,
-            error.code,
-            enhancedContext,
-            error.field,
-          );
-        }
-
-        throw enhancedError;
-      }
-
-      throw error;
+      // Delegate to centralized error handler for consistent transformation
+      return this.handleError(error, operationName, {
+        ...context,
+        requestId: this.requestId,
+        userId: this.userId,
+      });
     }
   }
 
@@ -694,7 +640,7 @@ export abstract class BaseService {
   protected executeOperationSync<T>(
     operationName: string,
     operation: () => T,
-    context: Record<string, any> = {},
+    context: Record<string, unknown> = {},
   ): T {
     const startTime = Date.now();
     const operationId = this.logOperationStart(operationName, context);

@@ -9,7 +9,7 @@ import {
 } from "@/lib/services/auto-config-manager";
 
 export const getGlobalPerformanceConfig = () => {
-  const config = autoConfigManager.getCurrentConfig() as any;
+  const config = autoConfigManager.getCurrentConfig() as { performance?: { profile?: string } };
   const baseInterval = 60 * 1000; // 1 minute de base
 
   return {
@@ -48,7 +48,7 @@ export const LOG_LEVEL =
 // Auto-Configuration Replacements (remplace les constantes hardcodées)
 export const getMaxExecutionTime = () => getApiTimeout(); // Dynamique selon l'environnement
 export const getConcurrentRequests = () => {
-  const config = autoConfigManager.getCurrentConfig() as any;
+  const config = autoConfigManager.getCurrentConfig() as { performance?: { profile?: string } };
   return config?.performance?.profile === "aggressive"
     ? 20
     : config?.performance?.profile === "balanced"
@@ -56,7 +56,17 @@ export const getConcurrentRequests = () => {
       : 5;
 };
 
-export const TEST_PRODUCTS: any[] = [
+export interface TestProduct {
+  name: string;
+  expectedPriceRange: {
+    min: number;
+    max: number;
+    currency: string;
+  };
+  description: string;
+}
+
+export const TEST_PRODUCTS: TestProduct[] = [
   {
     name: "Airpods",
     expectedPriceRange: {
@@ -95,7 +105,7 @@ export const TEST_PRODUCTS: any[] = [
   },
 ];
 
-export const DEFAULT_TIMEOUT_SETTINGS: any = {
+export const DEFAULT_TIMEOUT_SETTINGS: Record<string, number> = {
   get apiCallTimeout() {
     return getApiTimeout();
   },
@@ -168,15 +178,26 @@ export const API_CONFIG = {
 // Authentication Constants (maintenant dynamiques)
 import { getCookieMaxAge } from "@/lib/services/auto-config-manager";
 
-export const JWT_SECRET =
-  process.env["JWT_SECRET"] ||
-  "votre_secret_jwt_tres_securise_a_changer_en_production";
+export const JWT_SECRET = (() => {
+  const secret = process.env['JWT_SECRET'];
+  if (!secret) {
+    // In development/test, allow a default for convenience
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+      return 'dev-only-secret-not-for-production-use-32chars';
+    }
+    throw new Error('JWT_SECRET environment variable is required in production');
+  }
+  if (secret.length < 32) {
+    throw new Error('JWT_SECRET must be at least 32 characters');
+  }
+  return secret;
+})();
 export const COOKIE_NAME = process.env["COOKIE_NAME"] || "logistix_session";
 export const getCookieMaxAgeValue = () => getCookieMaxAge();
 
 // Scheduler Constants (maintenant adaptatifs)
 export const getScheduleConfig = () => {
-  const config = autoConfigManager.getCurrentConfig() as any;
+  const config = autoConfigManager.getCurrentConfig() as { performance?: { profile?: string } };
   const baseInterval = 60 * 1000; // 1 minute de base
 
   return {
@@ -196,8 +217,14 @@ export const getScheduleConfig = () => {
   };
 };
 
-// Admin Constants
-export const DEFAULT_ADMIN_PASSWORD = "admin";
+// Admin Constants - Password must come from environment
+export const getDefaultAdminPassword = (): string => {
+  const password = process.env['ADMIN_DEFAULT_PASSWORD'];
+  if (!password) {
+    throw new Error('ADMIN_DEFAULT_PASSWORD environment variable is required');
+  }
+  return password;
+};
 
 // =============================================================================
 // FONCTIONS DE DÉTERMINATION AUTOMATIQUE DES CONSTANTES DE VALIDATION
@@ -206,101 +233,58 @@ export const DEFAULT_ADMIN_PASSWORD = "admin";
 /**
  * Détermine automatiquement l'ID d'un utilisateur admin pour les tests
  */
+/**
+ * Détermine automatiquement l'ID d'un utilisateur admin pour les tests
+ */
 async function determineTestAdminUserId(): Promise<string> {
   try {
-    // Essayer d'importer le service de base de données unifiée
-    const { unifiedDb } = await import(
-      "../services/database/unified-database-service"
+    // Essayer d'importer le service de base de données unifiée (Drizzle)
+    const { databaseService } = await import(
+      "../database/database-service"
     );
 
     // Initialiser la base de données si nécessaire
+    const db = await databaseService.getDb();
+
+    // Chercher d'abord un utilisateur avec le plus de données
     try {
-      await unifiedDb.initialize();
-    } catch (_initError) {
-      // console.warn(
-      //   "Base de données non initialisée, utilisation de l'ID par défaut",
-      // );
-      return "e92b3c0d-e433-4853-94d9-6f3686b0df1d";
-    }
+      // Import dynamique pour éviter cycles
+      const { sql, desc } = await import("drizzle-orm");
+      const { products } = await import("../database/schema");
 
-    // Chercher d'abord un utilisateur avec le plus de données (probablement admin)
-    try {
-      const userWithMostData = await unifiedDb.queryOne<{
-        userId: string;
-        count: number;
-      }>(
-        `SELECT user_id as userId, COUNT(*) as count
-         FROM products
-         GROUP BY user_id
-         ORDER BY count DESC
-         LIMIT 1`,
-        [],
-        {
-          operationId: "find-admin-user-by-data",
-          operation: "admin-user-detection",
-          startTime: Date.now(),
-        },
-      );
+      const result = await db.select({
+        userId: products.userId,
+        count: sql<number>`count(*)`
+      })
+        .from(products)
+        .groupBy(products.userId)
+        .orderBy(desc(sql`count(*)`))
+        .limit(1);
 
-      if (userWithMostData?.userId) {
-
-        return userWithMostData.userId;
+      if (result.length > 0 && result[0].userId) {
+        return result[0].userId;
       }
     } catch (_queryError) {
-      // console.warn("Impossible de rechercher via products:", queryError);
+      // ignore
     }
 
     // Sinon, prendre le premier utilisateur créé
     try {
-      const firstUser = await unifiedDb.queryOne<{ id: string }>(
-        "SELECT id FROM users ORDER BY created_at ASC LIMIT 1",
-        [],
-        {
-          operationId: "find-first-user",
-          operation: "admin-user-detection",
-          startTime: Date.now(),
-        },
-      );
+      const firstUser = await db.query.users.findFirst({
+        orderBy: (users, { asc }) => [asc(users.createdAt)],
+        columns: { id: true }
+      });
 
       if (firstUser?.id) {
-
         return firstUser.id;
       }
     } catch (_userQueryError) {
-      // console.warn(
-      //   "Impossible de rechercher les utilisateurs:",
-      //   userQueryError,
-      // );
-    }
-
-    // Sinon, chercher n'importe quel utilisateur
-    try {
-      const anyUser = await unifiedDb.queryOne<{ id: string }>(
-        "SELECT id FROM users LIMIT 1",
-        [],
-        {
-          operationId: "find-any-user",
-          operation: "admin-user-detection",
-          startTime: Date.now(),
-        },
-      );
-
-      if (anyUser?.id) {
-
-        return anyUser.id;
-      }
-    } catch (_anyUserError) {
-      // console.warn("Impossible de trouver un utilisateur:", anyUserError);
+      // ignore
     }
 
     // Fallback: ID par défaut
-
     return "e92b3c0d-e433-4853-94d9-6f3686b0df1d";
   } catch (_error) {
-    // console.warn(
-    //   "Erreur lors de la détermination automatique de l'utilisateur admin:",
-    //   error,
-    // );
     return "e92b3c0d-e433-4853-94d9-6f3686b0df1d";
   }
 }

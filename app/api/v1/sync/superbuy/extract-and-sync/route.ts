@@ -16,18 +16,57 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/middleware/auth-middleware';
+import { getSessionUser } from '@/lib/services/auth/auth';
 import { serviceContainer } from '@/lib/services/container';
-// import { DatabaseService } from '@/lib/database';
+import { SyncResult } from '@/lib/services/superbuy-sync-service';
+
 import { logger } from '@/lib/utils/logging/logger';
+import { SUPERBUY_API_CODES, SUPERBUY_TIMEOUTS, SUPERBUY_PAGINATION } from '@/lib/services/superbuy/constants';
 
 interface ExtractionStep {
   type: 'extraction' | 'normalization' | 'sync' | 'complete';
   status: 'pending' | 'running' | 'success' | 'error';
   message: string;
   progress?: number;
-  data?: any;
+  data?: Record<string, unknown>;
   timestamp: string;
+}
+
+interface SuperbuyParcelItem {
+  packageNo?: string;
+  packageId?: string | number;
+  expressNo?: string;
+  deliveryCompanyName?: string;
+  packageStatusName?: string;
+  packageRealWeight?: number | string;
+  packagePrice?: number | string;
+  goodsName?: string;
+  warehouseName?: string;
+  packageInfo?: SuperbuyParcelItem;
+  [key: string]: unknown;
+}
+
+interface SuperbuyApiResponse {
+  state?: number;
+  code?: string;
+  msg?: string;
+  data?: {
+    package?: {
+      listResult?: SuperbuyParcelItem[];
+    };
+  };
+}
+
+interface ExtractedParcel {
+  parcelId: string;
+  trackingNumber: string;
+  carrier: string;
+  status: string;
+  weight: number;
+  shippingFee: number;
+  goodsName: string;
+  warehouseName: string;
+  packageId?: string | number;
 }
 
 export async function POST(req: NextRequest) {
@@ -38,7 +77,7 @@ export async function POST(req: NextRequest) {
     status: ExtractionStep['status'],
     message: string,
     progress?: number,
-    data?: any
+    data?: Record<string, unknown>
   ) => {
     const step: ExtractionStep = {
       type,
@@ -55,7 +94,10 @@ export async function POST(req: NextRequest) {
   try {
     // 1. Authentification
     pushStep('extraction', 'running', 'Vérification de l\'authentification...');
-    const { user } = await requireAuth(req);
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ success: false, message: 'Non authentifié' }, { status: 401 });
+    }
     pushStep('extraction', 'success', 'Authentifié ✓');
 
     // 2. Récupérer les paramètres
@@ -67,18 +109,15 @@ export async function POST(req: NextRequest) {
     pushStep('extraction', 'running', 'Connexion à Superbuy et extraction des parcelles...');
 
     const syncService = serviceContainer.getSuperbuySyncService();
-
-    let extractedData: any[] = [];
+    let extractedData: ExtractedParcel[] = [];
 
     try {
-      // Extraction Puppeteer directe (sans fichier)
       extractedData = await runSuperbuyExtractionDirect();
       pushStep('extraction', 'success', `${extractedData.length} parcelles extraites ✓`, 33);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Erreur inconnue';
       pushStep('extraction', 'error', `Erreur extraction: ${errorMsg}`);
 
-      // Détecter les erreurs d'authentification/session
       const isAuthError =
         errorMsg.includes('authentifié') ||
         errorMsg.includes('login') ||
@@ -88,7 +127,7 @@ export async function POST(req: NextRequest) {
         errorMsg.includes('invalide');
 
       if (isAuthError) {
-        console.log('[Extract & Sync] 🔒 Erreur d\'authentification détectée:', errorMsg);
+        logger.warn('[Extract & Sync] 🔒 Erreur d\'authentification détectée:', { error: errorMsg });
         return NextResponse.json({
           success: false,
           message: errorMsg || 'Session Superbuy invalide ou expirée. Veuillez vous reconnecter.',
@@ -99,13 +138,14 @@ export async function POST(req: NextRequest) {
       }
 
       // Autres erreurs d'extraction
-      console.log('[Extract & Sync] ❌ Erreur extraction:', errorMsg);
+      logger.error('[Extract & Sync] ❌ Erreur extraction:', { error: errorMsg });
       return NextResponse.json({
         success: false,
         message: `Échec de l\'extraction: ${errorMsg}`,
         steps,
       }, { status: 500 });
     }
+
 
     if (extractedData.length === 0) {
       pushStep('extraction', 'error', 'Aucune parcelle trouvée sur Superbuy');
@@ -133,9 +173,9 @@ export async function POST(req: NextRequest) {
     pushStep('normalization', 'success', `${normalizedData.length} parcelles normalisées ✓`, 66);
 
     // 4.5 Convertir vers un format proche de SuperbuyParcel (comme l'autre endpoint) pour un mapping robuste
-    const superbuyLikeParcels = normalizedData.map((raw: any) => ({
+    const superbuyLikeParcels = normalizedData.map((raw: ExtractedParcel) => ({
       packageOrderNo: raw.parcelId,
-      packageId: parseInt(String(raw.packageId || String(raw.parcelId || '').replace(/\D/g, '') || '0')),
+      packageId: String(raw.packageId || String(raw.parcelId || '').replace(/\D/g, '') || '0'),
       trackingNumber: raw.trackingNumber,
       carrier: raw.carrier,
       status: raw.status,
@@ -168,8 +208,8 @@ export async function POST(req: NextRequest) {
 
     // Log des erreurs détaillées si nécessaire
     if (summary.failed > 0 && Array.isArray(summary.results)) {
-      const failures = summary.results.filter((r: any) => !r.success);
-      console.error('[Extract & Sync] Échecs de synchronisation:', failures);
+      const failures = summary.results.filter((r: { success: boolean }) => !r.success);
+      logger.error('[Extract & Sync] Échecs de synchronisation:', { failures });
     }
 
     pushStep(
@@ -183,7 +223,7 @@ export async function POST(req: NextRequest) {
         updated: summary.updated,
         skipped: summary.skipped,
         failed: summary.failed,
-        failures: summary.failed > 0 ? summary.results?.filter((r: any) => !r.success) : undefined,
+        failures: summary.failed > 0 ? summary.results?.filter((r: SyncResult) => !r.success) : undefined,
       }
     );
     pushStep('complete', 'success', 'Extraction et synchronisation terminées avec succès', 100, {
@@ -206,7 +246,7 @@ export async function POST(req: NextRequest) {
       dataSource: 'direct-extraction',
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
     pushStep('complete', 'error', `Erreur: ${errorMessage}`);
     logger.error('Erreur endpoint extract-and-sync:', { error });
@@ -220,14 +260,14 @@ export async function POST(req: NextRequest) {
 }
 
 // Helper: Extraction Puppeteer directe (SANS fichier)
-async function runSuperbuyExtractionDirect(): Promise<any[]> {
+async function runSuperbuyExtractionDirect(): Promise<ExtractedParcel[]> {
   const fs = await import('fs');
   const path = await import('path');
 
   const { chromium } = await import('playwright');
 
-  let browser;
-  let context;
+  let browser: import('playwright').Browser | undefined;
+  let context: import('playwright').BrowserContext | undefined;
 
   try {
     // Charger les cookies depuis auth_state.json
@@ -292,14 +332,14 @@ async function runSuperbuyExtractionDirect(): Promise<any[]> {
 
     if (!authCheckResult.isLoggedIn) {
       // Session expirée ou invalide
-      console.log('[Extraction] 🔒 Vérification authentification échouée:', authCheckResult.details);
+      logger.warn('[Extraction] 🔒 Vérification authentification échouée:', { details: authCheckResult.details });
       throw new Error(
         'Session Superbuy invalide ou expirée. Veuillez vous reconnecter. ' +
         `(Détails: ${authCheckResult.details.redirectedToHome ? 'Redirection vers home' : authCheckResult.details.urlLooksLikeLogin ? 'Page de login détectée' : 'Page non reconnue'})`
       );
     }
 
-    console.log('[Extraction] ✅ Authentification vérifiée (domaine www)');
+    logger.info('[Extraction] ✅ Authentification vérifiée (domaine www)');
 
     // Fonction utilitaire: appel de l'API front + parsing JSON
     const callFrontApi = async () => {
@@ -309,7 +349,7 @@ async function runSuperbuyExtractionDirect(): Promise<any[]> {
           params: {
             status: 'all',
             page: '1',
-            pageSize: '100',
+            pageSize: String(SUPERBUY_PAGINATION.DEFAULT_PAGE_SIZE),
             keyword: '',
           },
           headers: {
@@ -321,25 +361,25 @@ async function runSuperbuyExtractionDirect(): Promise<any[]> {
       if (!resp.ok()) {
         throw new Error(`Échec appel API Superbuy: ${resp.status()}`);
       }
-      return (await resp.json()) as any;
+      return (await resp.json()) as SuperbuyApiResponse;
     };
 
     // Étape 1: Essai direct
-    let json = await callFrontApi();
+    let json: SuperbuyApiResponse = await callFrontApi();
 
     // Détection d'une session front expirée: state=10008 ou message "Please login first"
-    const looksUnauthenticated = (j: any) =>
-      j && ((typeof j.state === 'number' && j.state === 10008) || /login/i.test(j.msg || ''));
+    const looksUnauthenticated = (j: SuperbuyApiResponse) =>
+      j && ((typeof j.state === 'number' && j.state === SUPERBUY_API_CODES.SESSION_EXPIRED) || /login/i.test(j.msg || ''));
 
     if (looksUnauthenticated(json)) {
-      console.log('[Extraction] ℹ️ API front: session non valide (10008). Tentative de warmup SSO sur front.superbuy.com...');
+      logger.info(`[Extraction] ℹ️ API front: session non valide (${SUPERBUY_API_CODES.SESSION_EXPIRED}). Tentative de warmup SSO sur front.superbuy.com...`);
 
       // 1) Naviguer sur le domaine front pour propager les cookies/CF
       try {
-        await page.goto('https://front.superbuy.com/', { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await page.goto('https://front.superbuy.com/', { waitUntil: 'domcontentloaded', timeout: SUPERBUY_TIMEOUTS.WARMUP });
         await page.waitForTimeout(1500);
-      } catch (e) {
-        console.warn('[Extraction] ⚠️ Échec navigation front.superbuy.com (warmup):', e);
+      } catch (e: unknown) {
+        logger.warn('[Extraction] ⚠️ Échec navigation front.superbuy.com (warmup):', { error: e });
       }
 
       // 2) Réessayer l'appel API
@@ -361,23 +401,23 @@ async function runSuperbuyExtractionDirect(): Promise<any[]> {
             }));
           if (frontCookies.length > 0) {
             await context.addCookies(frontCookies);
-            console.log(`[Extraction] 🔁 ${frontCookies.length} cookies clonés vers front.superbuy.com`);
+            logger.info(`[Extraction] 🔁 ${frontCookies.length} cookies clonés vers front.superbuy.com`);
           }
         } catch (e) {
-          console.warn('[Extraction] ⚠️ Impossible de cloner les cookies vers front.superbuy.com:', e);
+          logger.warn('[Extraction] ⚠️ Impossible de cloner les cookies vers front.superbuy.com:', { error: e });
         }
 
         // 4) Dernier essai via API context
         try {
           json = await callFrontApi();
         } catch (e) {
-          console.warn('[Extraction] ⚠️ Nouvel échec appel API front après clonage cookies:', e);
+          logger.warn('[Extraction] ⚠️ Nouvel échec appel API front après clonage cookies:', { error: e });
         }
 
         // 5) Fallback ultime: naviguer sur front et faire le fetch depuis la page (même origine)
         if (looksUnauthenticated(json)) {
           try {
-            await page.goto('https://front.superbuy.com/#/account/myparcel', { waitUntil: 'domcontentloaded', timeout: 45000 });
+            await page.goto('https://front.superbuy.com/#/account/myparcel', { waitUntil: 'domcontentloaded', timeout: SUPERBUY_TIMEOUTS.WARMUP });
             await page.waitForTimeout(1000);
             const jsJson = await page.evaluate(async () => {
               const url = 'https://front.superbuy.com/package/package/list?status=all&page=1&pageSize=100&keyword=';
@@ -394,38 +434,38 @@ async function runSuperbuyExtractionDirect(): Promise<any[]> {
               json = jsJson;
             }
           } catch (e) {
-            console.warn('[Extraction] ⚠️ Fallback fetch via page (front) a échoué:', e);
+            logger.warn('[Extraction] ⚠️ Fallback fetch via page (front) a échoué:', { error: e });
           }
         }
       }
 
       // 6) Si toujours non authentifié → lever une erreur d'auth pour déclencher le 401 côté endpoint
       if (looksUnauthenticated(json)) {
-        console.log('[Extraction] 🔒 Session Superbuy (front) invalide ou expirée — re-login requis.');
+        logger.info('[Extraction] 🔒 Session Superbuy (front) invalide ou expirée — re-login requis.');
         // Log un extrait pour aide au debug
         try {
-          console.log('[Extraction] Structure API reçue:', JSON.stringify(json, null, 2).substring(0, 500));
+          logger.debug('[Extraction] Structure API reçue:', { jsonPreview: JSON.stringify(json, null, 2).substring(0, 500) });
         } catch { }
         throw new Error('Session Superbuy invalide ou expirée. Veuillez vous reconnecter.');
       }
     }
 
     // Extraire les parcelles de la réponse API
-    let parcels: any[] = [];
+    let parcels: ExtractedParcel[] = [];
 
     // Structure réelle de l'API Superbuy: data.package.listResult
     if (json.data?.package?.listResult && Array.isArray(json.data.package.listResult)) {
-      parcels = json.data.package.listResult.map((item: any) => {
+      parcels = json.data.package.listResult.map((item: SuperbuyParcelItem) => {
         const info = item.packageInfo || item;
         return {
-          parcelId: info.packageNo || item.packageNo || '',
-          trackingNumber: info.expressNo || item.expressNo || '',
-          carrier: info.deliveryCompanyName || item.deliveryCompanyName || 'Unknown',
-          status: info.packageStatusName || item.packageStatusName || 'En attente',
+          parcelId: (info.packageNo || item.packageNo || '') as string,
+          trackingNumber: (info.expressNo || item.expressNo || '') as string,
+          carrier: (info.deliveryCompanyName || item.deliveryCompanyName || 'Unknown') as string,
+          status: (info.packageStatusName || item.packageStatusName || 'En attente') as string,
           weight: parseInt(String(info.packageRealWeight || item.packageRealWeight || 0)),
           shippingFee: parseFloat(String(info.packagePrice || item.packagePrice || 0)),
-          goodsName: item.goodsName || '',
-          warehouseName: item.warehouseName || '',
+          goodsName: (item.goodsName || '') as string,
+          warehouseName: (item.warehouseName || '') as string,
           packageId: item.packageId,
         };
       });
@@ -434,14 +474,14 @@ async function runSuperbuyExtractionDirect(): Promise<any[]> {
     if (parcels.length === 0) {
       // Log la structure pour debug
       try {
-        console.log('[Extraction] Structure API reçue:', JSON.stringify(json, null, 2).substring(0, 500));
+        logger.debug('[Extraction] Structure API reçue:', { jsonPreview: JSON.stringify(json, null, 2).substring(0, 500) });
       } catch { }
       throw new Error('Aucune parcelle trouvée dans la réponse Superbuy');
     }
 
     await browser?.close();
     return parcels;
-  } catch (error) {
+  } catch (error: unknown) {
     await browser?.close();
     const errorMsg = error instanceof Error ? error.message : 'Erreur inconnue';
     throw new Error(errorMsg);

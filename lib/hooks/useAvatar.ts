@@ -165,7 +165,7 @@ export function useAvatar(username: string, currentAvatarUrl?: string) {
           throw new Error(result.error || "Failed to upload avatar");
         }
       } catch (error) {
-        logger.error("Error uploading avatar:", error as any);
+        logger.error("Error uploading avatar:", { error });
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue lors du téléchargement";
 
         setState((prev) => ({
@@ -214,7 +214,7 @@ export function useAvatar(username: string, currentAvatarUrl?: string) {
 
       return true;
     } catch (error) {
-      logger.error("Error removing avatar:", error as any);
+      logger.error("Error removing avatar:", { error });
       const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue lors de la suppression";
 
       setState((prev) => ({

@@ -159,8 +159,36 @@ const LoadingState = React.forwardRef<HTMLDivElement, LoadingStateProps>(
 LoadingState.displayName = "LoadingState";
 
 // Composants pré-configurés pour des cas d'usage courants
-const PageLoading = ({ message = "Chargement de la page..." }: { message?: string }) => (
-    <LoadingState layout="stack" size="full" message={message} />
+export interface PageLoadingProps {
+    /** Titre principal du loader */
+    title?: string;
+    /** Message secondaire affiché sous le spinner */
+    message?: string;
+    /** Icône personnalisée au centre du spinner */
+    icon?: React.ReactNode;
+}
+
+const PageLoading = ({
+    title = "Chargement...",
+    message = "Récupération des données...",
+    icon
+}: PageLoadingProps) => (
+    <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-4">
+            <div className="relative">
+                <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
+                {icon && (
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary">
+                        {icon}
+                    </div>
+                )}
+            </div>
+            <div className="space-y-2">
+                <h3 className="text-lg font-semibold">{title}</h3>
+                <p className="text-muted-foreground">{message}</p>
+            </div>
+        </div>
+    </div>
 );
 
 const InlineLoading = ({ message = "Chargement..." }: { message?: string }) => (

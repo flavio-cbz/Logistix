@@ -87,7 +87,15 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
       if (!apiResponse) return fallback;
       if (typeof apiResponse === "string") return apiResponse;
 
-      const err = (apiResponse as any).error || apiResponse;
+      const res = apiResponse as {
+        error?: {
+          message?: string;
+          validationErrors?: Array<{ field?: string; message: string }>
+        };
+        success?: boolean;
+        message?: string;
+      };
+      const err = (res.error || res) as { message?: string; validationErrors?: Array<{ field?: string; message: string }> } | string;
       if (!err) return fallback;
       if (typeof err === "string") return err;
 
@@ -98,7 +106,7 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
           err.validationErrors.length
         ) {
           const details = err.validationErrors
-            .map((v: { field?: string; message: string }) => (v.field ? `${v.field}: ${v.message}` : v.message))
+            .map((v) => (v.field ? `${v.field}: ${v.message}` : v.message))
             .join("; ");
           return `${err.message} — ${details}`;
         }
@@ -129,7 +137,7 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     if (!initialData) {
@@ -507,7 +515,7 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center space-x-3 p-4 border rounded-lg">
-              <Package className="h-8 w-8 text-blue-500" />
+              <Package className="h-8 w-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">
                   {profile.stats?.totalProducts || 0}
@@ -525,7 +533,7 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
               </div>
             </div>
             <div className="flex items-center space-x-3 p-4 border rounded-lg">
-              <Calendar className="h-8 w-8 text-purple-500" />
+              <Calendar className="h-8 w-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">
                   {profile.stats?.daysActive || 0}

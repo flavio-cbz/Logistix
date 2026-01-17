@@ -176,8 +176,11 @@ export function isEncryptedSecret(value: string | null | undefined): boolean {
 export function migrateSecretToEncrypted(plainSecret: string | null | undefined): string | null {
     if (!plainSecret) return null;
 
-    // Vérifier que c'est un secret valide (64 chars hex)
-    if (!/^[0-9a-f]{64}$/i.test(plainSecret)) {
+    // Vérifier que c'est un secret valide (64 chars hex OU UUID 36 chars)
+    const isHex64 = /^[0-9a-f]{64}$/i.test(plainSecret);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(plainSecret);
+
+    if (!isHex64 && !isUuid) {
         // console.warn(`Secret invalide, impossible de migrer: ${plainSecret.substring(0, 10)}...`);
         return null;
     }

@@ -8,6 +8,7 @@
  */
 
 import { z } from "zod";
+import { logger } from "@/lib/utils/logging/logger";
 
 // ============================================================================
 // FEATURE FLAG DEFINITIONS
@@ -21,7 +22,7 @@ export const FeatureFlagSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   description: z.string().optional(),
-  metadata: z.record(z.string(), z.any()).default({}),
+  metadata: z.record(z.string(), z.unknown()).default({}),
 });
 
 export type FeatureFlag = z.infer<typeof FeatureFlagSchema>;
@@ -204,13 +205,15 @@ export class FeatureFlagService {
           return FeatureFlagsConfigSchema.parse(parsed);
         }
       } catch (error) {
-        console.warn("Failed to load feature flags from file:", error);
+        const safeError: unknown = error;
+        logger.warn("Failed to load feature flags from file:", { error: String(safeError) });
       }
 
       // Return default configuration
       return FeatureFlagsConfigSchema.parse({});
     } catch (error) {
-      console.error("Failed to parse feature flags configuration:", error);
+      const safeError: unknown = error;
+      logger.error("Failed to parse feature flags configuration:", { error: String(safeError) });
       return FeatureFlagsConfigSchema.parse({});
     }
   }
@@ -253,7 +256,8 @@ export class FeatureFlagService {
       try {
         resolvedUserGroups = await this.userGroupResolver(userId);
       } catch (error) {
-        console.warn("Failed to resolve user groups:", error);
+        const safeError: unknown = error;
+        logger.warn("Failed to resolve user groups:", { error: String(safeError) });
         resolvedUserGroups = [];
       }
     }
@@ -370,19 +374,26 @@ export function getFeatureFlag(
   return service.getFlag(flagName);
 }
 
+interface ContextWithUser {
+  userId?: string;
+  [key: string]: unknown;
+}
+
 /**
  * Feature flag decorator for functions
  */
 export function withFeatureFlag(flagName: keyof FeatureFlagsConfig) {
   return function (
-    _target: any,
+    _target: unknown,
     _propertyName: string,
     descriptor: PropertyDescriptor,
   ) {
     const method = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
-      const userId = (this as any).userId || args[0]?.userId;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    descriptor.value = async function (this: ContextWithUser, ...args: any[]) {
+      // Try to extract userId from this or first argument
+      const userId = this.userId || (args.length > 0 && typeof args[0] === 'object' && args[0] && 'userId' in args[0] ? (args[0] as ContextWithUser).userId : undefined);
       const enabled = await isFeatureEnabled(flagName, userId);
 
       if (!enabled) {
@@ -418,11 +429,22 @@ export function useFeatureFlag(
 // MIDDLEWARE INTEGRATION
 // ============================================================================
 
+interface RequestWithUser {
+  user?: {
+    id: string;
+    groups?: string[];
+  };
+  featureFlags?: {
+    isEnabled: (flagName: keyof FeatureFlagsConfig) => Promise<boolean>;
+    getFlag: (flagName: keyof FeatureFlagsConfig) => FeatureFlag | undefined;
+  };
+}
+
 /**
  * Express middleware to add feature flag context to requests
  */
 export function featureFlagMiddleware() {
-  return async (req: any, _res: any, next: any) => {
+  return async (req: RequestWithUser, _res: unknown, next: (err?: unknown) => void) => {
     const service = FeatureFlagService.getInstance();
 
     req.featureFlags = {

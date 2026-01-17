@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -49,8 +50,10 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { EnrichmentSettings } from "./enrichment-settings";
 import { SuperbuyConnect } from "./superbuy-connect";
 import { useFormatting } from "@/lib/hooks/use-formatting";
+import { logger } from "@/lib/utils/logging/logger";
 
 // Types
 interface ProfileData {
@@ -82,6 +85,15 @@ interface SettingsData {
     };
 }
 
+interface Session {
+    id: string;
+    deviceName: string | null;
+    deviceType: string;
+    ipAddress: string;
+    lastActivityAt: string;
+    isCurrent: boolean;
+}
+
 interface AccountSettingsClientProps {
     profileData: ProfileData;
     settingsData: SettingsData;
@@ -101,8 +113,20 @@ export function AccountSettingsClient({
         setMounted(true);
     }, []);
 
-    // Tab state - controlled mode to fix navigation issue
-    const [activeTab, setActiveTab] = useState("profile");
+    // Navigation hooks
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    // Tab state - synced with URL
+    const activeTab = searchParams.get("tab") || "profile";
+
+    const handleTabChange = (value: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("tab", value);
+        // Using replace to avoid polluting history with every tab switch, or push if preferred
+        router.replace(`${pathname}?${params.toString()}`);
+    };
 
     // Profile state
     const [profile, setProfile] = useState<ProfileData>(initialProfileData);
@@ -124,25 +148,34 @@ export function AccountSettingsClient({
     const [saving, setSaving] = useState(false);
 
     // Sessions state
-    const [sessions, setSessions] = useState<any[]>([]);
+    const [sessions, setSessions] = useState<Session[]>([]);
     const [sessionsLoading, setSessionsLoading] = useState(false);
     const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
     const [deletingAll, setDeletingAll] = useState(false);
-    const [sessionToDelete, setSessionToDelete] = useState<any | null>(null);
+    const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
     const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
     // Helper function
-    const getApiErrorMessage = (apiResponse: any, fallback = "Erreur inconnue") => {
+    const getApiErrorMessage = (apiResponse: unknown, fallback = "Erreur inconnue") => {
         try {
             if (!apiResponse) return fallback;
             if (typeof apiResponse === "string") return apiResponse;
-            const err = apiResponse.error || apiResponse;
+            const res = apiResponse as {
+                error?: {
+                    message?: string;
+                    validationErrors?: Array<{ field?: string; message: string }>
+                };
+                success?: boolean;
+                message?: string;
+            };
+            const err = res.error || res;
             if (!err) return fallback;
             if (typeof err === "string") return err;
             if (err.message) {
-                if (Array.isArray(err.validationErrors) && err.validationErrors.length) {
-                    const details = err.validationErrors
-                        .map((v: any) => (v.field ? `${v.field}: ${v.message}` : v.message))
+                const errorData = err as { message: string; validationErrors?: Array<{ field?: string; message: string }> };
+                if (Array.isArray(errorData.validationErrors) && errorData.validationErrors.length) {
+                    const details = errorData.validationErrors
+                        .map((v) => (v.field ? `${v.field}: ${v.message}` : v.message))
                         .join("; ");
                     return `${err.message} — ${details}`;
                 }
@@ -258,7 +291,7 @@ export function AccountSettingsClient({
         saveSettings({ animations });
     };
 
-    const handlePreferenceChange = (key: keyof SettingsData["preferences"], value: any) => {
+    const handlePreferenceChange = (key: keyof SettingsData["preferences"], value: unknown) => {
         setSettings((prev) => ({
             ...prev,
             preferences: { ...prev.preferences, [key]: value },
@@ -279,7 +312,7 @@ export function AccountSettingsClient({
                 setSessions(json.data?.sessions || []);
             }
         } catch (err) {
-            console.error("Error fetching sessions:", err);
+            logger.error("Error fetching sessions", { error: err });
         } finally {
             setSessionsLoading(false);
         }
@@ -341,7 +374,7 @@ export function AccountSettingsClient({
 
     return (
         <>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                 <TabsList className="grid w-full grid-cols-5 mb-6">
                     <TabsTrigger value="profile" className="flex items-center gap-2" data-testid="tab-profile">
                         <User className="h-4 w-4" />
@@ -414,7 +447,7 @@ export function AccountSettingsClient({
                                         id="username"
                                         value={editedUsername}
                                         onChange={(e) => setEditedUsername(e.target.value)}
-                                        placeholder="Votre nom d'utilisateur"
+                                        placeholder="johndoe"
                                     />
                                     <p className="text-xs text-muted-foreground">
                                         Ce nom sera visible dans l'application
@@ -538,7 +571,7 @@ export function AccountSettingsClient({
                                         <p className="text-sm text-muted-foreground">Aucune session active</p>
                                     ) : (
                                         <div className="space-y-2">
-                                            {sessions.map((s: any) => (
+                                            {sessions.map((s) => (
                                                 <div key={s.id} className="flex items-center justify-between p-3 border rounded-lg">
                                                     <div>
                                                         <div className="font-medium">{s.deviceName || "Appareil inconnu"}</div>
@@ -583,7 +616,7 @@ export function AccountSettingsClient({
                             <CardContent className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="flex items-center gap-4 p-4 border rounded-lg bg-gradient-to-br from-blue-50 to-transparent dark:from-blue-950/20">
-                                        <Package className="h-10 w-10 text-blue-500" />
+                                        <Package className="h-10 w-10 text-primary" />
                                         <div>
                                             <p className="text-3xl font-bold">{profile.stats?.totalProducts || 0}</p>
                                             <p className="text-sm text-muted-foreground">Produits</p>
@@ -597,7 +630,7 @@ export function AccountSettingsClient({
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4 p-4 border rounded-lg bg-gradient-to-br from-purple-50 to-transparent dark:from-purple-950/20">
-                                        <Calendar className="h-10 w-10 text-purple-500" />
+                                        <Calendar className="h-10 w-10 text-primary" />
                                         <div>
                                             <p className="text-3xl font-bold">{profile.stats?.daysActive || 0}</p>
                                             <p className="text-sm text-muted-foreground">Jours d'activité</p>
@@ -788,6 +821,7 @@ export function AccountSettingsClient({
                 {activeTab === "integrations" && (
                     <div className="space-y-6 mt-2">
                         <SuperbuyConnect />
+                        <EnrichmentSettings />
 
                         <Card>
                             <CardHeader>

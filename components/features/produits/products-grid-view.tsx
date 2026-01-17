@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { MoreVertical, Edit, Trash2, DollarSign, Package, TrendingUp } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { MoreVertical, Edit, Trash2, DollarSign, Package, TrendingUp, RefreshCw, CheckCircle, AlertTriangle, Sparkles, HelpCircle, Shirt, Footprints, ShoppingBag } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,16 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Product } from "@/lib/shared/types/entities";
+import { Product, EnrichmentData } from "@/lib/shared/types/entities";
 import { formatEuro } from "@/lib/utils/formatting";
 import ProductCreateForm from "./product-create-form";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { ConflictResolutionDialog } from "./conflict-resolution-dialog";
 import { useDeleteProduct } from "@/lib/hooks/use-products";
+import { useEnrichmentPolling, useRetryEnrichment } from "@/lib/hooks/use-enrichment";
 import { toast } from "sonner";
 
 interface ProductsGridViewProps {
@@ -27,8 +30,25 @@ interface ProductsGridViewProps {
 export default function ProductsGridView({ products, onUpdate }: ProductsGridViewProps) {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [conflictProduct, setConflictProduct] = useState<Product | null>(null);
 
   const deleteMutation = useDeleteProduct();
+  const { retryEnrichment } = useRetryEnrichment();
+
+  // Get IDs of products with pending enrichment for polling
+  const pendingProductIds = useMemo(() => {
+    return products
+      .filter(p => (p.enrichmentData as EnrichmentData | undefined)?.enrichmentStatus === 'pending')
+      .map(p => p.id);
+  }, [products]);
+
+  // Poll for enrichment completion
+  useEnrichmentPolling({
+    enabled: pendingProductIds.length > 0,
+    pendingProductIds,
+    intervalMs: 5000,
+  });
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -50,9 +70,52 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
     });
   };
 
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+
+  const handleAnalyzeMarket = useCallback(async (productId: string) => {
+    setAnalyzingId(productId);
+    try {
+      const response = await fetch("/api/v1/market/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId }),
+      });
+
+      if (!response.ok) throw new Error("Erreur lors de l'analyse");
+
+      toast.success("✓ Analyse terminée", {
+        description: "Les données de marché ont été mises à jour.",
+      });
+      onUpdate?.();
+    } catch (error) {
+      toast.error("Échec de l'analyse", {
+        description: error instanceof Error ? error.message : "Erreur inconnue",
+      });
+    } finally {
+      setAnalyzingId(null);
+    }
+  }, [onUpdate]);
+
+  const handleRetryEnrichment = useCallback(async (productId: string) => {
+    setRetryingId(productId);
+    try {
+      await retryEnrichment(productId);
+      toast.success("✓ Enrichissement relancé", {
+        description: "Le produit est en cours d'identification.",
+      });
+      onUpdate?.();
+    } catch (error) {
+      toast.error("Échec du ré-enrichissement", {
+        description: error instanceof Error ? error.message : "Erreur inconnue",
+      });
+    } finally {
+      setRetryingId(null);
+    }
+  }, [retryEnrichment, onUpdate]);
+
   const getStatusBadge = (product: Product) => {
     if (product.vendu === "1") {
-      return <Badge variant="default" className="bg-green-500">Vendu</Badge>;
+      return <Badge variant="default" className="bg-success hover:bg-success/90">Vendu</Badge>;
     }
     if (product.status === "removed") {
       return <Badge variant="destructive">Retiré</Badge>;
@@ -63,8 +126,67 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
     return <Badge variant="outline">En stock</Badge>;
   };
 
+  // Enrichment status badge
+  const getEnrichmentBadge = (product: Product) => {
+    const enrichmentData = product.enrichmentData as EnrichmentData | undefined;
+    if (!enrichmentData) return null;
+
+    const status = enrichmentData.enrichmentStatus;
+
+    if (status === 'pending') {
+      return (
+        <Badge variant="outline" className="ml-1 text-xs animate-pulse">
+          <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+          Enrichissement...
+        </Badge>
+      );
+    }
+    if (status === 'failed') {
+      return (
+        <Badge variant="destructive" className="ml-1 text-xs">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Non trouvé
+        </Badge>
+      );
+    }
+    if (status === 'conflict') {
+      return (
+        <Badge variant="outline" className="ml-1 text-xs border-warning text-warning">
+          <HelpCircle className="h-3 w-3 mr-1" />
+          Conflit
+        </Badge>
+      );
+    }
+    if (status === 'done' && enrichmentData.confidence >= 0.9) {
+      return (
+        <Badge variant="default" className="ml-1 text-xs bg-success hover:bg-success/90">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Identifié
+        </Badge>
+      );
+    }
+    if (status === 'done' && enrichmentData.confidence < 0.9) {
+      return (
+        <Badge variant="secondary" className="ml-1 text-xs">
+          ~{Math.round(enrichmentData.confidence * 100)}%
+        </Badge>
+      );
+    }
+    return null;
+  };
+
   const calculateProfit = (product: Product) => {
     return calculateProductProfit(product as ProductWithLegacyFields) ?? 0;
+  };
+
+  const getCategoryIcon = (category?: string) => {
+    if (!category) return <Package className="w-12 h-12 text-muted-foreground/20" />;
+
+    const lower = category.toLowerCase();
+    if (lower.includes('vêtement') || lower.includes('t-shirt') || lower.includes('pull')) return <Shirt className="w-12 h-12 text-muted-foreground/20" />;
+    if (lower.includes('chaussure') || lower.includes('sneaker')) return <Footprints className="w-12 h-12 text-muted-foreground/20" />;
+    if (lower.includes('sac') || lower.includes('accessoire')) return <ShoppingBag className="w-12 h-12 text-muted-foreground/20" />;
+    return <Package className="w-12 h-12 text-muted-foreground/20" />;
   };
 
   if (products.length === 0) {
@@ -85,11 +207,12 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
           const hasProfit = product.vendu === "1" && profit > 0;
 
           return (
-            <Card key={product.id} className="hover:shadow-lg transition-shadow">
+            <Card key={product.id} className="hover:shadow-lg transition-shadow group">
               <CardHeader className="space-y-2 pb-3">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1 space-y-1">
+                  <div className="flex-1 space-y-1 flex flex-wrap gap-1 items-center">
                     {getStatusBadge(product)}
+                    {getEnrichmentBadge(product)}
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -102,9 +225,31 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
                         <Edit className="mr-2 h-4 w-4" />
                         Modifier
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {(product.enrichmentData as EnrichmentData | undefined)?.enrichmentStatus === 'conflict' && (
+                        <DropdownMenuItem onClick={() => setConflictProduct(product)}>
+                          <HelpCircle className="mr-2 h-4 w-4 text-warning" />
+                          Résoudre le conflit
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
+                        onClick={() => handleRetryEnrichment(product.id)}
+                        disabled={retryingId === product.id}
+                      >
+                        <Sparkles className={`mr-2 h-4 w-4 ${retryingId === product.id ? 'animate-spin' : ''}`} />
+                        {retryingId === product.id ? 'Analyse en cours...' : 'Relancer l\'analyse IA'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleAnalyzeMarket(product.id)}
+                        disabled={analyzingId === product.id}
+                      >
+                        <TrendingUp className={`mr-2 h-4 w-4 ${analyzingId === product.id ? 'animate-spin' : ''}`} />
+                        {analyzingId === product.id ? 'Calcul en cours...' : 'Analyser Marché'}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => setDeleteId(product.id)}
-                        className="text-red-600"
+                        className="text-destructive"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Supprimer
@@ -113,7 +258,7 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
                   </DropdownMenu>
                 </div>
                 <div>
-                  <CardTitle className="text-base line-clamp-2">
+                  <CardTitle className="text-base line-clamp-1" title={product.name}>
                     {product.name}
                   </CardTitle>
                   {product.brand && (
@@ -125,19 +270,42 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
               </CardHeader>
 
               {/* Image du produit - uniquement en mode grille */}
-              {product.photoUrl && (
-                <div className="px-6 pb-4">
-                  <div className="relative w-full h-48 rounded-lg overflow-hidden border">
+              {/* Rotation de -90° pour corriger l'orientation des photos Superbuy */}
+              <div className="px-6 pb-4">
+                <div className="relative w-full h-48 rounded-lg overflow-hidden border bg-muted/30 flex items-center justify-center">
+                  {product.photoUrl ? (
                     <img
                       src={product.photoUrl}
                       alt={product.name}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                      style={{ imageOrientation: 'from-image' }}
                     />
-                  </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      {getCategoryIcon(product.category)}
+                      <span className="text-xs text-muted-foreground/50">Pas d'image</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               <CardContent className="space-y-3">
+                {/* Market Stats (Si disponible) */}
+                {(product.enrichmentData as EnrichmentData | undefined)?.marketStats && (
+                  <div className="flex items-center justify-between text-xs bg-muted/50 p-1.5 rounded-md mb-2">
+                    <span className="text-muted-foreground">Marché Vinted:</span>
+                    <div className="flex gap-2 font-medium">
+                      <span className="text-blue-600">
+                        {formatEuro((product.enrichmentData as EnrichmentData).marketStats!.minPrice)}
+                      </span>
+                      <span>-</span>
+                      <span className="text-blue-600">
+                        {formatEuro((product.enrichmentData as EnrichmentData).marketStats!.maxPrice)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Prix d'achat */}
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground flex items-center gap-1">
@@ -154,7 +322,7 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
                       <TrendingUp className="h-3.5 w-3.5" />
                       Bénéfice
                     </span>
-                    <span className="font-medium text-green-600">
+                    <span className="font-medium text-success">
                       +{formatEuro(profit)}
                     </span>
                   </div>
@@ -209,6 +377,16 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
         description="Êtes-vous sûr de vouloir supprimer ce produit ? Cette action est irréversible."
         confirmText="Supprimer"
         cancelText="Annuler"
+      />
+
+      {/* Dialog de résolution de conflit */}
+      <ConflictResolutionDialog
+        product={conflictProduct}
+        open={!!conflictProduct}
+        onOpenChange={(open) => {
+          if (!open) setConflictProduct(null);
+        }}
+        onResolved={onUpdate}
       />
     </>
   );

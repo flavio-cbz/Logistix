@@ -1,4 +1,4 @@
-import type { Parcelle, Product } from "@/lib/database/schema";
+import type { Parcel, Product } from "@/lib/database/schema";
 
 // Extended Product type for calculations that includes calculated fields
 interface ProductForCalculation extends Partial<Product> {
@@ -16,8 +16,6 @@ interface ProductForCalculation extends Partial<Product> {
  * for unsold products or products with missing data.
  * @param {Partial<Product>} produit - Product data with pricing information
  * @returns {{ benefices: number, pourcentageBenefice: number }} Profit metrics object
- * @example
- * ```typescript
  * const metrics = calculerBenefices({
  *   vendu: true,
  *   prixVente: 35,
@@ -67,34 +65,34 @@ export function calculerBenefices(produit: ProductForCalculation) {
 }
 
 /**
- * Calculates shipping price based on product weight and parcelle pricing
+ * Calculates shipping price based on product weight and parcel pricing
  * 
- * @description Computes shipping cost by finding the specific parcelle and multiplying
- * product weight by the parcelle's price per gram. Returns 0 if parcelle is not found.
+ * @description Computes shipping cost by finding the specific parcel and multiplying
+ * product weight by the parcel's price per gram. Returns 0 if parcel is not found.
  * @param {number} poids - Product weight in grams
- * @param {Parcelle[]} parcelles - Array of all available parcelles
- * @param {string} parcelleId - ID of the parcelle associated with the product
- * @returns {number} Calculated shipping price in euros (0 if parcelle not found)
+ * @param {Parcel[]} parcels - Array of all available parcels
+ * @param {string} parcelId - ID of the parcel associated with the product
+ * @returns {number} Calculated shipping price in euros (0 if parcel is not found)
  * @example
  * ```typescript
- * const cost = calculPrixLivraison(250, parcelles, 'parcelle-123');
+ * const cost = calculPrixLivraison(250, parcels, 'parcel-123');
  * ```
  * @since 1.0.0
  */
 export function calculPrixLivraison(
   poids: number,
-  parcelles: Parcelle[],
-  parcelleId: string,
+  parcels: Parcel[],
+  parcelId: string,
 ): number {
-  // Business logic: Find the specific parcelle by ID to get pricing information
-  const parcelle = parcelles.find((p) => p.id === parcelleId);
-  
-  // Safety check: Return 0 cost if parcelle is not found (prevents errors)
-  if (!parcelle) return 0;
+  // Business logic: Find the specific parcel by ID to get pricing information
+  const parcel = parcels.find((p) => p.id === parcelId);
+
+  // Safety check: Return 0 cost if parcel is not found (prevents errors)
+  if (!parcel) return 0;
 
   // Financial calculation: Multiply weight by price per gram
-  // Use 0 as fallback if prixParGramme is null/undefined
-  return poids * (parcelle.prixParGramme || 0);
+  // Use 0 as fallback if pricePerGram is null/undefined
+  return poids * (parcel.pricePerGram || 0);
 }
 
 /**
@@ -106,7 +104,7 @@ export function calculPrixLivraison(
  * @example
  * ```typescript
  * const timestamp = getCurrentTimestamp();
- * // // console.log(timestamp); // "2025-01-09T10:30:00.000Z"
+ * // timestamp: "2025-01-09T10:30:00.000Z"
  * ```
  * @since 1.0.0
  */

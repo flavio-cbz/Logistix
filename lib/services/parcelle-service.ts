@@ -1,14 +1,16 @@
 import { BaseService } from "./base-service";
-import { ParcelleRepository } from "@/lib/repositories";
+import { ParcelRepository } from "@/lib/repositories";
+import { databaseService } from "@/lib/database/database-service";
 import {
-  Parcelle,
-  CreateParcelleInput,
-  UpdateParcelleInput,
+  Parcel,
+  CreateParcelInput,
+  UpdateParcelInput,
 } from "@/lib/types/entities";
 import {
-  createParcelleSchema,
-  updateParcelleSchema,
+  createParcelSchema,
+  updateParcelSchema,
 } from "@/lib/schemas/parcelle";
+import { NewParcel } from "@/lib/database/schema";
 // Removed unused imports
 
 // =============================================================================
@@ -22,20 +24,47 @@ import {
 // =============================================================================
 
 export class ParcelleService extends BaseService {
-  constructor(private readonly parcelleRepository: ParcelleRepository) {
+  constructor(private readonly parcelRepository: ParcelRepository) {
     super("ParcelleService");
   }
 
   /**
    * Get all parcelles for a user
    */
-  async getAllParcelles(userId: string): Promise<Parcelle[]> {
+  async getAllParcelles(
+    userId: string,
+    options?: { page?: number; limit?: number }
+  ): Promise<Parcel[] | { data: Parcel[]; total: number; page: number; limit: number }> {
     return this.executeOperation(
       "getAllParcelles",
       async () => {
         this.validateUUID(userId, "userId");
 
-        const parcelles = await this.parcelleRepository.findByUserId(userId);
+        if (options?.page || options?.limit) {
+          const page = options.page || 1;
+          const limit = options.limit || 50;
+          const offset = (page - 1) * limit;
+
+          const { eq, and } = await import("drizzle-orm");
+          const { parcels } = await import("@/lib/database/schema");
+
+          const result = await this.parcelRepository.findWithPagination({
+            where: and(eq(parcels.userId, userId), eq(parcels.isActive, 1)),
+            limit,
+            offset,
+            orderBy: "createdAt",
+            orderDirection: "desc"
+          });
+
+          return {
+            data: result.data,
+            total: result.total,
+            limit: result.limit,
+            page: Math.floor(result.offset / result.limit) + 1
+          };
+        }
+
+        const parcelles = await this.parcelRepository.findByUserId(userId);
 
         this.logger.debug("Retrieved parcelles from repository", {
           userId,
@@ -45,14 +74,14 @@ export class ParcelleService extends BaseService {
 
         return parcelles;
       },
-      { userId },
+      { userId, ...options },
     );
   }
 
   /**
    * Get a parcelle by ID
    */
-  async getParcelleById(id: string, userId?: string): Promise<Parcelle | null> {
+  async getParcelleById(id: string, userId?: string): Promise<Parcel | null> {
     return this.executeOperation(
       "getParcelleById",
       async () => {
@@ -62,7 +91,7 @@ export class ParcelleService extends BaseService {
           this.validateUUID(userId, "userId");
         }
 
-        const parcelle = await this.parcelleRepository.findById(id);
+        const parcelle = await this.parcelRepository.findById(id);
 
         // Check user access if userId is provided
         if (parcelle && userId && parcelle.userId !== userId) {
@@ -94,8 +123,8 @@ export class ParcelleService extends BaseService {
    */
   async createParcelle(
     userId: string,
-    data: CreateParcelleInput,
-  ): Promise<Parcelle> {
+    data: CreateParcelInput,
+  ): Promise<Parcel> {
     return this.executeOperation(
       "createParcelle",
       async () => {
@@ -103,43 +132,44 @@ export class ParcelleService extends BaseService {
 
         // Validate data with Zod
         const validatedData = this.validateWithSchema(
-          createParcelleSchema,
+          createParcelSchema,
           data,
         );
 
         this.logger.debug("Parcelle data validated successfully", {
           userId,
-          numero: validatedData.numero,
-          transporteur: validatedData.transporteur,
+          numero: validatedData.superbuyId,
+          transporteur: validatedData.carrier,
         });
 
         // Check uniqueness of parcelle number for this user (only if numero is being updated)
-        if (validatedData.numero) {
-          await this.validateUniqueParcelleNumber(userId, validatedData.numero);
+        if (validatedData.superbuyId) {
+          await this.validateUniqueParcelleNumber(userId, validatedData.superbuyId);
         }
 
-        // Prepare update data - the schema already handles transformations
-        const parcelleData = {
+        // Prepare create data - the schema already handles transformations
+        const parcelleData: NewParcel = {
           ...validatedData,
           userId,
+          isActive: validatedData.isActive === false ? 0 : 1,
         };
 
-        const newParcelle = await this.parcelleRepository.create(
-          parcelleData as any,
+        const newParcelle = await this.parcelRepository.create(
+          parcelleData,
         );
 
         this.logger.debug("Parcelle created successfully", {
           userId,
           parcelleId: newParcelle.id,
-          numero: newParcelle.numero,
+          numero: newParcelle.superbuyId,
         });
 
         return newParcelle;
       },
       {
         userId,
-        numero: data.numero,
-        transporteur: data.transporteur,
+        numero: data.superbuyId,
+        transporteur: data.carrier,
       },
     );
   }
@@ -150,69 +180,71 @@ export class ParcelleService extends BaseService {
   async updateParcelle(
     id: string,
     userId: string,
-    data: UpdateParcelleInput,
-  ): Promise<Parcelle | null> {
+    data: UpdateParcelInput,
+  ): Promise<Parcel | null> {
     return this.executeOperation(
       "updateParcelle",
       async () => {
         this.validateUUID(id, "id");
         this.validateUUID(userId, "userId");
 
-        // Ensure parcelle exists and belongs to user
-        const existingParcelle = await this.getParcelleById(id, userId);
-        if (!existingParcelle) {
-          throw this.createNotFoundError("Parcelle", id);
-        }
+        return await databaseService.executeTransaction(async () => {
+          // Ensure parcelle exists and belongs to user
+          const existingParcelle = await this.getParcelleById(id, userId);
+          if (!existingParcelle) {
+            throw this.createNotFoundError("Parcelle", id);
+          }
 
-        // Validate data with Zod if data is provided
-        let validatedData: UpdateParcelleInput = {};
-        if (Object.keys(data).length > 0) {
-          const rawValidatedData = this.validateWithSchema(updateParcelleSchema, data);
+          // Validate data with Zod if data is provided
+          let validatedData: UpdateParcelInput = {};
+          if (Object.keys(data).length > 0) {
+            const rawValidatedData = this.validateWithSchema(updateParcelSchema, data);
 
-          // Filter out undefined values for exactOptionalPropertyTypes compatibility
-          validatedData = Object.fromEntries(
-            Object.entries(rawValidatedData).filter(([_, value]) => value !== undefined)
-          ) as UpdateParcelleInput;
+            // Filter out undefined values for exactOptionalPropertyTypes compatibility
+            validatedData = Object.fromEntries(
+              Object.entries(rawValidatedData).filter(([_, value]) => value !== undefined)
+            ) as UpdateParcelInput;
 
-          this.logger.debug("Update data validated successfully", {
+            this.logger.debug("Update data validated successfully", {
+              parcelleId: id,
+              userId,
+              updateFields: Object.keys(validatedData),
+            });
+          }
+
+          // Check uniqueness of parcelle number if being updated
+          if (
+            validatedData.superbuyId &&
+            validatedData.superbuyId !== existingParcelle.superbuyId
+          ) {
+            await this.validateUniqueParcelleNumber(
+              userId,
+              validatedData.superbuyId,
+              id,
+            );
+          }
+
+          // Use repository method that handles prix par gramme calculation
+          // Convert boolean actif to number for SQLite
+          const updateData: Partial<NewParcel> = { ...validatedData };
+          if (validatedData.isActive !== undefined) {
+            updateData.isActive = validatedData.isActive ? 1 : 0;
+          }
+
+          const updatedParcelle =
+            await this.parcelRepository.updateWithCalculation(
+              id,
+              updateData,
+            );
+
+          this.logger.debug("Parcelle updated successfully", {
             parcelleId: id,
             userId,
-            updateFields: Object.keys(validatedData),
+            updated: !!updatedParcelle,
           });
-        }
 
-        // Check uniqueness of parcelle number if being updated
-        if (
-          validatedData.numero &&
-          validatedData.numero !== existingParcelle.numero
-        ) {
-          await this.validateUniqueParcelleNumber(
-            userId,
-            validatedData.numero,
-            id,
-          );
-        }
-
-        // Use repository method that handles prix par gramme calculation
-        // Convert boolean actif to number for SQLite
-        const updateData: any = { ...validatedData };
-        if (validatedData.actif !== undefined) {
-          updateData.actif = validatedData.actif ? 1 : 0;
-        }
-
-        const updatedParcelle =
-          await this.parcelleRepository.updateWithCalculation(
-            id,
-            updateData,
-          );
-
-        this.logger.debug("Parcelle updated successfully", {
-          parcelleId: id,
-          userId,
-          updated: !!updatedParcelle,
+          return updatedParcelle;
         });
-
-        return updatedParcelle;
       },
       { parcelleId: id, userId },
     );
@@ -228,39 +260,41 @@ export class ParcelleService extends BaseService {
         this.validateUUID(id, "id");
         this.validateUUID(userId, "userId");
 
-        // Ensure parcelle exists and belongs to user
-        const existingParcelle = await this.getParcelleById(id, userId);
-        if (!existingParcelle) {
-          throw this.createNotFoundError("Parcelle", id);
-        }
+        return await databaseService.executeTransaction(async () => {
+          // Ensure parcelle exists and belongs to user
+          const existingParcelle = await this.getParcelleById(id, userId);
+          if (!existingParcelle) {
+            throw this.createNotFoundError("Parcelle", id);
+          }
 
-        // Check if there are products associated with this parcelle
-        const productCount = await this.parcelleRepository.countProductsByParcelleId(id);
+          // Check if there are products associated with this parcelle
+          const productCount = await this.parcelRepository.countProductsByParcelId(id);
 
-        if (productCount > 0) {
-          this.logger.warn(
-            "Attempt to delete parcelle with associated products",
-            {
-              parcelleId: id,
-              userId,
-              productCount,
-            },
-          );
+          if (productCount > 0) {
+            this.logger.warn(
+              "Attempt to delete parcelle with associated products",
+              {
+                parcelleId: id,
+                userId,
+                productCount,
+              },
+            );
 
-          throw this.createBusinessError(
-            `Impossible de supprimer cette parcelle car ${productCount} produit(s) y sont associé(s).`,
-          );
-        }
+            throw this.createBusinessError(
+              `Impossible de supprimer cette parcelle car ${productCount} produit(s) y sont associé(s).`,
+            );
+          }
 
-        const deleted = await this.parcelleRepository.delete(id);
+          const deleted = await this.parcelRepository.delete(id);
 
-        this.logger.debug("Parcelle deleted successfully", {
-          parcelleId: id,
-          userId,
-          deleted,
+          this.logger.debug("Parcelle deleted successfully", {
+            parcelleId: id,
+            userId,
+            deleted,
+          });
+
+          return deleted;
         });
-
-        return deleted;
       },
       { parcelleId: id, userId },
     );
@@ -275,11 +309,11 @@ export class ParcelleService extends BaseService {
       async () => {
         this.validateUUID(userId, "userId");
 
-        const stats = await this.parcelleRepository.getParcelleStats(userId);
+        const stats = await this.parcelRepository.getParcelStats(userId);
 
         this.logger.debug("Retrieved parcelle statistics", {
           userId,
-          totalParcelles: stats.totalParcelles,
+          totalParcels: stats.totalParcels,
         });
 
         return stats;
@@ -298,7 +332,7 @@ export class ParcelleService extends BaseService {
         this.validateUUID(userId, "userId");
 
         const transporteurs =
-          await this.parcelleRepository.getUserTransporteurs(userId);
+          await this.parcelRepository.getUserCarriers(userId);
 
         this.logger.debug("Retrieved user transporteurs", {
           userId,
@@ -316,8 +350,8 @@ export class ParcelleService extends BaseService {
    */
   async bulkCreateParcelles(
     userId: string,
-    inputs: CreateParcelleInput[],
-  ): Promise<{ created: Parcelle[]; skipped: number }> {
+    inputs: CreateParcelInput[],
+  ): Promise<{ created: Parcel[]; skipped: number }> {
     return this.executeOperation(
       "bulkCreateParcelles",
       async () => {
@@ -329,21 +363,21 @@ export class ParcelleService extends BaseService {
 
         // 1. Validate all inputs
         const validInputs = inputs.map((input) => {
-          const validated = this.validateWithSchema(createParcelleSchema, input);
+          const validated = this.validateWithSchema(createParcelSchema, input);
           return { ...validated, userId };
         });
 
         // 2. Check for existing parcelles
-        const numeros = validInputs.map((i) => i.numero).filter(Boolean) as string[];
-        const existingParcelles = await this.parcelleRepository.findByNumeros(
+        const numeros = validInputs.map((i) => i.superbuyId).filter(Boolean) as string[];
+        const existingParcelles = await this.parcelRepository.findBySuperbuyIds(
           userId,
           numeros,
         );
-        const existingNumeros = new Set(existingParcelles.map((p) => p.numero));
+        const existingNumeros = new Set(existingParcelles.map((p) => p.superbuyId));
 
         // 3. Filter out duplicates
         const newParcellesData = validInputs.filter(
-          (p) => !existingNumeros.has(p.numero),
+          (p) => p.superbuyId && !existingNumeros.has(p.superbuyId),
         );
 
         if (newParcellesData.length === 0) {
@@ -351,8 +385,13 @@ export class ParcelleService extends BaseService {
         }
 
         // 4. Bulk create
-        const createdParcelles = await this.parcelleRepository.createMany(
-          newParcellesData as any,
+        const bulkData: NewParcel[] = newParcellesData.map(data => ({
+          ...data,
+          isActive: data.isActive === false ? 0 : 1
+        }));
+
+        const createdParcelles = await this.parcelRepository.createMany(
+          bulkData,
         );
 
         this.logger.info("Bulk created parcelles", {
@@ -390,7 +429,7 @@ export class ParcelleService extends BaseService {
         excludeParcelleId,
       });
 
-      const exists = await this.parcelleRepository.numeroExists(
+      const exists = await this.parcelRepository.superbuyIdExists(
         numero,
         userId,
         excludeParcelleId,

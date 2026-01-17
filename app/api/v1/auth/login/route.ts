@@ -5,6 +5,7 @@ import { logger } from "@/lib/utils/logging/logger";
 import { z } from "zod";
 import { ValidationError, AuthError } from "@/lib/shared/errors/base-errors";
 import { COOKIE_NAME } from "@/lib/constants/config";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Nom d'utilisateur requis"),
@@ -13,12 +14,16 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate Limiting: 5 attempts per minute
+    const rateLimitResponse = await checkRateLimit(request, 5);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body = await request.json();
 
     const validationResult = loginSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        createErrorResponse(new ValidationError("Données invalides", validationResult.error.flatten() as any)),
+        createErrorResponse(new ValidationError("Données invalides", validationResult.error.flatten() as Record<string, unknown>)),
         { status: 400 }
       );
     }

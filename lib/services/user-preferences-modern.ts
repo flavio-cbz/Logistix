@@ -1,13 +1,43 @@
 import { v4 as uuidv4 } from "uuid";
-import { databaseService } from "./database/db";
+import { databaseService } from "@/lib/database";
 import { logger } from "../utils/logging/logger";
-import type {
-  UserPreferences,
-  UserPreferencesService as IUserPreferencesService,
-  PreferenceLearning,
-} from "@/lib/types/legacy";
 import { RiskTolerance, UserActionType } from "@/lib/types/entities";
-import { DEFAULT_USER_PREFERENCES } from "@/lib/types/legacy";
+
+// Types inlined from deleted lib/types/legacy.ts
+interface UserPreferences {
+  id: string;
+  userId: string;
+  objectives?: string[];
+  riskTolerance: RiskTolerance;
+  preferredInsightTypes?: string[];
+  customFilters?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface IUserPreferencesService {
+  getUserPreferences(userId: string): Promise<UserPreferences>;
+  updatePreferences(userId: string, preferences: Partial<UserPreferences>): Promise<void>;
+  createDefaultPreferences(userId: string): Promise<UserPreferences>;
+  recordUserAction(userId: string, actionType: UserActionType, actionData: Record<string, unknown>): Promise<void>;
+  analyzeUserBehavior(userId: string): Promise<PreferenceLearning>;
+  validatePreferences(preferences: Partial<UserPreferences>): boolean;
+}
+
+interface PreferenceLearning {
+  userId: string;
+  learnedPreferences: Partial<UserPreferences>;
+  confidence: number;
+  basedOnActions: number;
+  lastUpdated: string;
+}
+
+const DEFAULT_USER_PREFERENCES: Omit<UserPreferences, 'id' | 'userId' | 'createdAt' | 'updatedAt'> = {
+  objectives: [],
+  riskTolerance: RiskTolerance.MODERATE,
+  preferredInsightTypes: [],
+  customFilters: {},
+};
 
 /**
  * Service moderne de gestion des préférences utilisateur
@@ -45,10 +75,10 @@ export class UserPreferencesService implements IUserPreferencesService {
       return {
         id: result.id,
         userId: result.user_id,
-        objectives: this.safeJsonParse(result.objectives),
+        objectives: this.safeJsonParse(result.objectives) as string[],
         riskTolerance: result.risk_tolerance as RiskTolerance,
-        preferredInsightTypes: this.safeJsonParse(result.preferred_insight_types),
-        customFilters: this.safeJsonParse(result.custom_filters),
+        preferredInsightTypes: this.safeJsonParse(result.preferred_insight_types) as string[],
+        customFilters: this.safeJsonParse(result.custom_filters) as Record<string, unknown>,
         createdAt: result.created_at,
         updatedAt: result.updated_at,
       };
@@ -72,10 +102,10 @@ export class UserPreferencesService implements IUserPreferencesService {
       }
 
       const now = new Date().toISOString();
-      
+
       // Construire la requête de mise à jour dynamiquement
       const updates: string[] = [];
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (preferences.objectives !== undefined) {
         updates.push('objectives = ?');
@@ -168,7 +198,7 @@ export class UserPreferencesService implements IUserPreferencesService {
   async recordUserAction(
     userId: string,
     actionType: UserActionType,
-    actionData: Record<string, any>,
+    actionData: Record<string, unknown>,
   ): Promise<void> {
     try {
       const id = uuidv4();
@@ -226,7 +256,7 @@ export class UserPreferencesService implements IUserPreferencesService {
 
         try {
           const data = JSON.parse(action.action_data);
-          
+
           // Analyser les intérêts par catégorie
           if (data.category) {
             categoryInterests[data.category] = (categoryInterests[data.category] || 0) + 1;
@@ -245,10 +275,10 @@ export class UserPreferencesService implements IUserPreferencesService {
         .sort(([, a], [, b]) => b - a)
         .slice(0, 5)
         .map(([category]) => category);
-      
+
       const priceRange = this.calculatePreferredPriceRange(priceRangePreferences);
       const riskIndicators = this.analyzeRiskTolerance(actionCounts);
-      
+
       const learnedPrefs: Partial<UserPreferences> = {
         preferredInsightTypes: mostActiveCategories,
         customFilters: {
@@ -257,7 +287,7 @@ export class UserPreferencesService implements IUserPreferencesService {
           riskIndicators,
         },
       };
-      
+
       return {
         userId,
         learnedPreferences: learnedPrefs,
@@ -276,8 +306,8 @@ export class UserPreferencesService implements IUserPreferencesService {
    */
   validatePreferences(preferences: Partial<UserPreferences>): boolean {
     // Validation basique - peut être étendue
-    if (preferences.riskTolerance && 
-        !Object.values(RiskTolerance).includes(preferences.riskTolerance)) {
+    if (preferences.riskTolerance &&
+      !Object.values(RiskTolerance).includes(preferences.riskTolerance)) {
       return false;
     }
 
@@ -287,7 +317,7 @@ export class UserPreferencesService implements IUserPreferencesService {
   /**
    * Parse JSON de manière sécurisée
    */
-  private safeJsonParse(jsonString?: string | null): any {
+  private safeJsonParse(jsonString?: string | null): unknown {
     if (!jsonString) return undefined;
     try {
       return JSON.parse(jsonString);
@@ -339,18 +369,21 @@ export class UserPreferencesService implements IUserPreferencesService {
   /**
    * Apprend à partir des actions utilisateur
    */
-  async learnFromUserActions(userId: string, action: any): Promise<void> {
+  async learnFromUserActions(userId: string, action: unknown): Promise<void> {
     try {
-      logger.info('Learning from user action:', { 
-        userId, 
-        actionType: action.type,
-        timestamp: action.timestamp 
-      });
-      
+      if (typeof action === 'object' && action !== null) {
+        const actionRecord = action as Record<string, unknown>;
+        logger.info('Learning from user action:', {
+          userId,
+          actionType: actionRecord['type'],
+          timestamp: actionRecord['timestamp']
+        });
+      }
+
       // Cette méthode pourrait être implémentée pour enregistrer et analyser
       // les actions utilisateur pour améliorer les préférences automatiquement
       // Pour l'instant, nous la laissons comme placeholder
-      
+
     } catch (error) {
       logger.error('Error learning from user action:', { error, userId });
     }

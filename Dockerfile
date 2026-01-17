@@ -41,6 +41,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV DATABASE_PATH=/app/data/logistix.db
 
 # Créer le dossier data et définir les permissions
 RUN mkdir -p /app/data && chmod 755 /app/data

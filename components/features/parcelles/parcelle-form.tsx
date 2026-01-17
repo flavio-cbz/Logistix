@@ -25,19 +25,19 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { Parcelle } from "@/lib/types/entities";
 import {
-  createParcelleSchema,
-  type CreateParcelleFormData,
+  createParcelSchema,
+  type CreateParcelFormData,
 } from "@/lib/schemas/parcelle";
 import {
   useCreateParcelle,
   useUpdateParcelle,
 } from "@/lib/hooks/use-parcelles";
-import { transformParcelleApiToFormData } from "@/lib/transformers/parcelle-transformer";
 import { useFormatting } from "@/lib/hooks/use-formatting";
+import { ParcelStatus } from "@/lib/shared/types/entities";
 
 
-const formSchema = createParcelleSchema;
-type ParcelleFormData = CreateParcelleFormData;
+const formSchema = createParcelSchema;
+type ParcelleFormData = CreateParcelFormData;
 
 interface ParcelleFormProps {
   editParcelle?: Parcelle | null;
@@ -66,38 +66,36 @@ export default function ParcelleForm({
 
 
   // Transform parcelle data for form if editing
+  // Transform parcelle data for form if editing
   const formData = useMemo(() => {
     if (!editParcelle) return undefined;
-    try {
-      return transformParcelleApiToFormData(editParcelle);
-    } catch (_error) {
-      // console.error("Failed to transform parcelle to form data:", error);
-      return undefined;
-    }
+    return editParcelle; // Already in correct format thanks to Parcel type update
   }, [editParcelle]);
 
   const getDefaultValues = useCallback((): ParcelleFormData => {
     if (formData) {
       return {
-        numero: formData.numero,
-        transporteur: formData.transporteur,
-        nom: formData.nom || "",
-        statut: formData.statut || "En attente",
-        poids: formData.poids,
-        prixAchat: formData.prixAchat || 0,
-        prixTotal: formData.prixTotal || formData.prixAchat || 0,
-        prixParGramme: formData.prixParGramme || (formData.prixAchat && formData.poids ? formData.prixAchat / formData.poids : 0),
+        superbuyId: formData.superbuyId,
+        carrier: formData.carrier,
+        name: formData.name || "",
+        status: (formData.status as ParcelStatus) || ParcelStatus.PENDING,
+        weight: formData.weight,
+        totalPrice: formData.totalPrice || 0,
+        pricePerGram: formData.pricePerGram || 0,
+        // derived fields not needed for default values as they are calculated? 
+        // Wait, schema might require them if they are in the Type but marked optional?
+        // createParcelSchema omits pricePerGram.
+        // But the form might use them for display? 
       };
     }
     return {
-      numero: "",
-      transporteur: "",
-      nom: "",
-      statut: "En attente",
-      poids: 0,
-      prixAchat: 0,
-      prixTotal: 0,
-      prixParGramme: 0,
+      superbuyId: "",
+      carrier: "",
+      name: "",
+      status: ParcelStatus.PENDING,
+      weight: 0,
+      totalPrice: 0,
+      pricePerGram: 0,
     };
   }, [formData]);
 
@@ -109,14 +107,13 @@ export default function ParcelleForm({
   useEffect(() => {
     if (formData) {
       form.reset({
-        numero: formData.numero,
-        transporteur: formData.transporteur,
-        nom: formData.nom || "",
-        statut: formData.statut || "En attente",
-        poids: formData.poids,
-        prixAchat: formData.prixAchat || 0,
-        prixTotal: formData.prixTotal || formData.prixAchat || 0,
-        prixParGramme: formData.prixParGramme || (formData.prixAchat && formData.poids ? formData.prixAchat / formData.poids : 0),
+        superbuyId: formData.superbuyId,
+        carrier: formData.carrier,
+        name: formData.name || "",
+        status: (formData.status as ParcelStatus) || ParcelStatus.PENDING,
+        weight: formData.weight,
+        totalPrice: formData.totalPrice || 0,
+        pricePerGram: formData.pricePerGram || 0,
       });
     } else {
       form.reset(getDefaultValues());
@@ -236,7 +233,7 @@ export default function ParcelleForm({
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="numero"
+                name="superbuyId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium">
@@ -256,7 +253,7 @@ export default function ParcelleForm({
               />
               <FormField
                 control={form.control}
-                name="transporteur"
+                name="carrier"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium">
@@ -288,7 +285,7 @@ export default function ParcelleForm({
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="nom"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium">
@@ -308,7 +305,7 @@ export default function ParcelleForm({
               />
               <FormField
                 control={form.control}
-                name="statut"
+                name="status"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium">
@@ -319,11 +316,13 @@ export default function ParcelleForm({
                         {...field}
                         className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        <option value="En attente">En attente</option>
-                        <option value="En transit">En transit</option>
-                        <option value="Livré">Livré</option>
-                        <option value="Retourné">Retourné</option>
-                        <option value="Perdu">Perdu</option>
+                        <option value="Pending">En attente</option>
+                        <option value="In Transit">En transit</option>
+                        <option value="Delivered">Livré</option>
+                        <option value="Returned">Retourné</option>
+                        <option value="Lost">Perdu</option>
+                        <option value="Cancelled">Annulé</option>
+                        <option value="Cancelling">Annulation...</option>
                       </select>
                     </FormControl>
                     <FormMessage />
@@ -335,7 +334,7 @@ export default function ParcelleForm({
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="poids"
+                name="weight"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium">
@@ -346,6 +345,7 @@ export default function ParcelleForm({
                         <Input
                           type="number"
                           {...field}
+                          onChange={e => field.onChange(Number(e.target.value))}
                           placeholder="500"
                           className="h-11 pr-8"
                           min="0.01"
@@ -367,7 +367,7 @@ export default function ParcelleForm({
               />
               <FormField
                 control={form.control}
-                name="prixAchat"
+                name="totalPrice"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium">
@@ -379,6 +379,7 @@ export default function ParcelleForm({
                           type="number"
                           step="0.01"
                           {...field}
+                          onChange={e => field.onChange(Number(e.target.value))}
                           placeholder="12.50"
                           className="h-11 pr-8"
                           min="0"
@@ -389,9 +390,9 @@ export default function ParcelleForm({
                       </div>
                     </FormControl>
                     <FormMessage />
-                    {field.value > 0 && form.watch("poids") > 0 && (
+                    {field.value > 0 && form.watch("weight") > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        Prix/g: {formatCurrency(field.value / form.watch("poids"))}/g
+                        Prix/g: {formatCurrency(field.value / form.watch("weight"))}/g
                       </p>
                     )}
                   </FormItem>

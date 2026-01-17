@@ -12,7 +12,7 @@ import { logger } from "@/lib/utils/logging/logger";
 import { getErrorMessage } from "@/lib/utils/error-utils";
 
 // Importations des autres services et utilitaires
-import { databaseService } from "@/lib/services/database/db";
+import { databaseService } from "@/lib/database";
 import { getCurrentTimestamp } from "@/lib/utils/formatting/calculations";
 import { authInstrumentationCollector } from "@/lib/services/auth/auth-instrumentation";
 
@@ -165,7 +165,7 @@ export async function createUser(
     });
 
     // Vérifier si l'utilisateur existe déjà
-      const existingUser = await databaseService.queryOne<{ id: string }>(
+    const existingUser = await databaseService.queryOne<{ id: string }>(
       `SELECT id FROM users WHERE username = ?`,
       [validatedData.username],
       "createUser-checkExisting",
@@ -187,7 +187,7 @@ export async function createUser(
     const encryptionSecret = generateSecureId();
     const timestamp = getCurrentTimestamp();
 
-  await databaseService.execute(
+    await databaseService.execute(
       `INSERT INTO users (id, username, password_hash, encryption_secret, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [
@@ -352,7 +352,7 @@ export async function createSession(userId: string): Promise<string> {
     });
 
     // Vérifier que l'utilisateur existe
-  const user = await databaseService.queryOne<{ id: string }>(
+    const user = await databaseService.queryOne<{ id: string }>(
       `SELECT id FROM users WHERE id = ?`,
       [validatedUserId],
       "createSession-checkUser",
@@ -372,8 +372,8 @@ export async function createSession(userId: string): Promise<string> {
     const sessionId = generateSecureId();
     const expiresAt = new Date(Date.now() + SESSION_DURATION_MS).toISOString();
 
-  await databaseService.execute(
-      `INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)`,
+    await databaseService.execute(
+      `INSERT INTO user_sessions (id, user_id, expires_at) VALUES (?, ?, ?)`,
       [sessionId, validatedUserId, expiresAt],
       "createSession",
     );
@@ -448,15 +448,15 @@ export async function signOut(): Promise<void> {
     });
 
     // Récupérer les informations de la session avant suppression
-  const sessionToDelete = await databaseService.queryOne<{ user_id: string }>(
-      `SELECT user_id FROM sessions WHERE id = ?`,
+    const sessionToDelete = await databaseService.queryOne<{ user_id: string }>(
+      `SELECT user_id FROM user_sessions WHERE id = ?`,
       [validatedSessionId],
       "signOut-getUserId",
     );
 
     // Supprimer la session de la base de données
-  await databaseService.execute(
-      `DELETE FROM sessions WHERE id = ?`,
+    await databaseService.execute(
+      `DELETE FROM user_sessions WHERE id = ?`,
       [validatedSessionId],
       "signOut",
     );
@@ -539,9 +539,9 @@ export async function requireAuth(): Promise<UserSession> {
       throw new Error("Session invalide");
     }
 
-      const session = await databaseService.queryOne<Session>(
+    const session = await databaseService.queryOne<Session>(
       `SELECT s.id as session_id, s.user_id, s.expires_at, u.username, u.ai_config
-       FROM sessions s
+       FROM user_sessions s
        JOIN users u ON s.user_id = u.id
        WHERE s.id = ?`,
       [validatedSessionId],
@@ -567,8 +567,8 @@ export async function requireAuth(): Promise<UserSession> {
       });
 
       // Nettoyer la session expirée
-        await databaseService.execute(
-        "DELETE FROM sessions WHERE id = ?",
+      await databaseService.execute(
+        "DELETE FROM user_sessions WHERE id = ?",
         [validatedSessionId],
         "requireAuth-cleanup",
       );
@@ -726,7 +726,7 @@ export async function getSessionUser(): Promise<UserSession | null> {
         operationId,
         sessionId,
       });
-      
+
       const responseTime = Date.now() - startTime;
       const legacyAdminId = process.env['ADMIN_ID'] || 'baa65519-e92f-4010-a3c2-e9b5c67fb0d7';
       const userSession: UserSession = {
@@ -758,9 +758,9 @@ export async function getSessionUser(): Promise<UserSession | null> {
       return null;
     }
 
-      const session = await databaseService.queryOne<Session>(
+    const session = await databaseService.queryOne<Session>(
       `SELECT s.id as session_id, s.user_id, s.expires_at, u.username, u.ai_config
-       FROM sessions s
+       FROM user_sessions s
        JOIN users u ON s.user_id = u.id
        WHERE s.id = ?`,
       [validatedSessionId],
@@ -778,16 +778,15 @@ export async function getSessionUser(): Promise<UserSession | null> {
     // Vérifier l'expiration
     const expirationCheck = validateSessionExpiration(session.expires_at);
     if (!expirationCheck.isValid) {
-      logger.debug("Session expirée lors de getSessionUser", {
+      logger.warn("Session expirée lors de getSessionUser", {
         operationId,
         sessionId: validatedSessionId,
         userId: session.user_id,
-        error: expirationCheck.error,
       });
 
       // Nettoyer la session expirée
-        await databaseService.execute(
-        "DELETE FROM sessions WHERE id = ?",
+      await databaseService.execute(
+        "DELETE FROM user_sessions WHERE id = ?",
         [validatedSessionId],
         "getSessionUser-cleanup",
       );

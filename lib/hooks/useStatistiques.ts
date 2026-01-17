@@ -108,12 +108,7 @@ export interface AnalyseCouts {
 export interface StatistiquesData {
   periode: string;
   groupBy: string;
-  targets?: {
-    revenue: number;
-    productsSold: number;
-    margin: number;
-    conversionRate: number;
-  };
+
   vueEnsemble: VueEnsemble;
   evolutionTemporelle: EvolutionPoint[];
   performancePlateforme: PerformancePlateforme[];
@@ -170,7 +165,8 @@ export function useStatistiques(
       abortControllerRef.current.abort();
     }
 
-    abortControllerRef.current = new AbortController();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     try {
       setIsLoading(true);
@@ -178,7 +174,7 @@ export function useStatistiques(
 
       const url = `/api/v1/statistiques?period=${period}&groupBy=${groupBy}`;
       const response = await fetch(url, {
-        signal: abortControllerRef.current.signal,
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -191,22 +187,31 @@ export function useStatistiques(
         throw new Error(result.error || 'Erreur inconnue');
       }
 
-      setData(result.data);
-      setError(null);
+      // Vérifier si le composant est toujours monté/requête non annulée avant de mettre à jour
+      if (!controller.signal.aborted) {
+        setData(result.data);
+        setError(null);
+      }
     } catch (err) {
       if (err instanceof Error) {
         if (err.name === 'AbortError') {
           // Requête annulée, ne rien faire
           return;
         }
-        setError(err);
-        setIsError(true);
-        if (onError) {
-          onError(err);
+        // Ne mettre à jour l'erreur que si non annulé
+        if (!controller.signal.aborted) {
+          setError(err);
+          setIsError(true);
+          if (onError) {
+            onError(err);
+          }
         }
       }
     } finally {
-      setIsLoading(false);
+      // Ne désactiver le chargement que si cette requête spécifique n'a pas été annulée
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+      }
     }
   }, [enabled, period, groupBy, onError]);
 

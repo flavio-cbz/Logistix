@@ -23,12 +23,14 @@ export enum Platform {
   OTHER = "autre",
 }
 
-export enum ParcelleStatut {
-  EN_ATTENTE = "En attente",
-  EN_TRANSIT = "En transit",
-  LIVRE = "Livré",
-  RETOURNE = "Retourné",
-  PERDU = "Perdu",
+export enum ParcelStatus {
+  PENDING = "Pending",
+  IN_TRANSIT = "In Transit",
+  DELIVERED = "Delivered",
+  RETURNED = "Returned",
+  LOST = "Lost",
+  CANCELLED = "Cancelled",
+  CANCELLING = "Cancelling",
 }
 
 export enum RiskTolerance {
@@ -48,6 +50,60 @@ export enum UserActionType {
 }
 
 // ============================================================================
+// Enrichment Types
+// ============================================================================
+
+/**
+ * Enrichment candidate for conflict resolution
+ * When AI can't identify a product with high confidence, multiple candidates are stored
+ */
+export interface EnrichmentCandidate {
+  id: string;
+  name: string;
+  brand?: string;
+  category?: string;
+  url?: string;
+  confidence: number;
+  imageUrl?: string;
+  description?: string;
+}
+
+export interface MarketStats {
+  minPrice: number;
+  maxPrice: number;
+  avgPrice: number;
+  medianPrice?: number;
+  currency: string;
+  source: string;
+  sampleSize: number;
+}
+
+export interface EnrichmentData {
+  confidence: number;
+  originalUrl?: string;
+  source?: string;
+  modelUsed?: string;
+  enrichedAt?: string;
+  enrichmentStatus: 'pending' | 'done' | 'failed' | 'conflict';
+  vintedBrandId?: number;
+  vintedCatalogId?: number;
+  productCode?: string;
+  retailPrice?: string;
+  color?: string;
+  size?: string;
+  generatedDescription?: string;
+  error?: string;
+  // Market statistics
+  marketStats?: MarketStats;
+  // Conflict resolution fields
+  resolvedAt?: string;
+  resolvedBy?: 'manual' | 'candidate' | 'skipped';
+  selectedCandidateId?: string;
+  // Multiple candidates for conflict resolution
+  candidates?: EnrichmentCandidate[];
+}
+
+// ============================================================================
 // Core Entity Interfaces
 // ============================================================================
 
@@ -64,19 +120,15 @@ export interface User {
   avatar?: string;
   language?: string;
   theme?: string;
-  aiConfig?: any;
+  aiConfig?: Record<string, unknown>;
   createdAt: string;
   updatedAt?: string;
 }
 
-/**
- * Product entity with comprehensive product information
- * Aligned with database schema (lib/database/schema.ts)
- */
 export interface Product {
   id: string;
   userId: string;
-  parcelleId?: string | null;
+  parcelId?: string | null;
 
   // Basic information
   name: string;
@@ -96,6 +148,10 @@ export interface Product {
   externalId?: string | null; // Generic external ID
   url?: string | null;
   photoUrl?: string | null;
+  photoUrls?: string[] | null; // All QC photos from Superbuy
+
+  // Enrichment data (Gemini/Google Search)
+  enrichmentData?: EnrichmentData | null;
 
   // Status and lifecycle
   status: ProductStatus;
@@ -118,22 +174,42 @@ export interface Product {
 }
 
 /**
- * Parcelle (Parcel) entity for shipping packages
+ * Parcel entity for shipping packages
  */
-export interface Parcelle {
+export interface Parcel {
   id: string;
   userId: string;
-  numero: string;
-  transporteur: string;
-  nom: string;
-  statut: ParcelleStatut | string; // Accepte enum ou string pour compatibilité DB
-  actif: boolean;
-  prixAchat?: number | null;
-  poids: number | null;
-  prixTotal: number | null;
-  prixParGramme: number | null;
+  superbuyId: string;
+  carrier?: string | null;
+  name?: string | null;
+  status: string;
+  isActive: number;
+  totalPrice?: number | null;
+  weight?: number | null;
+  pricePerGram?: number | null;
+  trackingNumber?: string | null;
   createdAt: string;
   updatedAt?: string;
+}
+
+/**
+ * Order Item entity
+ */
+export interface OrderItem {
+  name: string;
+  price: number;
+  quantity: number;
+  currency: string;
+  skuId?: string;
+  itemId?: string;
+  orderId?: string;
+  status?: string;
+  snapshotUrl?: string; // Image of the item
+  remark?: string;
+  url?: string;
+  weight?: number;
+  itemBarcode?: string;
+  goodsCode?: string;
 }
 
 /**
@@ -142,13 +218,15 @@ export interface Parcelle {
 export interface Order {
   id: string;
   userId: string;
-  orderNumber: string;
+  orderNumber?: string | null; // Deprecated
+  superbuyId: string;
   status: string;
   platform?: string | null;
   trackingNumber?: string | null;
   warehouse?: string | null;
   totalPrice?: number | null;
   currency?: string | null;
+  items?: OrderItem[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -171,8 +249,8 @@ export interface HistoricalPrice {
 export interface SimilarSales {
   id: string;
   queryHash: string;
-  rawData?: any;
-  parsedData?: any;
+  rawData?: unknown;
+  parsedData?: unknown;
   expiresAt: string;
   createdAt: string;
 }
@@ -199,10 +277,10 @@ export interface UserQueryHistory {
 export interface UserPreferences {
   id: string;
   userId: string;
-  objectives: any;
+  objectives: string[];
   riskTolerance: RiskTolerance;
-  preferredInsightTypes: any;
-  customFilters: any;
+  preferredInsightTypes: string[];
+  customFilters: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -214,9 +292,9 @@ export interface UserAction {
   id: string;
   userId: string;
   actionType: UserActionType;
-  actionData: any;
+  actionData: Record<string, unknown>;
   timestamp: string;
-  context?: any;
+  context?: Record<string, unknown>;
   createdAt: string;
 }
 
@@ -275,18 +353,19 @@ export interface CreateUserInput {
   avatar?: string;
   language?: string;
   theme?: string;
-  aiConfig?: any;
+  aiConfig?: Record<string, unknown>;
 }
 
 export interface CreateOrderInput {
   userId: string;
-  orderNumber: string;
+  superbuyId: string;
   status: string;
   platform?: string | null;
   trackingNumber?: string | null;
   warehouse?: string | null;
   totalPrice?: number | null;
   currency?: string | null;
+  items?: OrderItem[] | null;
 }
 
 export interface UpdateOrderInput extends Partial<Omit<CreateOrderInput, 'userId' | 'orderNumber'>> {
@@ -295,7 +374,7 @@ export interface UpdateOrderInput extends Partial<Omit<CreateOrderInput, 'userId
 
 export interface CreateProductInput {
   userId: string;
-  parcelleId?: string | null;
+  parcelId?: string | null;
   name: string;
   description?: string | null;
   poids: number;
@@ -325,20 +404,20 @@ export interface UpdateProductInput extends Partial<Omit<CreateProductInput, 'us
   id?: string;
 }
 
-export interface CreateParcelleInput {
+export interface CreateParcelInput {
   userId: string;
-  numero: string;
-  transporteur: string;
-  nom: string;
-  statut: ParcelleStatut | string;
-  actif: boolean;
-  prixAchat?: number | null;
-  poids: number | null;
-  prixTotal: number | null;
-  prixParGramme: number | null;
+  superbuyId: string;
+  carrier?: string;
+  trackingNumber?: string;
+  name?: string;
+  status?: string;
+  isActive?: number;
+  totalPrice?: number | null;
+  weight?: number | null;
+  pricePerGram?: number | null;
 }
 
-export interface UpdateParcelleInput extends Partial<Omit<CreateParcelleInput, 'userId'>> {
+export interface UpdateParcelInput extends Partial<Omit<CreateParcelInput, 'userId'>> {
   id?: string;
 }
 
@@ -347,16 +426,16 @@ export interface UpdateParcelleInput extends Partial<Omit<CreateParcelleInput, '
 // ============================================================================
 
 /**
- * @deprecated Use Product instead
+ * @deprecated Use Parcel instead
  */
-export type Produit = Product;
+export type Parcelle = Parcel;
 
 /**
- * @deprecated Use CreateParcelleInput instead
+ * @deprecated Use CreateParcelInput instead
  */
-export interface CreateParcelleData extends CreateParcelleInput { }
+export interface CreateParcelleData extends CreateParcelInput { }
 
 /**
- * @deprecated Use UpdateParcelleInput instead
+ * @deprecated Use UpdateParcelInput instead
  */
-export interface UpdateParcelleData extends UpdateParcelleInput { }
+export interface UpdateParcelleData extends UpdateParcelInput { }

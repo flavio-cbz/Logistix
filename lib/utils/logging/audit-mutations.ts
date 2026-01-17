@@ -20,8 +20,8 @@ export interface AuditLogEntry {
   userId: string;
   username?: string;
   traceId?: string;
-  changes?: Record<string, { before?: any; after?: any }>;
-  metadata?: Record<string, any>;
+  changes?: Record<string, { before?: unknown; after?: unknown }>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -31,7 +31,7 @@ export interface AuditLogEntry {
  */
 export function logAuditMutation(entry: AuditLogEntry): void {
   const logMessage = `[AUDIT] ${entry.action.toUpperCase()} ${entry.resource} ${entry.resourceId}`;
-  
+
   const context = {
     audit: true,
     action: entry.action,
@@ -55,8 +55,8 @@ export function logCreate(
   resource: AuditResource,
   resourceId: string,
   userId: string,
-  data: any,
-  options?: { traceId?: string; username?: string; metadata?: Record<string, any> }
+  data: unknown,
+  options?: { traceId?: string; username?: string; metadata?: Record<string, unknown> }
 ): void {
   const entry: AuditLogEntry = {
     timestamp: new Date().toISOString(),
@@ -83,17 +83,17 @@ export function logUpdate(
   resource: AuditResource,
   resourceId: string,
   userId: string,
-  before: any,
-  after: any,
-  options?: { traceId?: string; username?: string; metadata?: Record<string, any> }
+  before: unknown,
+  after: Record<string, unknown>,
+  options?: { traceId?: string; username?: string; metadata?: Record<string, unknown> }
 ): void {
   // Calculer seulement les champs modifiés
-  const changes: Record<string, { before: any; after: any }> = {};
-  
+  const changes: Record<string, { before: unknown; after: unknown }> = {};
+
   for (const key in after) {
     if (after[key] !== before[key]) {
       changes[key] = {
-        before: before[key],
+        before: (before as Record<string, unknown>)[key],
         after: after[key],
       };
     }
@@ -122,8 +122,8 @@ export function logDelete(
   resource: AuditResource,
   resourceId: string,
   userId: string,
-  data: any,
-  options?: { traceId?: string; username?: string; metadata?: Record<string, any> }
+  data: unknown,
+  options?: { traceId?: string; username?: string; metadata?: Record<string, unknown> }
 ): void {
   const entry: AuditLogEntry = {
     timestamp: new Date().toISOString(),
@@ -147,7 +147,7 @@ export function logDelete(
  * Helper: Extraire les champs sensibles avant de logger
  * (retire passwords, tokens, secrets, etc.)
  */
-export function sanitizeForAudit(data: any): any {
+export function sanitizeForAudit(data: unknown): unknown {
   if (!data || typeof data !== 'object') {
     return data;
   }

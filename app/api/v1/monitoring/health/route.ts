@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { databaseService } from "@/lib/services/database/db";
+import { databaseService } from "@/lib/database";
 import { serviceContainer } from "@/lib/services/container";
 import { logger } from "@/lib/utils/logging/logger";
 import { createSuccessResponse, withErrorHandling } from "@/lib/middleware/error-handling";
@@ -136,9 +136,9 @@ function getPerformanceMetrics(): PerformanceMetrics {
 }
 
 /**
- * GET /api/v1/monitoring/health - Monitoring complet du backend
+ * Handler for GET /api/v1/monitoring/health - Monitoring complet du backend
  */
-export const GET = withErrorHandling(async (): Promise<NextResponse> => {
+async function handleGet(): Promise<NextResponse> {
   const startTime = Date.now();
 
   logger.info('Health monitoring check initiated');
@@ -249,12 +249,14 @@ export const GET = withErrorHandling(async (): Promise<NextResponse> => {
       { status: 503 }
     );
   }
-});
+}
+
+export const GET = withErrorHandling(handleGet);
 
 /**
  * POST /api/v1/monitoring/health - Actions de maintenance
  */
-export const POST = withErrorHandling(async (request: NextRequest): Promise<NextResponse> => {
+async function handlePost(request: NextRequest): Promise<NextResponse> {
   const { action } = await request.json();
 
   logger.info(`Maintenance action requested: ${action}`);
@@ -303,4 +305,6 @@ export const POST = withErrorHandling(async (request: NextRequest): Promise<Next
         { status: 400 }
       );
   }
-});
+}
+
+export const POST = withErrorHandling(handlePost);

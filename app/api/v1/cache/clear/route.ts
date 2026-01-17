@@ -1,6 +1,6 @@
 import { serviceContainer } from "@/lib/services/container";
 import { NextRequest, NextResponse } from "next/server";
-import { databaseService } from "@/lib/services/database/db";
+import { databaseService } from "@/lib/database";
 
 
 // POST /api/v1/cache/clear - Vidage du cache

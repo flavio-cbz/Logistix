@@ -15,7 +15,7 @@ export async function POST(
     const { user } = await requireAuth(req);
     const { id } = params;
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       const text = await req.text();
       body = text ? JSON.parse(text) : {};
@@ -54,10 +54,10 @@ export async function POST(
       dateVente: dateVente || today,
       dateMiseEnLigne: dateMiseEnLigne, // Utiliser la date fournie par le formulaire
       plateforme: plateforme, // Requis par le schéma
-      status: 'sold' as any, // Cast pour éviter l'erreur de type
+      status: 'sold' as const,
     };
 
-    const updatedProduct = await productService.updateProduct(id, user.id, updateData);
+    const updatedProduct = await productService.updateProduct(id, user.id, updateData) as import("@/lib/database/schema").Product;
 
     return NextResponse.json(
       createSuccessResponse({

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import {
   Package,
   Plus,
@@ -27,6 +28,8 @@ import {
 } from "@/lib/utils/product-field-normalizers";
 import ProductsList from "@/components/features/produits/produits-list";
 import ProductsGridView from "@/components/features/produits/products-grid-view";
+import { ProductFilters } from "@/components/features/produits/components/product-filters";
+import { PageLoading } from "@/components/ui/loading-state";
 
 // NOTE: ProductsList now consumes products via `useProducts()` internally.
 // We keep Product typed data here and no longer convert to legacy `Produit`.
@@ -37,6 +40,11 @@ export default function RevolutionaryProductsPage() {
   // États du composant
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showCreateForm, setShowCreateForm] = useState(false);
+
+  // États des filtres
+  const [searchValue, setSearchValue] = useState("");
+  const [statusFilter, setStatusFilter] = useState<("all" | "available" | "online" | "sold")[]>(["all"]);
+  const [platformFilter, setPlatformFilter] = useState<string[]>([]);
 
   // Hooks pour les données
   const { data: productsResponse, isLoading, error, refetch } = useProducts();
@@ -50,7 +58,39 @@ export default function RevolutionaryProductsPage() {
     return 'actif';
   };
 
-  const products = productsResponse?.data || [];
+  const products = useMemo(() => productsResponse?.data || [], [productsResponse?.data]);
+
+  // Filtrage côté client
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      // Filtre recherche texte
+      if (searchValue) {
+        const search = searchValue.toLowerCase();
+        const matchesSearch =
+          product.name?.toLowerCase().includes(search) ||
+          product.brand?.toLowerCase().includes(search) ||
+          product.category?.toLowerCase().includes(search);
+        if (!matchesSearch) return false;
+      }
+
+      // Filtre statut
+      if (!statusFilter.includes("all")) {
+        const productStatusValue =
+          product.vendu === '1' ? 'sold' :
+            product.dateMiseEnLigne ? 'online' : 'available';
+        if (!statusFilter.includes(productStatusValue as "all" | "available" | "online" | "sold")) return false;
+      }
+
+      // Filtre plateforme
+      if (platformFilter.length > 0) {
+        if (!product.plateforme || !platformFilter.includes(product.plateforme)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [products, searchValue, statusFilter, platformFilter]);
 
   // bulk actions placeholder (unused for now)
   // const handleBulkAction = async (action: 'archive' | 'export' | 'edit') => { /* ... */ };
@@ -73,18 +113,11 @@ export default function RevolutionaryProductsPage() {
   // Affichage du loading et des erreurs
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
-            <ShoppingCart className="w-6 h-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Chargement du Catalogue</h3>
-            <p className="text-muted-foreground">Récupération des données produits...</p>
-          </div>
-        </div>
-      </div>
+      <PageLoading
+        title="Chargement du Catalogue"
+        message="Récupération des données produits..."
+        icon={<ShoppingCart className="w-6 h-6" />}
+      />
     );
   }
 
@@ -164,66 +197,97 @@ export default function RevolutionaryProductsPage() {
       </div>
 
       {/* Statistiques rapides */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Produits</CardTitle>
-            <Package className="w-4 h-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.actifs} produits actifs
-            </p>
-          </CardContent>
-        </Card>
+      {/* Statistiques rapides */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, staggerChildren: 0.1 }}
+        className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+      >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.0 }}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Produits</CardTitle>
+              <Package className="w-4 h-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.actifs} produits actifs
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Valeur Stock</CardTitle>
-            <DollarSign className="w-4 h-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.valeurStock.toLocaleString()}€</div>
-            <p className="text-xs text-muted-foreground">
-              Valeur totale inventaire
-            </p>
-          </CardContent>
-        </Card>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Valeur Stock</CardTitle>
+              <DollarSign className="w-4 h-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats.valeurStock.toLocaleString()}€</div>
+              <p className="text-xs text-muted-foreground">
+                Valeur totale inventaire
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Bénéfices</CardTitle>
-            <TrendingUp className="w-4 h-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.beneficesTotal.toLocaleString()}€</div>
-            <p className="text-xs text-muted-foreground">
-              Bénéfices générés
-            </p>
-          </CardContent>
-        </Card>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Bénéfices</CardTitle>
+              <TrendingUp className="w-4 h-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{stats.beneficesTotal.toLocaleString()}€</div>
+              <p className="text-xs text-muted-foreground">
+                Bénéfices générés
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactifs</CardTitle>
-            <Archive className="w-4 h-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-600">{stats.inactifs}</div>
-            <p className="text-xs text-muted-foreground">
-              Produits archivés
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Inactifs</CardTitle>
+              <Archive className="w-4 h-4 text-gray-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-600">{stats.inactifs}</div>
+              <p className="text-xs text-muted-foreground">
+                Produits archivés
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
+
+      {/* Filtres produits */}
+      <ProductFilters
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        platformFilter={platformFilter}
+        onPlatformFilterChange={setPlatformFilter}
+      />
 
       {/* Liste des produits dans une Card */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Catalogue Produits</CardTitle>
+              <CardTitle>
+                Catalogue Produits
+                {filteredProducts.length !== products.length && (
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    ({filteredProducts.length} sur {products.length})
+                  </span>
+                )}
+              </CardTitle>
             </div>
             <div className="flex gap-2">
 
@@ -232,9 +296,13 @@ export default function RevolutionaryProductsPage() {
         </CardHeader>
         <CardContent>
           {viewMode === 'list' ? (
-            <ProductsList onUpdate={refetch} />
+            <ProductsList
+              products={filteredProducts}
+              isLoading={isLoading}
+              onUpdate={refetch}
+            />
           ) : (
-            <ProductsGridView products={products} onUpdate={refetch} />
+            <ProductsGridView products={filteredProducts} onUpdate={refetch} />
           )}
         </CardContent>
       </Card>

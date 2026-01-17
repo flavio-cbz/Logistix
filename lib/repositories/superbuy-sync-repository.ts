@@ -1,7 +1,7 @@
 /**
  * Superbuy Sync Repository
  * 
- * Gestion des enregistrements de synchronisation Superbuy
+ * Handles database operations for parcel and product synchronization
  */
 
 import { eq, and } from "drizzle-orm";
@@ -140,7 +140,7 @@ export class SuperbuySyncRepository extends BaseRepository<typeof superbuySync> 
     superbuyData?: Record<string, unknown>
   ): Promise<void> {
     return this.databaseService.executeQuery(async (db) => {
-      const updateData: any = {
+      const updateData: Partial<import("@/lib/database/schema").NewSuperbuySync> = {
         lastSyncedAt: new Date().toISOString(),
       };
 

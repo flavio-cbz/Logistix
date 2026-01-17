@@ -12,8 +12,9 @@ import {
   AuthError,
 } from "@/lib/errors/custom-error";
 import { getErrorMessage } from "@/lib/utils/error-utils";
-import { databaseService } from "@/lib/services/database/db";
+import { databaseService } from "@/lib/database";
 import { getCurrentTimestamp } from "@/lib/utils/formatting/calculations";
+import { encryptUserSecret } from "@/lib/utils/crypto-secrets";
 
 // =============================================================================
 // VALIDATION SCHEMAS
@@ -85,6 +86,18 @@ export interface AuthResult {
   user?: UserSession;
   sessionId?: string;
   message?: string;
+}
+
+export interface SessionRecord {
+  id: string;
+  userId: string;
+  deviceName: string;
+  deviceType: string;
+  ipAddress: string;
+  userAgent: string;
+  lastActivityAt: string;
+  createdAt: string;
+  expiresAt: string;
 }
 
 // =============================================================================
@@ -161,6 +174,8 @@ export class AuthService extends BaseService {
         const id = this.generateSecureId();
         const passwordHash = await this.hashPassword(validatedData.password);
         const encryptionSecret = this.generateSecureId();
+        // Chiffrer le secret avant stockage (Security Phase 2)
+        const encryptedSecret = encryptUserSecret(encryptionSecret);
         const timestamp = getCurrentTimestamp();
 
         // Create user in database
@@ -171,7 +186,7 @@ export class AuthService extends BaseService {
             id,
             validatedData.username,
             passwordHash,
-            encryptionSecret,
+            encryptedSecret,
             input.email || null,
             timestamp,
             timestamp,
@@ -367,14 +382,24 @@ export class AuthService extends BaseService {
   /**
    * Get all active sessions for a user
    */
-  async getUserSessions(userId: string): Promise<any[]> {
+  async getUserSessions(userId: string): Promise<SessionRecord[]> {
     return this.executeOperation(
       "getUserSessions",
       async () => {
         this.validateUUID(userId, "userId", "getUserSessions");
 
         const now = new Date().toISOString();
-        const sessions = await databaseService.query(
+        const sessions = await databaseService.query<{
+          id: string;
+          user_id: string;
+          device_name?: string;
+          device_type?: string;
+          ip_address?: string;
+          user_agent?: string;
+          last_activity_at?: string;
+          created_at: string;
+          expires_at: string;
+        }>(
           `SELECT * FROM user_sessions WHERE user_id = ? AND expires_at > ?`,
           [userId, now],
           "getUserSessions"

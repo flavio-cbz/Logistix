@@ -1,4 +1,4 @@
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, sql, desc, SQL } from "drizzle-orm";
 import {
   BaseRepository,
   FilterOptions,
@@ -80,20 +80,18 @@ export class UserRepository extends BaseRepository<
   ): Promise<boolean> {
     try {
       return await this.executeCustomQuery((_db) => {
-        let query: any = _db
-          .select({ id: this.table.id })
-          .from(this.table)
-          .where(eq(this.table.username, username));
+        const conditions = [eq(this.table.username, username)];
 
         if (excludeId) {
-          query = (query as any).where(
-            and(
-              eq(this.table.username, username),
-              sql`${this.table.id} != ${excludeId}`,
-            ),
-          );
+          conditions.push(sql`${this.table.id} != ${excludeId}`);
         }
-        const result = (query as any).get();
+
+        const result = _db
+          .select({ id: this.table.id })
+          .from(this.table)
+          .where(and(...conditions))
+          .get();
+
         return result !== undefined;
       }, "usernameExists");
     } catch (error) {
@@ -111,19 +109,16 @@ export class UserRepository extends BaseRepository<
   ): Promise<boolean> {
     try {
       return await this.executeCustomQuery((_db) => {
-        let whereClause: any = eq(this.table.email, email);
+        const conditions = [eq(this.table.email, email)];
 
         if (excludeId) {
-          whereClause = and(
-            eq(this.table.email, email),
-            sql`${this.table.id} != ${excludeId}`,
-          );
+          conditions.push(sql`${this.table.id} != ${excludeId}`);
         }
 
         const result = _db
           .select({ id: this.table.id })
           .from(this.table)
-          .where(whereClause)
+          .where(and(...conditions))
           .get();
 
         return result !== undefined;
@@ -140,7 +135,7 @@ export class UserRepository extends BaseRepository<
   public async findUsers(options: UserFilterOptions = {}): Promise<User[]> {
     try {
       return await this.executeCustomQuery((_db) => {
-        const conditions: any[] = [];
+        const conditions: (SQL | undefined)[] = [];
 
         // Username filter
         if (options.username) {
@@ -235,7 +230,7 @@ export class UserRepository extends BaseRepository<
   /**
    * Update user AI configuration
    */
-  public async updateAiConfig(id: string, aiConfig: any): Promise<User | null> {
+  public async updateAiConfig(id: string, aiConfig: Record<string, unknown>): Promise<User | null> {
     try {
       return await this.executeCustomQuery((_db) => {
         const result = _db

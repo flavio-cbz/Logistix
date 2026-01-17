@@ -5,11 +5,12 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { StatisticsService } from '@/lib/services/statistics-service';
 
 // Mock databaseService
-vi.mock('@/lib/services/database/db', () => {
+vi.mock('@/lib/database/database-service', () => {
     const mockFn = () => {
         return {
             queryOne: vi.fn(),
             query: vi.fn(),
+            executeQuery: vi.fn(),
             executeWithConnection: vi.fn(),
         };
     };
@@ -62,11 +63,13 @@ describe('StatisticsService', () => {
     let mockDb: any;
 
     beforeEach(async () => {
-        const { databaseService } = await import('@/lib/services/database/db');
+        const { databaseService } = await import('@/lib/database/database-service');
         mockDb = databaseService;
 
         mockDb.queryOne.mockReset();
         mockDb.query.mockReset();
+        mockDb.query.mockReset();
+        mockDb.executeQuery.mockReset();
         mockDb.executeWithConnection.mockReset();
 
         statisticsService = new StatisticsService();
@@ -185,7 +188,8 @@ describe('StatisticsService', () => {
                 ]);
 
             // Act
-            const result = await statisticsService.getProductStats(userId);
+            // Act
+            const result = await statisticsService.getProductStats(userId) as any;
 
             // Assert
             expect(result.global.totalProduits).toBe(100);
@@ -253,16 +257,17 @@ describe('StatisticsService', () => {
                 .mockReturnValueOnce([]) // delaisData
                 .mockReturnValueOnce([]); // produitsNonVendus
 
-            // Mock executeWithConnection to call the callback immediately with our mockDrizzleDb
-            mockDb.executeWithConnection.mockImplementation(async (callback: any) => {
+            // Mock executeQuery to call the callback immediately with our mockDrizzleDb
+            mockDb.executeQuery.mockImplementation(async (callback: any) => {
                 return callback(mockDrizzleDb);
             });
 
             // Act
-            const result = await statisticsService.getAdvancedStats(userId, params);
+            // Act
+            const result = await statisticsService.getAdvancedStats(userId, params as any);
 
             // Assert
-            expect(mockDb.executeWithConnection).toHaveBeenCalled();
+            expect(mockDb.executeQuery).toHaveBeenCalled();
 
             // Verify calculations based on mocked data
             // Marge moyenne = (500 / 1000) * 100 = 50

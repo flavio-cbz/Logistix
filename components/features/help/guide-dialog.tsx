@@ -14,12 +14,12 @@ const STEPS = [
     {
         title: "1. Ajoutez vos Produits",
         description: "Allez dans l'onglet 'Produits' pour ajouter manuellement vos articles ou importez-les depuis Superbuy.",
-        icon: <Package className="w-12 h-12 text-blue-500" />
+        icon: <Package className="w-12 h-12 text-primary" />
     },
     {
         title: "2. Configurez vos Objectifs",
         description: "Définissez vos cibles de revenus et de marge dans les paramètres pour suivre votre progression.",
-        icon: <Settings className="w-12 h-12 text-purple-500" />
+        icon: <Settings className="w-12 h-12 text-primary" />
     },
     {
         title: "3. Suivez vos Performances",

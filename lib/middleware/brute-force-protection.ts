@@ -206,7 +206,7 @@ export class BruteForceProtection {
     blockedUntil?: number;
   } {
     const entry = store.get(identifier);
-    
+
     if (!entry) {
       return { blocked: false };
     }
@@ -216,7 +216,7 @@ export class BruteForceProtection {
     // Vérifier si le blocage est actif
     if (entry.blockedUntil && now < entry.blockedUntil) {
       const remainingTime = entry.blockedUntil - now;
-      
+
       logger.warn(`[BruteForce] Tentative sur identifiant bloqué`, {
         identifier,
         attempts: entry.attempts,
@@ -251,7 +251,7 @@ export class BruteForceProtection {
    * @param identifier - Identifiant unique
    * @param metadata - Métadonnées additionnelles pour logging
    */
-  recordFailedAttempt(identifier: string, metadata?: Record<string, any>): void {
+  recordFailedAttempt(identifier: string, metadata?: Record<string, unknown>): void {
     const now = Date.now();
     const entry = store.get(identifier);
 
@@ -284,7 +284,7 @@ export class BruteForceProtection {
     if (entry.attempts >= this.config.maxAttempts) {
       // Utiliser la durée actuelle (ou calculer avec backoff si déjà bloqué avant)
       let blockDuration = entry.currentBlockDuration;
-      
+
       // Si c'est un re-blocage (après une expiration de blocage précédent),
       // appliquer le backoff exponentiel
       if (entry.blockedUntil && now > entry.blockedUntil) {

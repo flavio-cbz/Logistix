@@ -1,7 +1,7 @@
 import { BaseService } from "./base-service";
 import { serviceContainer } from "./container";
 import { User } from "@/lib/database/schema";
-import { products, parcelles } from "@/lib/database/schema";
+import { products, parcels } from "@/lib/database/schema";
 import { eq } from "drizzle-orm";
 
 export class UserService extends BaseService {
@@ -16,7 +16,7 @@ export class UserService extends BaseService {
         return this.executeOperation("getProfile", async () => {
             const userRepository = serviceContainer.getUserRepository();
             const productRepository = serviceContainer.getProductRepository();
-            const parcelleRepository = serviceContainer.getParcelleRepository();
+            const parcelleRepository = serviceContainer.getParcelRepository();
 
             const user = await userRepository.findById(userId);
             if (!user) {
@@ -24,8 +24,8 @@ export class UserService extends BaseService {
             }
 
             // Get statistics
-            const totalProducts = await productRepository.count(eq(products.userId, userId));
-            const totalParcelles = await parcelleRepository.count(eq(parcelles.userId, userId));
+            const totalProducts = await productRepository.count({ where: eq(products.userId, userId) });
+            const totalParcelles = await parcelleRepository.count({ where: eq(parcels.userId, userId) });
 
             // Calculate active days
             const createdDate = new Date(user.createdAt);
@@ -118,7 +118,7 @@ export class UserService extends BaseService {
         theme?: string;
         language?: string;
         animations?: boolean;
-        preferences?: Record<string, any>
+        preferences?: Record<string, unknown>
     }) {
         return this.executeOperation("updateSettings", async () => {
             const userRepository = serviceContainer.getUserRepository();
@@ -143,7 +143,7 @@ export class UserService extends BaseService {
             }
 
             // Prepare update data
-            const updateData: any = {};
+            const updateData: Record<string, unknown> = {};
             if (data.theme) updateData.theme = data.theme;
             if (data.language) updateData.language = data.language;
 

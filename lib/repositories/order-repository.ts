@@ -15,13 +15,13 @@ import { Order } from "@/lib/types/entities";
 
 export interface OrderFilterOptions extends FilterOptions {
   userId?: string;
-  orderNumber?: string;
+  superbuyId?: string;
   status?: string;
 }
 
 export class OrderRepository extends BaseRepository<
   typeof orders,
-  any,
+  Order,
   NewOrder
 > {
   constructor(databaseService: DatabaseService) {
@@ -85,16 +85,16 @@ export class OrderRepository extends BaseRepository<
   }
 
   /**
-   * Find order by order number
+   * Find order by Superbuy ID
    */
-  public async findByOrderNumber(
-    orderNumber: string,
+  public async findBySuperbuyId(
+    superbuyId: string,
     userId?: string,
   ): Promise<Order | null> {
     try {
       return await this.executeCustomQuery((db) => {
         const conditions = [
-          eq(this.table.orderNumber, orderNumber)
+          eq(this.table.superbuyId, superbuyId)
         ];
 
         if (userId) {
@@ -108,31 +108,31 @@ export class OrderRepository extends BaseRepository<
           .get();
 
         return (result as Order) || null;
-      }, "findByOrderNumber");
+      }, "findBySuperbuyId");
     } catch (error) {
-      this.logError("findByOrderNumber failed", error, { orderNumber, userId });
+      this.logError("findBySuperbuyId failed", error, { superbuyId, userId });
       throw error;
     }
   }
 
   /**
-   * Check if order number exists for a user
+   * Check if Superbuy ID exists for a user
    */
-  public async orderNumberExists(
-    orderNumber: string,
+  public async superbuyIdExists(
+    superbuyId: string,
     userId: string,
     excludeId?: string,
   ): Promise<boolean> {
     try {
       return await this.executeCustomQuery((db) => {
         let whereClause = and(
-          eq(this.table.orderNumber, orderNumber),
+          eq(this.table.superbuyId, superbuyId),
           eq(this.table.userId, userId),
         );
 
         if (excludeId) {
           whereClause = and(
-            eq(this.table.orderNumber, orderNumber),
+            eq(this.table.superbuyId, superbuyId),
             eq(this.table.userId, userId),
             sql`${this.table.id} != ${excludeId}`,
           );
@@ -145,10 +145,10 @@ export class OrderRepository extends BaseRepository<
           .get();
 
         return result !== undefined;
-      }, "orderNumberExists");
+      }, "superbuyIdExists");
     } catch (error) {
-      this.logError("orderNumberExists failed", error, {
-        orderNumber,
+      this.logError("superbuyIdExists failed", error, {
+        superbuyId,
         userId,
         excludeId,
       });
@@ -157,10 +157,10 @@ export class OrderRepository extends BaseRepository<
   }
 
   /**
-   * Find orders by a list of order numbers for a specific user
+   * Find orders by a list of Superbuy IDs for a specific user
    */
-  async findByOrderNumbers(userId: string, orderNumbers: string[]): Promise<Order[]> {
-    if (orderNumbers.length === 0) return [];
+  async findBySuperbuyIds(userId: string, superbuyIds: string[]): Promise<Order[]> {
+    if (superbuyIds.length === 0) return [];
 
     return this.executeCustomQuery(async (db) => {
       const results = await db
@@ -169,7 +169,7 @@ export class OrderRepository extends BaseRepository<
         .where(
           and(
             eq(orders.userId, userId),
-            inArray(orders.orderNumber, orderNumbers)
+            inArray(orders.superbuyId, superbuyIds)
           )
         );
 

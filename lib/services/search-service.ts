@@ -1,8 +1,7 @@
+
 import { DatabaseService } from "@/lib/database";
 import { logger } from "@/lib/utils/logging/logger";
-import { ProductRepository } from "@/lib/repositories/product-repository";
-import { ParcelleRepository } from "@/lib/repositories/parcelle-repository";
-import { UserRepository } from "@/lib/repositories/user-repository";
+import { ProductRepository, ParcelRepository, UserRepository } from "@/lib/repositories";
 
 interface BrandSuggestion {
   brand: string;
@@ -55,7 +54,7 @@ interface SearchParcel {
 export class SearchService {
   private static instance: SearchService;
   private productRepository: ProductRepository;
-  private parcelleRepository: ParcelleRepository;
+  private parcelleRepository: ParcelRepository;
   private userRepository: UserRepository;
 
   public static getInstance(): SearchService {
@@ -63,7 +62,7 @@ export class SearchService {
       const dbService = DatabaseService.getInstance();
       SearchService.instance = new SearchService(
         new ProductRepository(dbService),
-        new ParcelleRepository(dbService),
+        new ParcelRepository(dbService),
         new UserRepository(dbService)
       );
     }
@@ -72,7 +71,7 @@ export class SearchService {
 
   public constructor(
     productRepository: ProductRepository,
-    parcelleRepository: ParcelleRepository,
+    parcelleRepository: ParcelRepository,
     userRepository: UserRepository
   ) {
     this.productRepository = productRepository;
@@ -81,27 +80,29 @@ export class SearchService {
   }
 
   async getBrandSuggestions(query: string): Promise<BrandSuggestion[]> {
-    logger.info(`Fetching brand suggestions for query: ${query}`);
+    logger.info(`Fetching brand suggestions for query: ${query} `);
     return this.productRepository.getBrandSuggestions(query);
   }
 
   async getCategorySuggestions(query: string): Promise<CategorySuggestion[]> {
-    logger.info(`Fetching category suggestions for query: ${query}`);
+    logger.info(`Fetching category suggestions for query: ${query} `);
     return this.productRepository.getCategorySuggestions(query);
   }
 
   async getProductSuggestions(query: string): Promise<ProductSuggestion[]> {
-    logger.info(`Fetching product suggestions for query: ${query}`);
+    logger.info(`Fetching product suggestions for query: ${query} `);
     return this.productRepository.getProductSuggestions(query);
   }
 
   async getTransporteurSuggestions(query: string): Promise<TransporteurSuggestion[]> {
-    logger.info(`Fetching transporteur suggestions for query: ${query}`);
-    return this.parcelleRepository.getTransporteurSuggestions(query);
+    logger.info(`Fetching transporteur suggestions for query: ${query} `);
+    return this.parcelleRepository.getCarrierSuggestions(query).then(res =>
+      res.map(r => ({ transporteur: r.carrier, count: r.count }))
+    );
   }
 
   async getUserSuggestions(query: string): Promise<UserSuggestion[]> {
-    logger.info(`Fetching user suggestions for query: ${query}`);
+    logger.info(`Fetching user suggestions for query: ${query} `);
     return this.userRepository.getUserSuggestions(query);
   }
 
@@ -109,7 +110,7 @@ export class SearchService {
     query: string,
     userId?: string,
   ): Promise<{ products: SearchProduct[]; parcels: SearchParcel[] }> {
-    logger.info(`Performing global search for query: ${query}`);
+    logger.info(`Performing global search for query: ${query} `);
     try {
       let mappedProducts: SearchProduct[] = [];
       let mappedParcels: SearchParcel[] = [];
@@ -126,16 +127,16 @@ export class SearchService {
           updatedAt: p.updatedAt,
         }));
 
-        const parcels = await this.parcelleRepository.findParcelles({ userId, searchTerm: query, limit: 10 });
+        const parcels = await this.parcelleRepository.findParcels({ userId, searchTerm: query, limit: 10 });
         mappedParcels = parcels.map(p => ({
           id: p.id,
           userId: p.userId,
-          numero: p.numero,
-          transporteur: p.transporteur,
-          prixAchat: p.prixAchat,
-          poids: p.poids,
-          prixTotal: p.prixTotal,
-          prixParGramme: p.prixParGramme,
+          numero: p.superbuyId,
+          transporteur: p.carrier,
+          prixAchat: p.totalPrice,
+          poids: p.weight,
+          prixTotal: p.totalPrice, // Duplicate mapping?
+          prixParGramme: p.pricePerGram,
           createdAt: p.createdAt,
         }));
       } else {
@@ -145,7 +146,7 @@ export class SearchService {
       return { products: mappedProducts, parcels: mappedParcels };
     } catch (error: unknown) {
       logger.error(
-        `Error during global search: ${error instanceof Error ? error.message : String(error)}`,
+        `Error during global search: ${error instanceof Error ? error.message : String(error)} `,
       );
       return { products: [], parcels: [] };
     }
@@ -167,7 +168,7 @@ export class SearchService {
     userId: string;
   }): Promise<SearchProduct[]> {
     try {
-      logger.info(`Searching products for user: ${criteria.userId}`, {
+      logger.info(`Searching products for user: ${criteria.userId} `, {
         criteria,
       });
 
@@ -190,7 +191,7 @@ export class SearchService {
       }));
     } catch (error: unknown) {
       logger.error(
-        `Error searching products: ${error instanceof Error ? error.message : String(error)}`,
+        `Error searching products: ${error instanceof Error ? error.message : String(error)} `,
         { criteria },
       );
       return [];
@@ -203,30 +204,30 @@ export class SearchService {
     userId: string;
   }): Promise<SearchParcel[]> {
     try {
-      logger.info(`Searching parcels for user: ${criteria.userId}`, {
+      logger.info(`Searching parcels for user: ${criteria.userId} `, {
         criteria,
       });
 
-      const parcels = await this.parcelleRepository.findParcelles({
+      const parcels = await this.parcelleRepository.findParcels({
         userId: criteria.userId,
-        numero: criteria.numero,
-        transporteur: criteria.transporteur,
+        superbuyId: criteria.numero,
+        carrier: criteria.transporteur,
       });
 
       return parcels.map(row => ({
         id: row.id,
         userId: row.userId,
-        numero: row.numero,
-        transporteur: row.transporteur,
-        prixAchat: row.prixAchat,
-        poids: row.poids,
-        prixTotal: row.prixTotal,
-        prixParGramme: row.prixParGramme,
+        numero: row.superbuyId,
+        transporteur: row.carrier,
+        prixAchat: row.totalPrice,
+        poids: row.weight,
+        prixTotal: row.totalPrice,
+        prixParGramme: row.pricePerGram,
         createdAt: row.createdAt,
       }));
     } catch (error: unknown) {
       logger.error(
-        `Error searching parcels by criteria: ${error instanceof Error ? error.message : String(error)}`,
+        `Error searching parcels by criteria: ${error instanceof Error ? error.message : String(error)} `,
         { criteria },
       );
       return [];

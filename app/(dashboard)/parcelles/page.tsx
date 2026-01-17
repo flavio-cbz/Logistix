@@ -10,9 +10,12 @@ import {
   CheckCircle2,
   Edit,
   Trash2,
-  Copy
+  Copy,
+  UploadCloud
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { SuperbuySyncDialog } from "@/components/features/superbuy/sync-dialog";
 import { EditableCell } from "@/components/ui/editable-cell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +23,8 @@ import ParcelleForm from "@/components/features/parcelles/parcelle-form";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { toast } from "sonner";
 import { useParcelles, useDeleteParcelle, useUpdateParcelle, useCreateParcelle } from "@/lib/hooks/use-parcelles";
-import type { Parcelle } from "@/lib/types/entities";
+import type { Parcelle, ParcelStatus } from "@/lib/types/entities";
+import type { CreateParcelFormData } from "@/lib/schemas/parcelle";
 import {
   Table,
   TableBody,
@@ -31,6 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFormatting } from "@/lib/hooks/use-formatting";
+import { logger } from "@/lib/utils/logging/logger";
 
 
 
@@ -57,7 +62,7 @@ export default function ParcellesPage() {
   const parcellesList = useMemo(() => parcelles || [], [parcelles]);
 
 
-  const handleInlineUpdate = async (id: string, field: string, value: any) => {
+  const handleInlineUpdate = async (id: string, field: string, value: unknown) => {
     try {
       // Find the parcelle to get other required fields if necessary, 
       // but assuming patch allows partial or the transformer handles it.
@@ -68,7 +73,7 @@ export default function ParcellesPage() {
       });
       toast.success("Mise à jour réussie");
     } catch (error) {
-      console.error("Update error:", error);
+      logger.error("Update error", { error });
       toast.error("Erreur lors de la mise à jour");
     }
   };
@@ -85,7 +90,7 @@ export default function ParcellesPage() {
       setSelectedIds(new Set());
       setBulkDeleteOpen(false);
     } catch (error) {
-      console.error("Bulk delete error:", error);
+      logger.error("Bulk delete error", { error });
       toast.error("Erreur lors de la suppression groupée");
     } finally {
       setBulkActionLoading(false);
@@ -101,27 +106,36 @@ export default function ParcellesPage() {
         const parcelle = parcellesList.find(p => p.id === id);
         if (!parcelle) return;
 
-        // Remove id, createdAt, updatedAt and append " (Copie)" to nom
-        const newParcelleData = {
-          ...parcelle,
-          nom: `${parcelle.nom} (Copie)`,
-          id: undefined,
-          createdAt: undefined,
-          updatedAt: undefined
+        // Remove system fields and derived fields not needed for creation
+        const {
+          id: _id,
+          createdAt: _createdAt,
+          updatedAt: _updatedAt,
+          userId: _userId,
+          pricePerGram: _pricePerGram,
+          ...rest
+        } = parcelle;
+
+        const newParcelleData: CreateParcelFormData = {
+          ...rest,
+          name: `${parcelle.name || ''} (Copy)`.trim(),
+          status: parcelle.status as ParcelStatus,
+          isActive: Boolean(parcelle.isActive),
+          carrier: parcelle.carrier || "Inconnu",
+          totalPrice: parcelle.totalPrice || 0,
+          weight: parcelle.weight || 0,
+          trackingNumber: parcelle.trackingNumber || undefined,
+          pricePerGram: 0, // This will be recalculated by the transform in createParcelSchema
         };
 
-        // We need to cast or transform to CreateParcelleFormData. 
-        // Ideally we should use a proper transformer, but for now passing as is 
-        // might work if the API accepts it, or we rely on the form data types.
-        // Let's assume the basic fields are compatible.
-        await createMutation.mutateAsync(newParcelleData as any);
+        await createMutation.mutateAsync(newParcelleData);
       });
 
       await Promise.all(promises);
       toast.success(`${selectedIds.size} parcelles dupliquées`);
       setSelectedIds(new Set());
     } catch (error) {
-      console.error("Bulk duplicate error:", error);
+      logger.error("Bulk duplicate error", { error });
       toast.error("Erreur lors de la duplication");
     } finally {
       setBulkActionLoading(false);
@@ -132,25 +146,64 @@ export default function ParcellesPage() {
   // Calculer les statistiques avec normalisation des statuts
   const stats = useMemo(() => {
     const total = parcellesList.length;
-    const enTransit = parcellesList.filter(p => p.statut === "En transit").length;
-    const livrees = parcellesList.filter(p => p.statut === "Livré").length;
-    const enAttente = parcellesList.filter(p => p.statut === "En attente").length;
+    const enTransit = parcellesList.filter(p => p.status === "In Transit").length;
+    const livrees = parcellesList.filter(p => p.status === "Delivered").length;
+    const enAttente = parcellesList.filter(p => p.status === "Pending").length;
     return { total, enTransit, livrees, enAttente };
   }, [parcellesList]);
 
   const getStatutBadge = (statut: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
-      "En attente": { variant: "secondary", icon: AlertTriangle },
-      "En transit": { variant: "default", icon: Truck },
-      "Livré": { variant: "outline", icon: CheckCircle2 },
+    const steps = ["Pending", "In Transit", "Delivered"];
+    const currentStepIndex = steps.indexOf(statut);
+
+    // Status mapping for display
+    const labels: Record<string, string> = {
+      "Pending": "En attente",
+      "In Transit": "En transit",
+      "Delivered": "Livré",
+      "Returned": "Retourné",
+      "Lost": "Perdu",
+      "Cancelled": "Annulé",
     };
+
+    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: React.ComponentType<{ className?: string }> }> = {
+      "Pending": { variant: "secondary", icon: AlertTriangle },
+      "In Transit": { variant: "default", icon: Truck },
+      "Delivered": { variant: "outline", icon: CheckCircle2 },
+      "Returned": { variant: "destructive", icon: AlertTriangle },
+      "Lost": { variant: "destructive", icon: AlertTriangle },
+      "Cancelled": { variant: "destructive", icon: Trash2 },
+    };
+
     const config = variants[statut] || { variant: "secondary" as const, icon: AlertTriangle };
-    const Icon = config!.icon;
+    const Icon = config.icon;
+    const isError = ["Returned", "Lost", "Cancelled"].includes(statut);
+
     return (
-      <Badge variant={config.variant} className="gap-1">
-        <Icon className="w-3 h-3" />
-        {statut}
-      </Badge>
+      <div className="flex flex-col gap-1.5 w-[140px]">
+        <Badge variant={config.variant} className="w-fit gap-1 whitespace-nowrap">
+          <Icon className="w-3 h-3" />
+          {labels[statut] || statut}
+        </Badge>
+
+        {/* Mini Timeline - Hide for error states */}
+        {!isError && currentStepIndex !== -1 && (
+          <div className="flex items-center gap-1 h-1.5 w-full">
+            {[0, 1, 2].map((step) => {
+              const isActive = step <= currentStepIndex;
+              const isCurrent = step === currentStepIndex;
+              return (
+                <div
+                  key={step}
+                  className={`h-full flex-1 rounded-full transition-colors ${isActive ? (isCurrent ? "bg-primary" : "bg-primary/80") : "bg-muted"
+                    }`}
+                  title={step === 0 ? "En attente" : step === 1 ? "En transit" : "Livré"}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -164,25 +217,34 @@ export default function ParcellesPage() {
             Gérez vos parcelles et expéditions
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Actualiser
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => setShowCreateForm(true)}
-            data-testid="open-create-parcelle"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nouvelle Parcelle
-          </Button>
-        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <SuperbuySyncDialog
+          trigger={
+            <Button variant="outline" size="sm">
+              <UploadCloud className="w-4 h-4 mr-2" />
+              Importer (Superbuy)
+            </Button>
+          }
+          onSyncComplete={() => refetch()}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isLoading}
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          Actualiser
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => setShowCreateForm(true)}
+          data-testid="open-create-parcelle"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Nouvelle Parcelle
+        </Button>
       </div>
 
       {/* Statistiques */}
@@ -241,32 +303,47 @@ export default function ParcellesPage() {
       </div>
 
       {/* Barre d'actions groupées */}
-      {selectedIds.size > 0 && (
-        <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
-          <span className="text-sm font-medium">
-            {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
-          </span>
-          <div className="flex-1" />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleBulkDuplicate}
-            disabled={bulkActionLoading}
-          >
-            <Copy className="w-4 h-4 mr-2" />
-            Dupliquer
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setBulkDeleteOpen(true)}
-            disabled={bulkActionLoading}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Supprimer
-          </Button>
-        </div>
-      )}
+      {
+        selectedIds.size > 0 && (
+          <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
+            <span className="text-sm font-medium">
+              {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <div className="h-4 w-[1px] bg-border mx-2" />
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span>
+                Poids: <span className="font-medium text-foreground">
+                  {formatWeight(parcellesList.filter(p => selectedIds.has(p.id)).reduce((acc, p) => acc + (p.weight || 0), 0))}
+                </span>
+              </span>
+              <span>
+                Prix: <span className="font-medium text-foreground">
+                  {formatCurrency(parcellesList.filter(p => selectedIds.has(p.id)).reduce((acc, p) => acc + (p.totalPrice || 0), 0))}
+                </span>
+              </span>
+            </div>
+            <div className="flex-1" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkDuplicate}
+              disabled={bulkActionLoading}
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Dupliquer
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setBulkDeleteOpen(true)}
+              disabled={bulkActionLoading}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Supprimer
+            </Button>
+          </div>
+        )
+      }
 
       {/* Tableau des parcelles */}
       <Card>
@@ -308,46 +385,71 @@ export default function ParcellesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Numéro</TableHead>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Transporteur</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Poids</TableHead>
-                    <TableHead>Prix</TableHead>
-                    <TableHead>Prix/g</TableHead>
+                    <TableHead className="w-[50px] align-middle">
+                      <Checkbox
+                        checked={parcellesList.length > 0 && selectedIds.size === parcellesList.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedIds(new Set(parcellesList.map(p => p.id)));
+                          } else {
+                            setSelectedIds(new Set());
+                          }
+                        }}
+                        aria-label="Tout sélectionner"
+                      />
+                    </TableHead>
+                    <TableHead className="align-middle">Numéro</TableHead>
+                    <TableHead className="align-middle">Nom</TableHead>
+                    <TableHead className="align-middle">Transporteur</TableHead>
+                    <TableHead className="align-middle">Statut</TableHead>
+                    <TableHead className="align-middle">Poids</TableHead>
+                    <TableHead className="align-middle">Prix</TableHead>
+                    <TableHead className="align-middle">Prix/g (€)</TableHead>
                     <TableHead>Date création</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {parcellesList.map((parcelle) => (
-                    <TableRow key={parcelle.id}>
-                      <TableCell className="font-medium">{parcelle.numero}</TableCell>
-                      <TableCell>{parcelle.nom}</TableCell>
-                      <TableCell>{parcelle.transporteur}</TableCell>
-                      <TableCell>{getStatutBadge(parcelle.statut)}</TableCell>
+                    <TableRow key={parcelle.id} className={selectedIds.has(parcelle.id) ? "bg-muted/50" : ""}>
+                      <TableCell className="align-middle">
+                        <Checkbox
+                          checked={selectedIds.has(parcelle.id)}
+                          onCheckedChange={(checked) => {
+                            const newSet = new Set(selectedIds);
+                            if (checked) newSet.add(parcelle.id);
+                            else newSet.delete(parcelle.id);
+                            setSelectedIds(newSet);
+                          }}
+                          aria-label={`Sélectionner ${parcelle.superbuyId}`}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">{parcelle.superbuyId}</TableCell>
+                      <TableCell>{parcelle.name}</TableCell>
+                      <TableCell>{parcelle.carrier}</TableCell>
+                      <TableCell>{getStatutBadge(parcelle.status)}</TableCell>
                       <TableCell>
                         <EditableCell
                           type="number"
-                          value={parcelle.poids}
+                          value={parcelle.weight}
                           min={0}
                           step={0.01}
-                          onSave={(val) => handleInlineUpdate(parcelle.id, "poids", val)}
+                          onSave={(val) => handleInlineUpdate(parcelle.id, "weight", val)}
                           formatter={(val) => formatWeight(val as number | null)}
                         />
                       </TableCell>
                       <TableCell>
                         <EditableCell
                           type="number"
-                          value={parcelle.prixAchat}
+                          value={parcelle.totalPrice}
                           min={0}
                           step={0.01}
-                          onSave={(val) => handleInlineUpdate(parcelle.id, "prixAchat", val)}
+                          onSave={(val) => handleInlineUpdate(parcelle.id, "totalPrice", val)}
                           formatter={(val) => val ? `${formatCurrency(Number(val))}` : "N/A"}
                         />
                       </TableCell>
                       <TableCell>
-                        {formatCurrency(parcelle.prixParGramme)}/g
+                        {formatCurrency(parcelle.pricePerGram)}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(parcelle.createdAt) || "N/A"}

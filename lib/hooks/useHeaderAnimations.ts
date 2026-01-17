@@ -24,7 +24,7 @@ export function useHeaderAnimations() {
   useEffect(() => {
     // Throttle scroll events for better performance
     let ticking = false;
-    
+
     const handleScroll = () => {
       if (!ticking) {
         requestAnimationFrame(() => {
@@ -93,7 +93,7 @@ export function useInteractionState() {
 export function useSearchState() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<unknown[]>([]);
 
   const handleSearchFocus = useCallback(() => {
     setIsSearchFocused(true);

@@ -11,6 +11,7 @@ import { requireAuth } from "@/lib/middleware/auth-middleware";
 // import { SuperbuySyncService } from "@/lib/integrations/superbuy";
 import { serviceContainer } from "@/lib/services/container";
 // import { DatabaseService } from "@/lib/database";
+import { logger } from "@/lib/utils/logging/logger";
 
 // ============================================================================
 // ENDPOINT HANDLERS
@@ -97,8 +98,8 @@ export async function GET(req: NextRequest) {
       }
     );
 
-  } catch (error) {
-    console.error("[Test Sync API] Erreur fatale:", error);
+  } catch (error: unknown) {
+    logger.error("[Test Sync API] Erreur fatale:", { error });
 
     return NextResponse.json(
       {
@@ -149,8 +150,8 @@ export async function POST(req: NextRequest) {
       { status: 501 }
     );
 
-  } catch (error) {
-    console.error("[Test Sync API POST] Error:", error);
+  } catch (error: unknown) {
+    logger.error("[Test Sync API POST] Error:", { error });
 
     return NextResponse.json(
       {

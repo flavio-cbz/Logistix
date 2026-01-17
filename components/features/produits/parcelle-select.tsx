@@ -20,7 +20,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { toast } from "sonner";
-import type { Parcelle } from "@/lib/types/entities";
+import type { Parcelle } from "@/lib/shared/types/entities";
 import { cn } from "@/lib/shared/utils";
 import { useFormatting } from "@/lib/hooks/use-formatting";
 
@@ -78,9 +78,9 @@ export function ParcelleSelect({
               <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
               {selectedParcelle ? (
                 <span className="truncate">
-                  #{selectedParcelle.numero} - {selectedParcelle.transporteur}
+                  #{selectedParcelle.superbuyId} - {selectedParcelle.carrier}
                   <span className="text-xs text-muted-foreground ml-2">
-                    ({selectedParcelle.prixParGramme ? formatCurrency(selectedParcelle.prixParGramme) : "N/A"}/g)
+                    ({selectedParcelle.pricePerGram ? formatCurrency(selectedParcelle.pricePerGram) : "N/A"}/g)
                   </span>
                 </span>
               ) : value ? (
@@ -123,7 +123,7 @@ export function ParcelleSelect({
                 parcelles.map((parcelle) => (
                   <CommandItem
                     key={parcelle.id}
-                    value={`${parcelle.numero} ${parcelle.transporteur} ${parcelle.id}`}
+                    value={`${parcelle.superbuyId} ${parcelle.carrier} ${parcelle.id}`}
                     onSelect={() => {
                       onChange(parcelle.id);
                       setOpen(false);
@@ -135,17 +135,17 @@ export function ParcelleSelect({
                         <Package className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <div className="font-medium">
-                            #{parcelle.numero} - {parcelle.transporteur}
+                            #{parcelle.superbuyId} - {parcelle.carrier}
                           </div>
-                          {parcelle.nom && (
+                          {parcelle.name && (
                             <div className="text-xs text-muted-foreground">
-                              {parcelle.nom}
+                              {parcelle.name}
                             </div>
                           )}
                         </div>
                       </div>
                       <div className="text-xs font-mono text-muted-foreground">
-                        {parcelle.prixParGramme ? formatCurrency(parcelle.prixParGramme) : "N/A"}/g
+                        {parcelle.pricePerGram ? formatCurrency(parcelle.pricePerGram) : "N/A"}/g
                       </div>
                     </div>
                   </CommandItem>

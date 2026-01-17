@@ -292,7 +292,7 @@ export class AdvancedCaptchaSolver {
         let plan;
         try {
           plan = await yoloService.planSliderMovement(imagePath, effectiveWidth);
-        } catch (yoloError: any) {
+        } catch (yoloError: unknown) {
           const errorMsg = yoloError instanceof Error ? yoloError.message : String(yoloError);
 
 

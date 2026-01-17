@@ -3,7 +3,7 @@
  * Manages Vinted session cookies with encryption and token validation
  */
 
-import { databaseService, getCurrentTimestamp } from '@/lib/services/database/db';
+import { databaseService, getCurrentTimestamp } from '@/lib/database';
 import { encryptSecret, decryptSecret } from '@/lib/utils/crypto';
 import { getLogger } from '@/lib/utils/logging/logger';
 import { VintedAuthService } from '@/lib/services/auth/vinted-auth-service';
@@ -26,7 +26,12 @@ class VintedSessionManager {
    */
   async getSessionCookie(userId: string): Promise<string | null> {
     try {
-      const session = await databaseService.queryOne(
+      const session = await databaseService.queryOne<{
+        id: string;
+        user_id: string;
+        session_cookie: string;
+        status: string;
+      }>(
         `SELECT id, user_id, session_cookie, status FROM vinted_sessions WHERE user_id = ?`,
         [userId],
       );
@@ -99,7 +104,12 @@ class VintedSessionManager {
    */
   async refreshSession(userId: string): Promise<RefreshResponse> {
     try {
-      const session = await databaseService.queryOne(
+      const session = await databaseService.queryOne<{
+        id: string;
+        user_id: string;
+        session_cookie: string;
+        status: string;
+      }>(
         `SELECT id, user_id, session_cookie, status FROM vinted_sessions WHERE user_id = ?`,
         [userId],
       );

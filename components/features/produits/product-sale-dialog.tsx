@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, Control } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import {
@@ -107,7 +107,7 @@ export function ProductSaleDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-green-600" />
+            <DollarSign className="h-5 w-5 text-success" />
             Confirmer la vente
           </DialogTitle>
           <DialogDescription>
@@ -126,7 +126,7 @@ export function ProductSaleDialog({
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Prix de vente</span>
-                <span className="font-semibold text-green-600">
+                <span className="font-semibold text-success">
                   {formatCurrency(prixVente)}
                 </span>
               </div>
@@ -141,8 +141,8 @@ export function ProductSaleDialog({
                   <span className="font-medium">Bénéfice estimé</span>
                   <span
                     className={`font-bold ${beneficeEstime >= 0
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400"
+                      ? "text-success"
+                      : "text-destructive"
                       }`}
                   >
                     {beneficeEstime >= 0 ? "+" : ""}
@@ -154,7 +154,7 @@ export function ProductSaleDialog({
 
             {/* Prix de vente */}
             <FormField
-              control={form.control as any}
+              control={form.control as unknown as Control<SaleFormValues>}
               name="prixVente"
               render={({ field }) => (
                 <FormItem>
@@ -183,7 +183,7 @@ export function ProductSaleDialog({
 
             {/* Date de mise en ligne */}
             <FormField
-              control={form.control as any}
+              control={form.control as unknown as Control<SaleFormValues>}
               name="dateMiseEnLigne"
               render={({ field }) => (
                 <FormItem>
@@ -201,7 +201,7 @@ export function ProductSaleDialog({
 
             {/* Date de vente */}
             <FormField
-              control={form.control as any}
+              control={form.control as unknown as Control<SaleFormValues>}
               name="dateVente"
               render={({ field }) => (
                 <FormItem>
@@ -219,7 +219,7 @@ export function ProductSaleDialog({
 
             {/* Plateforme */}
             <FormField
-              control={form.control as any}
+              control={form.control as unknown as Control<SaleFormValues>}
               name="plateforme"
               render={({ field }) => (
                 <FormItem>
@@ -258,7 +258,7 @@ export function ProductSaleDialog({
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-success hover:bg-success/90"
               >
                 {isSubmitting ? "Validation..." : "Confirmer la vente"}
               </Button>

@@ -11,12 +11,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Loader2, RefreshCw, CheckCircle2, AlertCircle, Settings, CloudOff } from "lucide-react";
+import { Loader2, RefreshCw, CheckCircle2, AlertCircle, CloudOff, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 import { useFormatting } from "@/lib/hooks/use-formatting";
+import { logger } from "@/lib/utils/logging/logger";
 
 interface SuperbuySyncDialogProps {
   trigger?: React.ReactNode;
@@ -30,16 +32,30 @@ interface IntegrationStatus {
   configuredAt?: string;
 }
 
+interface Job {
+  id: string;
+  type: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelling' | 'cancelled';
+  progress: number;
+  result?: {
+    message?: string;
+    error?: string;
+    [key: string]: unknown
+  };
+}
+
 export function SuperbuySyncDialog({ trigger, onSyncComplete }: SuperbuySyncDialogProps) {
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
-  const [statusMessage, setStatusMessage] = useState("Initialisation...");
   const [error, setError] = useState<string | null>(null);
   const { formatDateTime } = useFormatting();
 
-  // Fetch integration status when dialog opens
+  // Job State
+  const [activeJob, setActiveJob] = useState<Job | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+
+  // Fetch integration status
   const fetchStatus = useCallback(async () => {
     setCheckingStatus(true);
     try {
@@ -53,82 +69,166 @@ export function SuperbuySyncDialog({ trigger, onSyncComplete }: SuperbuySyncDial
     } catch {
       setStatus({ connected: false });
     } finally {
-      setCheckingStatus(false);
+      setTimeout(() => setCheckingStatus(false), 300);
+    }
+  }, []);
+
+  // Check for existing active jobs
+  const checkForActiveJob = useCallback(async () => {
+    try {
+      const response = await fetch("/api/v1/jobs");
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && Array.isArray(result.data)) {
+          const syncJob = result.data.find((j: Job) => j.type === 'superbuy_sync');
+          if (syncJob) {
+            setActiveJob(syncJob);
+          }
+        }
+      }
+    } catch (e) {
+      logger.error("Failed to check active jobs", { error: e });
     }
   }, []);
 
   useEffect(() => {
     if (open) {
       fetchStatus();
+      checkForActiveJob();
       setError(null);
     }
-  }, [open, fetchStatus]);
+  }, [open, fetchStatus, checkForActiveJob]);
 
-  // Cycle status messages during sync
+  // SSE Connection for real-time updates
   useEffect(() => {
-    if (loading) {
-      const messages = [
-        "Connexion à Superbuy...",
-        "Vérification de la session...",
-        "Récupération des colis...",
-        "Analyse des données...",
-        "Synchronisation en cours...",
-        "Mise à jour de la base de données...",
-      ];
-      let i = 0;
-      const interval = setInterval(() => {
-        const msg = messages[i % messages.length];
-        if (msg) setStatusMessage(msg);
-        i++;
-      }, 3000);
-      return () => clearInterval(interval);
-    }
-    return undefined;
-  }, [loading]);
+    if (!open) return undefined;
 
-  const handleSync = async () => {
-    setLoading(true);
+    let eventSource: EventSource | null = null;
+    let fallbackPollInterval: NodeJS.Timeout | null = null;
+
+    const connectSSE = () => {
+      eventSource = new EventSource("/api/v1/sse/events");
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.type === "job:update" && data.payload) {
+            const payload = data.payload;
+
+            // Update activeJob if it matches
+            setActiveJob((prev) => {
+              if (!prev || prev.id !== payload.jobId) return prev;
+
+              const updated: Job = {
+                ...prev,
+                status: payload.status,
+                progress: payload.progress,
+                result: payload.result,
+              };
+
+              // Handle completion states
+              if (payload.status === "completed") {
+                toast.success("Synchronisation terminée !");
+                onSyncComplete?.();
+              } else if (payload.status === "failed") {
+                toast.error("Échec de la synchronisation");
+              } else if (payload.status === "cancelled") {
+                toast.info("Synchronisation annulée");
+              }
+
+              return updated;
+            });
+          }
+        } catch (e) {
+          logger.error("SSE parse error", { error: e });
+        }
+      };
+
+      eventSource.onerror = () => {
+        // SSE failed, fall back to polling
+        eventSource?.close();
+        eventSource = null;
+
+        if (!fallbackPollInterval && activeJob && !['completed', 'failed', 'cancelled'].includes(activeJob.status)) {
+          fallbackPollInterval = setInterval(async () => {
+            try {
+              const response = await fetch("/api/v1/jobs");
+              if (response.ok) {
+                const result = await response.json();
+                if (result.success && Array.isArray(result.data)) {
+                  const updatedJob = result.data.find((j: Job) => j.id === activeJob?.id);
+                  if (updatedJob) {
+                    setActiveJob(updatedJob);
+                  } else {
+                    setActiveJob((prev) => prev ? { ...prev, status: 'completed', progress: 100 } : null);
+                    toast.success("Synchronisation terminée");
+                    onSyncComplete?.();
+                  }
+                }
+              }
+            } catch (e) {
+              logger.error("Polling error", { error: e });
+            }
+          }, 2000);
+        }
+      };
+    };
+
+    connectSSE();
+
+    return () => {
+      eventSource?.close();
+      if (fallbackPollInterval) clearInterval(fallbackPollInterval);
+    };
+  }, [open, activeJob, onSyncComplete]);
+
+
+  const startSync = async () => {
     setError(null);
-    setStatusMessage("Démarrage de la synchronisation...");
-
     try {
-      // Call sync without credentials - backend will use stored ones
-      const response = await fetch("/api/v1/integrations/superbuy/sync", {
+      const response = await fetch("/api/v1/sync/superbuy/background", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || data.message || "Erreur de démarrage");
 
-      if (!response.ok) {
-        throw new Error(data.error || data.message || "Erreur lors de la synchronisation");
-      }
-
-      const parcelsCount = data.data?.parcelsCount ?? 0;
-      const ordersCount = data.data?.ordersCount ?? 0;
-
-      toast.success("Synchronisation réussie", {
-        description: `${parcelsCount} parcelle(s) et ${ordersCount} commande(s) synchronisées.`,
+      // Set active job immediately to start polling
+      setActiveJob({
+        id: data.data.jobId,
+        type: 'superbuy_sync',
+        status: 'pending',
+        progress: 0,
+        result: { message: "Démarrage..." }
       });
 
-      setOpen(false);
-      onSyncComplete?.();
-
-      // Refresh status for next time
-      fetchStatus();
-
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Une erreur inconnue est survenue";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+      setError(err instanceof Error ? err.message : "Erreur inconnue");
     }
   };
 
+  const cancelSync = async () => {
+    if (!activeJob) return;
+    setCancelling(true);
+    try {
+      await fetch(`/api/v1/jobs/${activeJob.id}/cancel`, { method: "POST" });
+      toast.info("Annulation demandée...");
+      // Optimistic update
+      setActiveJob(prev => prev ? { ...prev, status: 'cancelling' } : null);
+    } catch (_e) {
+      toast.error("Échec de l'annulation");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const isSyncing = activeJob && ['pending', 'processing', 'cancelling'].includes(activeJob.status);
+
   return (
     <Dialog open={open} onOpenChange={(val) => {
-      if (loading) return; // Prevent closing while loading
+      // Allow closing even if syncing, it continues in background.
       setOpen(val);
       if (!val) setError(null);
     }}>
@@ -140,12 +240,12 @@ export function SuperbuySyncDialog({ trigger, onSyncComplete }: SuperbuySyncDial
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[450px]">
+      <DialogContent className="sm:max-w-[450px] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Synchronisation Superbuy
             {status?.connected && (
-              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+              <Badge variant="secondary" className="bg-success/15 text-success">
                 <CheckCircle2 className="w-3 h-3 mr-1" />
                 Connecté
               </Badge>
@@ -157,83 +257,89 @@ export function SuperbuySyncDialog({ trigger, onSyncComplete }: SuperbuySyncDial
         </DialogHeader>
 
         {error && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        <div className="py-4">
+        <div className="py-2 min-h-[150px] flex items-center justify-center relative">
           {checkingStatus ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center space-y-4 w-full">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">Vérification...</p>
             </div>
-          ) : loading ? (
-            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl animate-pulse" />
-                <Loader2 className="h-12 w-12 animate-spin text-blue-600 relative z-10" />
+          ) : isSyncing ? (
+            <div className="w-full space-y-6">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="font-medium text-primary">
+                    {activeJob?.status === 'cancelling' ? 'Annulation en cours...' : 'Synchronisation en cours...'}
+                  </span>
+                  <span className="text-muted-foreground">{activeJob?.progress}%</span>
+                </div>
+                <Progress value={activeJob?.progress || 0} className="h-2" />
+                <p className="text-xs text-muted-foreground h-5 truncate">
+                  {activeJob?.result?.message || "Traitement..."}
+                </p>
               </div>
-              <p className="text-sm font-medium text-center animate-pulse text-blue-600">
-                {statusMessage}
-              </p>
-              <p className="text-xs text-muted-foreground text-center max-w-[280px]">
-                Cette opération peut prendre quelques minutes selon la quantité de données.
-              </p>
+
+              <div className="flex justify-center">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={cancelSync}
+                  disabled={cancelling || activeJob?.status === 'cancelling'}
+                >
+                  {cancelling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
+                  Annuler la synchronisation
+                </Button>
+              </div>
             </div>
           ) : status?.connected ? (
-            <div className="space-y-4">
-              {/* Connected state */}
-              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+            <div className="space-y-4 w-full">
+              {activeJob?.status === 'completed' && (
+                <Alert className="bg-success/10 border-success/20 text-success mb-4">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <AlertDescription>Synchronisation terminée avec succès !</AlertDescription>
+                </Alert>
+              )}
+              {activeJob?.status === 'failed' && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>Échec: {activeJob?.result?.error || "Erreur inconnue"}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="bg-muted/50 rounded-lg p-5 space-y-3 border">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Compte</span>
-                  <span className="text-sm font-medium">{status.email || "Configuré"}</span>
+                  <span className="text-sm text-muted-foreground">Compte relié</span>
+                  <span className="text-sm font-medium">{status.email || "Compte principal"}</span>
                 </div>
                 {status.lastSyncAt && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Dernière sync</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                    <span className="text-sm text-muted-foreground">Dernière synchro</span>
                     <span className="text-sm">{formatDateTime(status.lastSyncAt)}</span>
                   </div>
                 )}
               </div>
-
-              <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-md border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-400">
-                <p>
-                  Cliquez sur &quot;Synchroniser&quot; pour importer les dernières données.
-                  Les colis et produits existants seront mis à jour automatiquement.
-                </p>
-              </div>
             </div>
           ) : (
-            /* Not connected state */
-            <div className="space-y-4">
-              <div className="flex flex-col items-center py-6 space-y-3">
-                <div className="p-3 bg-amber-100 dark:bg-amber-950/30 rounded-full">
-                  <CloudOff className="h-8 w-8 text-amber-600 dark:text-amber-400" />
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="font-medium">Intégration non configurée</p>
-                  <p className="text-sm text-muted-foreground">
-                    Configurez vos identifiants Superbuy dans les paramètres pour activer la synchronisation.
-                  </p>
-                </div>
-              </div>
-
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/settings" onClick={() => setOpen(false)}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Configurer dans les Paramètres
-                </Link>
+            <div className="text-center space-y-4">
+              <CloudOff className="h-10 w-10 text-warning mx-auto" />
+              <p className="font-semibold">Non connecté</p>
+              <Button asChild variant="outline" onClick={() => setOpen(false)}>
+                <Link href="/settings">Configurer</Link>
               </Button>
             </div>
           )}
         </div>
 
         <DialogFooter>
-          {status?.connected && !loading && (
-            <Button onClick={handleSync} className="w-full sm:w-auto">
+          {status?.connected && !isSyncing && !checkingStatus && (
+            <Button onClick={startSync} className="w-full sm:w-auto">
               <RefreshCw className="mr-2 h-4 w-4" />
-              Synchroniser maintenant
+              {activeJob?.status === 'completed' ? 'Relancer' : 'Synchroniser maintenant'}
             </Button>
           )}
         </DialogFooter>
@@ -241,3 +347,4 @@ export function SuperbuySyncDialog({ trigger, onSyncComplete }: SuperbuySyncDial
     </Dialog>
   );
 }
+

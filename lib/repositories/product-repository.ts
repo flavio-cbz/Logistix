@@ -9,7 +9,12 @@ export class ProductRepository extends BaseRepository<typeof products, Product, 
     }
 
     async findByUser(userId: string): Promise<Product[]> {
-        return this.findAll({ where: eq(products.userId, userId) });
+        return this.findAll({
+            where: eq(products.userId, userId),
+            limit: 1000, // Ensure all products are returned (up to maxLimit)
+            orderBy: "createdAt",
+            orderDirection: "desc"
+        });
     }
 
     async search(criteria: {
@@ -33,89 +38,94 @@ export class ProductRepository extends BaseRepository<typeof products, Product, 
             conditions.push(like(products.brand, `%${criteria.brand}%`));
         }
         if (criteria.status) {
-            conditions.push(eq(products.status, criteria.status as any));
+            conditions.push(eq(products.status, criteria.status));
         }
 
-        const db = this.db;
-        return db
-            .select()
-            .from(products)
-            .where(and(...conditions))
-            .orderBy(desc(products.createdAt))
-            .limit(criteria.limit || 50)
-            .offset(criteria.offset || 0);
+        return this.executeCustomQuery(async (db) => {
+            return db
+                .select()
+                .from(products)
+                .where(and(...conditions))
+                .orderBy(desc(products.createdAt))
+                .limit(criteria.limit || 50)
+                .offset(criteria.offset || 0);
+        });
     }
 
     // Aggregation methods for SearchService
     async getBrandSuggestions(query: string): Promise<{ brand: string; count: number }[]> {
-        const db = this.db;
-        const results = db
-            .select({
-                brand: products.plateforme,
-                count: count(),
-            })
-            .from(products)
-            .where(like(products.plateforme, `%${query}%`))
-            .groupBy(products.plateforme)
-            .orderBy(desc(count()))
-            .limit(5)
-            .all();
+        return this.executeCustomQuery(async (db) => {
+            const results = db
+                .select({
+                    brand: products.plateforme,
+                    count: count(),
+                })
+                .from(products)
+                .where(like(products.plateforme, `%${query}%`))
+                .groupBy(products.plateforme)
+                .orderBy(desc(count()))
+                .limit(5)
+                .all();
 
-        return results.map((r: { brand: string | null; count: number }) => ({ brand: r.brand || "", count: r.count }));
+            return results.map((r: { brand: string | null; count: number }) => ({ brand: r.brand || "", count: r.count }));
+        });
     }
 
     async getRealBrandSuggestions(query: string): Promise<{ brand: string; count: number }[]> {
-        const db = this.db;
-        const results = db
-            .select({
-                brand: products.brand,
-                count: count(),
-            })
-            .from(products)
-            .where(like(products.brand, `%${query}%`))
-            .groupBy(products.brand)
-            .orderBy(desc(count()))
-            .limit(5)
-            .all();
+        return this.executeCustomQuery(async (db) => {
+            const results = db
+                .select({
+                    brand: products.brand,
+                    count: count(),
+                })
+                .from(products)
+                .where(like(products.brand, `%${query}%`))
+                .groupBy(products.brand)
+                .orderBy(desc(count()))
+                .limit(5)
+                .all();
 
-        return results
-            .filter((r: { brand: string | null; count: number }) => r.brand !== null)
-            .map((r: { brand: string | null; count: number }) => ({ brand: r.brand!, count: r.count }));
+            return results
+                .filter((r: { brand: string | null; count: number }) => r.brand !== null)
+                .map((r: { brand: string | null; count: number }) => ({ brand: r.brand!, count: r.count }));
+        });
     }
 
     async getCategorySuggestions(query: string): Promise<{ category: string; count: number }[]> {
-        const db = this.db;
-        const results = db
-            .select({
-                category: products.category,
-                count: count(),
-            })
-            .from(products)
-            .where(like(products.category, `%${query}%`))
-            .groupBy(products.category)
-            .orderBy(desc(count()))
-            .limit(5)
-            .all();
+        return this.executeCustomQuery(async (db) => {
+            const results = db
+                .select({
+                    category: products.category,
+                    count: count(),
+                })
+                .from(products)
+                .where(like(products.category, `%${query}%`))
+                .groupBy(products.category)
+                .orderBy(desc(count()))
+                .limit(5)
+                .all();
 
-        return results
-            .filter((r: { category: string | null; count: number }) => r.category !== null)
-            .map((r: { category: string | null; count: number }) => ({ category: r.category!, count: r.count }));
+            return results
+                .filter((r: { category: string | null; count: number }) => r.category !== null)
+                .map((r: { category: string | null; count: number }) => ({ category: r.category!, count: r.count }));
+        });
     }
 
     async getProductSuggestions(query: string): Promise<{ product: string; count: number }[]> {
-        const db = this.db;
-        const results = db
-            .select({
-                product: products.name,
-                count: count(),
-            })
-            .from(products)
-            .where(like(products.name, `%${query}%`))
-            .groupBy(products.name)
-            .orderBy(desc(count()))
-            .limit(5)
-            .all();
+        return this.executeCustomQuery(async (db) => {
+            const results = db
+                .select({
+                    product: products.name,
+                    count: count(),
+                })
+                .from(products)
+                .where(like(products.name, `%${query}%`))
+                .groupBy(products.name)
+                .orderBy(desc(count()))
+                .limit(5)
+                .all();
 
-        return results.map((r: { product: string; count: number }) => ({ product: r.product, count: r.count }));
+            return results.map((r: { product: string | null; count: number }) => ({ product: r.product || "", count: r.count }));
+        });
     }
 }

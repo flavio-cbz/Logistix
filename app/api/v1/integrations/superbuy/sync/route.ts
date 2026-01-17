@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/middleware/auth-middleware';
-import { SuperbuyAutomationService } from '@/lib/services/superbuy/automation';
+import { serviceContainer } from '@/lib/services/container';
 import { z } from 'zod';
 
 const syncSchema = z.object({
@@ -26,7 +26,7 @@ const syncSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const { user } = await requireAuth(req);
-    const service = SuperbuyAutomationService.getInstance();
+    const service = serviceContainer.getSuperbuyAutomationService();
 
     // Parse optional body for credentials
     let credentials: { email: string; password: string } | undefined;

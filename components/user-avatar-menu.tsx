@@ -137,7 +137,7 @@ export function UserAvatarMenu({ user }: UserAvatarMenuProps) {
         {/* Menu Items */}
         <div className="py-2">
           <DropdownMenuItem
-            onClick={() => router.push("/profile")}
+            onClick={() => router.push("/settings?tab=profile")}
             className="flex items-center px-4 py-3 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             <User className="mr-3 h-4 w-4 text-gray-500" />

@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner"; // Use sonner directly
+import { logger } from "@/lib/utils/logging/logger";
 
 interface ImageUploadProps {
   value?: string | null | undefined;
@@ -57,7 +58,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
         throw new Error(result.error || 'Erreur lors de l\'upload');
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error("Upload error", { error });
       toast.error("Erreur d'upload", {
         description: error instanceof Error ? error.message : "Une erreur est survenue",
       });

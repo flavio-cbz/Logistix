@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { databaseService } from "@/lib/services/database/db";
+import { databaseService } from "@/lib/database";
 
 /**
  * GET /api/v1/auth/session-check

@@ -37,13 +37,13 @@ const enableApiValidation = process.env['ENABLE_API_VALIDATION'] !== "false";
 // Base API response schema
 const apiResponseSchema = z.object({
     success: z.boolean(),
-    data: z.any().optional(),
+    data: z.unknown().optional(),
     error: z
         .object({
             code: z.string(),
             message: z.string(),
             field: z.string().optional(),
-            details: z.any().optional(),
+            details: z.unknown().optional(),
         })
         .optional(),
     meta: z
@@ -160,12 +160,12 @@ const parcelleListRequestSchema = z.object({
 /**
  * Validates an API response structure
  */
-export function validateApiResponse<T = any>(
-    response: any,
+export function validateApiResponse<T = unknown>(
+    response: unknown,
     context?: string,
 ): ApiResponse<T> {
     if (!enableApiValidation) {
-        return response;
+        return response as ApiResponse<T>;
     }
 
     try {
@@ -248,11 +248,11 @@ export function validateParcelle(parcelle: unknown, context?: string): Parcelle 
  * Validates a User entity
  */
 export function validateUser(
-    user: any,
+    user: unknown,
     context?: string,
 ): Omit<User, "passwordHash" | "encryptionSecret"> {
     if (!enableApiValidation) {
-        return user;
+        return user as Omit<User, "passwordHash" | "encryptionSecret">;
     }
 
     try {
@@ -279,12 +279,12 @@ export function validateUser(
  * Validates an array of entities
  */
 export function validateEntityArray<T>(
-    array: any[],
-    validator: (item: any, context?: string) => T,
+    array: unknown[],
+    validator: (item: unknown, context?: string) => T,
     context?: string,
 ): T[] {
     if (!enableApiValidation) {
-        return array;
+        return array as T[];
     }
 
     if (!Array.isArray(array)) {
@@ -364,7 +364,7 @@ export function validateParcelleListRequest(params: unknown): ParcelleListReques
  * Asserts that an API response is successful and returns the data
  */
 export function assertSuccessfulResponse<T>(
-    response: any,
+    response: unknown,
     context?: string,
 ): T {
     const validatedResponse = validateApiResponse<T>(response, context);
@@ -403,7 +403,7 @@ export function assertParcelle(data: unknown, context?: string): Parcelle {
  * Asserts that data is a valid User and returns it
  */
 export function assertUser(
-    data: any,
+    data: unknown,
     context?: string,
 ): Omit<User, "passwordHash" | "encryptionSecret"> {
     if (isUser(data)) {
@@ -436,12 +436,12 @@ export function generateTypeFromSchema(
  * Validates and transforms API response data with automatic type inference
  */
 export function validateAndTransform<T>(
-    data: any,
+    data: unknown,
     schema: z.ZodSchema<T>,
     context?: string,
 ): T {
     if (!enableApiValidation) {
-        return data;
+        return data as T;
     }
 
     try {
@@ -473,7 +473,7 @@ export function validateAndTransform<T>(
  */
 export function logContractViolation(
     _expected: string,
-    _actual: any,
+    _actual: unknown,
     _context?: string,
 ): void {
     if (isDevelopment) {
@@ -490,12 +490,12 @@ export function logContractViolation(
  * Creates a development-only type checker that logs violations but doesn't throw
  */
 export function createSoftValidator<T>(
-    validator: (data: any, context?: string) => T,
+    validator: (data: unknown, context?: string) => T,
     fallback: T,
 ) {
-    return (data: any, context?: string): T => {
+    return (data: unknown, context?: string): T => {
         if (!isDevelopment) {
-            return data || fallback;
+            return (data || fallback) as T;
         }
 
         try {
@@ -505,7 +505,7 @@ export function createSoftValidator<T>(
             //     `Soft validation failed${context ? ` in ${context}` : ""}:`,
             //     error,
             // );
-            return data || fallback;
+            return (data || fallback) as T;
         }
     };
 }

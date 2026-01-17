@@ -34,7 +34,7 @@ const spinnerVariants = cva(
 
 export interface SpinnerProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof spinnerVariants> {
+  VariantProps<typeof spinnerVariants> {
   label?: string;
 }
 

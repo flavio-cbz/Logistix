@@ -17,7 +17,7 @@ import { RequestValidationError } from "@/lib/middleware/validation-middleware";
 // TYPES AND INTERFACES
 // =============================================================================
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   ok: boolean;
   success: boolean;
   data?: T;
@@ -30,7 +30,7 @@ export interface ApiError {
   code: string;
   message: string;
   field?: string | undefined;
-  details?: any;
+  details?: unknown;
   validationErrors?: ValidationErrorDetail[];
 }
 
@@ -38,7 +38,7 @@ export interface ValidationErrorDetail {
   field: string;
   message: string;
   code: string;
-  received?: any;
+  received?: unknown;
 }
 
 export interface ApiMeta {
@@ -56,6 +56,7 @@ export interface ResponseOptions {
   method?: string | undefined;
   duration?: number | undefined;
   headers?: Record<string, string>;
+  status?: number;
 }
 
 // =============================================================================
@@ -154,12 +155,13 @@ function getErrorStatusCode(error: unknown): number {
  */
 function extractErrorInfo(error: unknown): ApiError {
   if (error instanceof RequestValidationError) {
+    const validationError = error as unknown as { field?: string; validationErrors?: ValidationErrorDetail[]; details?: unknown };
     return {
       code: "VALIDATION_ERROR",
       message: error.message,
-      field: (error as any).field,
-      validationErrors: (error as any).validationErrors,
-      details: (error as any).details,
+      field: validationError.field,
+      validationErrors: validationError.validationErrors,
+      details: validationError.details,
     };
   }
 
@@ -172,18 +174,20 @@ function extractErrorInfo(error: unknown): ApiError {
   }
 
   if (error instanceof AuthenticationError) {
+    const authErr = error as unknown as { code?: string; details?: unknown };
     return {
-      code: (error as any).code || "AUTHENTICATION_ERROR",
+      code: authErr.code || "AUTHENTICATION_ERROR",
       message: error.message,
-      details: (error as any).details,
+      details: authErr.details,
     };
   }
 
   if (error instanceof AuthorizationError) {
+    const authErr = error as unknown as { code?: string; details?: unknown };
     return {
-      code: (error as any).code || "AUTHORIZATION_ERROR",
+      code: authErr.code || "AUTHORIZATION_ERROR",
       message: error.message,
-      details: (error as any).details,
+      details: authErr.details,
     };
   }
 
@@ -257,61 +261,9 @@ export function createSuccessResponse<T>(
   });
 }
 
-/**
- * Creates a successful response for resource creation
- * @param data - The created resource data
- * @param options - Response options
- * @returns NextResponse with 201 status
- */
-export function createCreatedResponse<T>(
-  data: T,
-  options: ResponseOptions = {},
-): NextResponse {
-  const response: ApiResponse<T> = {
-    ok: true,
-    success: true,
-    data,
-    meta: createApiMeta(options),
-  };
 
-  const headers = createResponseHeaders(options.headers);
 
-  logger.debug("Creating created response", {
-    requestId: response.meta.requestId,
-    path: response.meta.path,
-    method: response.meta.method,
-    ...(response.meta.duration !== undefined && { duration: response.meta.duration }),
-  });
 
-  return NextResponse.json(response, {
-    status: 201,
-    headers,
-  });
-}
-
-/**
- * Creates a successful response with no content
- * @param options - Response options
- * @returns NextResponse with 204 status
- */
-export function createNoContentResponse(
-  options: ResponseOptions = {},
-): NextResponse {
-  const meta = createApiMeta(options);
-  const headers = createResponseHeaders(options.headers);
-
-  logger.debug("Creating no content response", {
-    requestId: meta.requestId,
-    path: meta.path,
-    method: meta.method,
-    ...(meta.duration !== undefined && { duration: meta.duration }),
-  });
-
-  return new NextResponse(null, {
-    status: 204,
-    headers,
-  });
-}
 
 // =============================================================================
 // ERROR RESPONSE BUILDERS
@@ -359,115 +311,9 @@ export function createErrorResponse(
   });
 }
 
-/**
- * Creates a validation error response
- * @param message - Error message
- * @param validationErrors - Array of validation errors
- * @param options - Response options
- * @returns NextResponse with 400 status
- */
-export function createValidationErrorResponse(
-  message: string,
-  validationErrors: ValidationErrorDetail[] = [],
-  options: ResponseOptions = {},
-): NextResponse {
-  const response: ApiResponse = {
-    ok: false,
-    success: false,
-    error: {
-      code: "VALIDATION_ERROR",
-      message,
-      validationErrors,
-    },
-    meta: createApiMeta(options),
-  };
 
-  const headers = createResponseHeaders(options.headers);
 
-  logger.warn("Creating validation error response", {
-    requestId: response.meta.requestId,
-    path: response.meta.path,
-    method: response.meta.method,
-    message,
-    validationErrorCount: validationErrors.length,
-    validationErrors,
-  });
 
-  return NextResponse.json(response, {
-    status: 400,
-    headers,
-  });
-}
-
-/**
- * Creates an authentication error response
- * @param message - Error message
- * @param options - Response options
- * @returns NextResponse with 401 status
- */
-export function createAuthErrorResponse(
-  message: string = "Authentication required",
-  options: ResponseOptions = {},
-): NextResponse {
-  const response: ApiResponse = {
-    ok: false,
-    success: false,
-    error: {
-      code: "AUTHENTICATION_ERROR",
-      message,
-    },
-    meta: createApiMeta(options),
-  };
-
-  const headers = createResponseHeaders(options.headers);
-
-  logger.warn("Creating authentication error response", {
-    requestId: response.meta.requestId,
-    path: response.meta.path,
-    method: response.meta.method,
-    message,
-  });
-
-  return NextResponse.json(response, {
-    status: 401,
-    headers,
-  });
-}
-
-/**
- * Creates an authorization error response
- * @param message - Error message
- * @param options - Response options
- * @returns NextResponse with 403 status
- */
-export function createAuthorizationErrorResponse(
-  message: string = "Insufficient permissions",
-  options: ResponseOptions = {},
-): NextResponse {
-  const response: ApiResponse = {
-    ok: false,
-    success: false,
-    error: {
-      code: "AUTHORIZATION_ERROR",
-      message,
-    },
-    meta: createApiMeta(options),
-  };
-
-  const headers = createResponseHeaders(options.headers);
-
-  logger.warn("Creating authorization error response", {
-    requestId: response.meta.requestId,
-    path: response.meta.path,
-    method: response.meta.method,
-    message,
-  });
-
-  return NextResponse.json(response, {
-    status: 403,
-    headers,
-  });
-}
 
 /**
  * Creates a not found error response
@@ -511,37 +357,41 @@ export function createNotFoundResponse(
 // UTILITY RESPONSE HELPERS
 // =============================================================================
 
+
 /**
- * Creates response options from request context
- * @param request - Next.js request object
- * @param startTime - Request start time for duration calculation
- * @param requestId - Optional request ID
- * @returns ResponseOptions object
+ * Creates standardized response options from a request
  */
-export function createResponseOptions(
-  request?: Request,
+function createResponseOptions(
+  req?: Request,
   startTime?: number,
-  requestId?: string,
+  requestId?: string
 ): ResponseOptions {
-  const duration = startTime ? Date.now() - startTime : undefined;
-
-  return {
+  const options: ResponseOptions = {
     requestId,
-    path: request ? new URL(request.url).pathname : undefined,
-    method: request?.method,
-    duration,
+    duration: startTime ? Date.now() - startTime : undefined,
   };
-}
 
+  if (req) {
+    try {
+      const url = new URL(req.url);
+      options.path = url.pathname;
+      options.method = req.method;
+    } catch {
+      // Ignore URL parsing errors
+    }
+  }
+
+  return options;
+}
 /**
  * Wraps an async handler with standardized error handling
  * @param handler - The async handler function
  * @returns Wrapped handler that catches and formats errors
  */
-export function withErrorHandling(
-  handler: (...args: any[]) => Promise<NextResponse>,
+export function withErrorHandling<T extends unknown[]>(
+  handler: (...args: T) => Promise<NextResponse>,
 ) {
-  return async (...args: any[]): Promise<NextResponse> => {
+  return async (...args: T): Promise<NextResponse> => {
     const startTime = Date.now();
     const requestId = generateRequestId();
 
@@ -555,20 +405,30 @@ export function withErrorHandling(
   };
 }
 
+
+
 /**
- * Type guard to check if response is successful
+ * Creates an authentication error response (401)
  */
-export function isSuccessResponse<T>(
-  response: ApiResponse<T>,
-): response is ApiResponse<T> & { success: true; data: T } {
-  return response.success === true && response.data !== undefined;
+export function createAuthErrorResponse(
+  message: string = "Authentication required",
+  options: ResponseOptions = {}
+): NextResponse {
+  return createErrorResponse(
+    new AuthenticationError(message),
+    { ...options, status: 401 }
+  );
 }
 
 /**
- * Type guard to check if response is an error
+ * Creates an authorization error response (403)
  */
-export function isErrorResponse(
-  response: ApiResponse,
-): response is ApiResponse & { success: false; error: ApiError } {
-  return response.success === false && response.error !== undefined;
+export function createForbiddenResponse(
+  message: string = "Access denied",
+  options: ResponseOptions = {}
+): NextResponse {
+  return createErrorResponse(
+    new AuthorizationError(message),
+    { ...options, status: 403 }
+  );
 }

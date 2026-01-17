@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { vintedSessionManager } from '../../../lib/services/auth/vinted-session-manager';
-import { databaseService, getCurrentTimestamp } from '../../../lib/services/database/db';
-import { encryptSecret, decryptSecret } from '../../../lib/utils/crypto';
-import { logger } from '../../../lib/utils/logging/logger';
+import { vintedSessionManager } from '@/lib/services/auth/vinted-session-manager';
+import { databaseService, getCurrentTimestamp } from "@/lib/database";
+import { encryptSecret, decryptSecret } from '@/lib/utils/crypto';
+import { logger } from '@/lib/utils/logging/logger';
 
-vi.mock('../../../lib/services/database/db', () => {
+vi.mock('@/lib/database', () => {
   const queryOne = vi.fn();
   const execute = vi.fn();
   const getCurrentTimestamp = vi.fn(() => '2025-09-26T12:00:00.000Z');
@@ -18,14 +18,14 @@ vi.mock('../../../lib/services/database/db', () => {
   };
 });
 
-vi.mock('../../../lib/utils/crypto', () => {
+vi.mock('@/lib/utils/crypto', () => {
   return {
     encryptSecret: vi.fn(),
     decryptSecret: vi.fn(),
   };
 });
 
-vi.mock('../../../lib/utils/logging/logger', () => {
+vi.mock('@/lib/utils/logging/logger', () => {
   const mockLogger = {
     error: vi.fn(),
     warn: vi.fn(),
@@ -40,7 +40,7 @@ vi.mock('../../../lib/utils/logging/logger', () => {
 
 const refreshAccessTokenMock = vi.fn();
 
-vi.mock('../../../lib/services/auth/vinted-auth-service', () => ({
+vi.mock('@/lib/services/auth/vinted-auth-service', () => ({
   VintedAuthService: class {
     public cookie: string;
 
@@ -83,7 +83,7 @@ describe('vintedSessionManager', () => {
     const cookie = await vintedSessionManager.getSessionCookie('user-1');
 
     expect(cookie).toBe('plain-cookie');
-    expect(mockDecryptSecret).toHaveBeenCalledWith('encrypted-cookie');
+    expect(mockDecryptSecret).toHaveBeenCalledWith('encrypted-cookie', 'user-1');
     expect(mockDatabaseService.execute).not.toHaveBeenCalled();
   });
 
@@ -178,6 +178,7 @@ describe('vintedSessionManager', () => {
     });
     expect(mockEncryptSecret).toHaveBeenCalledWith(
       'access_token_web=newAccess; refresh_token_web=newRefresh; foo=bar',
+      'user-4'
     );
     expect(mockDatabaseService.execute).toHaveBeenCalledWith(
       expect.stringContaining('UPDATE vinted_sessions SET'),

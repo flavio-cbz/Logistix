@@ -7,6 +7,7 @@ import {
   useQueryClient
 } from "@tanstack/react-query";
 import { Product, Platform, ProductStatus } from "@/lib/shared/types/entities";
+import { useOptimisticMutation } from "./use-optimistic-mutation";
 
 // Types pour les données de produits
 export interface ProductListResponse {
@@ -52,7 +53,7 @@ export function useCreateProduct() {
     },
     onSuccess: async () => {
       // Invalidate et refetch des produits - ATTENDRE la fin
-      await queryClient.invalidateQueries({ 
+      await queryClient.invalidateQueries({
         queryKey: ["products"],
         refetchType: 'active' // Force le refetch immédiat des queries actives
       });
@@ -62,12 +63,11 @@ export function useCreateProduct() {
   });
 }
 
-// Hook pour mettre à jour un produit
+// Hook pour mettre à jour un produit avec mise à jour optimiste
 export function useUpdateProduct() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<Product> }) => {
+  return useOptimisticMutation<ProductListResponse, { id: string; data: Partial<Product> }>({
+    queryKey: ["products"],
+    mutationFn: async ({ id, data }) => {
       const response = await fetch(`/api/v1/produits/${id}`, {
         method: "PUT",
         headers: {
@@ -80,39 +80,41 @@ export function useUpdateProduct() {
         throw new Error("Erreur lors de la mise à jour du produit");
       }
 
-      return response.json();
+      return response.json() as Promise<ProductListResponse>;
     },
-    onSuccess: async () => {
-      // Invalidate et refetch des produits - ATTENDRE la fin
-      await queryClient.invalidateQueries({ 
-        queryKey: ["products"],
-        refetchType: 'active' // Force le refetch immédiat des queries actives
-      });
-      // Petit délai pour s'assurer que le refetch est terminé
-      await new Promise(resolve => setTimeout(resolve, 100));
+    optimisticUpdate: (currentData: ProductListResponse | undefined, { id, data }: { id: string, data: Partial<Product> }) => {
+      if (!currentData?.data) return currentData;
+      return {
+        ...currentData,
+        data: currentData.data.map((product: Product) =>
+          product.id === id ? { ...product, ...data } : product
+        ),
+      };
     },
   });
 }
 
-// Hook pour supprimer un produit
+// Hook pour supprimer un produit avec mise à jour optimiste
 export function useDeleteProduct() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (productId: string) => {
-      const response = await fetch(`/api/v1/produits/${productId}`, {
+  return useOptimisticMutation<ProductListResponse, string>({
+    queryKey: ["products"],
+    mutationFn: async (id) => {
+      const response = await fetch(`/api/v1/produits/${id}`, {
         method: "DELETE",
       });
 
       if (!response.ok) {
         throw new Error("Erreur lors de la suppression du produit");
       }
-
-      return response.json();
+      return {} as ProductListResponse; // Dummy return
     },
-    onSuccess: () => {
-      // Invalidate et refetch des produits
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+    optimisticUpdate: (currentData: ProductListResponse | undefined, productId: string) => {
+      if (!currentData?.data) return currentData;
+      return {
+        ...currentData,
+        data: currentData.data.filter((product: Product) => product.id !== productId),
+        count: (currentData.count || currentData.data.length) - 1,
+      };
     },
   });
 }
@@ -122,7 +124,7 @@ export function useProductFormData(product?: Product) {
   // Mémoïse le résultat pour éviter de créer un nouvel objet à chaque render
   return useMemo(() => {
     if (!product) return undefined;
-    
+
     // Convertir les valeurs pour le formulaire (null -> "" pour les champs texte)
     return {
       name: product.name || "",
@@ -133,7 +135,7 @@ export function useProductFormData(product?: Product) {
       color: product.color || "",
       price: product.price || 0,
       poids: product.poids || 0,
-      parcelleId: product.parcelleId || "",
+      parcelId: product.parcelId || "",
       vendu: product.vendu || "0",
       dateMiseEnLigne: product.dateMiseEnLigne || "",
       dateVente: product.dateVente || "",

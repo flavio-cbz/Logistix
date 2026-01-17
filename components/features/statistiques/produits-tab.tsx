@@ -25,9 +25,9 @@ export function ProduitsTab({ data }: ProduitsTabProps) {
                 <CardContent>
                     <div className="space-y-3">
                         {d.topProduits.map((produit, index) => (
-                            <div key={produit.id} className="flex items-center justify-between p-3 rounded-lg bg-emerald-50/50 border border-emerald-100">
+                            <div key={produit.id} className="flex items-center justify-between p-3 rounded-lg bg-success/5 border border-success/10">
                                 <div className="flex items-center gap-3 flex-1">
-                                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-600 text-white text-sm font-bold">
+                                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-success text-success-foreground text-sm font-bold">
                                         {index + 1}
                                     </span>
                                     <div className="flex-1">
@@ -48,7 +48,7 @@ export function ProduitsTab({ data }: ProduitsTabProps) {
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground">Bénéfice</p>
-                                        <p className="text-lg font-bold text-emerald-600">+{formatCurrency(produit.benefice)}</p>
+                                        <p className="text-lg font-bold text-success">+{formatCurrency(produit.benefice)}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground">Marge</p>
@@ -77,7 +77,7 @@ export function ProduitsTab({ data }: ProduitsTabProps) {
                     <CardContent>
                         <div className="space-y-3 max-h-[400px] overflow-y-auto">
                             {d.produitsNonVendus.map((produit) => (
-                                <div key={produit.id} className="flex items-center justify-between p-3 rounded-lg bg-orange-50/50 border border-orange-100">
+                                <div key={produit.id} className="flex items-center justify-between p-3 rounded-lg bg-warning/5 border border-warning/10">
                                     <div className="flex-1">
                                         <p className="font-medium">{produit.nom}</p>
                                         <p className="text-xs text-muted-foreground">
@@ -86,7 +86,7 @@ export function ProduitsTab({ data }: ProduitsTabProps) {
                                     </div>
                                     <div className="flex gap-4 text-right">
                                         {produit.joursEnLigne !== null && produit.joursEnLigne > 0 ? (
-                                            <Badge variant="outline" className="bg-orange-100">
+                                            <Badge variant="outline" className="bg-warning/10 text-warning-foreground">
                                                 {produit.joursEnLigne}j en ligne
                                             </Badge>
                                         ) : (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -51,47 +52,82 @@ interface SettingsData {
   };
 }
 
+interface Session {
+  id: string;
+  deviceName: string | null;
+  deviceType: string;
+  ipAddress: string;
+  lastActivityAt: string;
+  isCurrent: boolean;
+}
+
 interface SettingsClientProps {
   initialData?: SettingsData;
 }
 
 export function SettingsClient({ initialData }: SettingsClientProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Get active tab from URL or default to 'appearance'
+  const activeTab = searchParams.get("tab") || "appearance";
+
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", value);
+    // Use replace to update URL without adding to history stack, or push if history desired
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
   const [settings, setSettings] = useState<SettingsData | null>(
     initialData || null,
   );
   const [loading, setLoading] = useState(!initialData);
   const [saving, setSaving] = useState(false);
   const [sessionsLoading, setSessionsLoading] = useState(false);
-  const [sessions, setSessions] = useState<Array<any>>([]);
+  const [sessions, setSessions] = useState<Array<Session>>([]);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
-  const [sessionToDelete, setSessionToDelete] = useState<any | null>(null);
+  const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(
     null,
   );
 
 
   const getApiErrorMessage = (
-    apiResponse: any,
+    apiResponse: unknown,
     fallback = "Erreur inconnue",
   ) => {
     try {
       if (!apiResponse) return fallback;
       if (typeof apiResponse === "string") return apiResponse;
-      const err = apiResponse.error || apiResponse;
+      const res = apiResponse as {
+        error?: {
+          message?: string;
+          validationErrors?: Array<{ field?: string; message: string }>
+        };
+        success?: boolean;
+        message?: string;
+      };
+      const err = res.error || res;
       if (!err) return fallback;
       if (typeof err === "string") return err;
       if (err.message) {
-        if (
-          Array.isArray(err.validationErrors) &&
-          err.validationErrors.length
-        ) {
-          const details = err.validationErrors
-            .map((v: any) => (v.field ? `${v.field}: ${v.message}` : v.message))
-            .join("; ");
-          return `${err.message} — ${details}`;
-        }
-        return err.message;
+        const errorData = err as { message: string; validationErrors?: Array<{ field?: string; message: string }> };
+        return (
+          Array.isArray(errorData.validationErrors) &&
+          errorData.validationErrors.length
+        ) ? (
+          <div className="text-sm">
+            {errorData.message}
+            <ul className="list-disc pl-4 mt-1 space-y-1">
+              {errorData.validationErrors.map((v: { field?: string; message: string }, i: number) => (
+                <li key={i}>{v.field ? `${v.field}: ${v.message}` : v.message}</li>
+              ))}
+            </ul>
+          </div>
+        ) : errorData.message;
       }
       return JSON.stringify(err);
     } catch {
@@ -113,7 +149,7 @@ export function SettingsClient({ initialData }: SettingsClientProps) {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     if (!initialData) {
@@ -177,7 +213,7 @@ export function SettingsClient({ initialData }: SettingsClientProps) {
 
   const handlePreferenceChange = (
     key: keyof SettingsData["preferences"],
-    value: any,
+    value: unknown,
   ) => {
     setSettings((prev) =>
       prev
@@ -213,7 +249,7 @@ export function SettingsClient({ initialData }: SettingsClientProps) {
     } finally {
       setSessionsLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   const handleDeleteSession = async (id: string) => {
     setDeletingSessionId(id);
@@ -265,7 +301,7 @@ export function SettingsClient({ initialData }: SettingsClientProps) {
 
     return (
       <div className="space-y-2">
-        {sessions.map((s: any) => (
+        {sessions.map((s) => (
           <div
             key={s.id}
             className="flex items-center justify-between p-3 border rounded"
@@ -281,7 +317,7 @@ export function SettingsClient({ initialData }: SettingsClientProps) {
             </div>
             <div className="flex items-center gap-2">
               {s.isCurrent ? (
-                <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                <span className="px-2 py-1 text-xs bg-success/15 text-success rounded font-medium border border-success/20">
                   Actuelle
                 </span>
               ) : (
@@ -320,7 +356,7 @@ export function SettingsClient({ initialData }: SettingsClientProps) {
 
   return (
     <>
-      <Tabs defaultValue="appearance" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="appearance" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />

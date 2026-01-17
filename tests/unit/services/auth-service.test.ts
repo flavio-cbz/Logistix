@@ -2,17 +2,18 @@
  * @vitest-environment node
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+// import { databaseService } from "@/lib/database"; // Unused
 import { AuthService } from '@/lib/services/auth-service';
 import {
   createTestUser,
-  createTestApiRequest
+  // createTestApiRequest // Unused and not exported
 } from '../../setup/test-data-factory';
 import {
   expectValidationError,
   expectCustomError,
-  expectAuthorizationError
+  // expectAuthorizationError // Unused
 } from '../../utils/test-helpers';
-import { ValidationError, AuthError, NotFoundError } from '@/lib/errors/custom-error';
+// import { ValidationError, AuthError, NotFoundError } from '@/lib/errors/custom-error'; // Unused
 
 // Mock dependencies
 const mockCookiesInstance = {
@@ -35,7 +36,7 @@ vi.mock('uuid', () => ({
 }));
 
 // Mock pour databaseService (utilisé par AuthService)
-vi.mock('@/lib/services/database/db', () => {
+vi.mock('@/lib/database/database-service', () => {
   const mockFn = () => {
     // Factory qui génère les mocks pour chaque test
     return {
@@ -71,8 +72,8 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     // Reset environment variables
-    process.env.JWT_SECRET = 'test-jwt-secret-that-is-at-least-32-characters-long';
-    process.env.COOKIE_NAME = 'test_session';
+    process.env['JWT_SECRET'] = 'test-jwt-secret-that-is-at-least-32-characters-long';
+    process.env['COOKIE_NAME'] = 'test_session';
 
     // Setup mocks - Reset les fonctions mockées
     mockCookiesInstance.get.mockReset();
@@ -82,7 +83,7 @@ describe('AuthService', () => {
     mockCookies = mockCookiesInstance;
 
     // Import mock databaseService depuis le module mocké
-    const { databaseService } = await import('@/lib/services/database/db');
+    const { databaseService } = await import('@/lib/database/database-service');
     mockDb = databaseService;
 
     // Reset mocks databaseService
@@ -354,7 +355,7 @@ describe('AuthService', () => {
         expires_at: new Date(Date.now() + 86400000).toISOString(), // 1 day from now
         username: testUser.username,
         email: testUser.email,
-        avatar: testUser.profile?.avatar,
+        avatar: undefined,
         language: 'fr',
         theme: 'light',
         ai_config: null
@@ -371,7 +372,7 @@ describe('AuthService', () => {
         id: testUser.id,
         username: testUser.username,
         email: testUser.email,
-        avatar: testUser.profile?.avatar,
+        avatar: undefined,
         language: 'fr',
         theme: 'light',
         isAdmin: false,

@@ -22,7 +22,7 @@ export interface HealthCheckResult {
   message: string;
   duration: number;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SystemHealthStatus {
@@ -346,7 +346,7 @@ export class HealthChecks {
       // Test advanced feature flags
       const advancedFlags = configService.getAllAdvancedFeatureFlags();
       const enabledAdvancedFlags = Object.entries(advancedFlags).filter(
-        ([, flag]: [string, any]) => flag.enabled,
+        ([, flag]) => (flag as { enabled: boolean }).enabled,
       ).length;
 
       // Test legacy feature flags

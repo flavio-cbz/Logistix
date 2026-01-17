@@ -1,5 +1,5 @@
 import { BaseService } from "./base-service";
-import { ParcelleRepository } from "@/lib/repositories";
+import { ParcelRepository } from "@/lib/repositories";
 import type { Product } from "@/lib/types/entities";
 
 export interface ProfitCalculation {
@@ -9,7 +9,7 @@ export interface ProfitCalculation {
 }
 
 export class ProfitCalculatorService extends BaseService {
-  constructor(private readonly parcelleRepository: ParcelleRepository) {
+  constructor(private readonly parcelRepository: ParcelRepository) {
     super("ProfitCalculatorService");
   }
 
@@ -28,35 +28,35 @@ export class ProfitCalculatorService extends BaseService {
    * @since 1.0.0
    */
   async calculateShippingCost(
-    product: Pick<Product, "poids" | "parcelleId">,
+    product: Pick<Product, "poids" | "parcelId">,
   ): Promise<number> {
     return this.executeOperation(
       "calculateShippingCost",
       async () => {
-        if (!product.parcelleId || !product.poids || product.poids <= 0) {
+        if (!product.parcelId || !product.poids || product.poids <= 0) {
           return 0;
         }
 
-        const parcelle = await this.parcelleRepository.findById(
-          product.parcelleId,
+        const parcel = await this.parcelRepository.findById(
+          product.parcelId,
         );
 
-        if (!parcelle || !parcelle.prixParGramme) {
+        if (!parcel || !parcel.pricePerGram) {
           return 0;
         }
 
-        const shippingCost = product.poids * parcelle.prixParGramme;
+        const shippingCost = product.poids * parcel.pricePerGram;
 
         this.logger.debug("Shipping cost calculated", {
           productWeight: product.poids,
-          parcellePricePerGram: parcelle.prixParGramme,
+          parcelPricePerGram: parcel.pricePerGram,
           shippingCost,
         });
 
         return shippingCost;
       },
       {
-        parcelleId: product.parcelleId,
+        parcelId: product.parcelId,
         poids: product.poids,
       },
     );
@@ -106,7 +106,7 @@ export class ProfitCalculatorService extends BaseService {
    * @since 1.0.0
    */
   async calculateProfitWithShipping(
-    product: Pick<Product, "price" | "poids" | "parcelleId" | "prixVente" | "coutLivraison">,
+    product: Pick<Product, "price" | "poids" | "parcelId" | "prixVente" | "coutLivraison">,
   ): Promise<ProfitCalculation> {
     return this.executeOperation(
       "calculateProfitWithShipping",
@@ -114,10 +114,10 @@ export class ProfitCalculatorService extends BaseService {
         // Use provided shipping cost or calculate it
         let shippingCost = product.coutLivraison || 0;
 
-        if (!shippingCost && product.parcelleId && product.poids) {
+        if (!shippingCost && product.parcelId && product.poids) {
           shippingCost = await this.calculateShippingCost({
             poids: product.poids,
-            parcelleId: product.parcelleId,
+            parcelId: product.parcelId,
           });
         }
 
@@ -144,7 +144,7 @@ export class ProfitCalculatorService extends BaseService {
       {
         price: product.price,
         poids: product.poids,
-        parcelleId: product.parcelleId,
+        parcelId: product.parcelId,
         prixVente: product.prixVente,
       },
     );

@@ -1,4 +1,5 @@
 import { serviceContainer } from "@/lib/services/container";
+import { logger } from "@/lib/utils/logging/logger";
 import { NextRequest } from "next/server";
 import { createSuccessResponse, createErrorResponse, createAuthErrorResponse } from "@/lib/utils/api-response";
 
@@ -21,7 +22,7 @@ export async function GET(_request: NextRequest) {
     return createSuccessResponse(dashboardData);
 
   } catch (error) {
-    console.error("[DashboardAPI] Error fetching dashboard data:", error);
+    logger.error("[DashboardAPI] Error fetching dashboard data", { error });
     return createErrorResponse(error);
   }
 }

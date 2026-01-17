@@ -14,8 +14,8 @@ interface LogEntry {
   level: LogLevel;
   message: string;
   timestamp: string;
-  context?: any;
-  error?: any;
+  context?: unknown;
+  error?: unknown;
 }
 
 export interface IEdgeLogger {
@@ -41,8 +41,8 @@ export class EdgeLogger implements IEdgeLogger {
   private log(
     level: LogLevel,
     message: string,
-    context?: any,
-    error?: any,
+    context?: unknown,
+    error?: unknown,
   ): void {
     const timestamp = new Date().toISOString();
 
@@ -102,19 +102,19 @@ export class EdgeLogger implements IEdgeLogger {
     }
   }
 
-  error(message: string, context?: any, error?: any): void {
+  error(message: string, context?: unknown, error?: unknown): void {
     this.log(LogLevel.ERROR, message, context, error);
   }
 
-  warn(message: string, context?: any): void {
+  warn(message: string, context?: unknown): void {
     this.log(LogLevel.WARN, message, context);
   }
 
-  info(message: string, context?: any): void {
+  info(message: string, context?: unknown): void {
     this.log(LogLevel.INFO, message, context);
   }
 
-  debug(message: string, context?: any): void {
+  debug(message: string, context?: unknown): void {
     this.log(LogLevel.DEBUG, message, context);
   }
 }

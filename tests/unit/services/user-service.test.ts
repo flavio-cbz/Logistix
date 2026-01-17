@@ -3,7 +3,7 @@ import { UserService } from "@/lib/services/user-service";
 import { serviceContainer } from "@/lib/services/container";
 import { UserRepository } from "@/lib/repositories/user-repository";
 import { ProductRepository } from "@/lib/repositories/product-repository";
-import { ParcelleRepository } from "@/lib/repositories/parcelle-repository";
+import { ParcelleRepository } from "@/lib/repositories/parcel-repository";
 
 // Mock dependencies
 const mockUserRepository = {

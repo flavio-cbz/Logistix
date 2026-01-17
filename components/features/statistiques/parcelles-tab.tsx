@@ -53,16 +53,16 @@ export function ParcellesTab({ data }: ParcellesTabProps) {
                                         <p className="text-sm text-muted-foreground">ROI</p>
                                         <p className={cn(
                                             "text-2xl font-bold",
-                                            parcelle.ROI > 50 ? "text-green-600" :
-                                                parcelle.ROI > 20 ? "text-blue-600" :
-                                                    parcelle.ROI > 0 ? "text-orange-600" : "text-red-600"
+                                            parcelle.ROI > 50 ? "text-success" :
+                                                parcelle.ROI > 20 ? "text-primary" :
+                                                    parcelle.ROI > 0 ? "text-warning" : "text-destructive"
                                         )}>
                                             {parcelle.ROI.toFixed(1)}%
                                         </p>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-sm text-muted-foreground">Bénéfices</p>
-                                        <p className="text-xl font-bold text-green-600">
+                                        <p className="text-xl font-bold text-success">
                                             +{formatCurrency(parcelle.beneficesTotal)}
                                         </p>
                                     </div>
@@ -98,11 +98,11 @@ export function ParcellesTab({ data }: ParcellesTabProps) {
                             </div>
                             <div className="text-center p-4 rounded-lg bg-muted/30">
                                 <p className="text-sm text-muted-foreground mb-1">Plus Rapide</p>
-                                <p className="text-2xl font-bold text-green-600">{d.delaisVente.delaiMin}j</p>
+                                <p className="text-2xl font-bold text-success">{d.delaisVente.delaiMin}j</p>
                             </div>
                             <div className="text-center p-4 rounded-lg bg-muted/30">
                                 <p className="text-sm text-muted-foreground mb-1">Plus Long</p>
-                                <p className="text-2xl font-bold text-red-600">{d.delaisVente.delaiMax}j</p>
+                                <p className="text-2xl font-bold text-destructive">{d.delaisVente.delaiMax}j</p>
                             </div>
                         </div>
                     </CardContent>

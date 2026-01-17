@@ -31,14 +31,9 @@ interface DashboardMetrics {
     severity: 'low' | 'medium' | 'high' | 'critical';
     title: string;
     message: string;
+
     timestamp: string;
   }>;
-  targets?: {
-    revenue: number;
-    productsSold: number;
-    margin: number;
-    conversionRate: number;
-  };
   statsParcelles?: Array<{
     parcelleId: string;
     numero: string;
@@ -58,6 +53,12 @@ interface DashboardMetrics {
     valeurStockTotal: number;
     ageStockMoyen: number;
     tauxRotation: number;
+  };
+  trends?: {
+    revenue: number;
+    orders: number;
+    profit: number;
+    conversion: number;
   };
 }
 
@@ -116,30 +117,8 @@ export function usePerformanceMetrics() {
     conversionRate: data.tauxConversion,
     activeCustomers: data.clientsActifs,
     dailyPerformance: data.performanceJournaliere,
-    trends: {
-      // Calcul de la tendance des revenus (aujourd'hui vs hier)
-      revenue: data.performanceJournaliere.length > 1 ?
-        ((data.performanceJournaliere[data.performanceJournaliere.length - 1]?.ventes || 0) -
-          (data.performanceJournaliere[data.performanceJournaliere.length - 2]?.ventes || 0)) /
-        (data.performanceJournaliere[data.performanceJournaliere.length - 2]?.ventes || 1) * 100 : 0,
-
-      // Calcul de la tendance des commandes (aujourd'hui vs hier)
-      orders: data.performanceJournaliere.length > 1 ?
-        ((data.performanceJournaliere[data.performanceJournaliere.length - 1]?.commandes || 0) -
-          (data.performanceJournaliere[data.performanceJournaliere.length - 2]?.commandes || 0)) /
-        (data.performanceJournaliere[data.performanceJournaliere.length - 2]?.commandes || 1) * 100 : 0,
-
-      // Calcul de la tendance de conversion (moyenne des 3 derniers jours vs les 3 précédents)
-      conversion: data.performanceJournaliere.length >= 6 ? (() => {
-        const recent = data.performanceJournaliere.slice(-3);
-        const previous = data.performanceJournaliere.slice(-6, -3);
-
-        const recentAvg = recent.reduce((sum, day) => sum + (day.commandes || 0), 0) / recent.length;
-        const previousAvg = previous.reduce((sum, day) => sum + (day.commandes || 0), 0) / previous.length;
-
-        return previousAvg > 0 ? ((recentAvg - previousAvg) / previousAvg) * 100 : 0;
-      })() : 0
-    }
+    // Use server-side calculated trends
+    trends: data.trends || { revenue: 0, orders: 0, profit: 0, conversion: 0 }
   } : null;
 
   return {

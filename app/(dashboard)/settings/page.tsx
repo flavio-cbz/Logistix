@@ -2,7 +2,7 @@ import { serviceContainer } from "@/lib/services/container";
 import { redirect } from "next/navigation";
 import { AccountSettingsClient } from "@/components/features/settings/account-settings-client";
 import { databaseService } from "@/lib/database";
-import { users, products, parcelles } from "@/lib/database/schema";
+import { users, products, parcels } from "@/lib/database/schema";
 import { eq } from "drizzle-orm";
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +25,7 @@ export default async function SettingsPage() {
 
   // Calculate stats
   const totalProducts = await db.select().from(products).where(eq(products.userId, user.id)).all();
-  const totalParcels = await db.select().from(parcelles).where(eq(parcelles.userId, user.id)).all();
+  const totalParcels = await db.select().from(parcels).where(eq(parcels.userId, user.id)).all();
 
   const createdDate = new Date(profile.createdAt);
   const now = new Date();

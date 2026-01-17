@@ -21,8 +21,8 @@ interface LogEntry {
   userId?: string;
   operation?: string;
   duration?: number;
-  context?: any;
-  error?: any;
+  context?: unknown;
+  error?: unknown;
   service?: string;
 }
 
@@ -35,7 +35,7 @@ export interface LogContext {
   operation?: string | undefined;
   duration?: number | undefined;
   service?: string | undefined;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -96,11 +96,11 @@ function maskString(str: string): string {
 }
 
 function anonymizeValue(
-  value: any,
+  value: unknown,
   key?: string,
   seen = new WeakSet(),
   depth = 3,
-): any {
+): unknown {
   if (value == null || depth <= 0) return value;
 
   // Primitive types
@@ -130,12 +130,12 @@ function anonymizeValue(
       return "[Circular]";
     }
     seen.add(value);
-    const out: Record<string, any> = {};
+    const out: Record<string, unknown> = {};
     for (const k of Object.keys(value)) {
       try {
-        const v = (value as any)[k];
+        const v = (value as Record<string, unknown>)[k];
         if (v == null) {
-          (out as any)[k] = v;
+          (out as Record<string, unknown>)[k] = v;
           continue;
         }
         if (
@@ -143,12 +143,12 @@ function anonymizeValue(
             k,
           )
         ) {
-          (out as any)[k] = "***";
+          (out as Record<string, unknown>)[k] = "***";
           continue;
         }
-        (out as any)[k] = anonymizeValue(v, k, seen, depth - 1);
+        (out as Record<string, unknown>)[k] = anonymizeValue(v, k, seen, depth - 1);
       } catch {
-        (out as any)[k] = "[Unserializable]";
+        (out as Record<string, unknown>)[k] = "[Unserializable]";
       }
     }
     seen.delete(value);
@@ -158,7 +158,7 @@ function anonymizeValue(
   return value;
 }
 
-function anonymize(objOrString: any): any {
+function anonymize(objOrString: unknown): unknown {
   return anonymizeValue(objOrString);
 }
 
@@ -166,7 +166,7 @@ function anonymize(objOrString: any): any {
  * Enhanced Logger class with correlation IDs and structured logging
  */
 class Logger implements ILogger {
-  private isDevelopment = (process.env as any)["NODE_ENV"] === "development";
+  private isDevelopment = process.env.NODE_ENV === "development";
   private logLevel: LogLevel;
   private defaultContext: LogContext = {};
 
@@ -251,15 +251,15 @@ class Logger implements ILogger {
 
     // Add error information
     if (error) {
-      const errMsg =
-        typeof error === "string"
-          ? error
-          : error && (error as any).message
-            ? (error as any).message
-            : String(error);
-      logMessage += ` | Error: ${errMsg}`;
-      if (this.isDevelopment && (error as any)?.stack) {
-        logMessage += `\nStack: ${(error as any).stack}`;
+      if (error instanceof Error) {
+        logMessage += ` | Error: ${error.message}`;
+        if (this.isDevelopment && error.stack) {
+          logMessage += `\nStack: ${error.stack}`;
+        }
+      } else if (typeof error === "object" && error !== null && "message" in error) {
+        logMessage += ` | Error: ${String((error as { message: unknown }).message)}`;
+      } else {
+        logMessage += ` | Error: ${String(error)}`;
       }
     }
 
@@ -293,7 +293,7 @@ class Logger implements ILogger {
     level: LogLevel,
     message: string,
     context?: LogContext,
-    error?: any,
+    error?: unknown,
   ): void {
     if (!this.shouldLog(level)) {
       return;
@@ -305,20 +305,29 @@ class Logger implements ILogger {
     const mergedContext = { ...this.defaultContext, ...context };
     const safeContext = mergedContext ? anonymize(mergedContext) : undefined;
 
-    let safeError = error;
-    if (error && (error as any).message) {
-      const sanitizedError = new Error(anonymize((error as any).message));
-      if ((error as any).stack && this.isDevelopment) {
-        sanitizedError.stack = (error as any).stack;
+    let safeError: unknown;
+
+    if (error instanceof Error) {
+      const anonymizedMessage = anonymize(error.message);
+      const sanitizedError = new Error(typeof anonymizedMessage === 'string' ? anonymizedMessage : String(anonymizedMessage));
+      if (this.isDevelopment && error.stack) {
+        sanitizedError.stack = error.stack;
       }
       safeError = sanitizedError;
+    } else if (typeof error === "object" && error !== null && "message" in error) {
+      const msg = (error as { message: unknown }).message;
+      const anonymizedMessage = anonymize(msg);
+      const sanitizedError = new Error(typeof anonymizedMessage === 'string' ? anonymizedMessage : String(anonymizedMessage));
+      safeError = sanitizedError;
     } else if (error && typeof error === "string") {
+      safeError = anonymize(error);
+    } else if (error) {
       safeError = anonymize(error);
     }
 
     const entry: LogEntry = {
       level,
-      message: safeMessage,
+      message: typeof safeMessage === 'string' ? safeMessage : String(safeMessage),
       timestamp: new Date().toISOString(),
       requestId: mergedContext?.requestId,
       userId: mergedContext?.userId,
@@ -338,20 +347,25 @@ class Logger implements ILogger {
     if (this.isDevelopment) {
       switch (level) {
         case LogLevel.ERROR:
+          // eslint-disable-next-line no-console
           console.error(formattedMessage);
           break;
         case LogLevel.WARN:
+          // eslint-disable-next-line no-console
           console.warn(formattedMessage);
           break;
         case LogLevel.INFO:
+          // eslint-disable-next-line no-console
           console.info(formattedMessage);
           break;
         case LogLevel.DEBUG:
+          // eslint-disable-next-line no-console
           console.debug(formattedMessage);
           break;
       }
     } else {
       // In production, use structured logging to stdout
+      // eslint-disable-next-line no-console
       console.log(formattedMessage);
     }
   }
@@ -376,7 +390,7 @@ class Logger implements ILogger {
   }
 
   // Core logging methods
-  error(message: string, context?: LogContext, error?: any): void {
+  error(message: string, context?: LogContext, error?: unknown): void {
     this.log(LogLevel.ERROR, message, context, error);
   }
 
@@ -491,7 +505,7 @@ export function createPerformanceLogger(
  */
 export function logPerformance(operation?: string) {
   return function (
-    target: any,
+    target: object,
     propertyName: string,
     descriptor: PropertyDescriptor,
   ) {
@@ -499,7 +513,7 @@ export function logPerformance(operation?: string) {
     const operationName =
       operation || `${target.constructor.name}.${propertyName}`;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const perfLogger = createPerformanceLogger(operationName, globalLogger);
 
       try {

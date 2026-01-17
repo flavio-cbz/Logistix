@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/middleware/auth-middleware';
 import { withErrorHandling } from '@/lib/utils/api-response';
-import { databaseService } from '@/lib/services/database/db';
+import { databaseService } from '@/lib/database';
 import { transformParcelleFromDb } from '@/lib/utils/case-transformer';
 import { z } from 'zod';
 
 // Schéma de validation pour la mise à jour (champs optionnels)
 const updateParcelleSchema = z.object({
-  numero: z.string().min(1).trim().optional(),
-  transporteur: z.string().min(1).trim().optional(),
-  nom: z.string().min(1).trim().optional(),
-  statut: z.string()
+  superbuyId: z.string().min(1).trim().optional(),
+  carrier: z.string().min(1).trim().optional(),
+  name: z.string().min(1).trim().optional(),
+  status: z.string()
     .trim()
-    .refine(val => !val || ['En attente', 'En transit', 'Livré', 'Retourné', 'Perdu'].includes(val), {
-      message: "Le statut doit être 'En attente', 'En transit', 'Livré', 'Retourné' ou 'Perdu'"
+    .refine(val => !val || ['En attente', 'En transit', 'Livré', 'Retourné', 'Perdu', 'Pending', 'In Transit', 'Delivered'].includes(val), {
+      message: "Le statut doit être un statut valide"
     })
     .optional(),
-  actif: z.boolean().optional(),
-  poids: z.number().positive().optional(),
-  prixAchat: z.number().min(0).optional(),
+  isActive: z.boolean().optional(),
+  weight: z.number().positive().optional(),
+  totalPrice: z.number().min(0).optional(),
 }).refine((data) => Object.keys(data).length > 0, {
   message: 'Au moins un champ doit être fourni',
 });
@@ -31,8 +31,14 @@ async function handlePatch(req: NextRequest, { params }: { params: { id: string 
   const validatedData = updateParcelleSchema.parse(body);
 
   // Vérifier existence et propriété
-  const existing = await databaseService.queryOne(
-    'SELECT * FROM parcelles WHERE id = ? AND user_id = ?',
+  const existing = await databaseService.queryOne<{
+    id: string;
+    superbuy_id: string;
+    weight: number;
+    total_price: number;
+    user_id: string;
+  }>(
+    'SELECT * FROM parcels WHERE id = ? AND user_id = ?',
     [id, user.id]
   );
   if (!existing) {
@@ -43,10 +49,10 @@ async function handlePatch(req: NextRequest, { params }: { params: { id: string 
   }
 
   // Vérifier unicité du numéro si modifié
-  if (validatedData.numero && validatedData.numero !== existing.numero) {
+  if (validatedData.superbuyId && validatedData.superbuyId !== existing.superbuy_id) {
     const conflict = await databaseService.queryOne(
-      'SELECT id FROM parcelles WHERE numero = ? AND user_id = ? AND id != ?',
-      [validatedData.numero, user.id, id]
+      'SELECT id FROM parcels WHERE superbuy_id = ? AND user_id = ? AND id != ?',
+      [validatedData.superbuyId, user.id, id]
     );
     if (conflict) {
       return NextResponse.json(
@@ -58,32 +64,31 @@ async function handlePatch(req: NextRequest, { params }: { params: { id: string 
 
   // Préparer les champs à mettre à jour
   const updates: Record<string, unknown> = {};
-  if (validatedData['numero']) (updates as any)['numero'] = validatedData['numero'].trim();
-  if (validatedData['transporteur']) (updates as any)['transporteur'] = validatedData['transporteur'].trim();
-  if (validatedData['nom']) (updates as any)['nom'] = validatedData['nom'].trim();
-  if (validatedData['statut']) (updates as any)['statut'] = validatedData['statut'];
-  if (validatedData['actif'] !== undefined) (updates as any)['actif'] = validatedData['actif'] ? 1 : 0;
-  if (validatedData['poids']) (updates as any)['poids'] = validatedData['poids'];
-  if (validatedData['prixAchat']) (updates as any)['prix_achat'] = validatedData['prixAchat'];
+  if (validatedData.superbuyId) updates['superbuy_id'] = validatedData.superbuyId.trim();
+  if (validatedData.carrier) updates['carrier'] = validatedData.carrier.trim();
+  if (validatedData.name) updates['name'] = validatedData.name.trim();
+  if (validatedData.status) updates['status'] = validatedData.status;
+  if (validatedData.isActive !== undefined) updates['is_active'] = validatedData.isActive ? 1 : 0;
+  if (validatedData.weight) updates['weight'] = validatedData.weight;
+  if (validatedData.totalPrice) updates['total_price'] = validatedData.totalPrice;
 
-  // Recalculer prixTotal et prixParGramme si nécessaire
-  const shouldRecalculatePrice = validatedData['poids'] || validatedData['prixAchat'];
+  // Recalculer pricePerGram si nécessaire
+  const shouldRecalculatePrice = validatedData.weight || validatedData.totalPrice;
   if (shouldRecalculatePrice) {
-    const poids = (validatedData['poids'] || existing.poids) as number;
-    const prixAchat = (validatedData['prixAchat'] || existing.prix_achat) as number;
-    
+    const weight = (validatedData.weight || existing.weight) as number;
+    const totalPrice = (validatedData.totalPrice || existing.total_price) as number;
+
     // Vérifier division par zéro
-    if (poids <= 0) {
+    if (weight <= 0) {
       return NextResponse.json(
         { success: false, error: { code: 'INVALID_WEIGHT', message: 'Le poids doit être positif' } },
         { status: 400 }
       );
     }
-    
-    (updates as any)['prix_total'] = prixAchat + (poids * 0.1); // Exemple, ajuster
-    (updates as any)['prix_par_gramme'] = (updates as any)['prix_total'] / poids;
+
+    updates['price_per_gram'] = totalPrice / weight;
   }
-  (updates as any)['updated_at'] = new Date().toISOString();
+  updates['updated_at'] = new Date().toISOString();
 
   // Mise à jour
   const setClause = Object.keys(updates).map(key => `${key} = ?`).join(', ');
@@ -91,7 +96,7 @@ async function handlePatch(req: NextRequest, { params }: { params: { id: string 
   values.push(id, user.id); // Pour WHERE
 
   const result = await databaseService.execute(
-    `UPDATE parcelles SET ${setClause} WHERE id = ? AND user_id = ?`,
+    `UPDATE parcels SET ${setClause} WHERE id = ? AND user_id = ?`,
     values
   );
 
@@ -100,8 +105,8 @@ async function handlePatch(req: NextRequest, { params }: { params: { id: string 
   }
 
   // Récupérer la parcelle mise à jour
-  const updated = await databaseService.queryOne(
-    'SELECT * FROM parcelles WHERE id = ?',
+  const updated = await databaseService.queryOne<Record<string, unknown>>(
+    'SELECT * FROM parcels WHERE id = ?',
     [id]
   );
 
@@ -111,14 +116,14 @@ async function handlePatch(req: NextRequest, { params }: { params: { id: string 
   return NextResponse.json({ success: true, data: { parcelle: transformedParcelle } });
 }
 
-// Handler DELETE : Supprime une parcelle (soft delete via actif=0)
+// Handler DELETE : Supprime une parcelle (soft delete via is_active=0)
 async function handleDelete(req: NextRequest, { params }: { params: { id: string } }) {
   const { user } = await requireAuth(req);
   const { id } = params;
 
   // Vérifier existence et propriété
-  const existing = await databaseService.queryOne(
-    'SELECT * FROM parcelles WHERE id = ? AND user_id = ?',
+  const existing = await databaseService.queryOne<{ id: string }>(
+    'SELECT * FROM parcels WHERE id = ? AND user_id = ?',
     [id, user.id]
   );
   if (!existing) {
@@ -130,7 +135,7 @@ async function handleDelete(req: NextRequest, { params }: { params: { id: string
 
   // Soft delete
   const result = await databaseService.execute(
-    'UPDATE parcelles SET actif = 0, updated_at = datetime(\'now\') WHERE id = ? AND user_id = ?',
+    'UPDATE parcels SET is_active = 0, updated_at = datetime(\'now\') WHERE id = ? AND user_id = ?',
     [id, user.id]
   );
 

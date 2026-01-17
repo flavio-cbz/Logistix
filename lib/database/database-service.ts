@@ -1,14 +1,19 @@
-// import "server-only";
-import { drizzle, BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import {
+  drizzle,
+  BetterSQLite3Database,
+} from "drizzle-orm/better-sqlite3";
 import { sql } from "drizzle-orm";
+// import Database from "better-sqlite3"; // Removed static import to allow conditional require
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Database: any = null;
+import * as schema from "./schema";
+// import { migrate } from "drizzle-orm/better-sqlite3/migrator"; // Unused
 import path from "path";
 import fs from "fs";
 import { logger } from "@/lib/utils/logging/logger";
-// import { fallbackDb, FallbackDatabaseService } from "./fallback-database-service";
-import * as schema from "./schema";
+import { FallbackDatabaseService, fallbackDb } from "./fallback-db";
 
 // Importation conditionnelle de better-sqlite3
-let Database: any = null;
 let useFallback = false;
 
 try {
@@ -60,12 +65,14 @@ export interface TransactionOptions {
  * - Error handling and logging
  * - Type safety through Drizzle ORM
  */
+export type { FallbackDatabaseService };
+
 export class DatabaseService {
   private static instance: DatabaseService;
   private db!: BetterSQLite3Database<typeof schema>;
-  private sqliteDb!: any; // Peut être Database.Database ou null
-  // TODO: Définir le type FallbackDatabaseService
-  private fallbackService?: any; // FallbackDatabaseService;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private sqliteDb!: any; // Kept as any because better-sqlite3 is conditionally imported
+  private fallbackService?: FallbackDatabaseService;
   private config: DatabaseConfig;
   private isInitialized = false;
   private connectionStats: ConnectionStats = {
@@ -122,9 +129,8 @@ export class DatabaseService {
 
       if (useFallback || !Database) {
         // Utiliser le service de fallback
-        // TODO: Implémenter fallbackDb service
-        // this.fallbackService = fallbackDb;
-        // await this.fallbackService.initializeDatabase();
+        this.fallbackService = fallbackDb;
+        await this.fallbackService.initializeDatabase();
         this.isInitialized = true;
         this.log("Database initialized successfully with fallback service", { path: this.config.path });
         return;
@@ -152,17 +158,16 @@ export class DatabaseService {
 
         this.isInitialized = true;
         this.log("Database initialized successfully with better-sqlite3", { path: this.config.path });
-      } catch (sqliteError: any) {
+      } catch (sqliteError: unknown) {
         this.logError("better-sqlite3 failed, switching to fallback", sqliteError);
 
         // Basculer vers le fallback
-        // TODO: Implémenter fallbackDb service  
-        // this.fallbackService = fallbackDb;
-        // await this.fallbackService?.initializeDatabase();
+        this.fallbackService = fallbackDb;
+        await this.fallbackService.initializeDatabase();
         this.isInitialized = true;
         this.log("Database initialized successfully with fallback service", { path: this.config.path });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logError("Failed to initialize database", error);
       throw new Error(`Database initialization failed: ${error}`);
     }
@@ -171,7 +176,7 @@ export class DatabaseService {
   /**
    * Get the Drizzle database instance for direct queries
    */
-  public async getDb(): Promise<BetterSQLite3Database<typeof schema> | any> {
+  public async getDb(): Promise<BetterSQLite3Database<typeof schema> | FallbackDatabaseService> {
     await this.ensureInitialized();
 
     if (this.fallbackService) {
@@ -184,12 +189,12 @@ export class DatabaseService {
   /**
    * Execute a raw SQL query
    */
-  public async executeRawQuery<T>(query: string, params: any[] = []): Promise<T[]> {
+  public async executeRawQuery<T>(query: string, params: unknown[] = []): Promise<T[]> {
     await this.ensureInitialized();
 
     if (this.fallbackService) {
       // TODO: Typer correctement le fallback service
-      return await (this.fallbackService as any).queryMany(query, params);
+      return await this.fallbackService.queryMany<T>(query, params);
     }
 
     // Utiliser better-sqlite3 avec Drizzle
@@ -200,12 +205,12 @@ export class DatabaseService {
   /**
    * Execute a raw SQL query that returns a single result
    */
-  public async executeRawQueryOne<T>(query: string, params: any[] = []): Promise<T | null> {
+  public async executeRawQueryOne<T>(query: string, params: unknown[] = []): Promise<T | null> {
     await this.ensureInitialized();
 
     if (this.fallbackService) {
       // TODO: Typer correctement le fallback service
-      return await (this.fallbackService as any).queryOne(query, params);
+      return await this.fallbackService.queryOne<T>(query, params);
     }
 
     // Utiliser better-sqlite3 avec Drizzle
@@ -218,19 +223,40 @@ export class DatabaseService {
    * and return metadata similar to better-sqlite3 run() output.
    * This method is introduced to replace legacy execute() usages in repositories.
    */
-  public async executeRun(query: string, params: any[] = []): Promise<{ changes: number; lastInsertRowid: number | bigint | undefined; }> {
+  public async executeRun(query: string, params: unknown[] = []): Promise<{ changes: number; lastInsertRowid: number | bigint | undefined; }> {
     await this.ensureInitialized();
 
     if (this.fallbackService) {
       // Fallback: réutiliser executeRawQueryOne pour exécuter et ignorer résultat
       // Pas d'information précise sur changes dans fallback pour l'instant
-      await (this.fallbackService as any).execute?.(query, params);
+      await this.fallbackService.execute?.(query, params);
       return { changes: 0, lastInsertRowid: undefined };
     }
 
     const stmt = this.sqliteDb.prepare(query);
     const info = stmt.run(...params);
     return { changes: info.changes, lastInsertRowid: info.lastInsertRowid };
+  }
+
+  /**
+   * Alias for executeRawQuery to support legacy code migrated from db.ts
+   */
+  public async query<T>(query: string, params: unknown[] = [], _context?: string): Promise<T[]> {
+    return this.executeRawQuery<T>(query, params);
+  }
+
+  /**
+   * Alias for executeRawQueryOne to support legacy code migrated from db.ts
+   */
+  public async queryOne<T>(query: string, params: unknown[] = [], _context?: string): Promise<T | null> {
+    return this.executeRawQueryOne<T>(query, params);
+  }
+
+  /**
+   * Alias for executeRun to support legacy code migrated from db.ts
+   */
+  public async execute(query: string, params: unknown[] = [], _context?: string): Promise<{ changes: number; lastInsertRowid: number | bigint | undefined }> {
+    return this.executeRun(query, params);
   }
 
   /**
@@ -260,7 +286,7 @@ export class DatabaseService {
       this.log("Query completed", { operationId, context, duration });
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
       this.updateStats(duration, true);
       this.logError("Query failed", error, { operationId, context });
@@ -287,7 +313,7 @@ export class DatabaseService {
     const transactionId = this.generateOperationId();
     const maxRetries = options.retries || 3;
 
-    let lastError: any;
+    let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -307,7 +333,7 @@ export class DatabaseService {
         this.log("Transaction completed", { transactionId, attempt, duration });
 
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         lastError = error;
         const duration = Date.now() - startTime;
         this.updateStats(duration, true);
@@ -324,7 +350,7 @@ export class DatabaseService {
             transactionId,
             attempt,
             maxRetries,
-            error: (error as any).message,
+            error: error instanceof Error ? error.message : String(error),
           });
           // Wait before retry (exponential backoff)
           await new Promise((resolve) =>
@@ -348,8 +374,8 @@ export class DatabaseService {
         (db) => db.get(sql`SELECT 1 as health`),
         "healthCheck",
       );
-      return (result as any)?.health === 1;
-    } catch (error: any) {
+      return (result as { health?: number })?.health === 1;
+    } catch (error: unknown) {
       this.logError("Health check failed", error);
       return false;
     }
@@ -365,9 +391,9 @@ export class DatabaseService {
   /**
    * Get detailed database information
    */
-  public async getDatabaseInfo(): Promise<any> {
+  public async getDatabaseInfo(): Promise<Record<string, unknown>> {
     try {
-      return await this.executeQuery<any>((_db) => {
+      return await this.executeQuery<Record<string, unknown>>((_db) => {
         const info = this.sqliteDb.prepare("PRAGMA database_list").all();
         const tables = this.sqliteDb
           .prepare(
@@ -394,7 +420,7 @@ export class DatabaseService {
           config: this.config,
         };
       }, "getDatabaseInfo");
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logError("Failed to get database info", error);
       throw error;
     }
@@ -473,30 +499,34 @@ export class DatabaseService {
     }
   }
 
-  private wrapError(error: any, context?: string): Error {
+  private wrapError(error: unknown, context?: string): Error {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     const message = context
-      ? `Database operation failed in ${context}: ${error.message}`
-      : `Database operation failed: ${error.message}`;
+      ? `Database operation failed in ${context}: ${errorMessage}`
+      : `Database operation failed: ${errorMessage}`;
     const errorObj = new Error(message);
-    if (error.stack) {
+    if (error instanceof Error && error.stack) {
       errorObj.stack = error.stack;
     }
     return errorObj;
   }
 
-  private log(message: string, data?: any): void {
+  private log(message: string, data?: unknown): void {
     if (this.config.enableLogging) {
-      logger.info(message, { ...data, service: "DatabaseService" });
+      const logData = data && typeof data === 'object' ? data as Record<string, unknown> : {};
+      logger.info(message, { ...logData, service: "DatabaseService" });
     }
   }
 
-  private logError(_message: string, _error: any, _data?: any): void {
+  private logError(_message: string, _error: unknown, _data?: unknown): void {
     const _timestamp = new Date().toISOString();
-    // eslint-disable-next-line no-console
-    console.error(`[DB ERROR] ${_timestamp} - ${_message}`, {
-      error: _error.message,
-      stack: _error.stack,
-      ..._data,
+    const errorMessage = _error instanceof Error ? _error.message : String(_error);
+    const errorStack = _error instanceof Error ? _error.stack : undefined;
+    const additionalData = _data && typeof _data === 'object' ? _data as Record<string, unknown> : {};
+    logger.error(`[DB ERROR] ${_timestamp} - ${_message}`, {
+      error: errorMessage,
+      stack: errorStack,
+      ...additionalData,
     });
   }
 }

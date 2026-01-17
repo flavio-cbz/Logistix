@@ -10,6 +10,9 @@ const systemFontClass = "font-sans";
 export const metadata: Metadata = {
   title: "Logistix",
   description: "Plateforme d'analyse et gestion Logistix",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({

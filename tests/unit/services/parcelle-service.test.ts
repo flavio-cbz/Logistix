@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ParcelleService } from "@/lib/services/parcelle-service";
-import { ParcelleRepository } from "@/lib/repositories/parcelle-repository";
+import { ParcelleRepository } from "@/lib/repositories/parcel-repository";
 import { Parcelle } from "@/lib/database/schema";
 
 // Mock dependencies

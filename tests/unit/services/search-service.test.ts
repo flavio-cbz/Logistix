@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SearchService } from "@/lib/services/search-service";
 import { ProductRepository } from "@/lib/repositories/product-repository";
-import { ParcelleRepository } from "@/lib/repositories/parcelle-repository";
+import { ParcelleRepository } from "@/lib/repositories/parcel-repository";
 import { UserRepository } from "@/lib/repositories/user-repository";
 
 // Mock dependencies

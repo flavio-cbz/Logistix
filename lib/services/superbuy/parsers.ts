@@ -1,5 +1,6 @@
 import { type Page } from "playwright";
-import { type NewOrder, type NewSuperbuyParcel } from "@/lib/database/schema";
+import { type NewOrder, type NewSuperbuyParcel, type OrderItem } from "@/lib/database/schema";
+import { ParsedSuperbuyProduct } from "@/lib/shared/types/superbuy";
 
 interface SuperbuyOrderItem {
   goodsName?: string;
@@ -93,7 +94,7 @@ export async function parseOrdersPage(page: Page, userId: string): Promise<NewOr
             break;
           }
         } catch (_e) {
-          console.error(_e);
+
         }
       }
       // Add other patterns if needed
@@ -123,10 +124,12 @@ export async function parseOrdersPage(page: Page, userId: string): Promise<NewOr
         const totalPrice = parseFloat(priceText);
 
         const productEls = row.querySelectorAll('.product-item');
-        const products = Array.from(productEls).map(p => ({
-          name: p.querySelector('.title')?.textContent?.trim(),
-          image: p.querySelector('img')?.getAttribute('src'),
-          quantity: p.querySelector('.qty')?.textContent?.trim(),
+        const products: OrderItem[] = Array.from(productEls).map(p => ({
+          name: p.querySelector('.title')?.textContent?.trim() || "Unknown",
+          snapshotUrl: p.querySelector('img')?.getAttribute('src') || "",
+          quantity: parseInt(p.querySelector('.qty')?.textContent?.trim() || "0"),
+          price: 0, // Not available in this view easily per item, total is on row
+          currency: "CNY",
         }));
 
         domItems.push({
@@ -141,7 +144,7 @@ export async function parseOrdersPage(page: Page, userId: string): Promise<NewOr
           updatedAt: new Date().toISOString(),
         });
       } catch (_e) {
-        // console.error(e); 
+
       }
     });
     return { type: 'dom', data: domItems };
@@ -161,15 +164,16 @@ function parseOrdersJson(data: unknown, userId: string): NewOrder[] {
   ordersList.forEach((order) => {
     try {
       const orderItems = order.orderItems || [];
-      const products = orderItems.map((item) => ({
+      const products: OrderItem[] = orderItems.map((item) => ({
         name: String(item.goodsName || ""),
-        image: String(item.goodsPic || (Array.isArray(item.arrivalPicList) && item.arrivalPicList[0]) || item.picUrl || ""),
-        quantity: String(item.count || "0"),
+        snapshotUrl: String(item.goodsPic || (Array.isArray(item.arrivalPicList) && item.arrivalPicList[0]) || item.picUrl || ""),
+        quantity: typeof item.count === 'string' ? parseInt(item.count) : (item.count || 0),
         url: String(item.goodsLink || ""),
         price: Number(item.unitPrice || 0),
-        sku: String(item.itemRemark || ""),
-        weight: Number(item.weight || 0), // Extracted from order item as per user request
-        itemBarcode: String(item.itemBarcode || ""), // Crucial for linking
+        currency: "CNY", // Default to CNY as per heuristic
+        remark: String(item.itemRemark || ""),
+        weight: Number(item.weight || 0),
+        itemBarcode: String(item.itemBarcode || ""),
         goodsCode: String(item.goodsCode || "")
       }));
 
@@ -193,7 +197,7 @@ function parseOrdersJson(data: unknown, userId: string): NewOrder[] {
         updatedAt: new Date().toISOString(),
       });
     } catch (_e) {
-      // console.error("Error parsing order JSON item", e);
+
     }
   });
 
@@ -267,7 +271,7 @@ export async function parseParcelsPage(page: Page, userId: string): Promise<NewS
           updatedAt: new Date().toISOString(),
         });
       } catch (_e) {
-        // console.error('Error parsing parcel row', e); 
+
       }
     });
 
@@ -314,7 +318,7 @@ async function getUsdToEurRate(): Promise<number> {
       return rate;
     }
   } catch (_e) {
-    // console.warn('[Superbuy][FX] Could not fetch USD->EUR rate, falling back:', (e as any)?.message || e);
+
   }
 
   // fallback conservative default
@@ -325,7 +329,7 @@ async function getUsdToEurRate(): Promise<number> {
  * Parse products from parcels response (orderItems within each parcel)
  * Returns products with their parcel association
  */
-export async function parseProductsFromParcels(data: unknown, userId: string): Promise<unknown[]> {
+export async function parseProductsFromParcels(data: unknown, userId: string): Promise<ParsedSuperbuyProduct[]> {
   let parcelsList: SuperbuyParcel[] = [];
 
   const typedData = data as { data?: { package?: { listResult?: SuperbuyParcel[] } } };
@@ -336,7 +340,7 @@ export async function parseProductsFromParcels(data: unknown, userId: string): P
     parcelsList = data as SuperbuyParcel[];
   }
 
-  const products: unknown[] = [];
+  const products: ParsedSuperbuyProduct[] = [];
   const usdToEur = await getUsdToEurRate();
 
   for (const parcel of parcelsList) {
@@ -380,7 +384,9 @@ export async function parseProductsFromParcels(data: unknown, userId: string): P
         // and the rate is USD->CNY (e.g. 6.6 or 7.2).
         // Even if 'currency' says 'USD', the raw values seem to be in CNY in this case.
 
-        const parcelCurrency = (parcel as any).currency || (packageInfo as any).currency || 'USD';
+        const parcelAny = parcel as Record<string, unknown>;
+        const packageInfoAny = packageInfo as Record<string, unknown>;
+        const parcelCurrency = (parcelAny['currency'] as string) || (packageInfoAny['currency'] as string) || 'USD';
         let exchangeRate = 0;
         if (packageInfo.exchangeRate) {
           exchangeRate = parseFloat(String(packageInfo.exchangeRate));
@@ -400,21 +406,34 @@ export async function parseProductsFromParcels(data: unknown, userId: string): P
 
         priceEUR = priceUSD * usdToEur;
 
-        // Extract first photo from arrivalPicList if available
-        let photoUrl = '';
+        // Extract ALL photos from arrivalPicList (QC photos)
+        let photoUrls: string[] = [];
         if (Array.isArray(item.arrivalPicList) && item.arrivalPicList.length > 0) {
-          photoUrl = String(item.arrivalPicList[0]);
+          photoUrls = item.arrivalPicList.map((url: unknown) => String(url)).filter(Boolean);
         } else if (item.arrivalPic) {
           // arrivalPic might be a JSON string
           try {
             const parsed = JSON.parse(String(item.arrivalPic));
             if (Array.isArray(parsed) && parsed.length > 0) {
-              photoUrl = String(parsed[0]);
+              photoUrls = parsed.map((url: unknown) => String(url)).filter(Boolean);
             }
           } catch {
-            photoUrl = String(item.arrivalPic);
+            // Single URL as string
+            if (item.arrivalPic) {
+              photoUrls = [String(item.arrivalPic)];
+            }
           }
         }
+
+        // Also check for goodsPic as fallback
+        if (photoUrls.length === 0 && item.goodsPic) {
+          photoUrls = [String(item.goodsPic)];
+        }
+        if (photoUrls.length === 0 && item.picUrl) {
+          photoUrls = [String(item.picUrl)];
+        }
+
+        const photoUrl = photoUrls.length > 0 ? photoUrls[0] : '';
 
         const productData = {
           userId,
@@ -423,6 +442,7 @@ export async function parseProductsFromParcels(data: unknown, userId: string): P
           category: 'Autre', // Constant as per user request
           subcategory: String(item.itemRemark || ''),
           photoUrl,
+          photoUrls, // All QC photos
           price: Number(priceEUR.toFixed(4)),
           priceUSD: Number(priceUSD.toFixed(4)),
           exchangeRateUsed: Number(usdToEur.toFixed(6)),
@@ -435,6 +455,11 @@ export async function parseProductsFromParcels(data: unknown, userId: string): P
           plateforme: 'autre' as const,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          // Superbuy metadata for AI enrichment (description and specs from seller)
+          superbuyMetadata: {
+            goodsName: String(item.goodsName || ''),
+            itemRemark: String(item.itemRemark || ''),
+          },
         };
 
         // Add product 'count' times
@@ -442,7 +467,7 @@ export async function parseProductsFromParcels(data: unknown, userId: string): P
           products.push({ ...productData });
         }
       } catch (_e) {
-        // console.error('[Superbuy][Products] Error parsing product item:', e);
+
       }
     }
   }
@@ -546,7 +571,7 @@ async function parseParcelsJson(data: unknown, userId: string): Promise<NewSuper
 
       // Guardrail: if computed EUR is absurdly large, log and set to 0 to avoid poisoning DB
       if (priceEUR > 100000) {
-        // console.warn('[Superbuy][Price] Computed priceEUR is very large, skipping. superbuyId=', superbuyId, 'priceUSD=', priceUSD, 'priceEUR=', priceEUR);
+
         priceEUR = 0;
       }
 
@@ -570,7 +595,7 @@ async function parseParcelsJson(data: unknown, userId: string): Promise<NewSuper
       last['priceSource'] = priceUSD ? 'packagePrice' : (rawRealNum ? 'realPackagePrice_derived' : 'unknown');
 
     } catch (_e) {
-      // console.error("Error parsing parcel JSON item", e);
+
     }
   }
 

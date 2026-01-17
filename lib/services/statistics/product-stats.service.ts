@@ -1,5 +1,5 @@
 import { BaseService } from "../base-service";
-import { databaseService } from "@/lib/services/database/db";
+import { databaseService } from "@/lib/database";
 
 interface GlobalStats {
     totalProduits: number;
@@ -102,14 +102,16 @@ export class ProductStatsService extends BaseService {
         return databaseService.queryOne<GlobalStats>(
             `SELECT 
         COUNT(*) as totalProduits,
-        COUNT(CASE WHEN vendu = '1' THEN 1 END) as produitsVendus,
-        COUNT(CASE WHEN vendu = '0' THEN 1 END) as produitsEnStock,
-        SUM(CASE WHEN vendu = '1' THEN (selling_price - price - COALESCE(cout_livraison, 0)) ELSE 0 END) as beneficesTotaux,
-        SUM(CASE WHEN vendu = '1' THEN selling_price ELSE 0 END) as chiffreAffaires,
-        SUM(CASE WHEN vendu = '0' THEN price ELSE 0 END) as valeurStock,
-        AVG(CASE WHEN vendu = '1' THEN (selling_price - price - COALESCE(cout_livraison, 0)) ELSE NULL END) as beneficeMoyen,
-        AVG(CASE WHEN vendu = '1' THEN (julianday(sold_at) - julianday(created_at)) ELSE NULL END) as tempsVenteMoyen
-      FROM products WHERE user_id = ?`,
+        COUNT(CASE WHEN p.vendu = '1' THEN 1 END) as produitsVendus,
+        COUNT(CASE WHEN p.vendu = '0' THEN 1 END) as produitsEnStock,
+        SUM(CASE WHEN p.vendu = '1' THEN (p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) ELSE 0 END) as beneficesTotaux,
+        SUM(CASE WHEN p.vendu = '1' THEN p.selling_price ELSE 0 END) as chiffreAffaires,
+        SUM(CASE WHEN p.vendu = '0' THEN p.price ELSE 0 END) as valeurStock,
+        AVG(CASE WHEN p.vendu = '1' THEN (p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) ELSE NULL END) as beneficeMoyen,
+        AVG(CASE WHEN p.vendu = '1' THEN (julianday(p.sold_at) - julianday(p.created_at)) ELSE NULL END) as tempsVenteMoyen
+      FROM products p
+      LEFT JOIN parcels parc ON p.parcel_id = parc.id
+      WHERE p.user_id = ?`,
             [userId],
             "get-produits-global-stats"
         );
@@ -118,15 +120,16 @@ export class ProductStatsService extends BaseService {
     private async getTopCategories(userId: string): Promise<CategoryStats[]> {
         return databaseService.query<CategoryStats>(
             `SELECT 
-        category as categorie,
+        p.category as categorie,
         COUNT(*) as nombreProduits,
-        COUNT(CASE WHEN vendu = '1' THEN 1 END) as vendus,
-        SUM(CASE WHEN vendu = '1' THEN (selling_price - price - COALESCE(cout_livraison, 0)) ELSE 0 END) as benefices,
-        AVG(CASE WHEN vendu = '1' THEN (selling_price - price - COALESCE(cout_livraison, 0)) ELSE NULL END) as beneficeMoyen,
-        (COUNT(CASE WHEN vendu = '1' THEN 1 END) * 100.0 / COUNT(*)) as tauxVente
-      FROM products 
-      WHERE user_id = ?
-      GROUP BY category
+        COUNT(CASE WHEN p.vendu = '1' THEN 1 END) as vendus,
+        SUM(CASE WHEN p.vendu = '1' THEN (p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) ELSE 0 END) as benefices,
+        AVG(CASE WHEN p.vendu = '1' THEN (p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) ELSE NULL END) as beneficeMoyen,
+        (COUNT(CASE WHEN p.vendu = '1' THEN 1 END) * 100.0 / COUNT(*)) as tauxVente
+      FROM products p
+      LEFT JOIN parcels parc ON p.parcel_id = parc.id
+      WHERE p.user_id = ?
+      GROUP BY p.category
       ORDER BY benefices DESC`,
             [userId],
             "get-top-categories-produits"
@@ -137,15 +140,16 @@ export class ProductStatsService extends BaseService {
         return databaseService.query<RentabiliteAnalysis>(
             `SELECT 
         CASE 
-          WHEN ((selling_price - price - COALESCE(cout_livraison, 0)) * 100.0 / price) >= 100 THEN 'Excellente (>100%)'
-          WHEN ((selling_price - price - COALESCE(cout_livraison, 0)) * 100.0 / price) >= 50 THEN 'Bonne (50-100%)'
-          WHEN ((selling_price - price - COALESCE(cout_livraison, 0)) * 100.0 / price) >= 20 THEN 'Correcte (20-50%)'
+          WHEN ((p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) * 100.0 / p.price) >= 100 THEN 'Excellente (>100%)'
+          WHEN ((p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) * 100.0 / p.price) >= 50 THEN 'Bonne (50-100%)'
+          WHEN ((p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) * 100.0 / p.price) >= 20 THEN 'Correcte (20-50%)'
           ELSE 'Faible (<20%)'
         END as trancheRentabilite,
         COUNT(*) as nombreProduits,
-        SUM(selling_price - price - COALESCE(cout_livraison, 0)) as beneficesTrancheSum
-      FROM products 
-      WHERE user_id = ? AND vendu = '1' AND price > 0
+        SUM(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) as beneficesTrancheSum
+      FROM products p
+      LEFT JOIN parcels parc ON p.parcel_id = parc.id
+      WHERE p.user_id = ? AND p.vendu = '1' AND p.price > 0
       GROUP BY trancheRentabilite
       ORDER BY beneficesTrancheSum DESC`,
             [userId],
@@ -156,14 +160,15 @@ export class ProductStatsService extends BaseService {
     private async getEvolutionVentes(userId: string): Promise<EvolutionVente[]> {
         return databaseService.query<EvolutionVente>(
             `SELECT 
-        strftime('%Y-%m', sold_at) as mois,
+        strftime('%Y-%m', p.sold_at) as mois,
         COUNT(*) as ventesCount,
-        SUM(selling_price - price - COALESCE(cout_livraison, 0)) as beneficesMois,
-        AVG(selling_price - price - COALESCE(cout_livraison, 0)) as beneficeMoyen,
-        SUM(selling_price) as chiffreAffairesMois
-      FROM products 
-      WHERE user_id = ? AND vendu = '1' AND sold_at IS NOT NULL
-      GROUP BY strftime('%Y-%m', sold_at)
+        SUM(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) as beneficesMois,
+        AVG(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) as beneficeMoyen,
+        SUM(p.selling_price) as chiffreAffairesMois
+      FROM products p
+      LEFT JOIN parcels parc ON p.parcel_id = parc.id
+      WHERE p.user_id = ? AND p.vendu = '1' AND p.sold_at IS NOT NULL
+      GROUP BY strftime('%Y-%m', p.sold_at)
       ORDER BY mois DESC
       LIMIT 12`,
             [userId],
@@ -174,12 +179,13 @@ export class ProductStatsService extends BaseService {
     private async getTopProduitsRentables(userId: string): Promise<TopProduitRentable[]> {
         return databaseService.query<TopProduitRentable>(
             `SELECT 
-        id, name as nom, category as categorie, price as prixAchat, selling_price as prixVente, 
-        (selling_price - price - COALESCE(cout_livraison, 0)) as benefices,
-        ((selling_price - price - COALESCE(cout_livraison, 0)) * 100.0 / price) as rentabilitePercent,
-        sold_at as dateVente
-      FROM products 
-      WHERE user_id = ? AND vendu = '1'
+        p.id, p.name as nom, p.category as categorie, p.price as prixAchat, p.selling_price as prixVente, 
+        (p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) as benefices,
+        ((p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) * 100.0 / p.price) as rentabilitePercent,
+        p.sold_at as dateVente
+      FROM products p
+      LEFT JOIN parcels parc ON p.parcel_id = parc.id
+      WHERE p.user_id = ? AND p.vendu = '1'
       ORDER BY benefices DESC
       LIMIT 10`,
             [userId],

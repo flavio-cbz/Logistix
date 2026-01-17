@@ -42,12 +42,6 @@ export const users = sqliteTable(
       dateFormat?: "DD/MM/YYYY" | "MM/DD/YYYY";
       autoExchangeRate?: boolean;
       animations?: boolean;
-      targets?: {
-        revenue?: number;
-        productsSold?: number;
-        margin?: number;
-        conversionRate?: number;
-      };
     }>(),
     createdAt: text("created_at")
       .notNull()
@@ -99,41 +93,8 @@ export const sessions = userSessions;
 export type Session = UserSession;
 export type NewSession = NewUserSession;
 
-// Parcelles table - consolidated from lib/db/parcels.ts and drizzle-schema.ts
-export const parcelles = sqliteTable(
-  "parcelles",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id),
-    numero: text("numero").notNull(),
-    numero_suivi: text("numero_suivi"), // Carrier tracking number (e.g., CJ140286057DE)
-    transporteur: text("transporteur").notNull(),
-    nom: text("nom").notNull().default(""),
-    statut: text("statut").notNull().default("En attente"),
-    actif: integer("actif").notNull().default(1),
-    prixAchat: real("prix_achat"),
-    poids: real("poids"),
-    prixTotal: real("prix_total"),
-    prixParGramme: real("prix_par_gramme"),
-    createdAt: text("created_at")
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    updatedAt: text("updated_at")
-      .notNull()
-      .$onUpdate(() => new Date().toISOString()),
-  },
-  (table) => ({
-    userIdx: index("parcelle_user_idx").on(table.userId),
-    numeroIdx: index("parcelle_numero_idx").on(table.numero),
-    numeroSuiviIdx: index("parcelle_numero_suivi_idx").on(table.numero_suivi),
-    transporteurIdx: index("parcelle_transporteur_idx").on(table.transporteur),
-    createdAtIdx: index("parcelle_created_at_idx").on(table.createdAt),
-  }),
-);
+// Parcelles table removed - consolidated into parcels
+
 
 // Products table - enhanced from lib/db/schema.ts
 export const products = sqliteTable(
@@ -145,7 +106,7 @@ export const products = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id),
-    parcelleId: text("parcelle_id").references(() => parcelles.id),
+    parcelId: text("parcel_id").references(() => parcels.id),
 
     // Basic information
     name: text("name").notNull(),
@@ -172,10 +133,53 @@ export const products = sqliteTable(
     externalId: text("external_id"), // Generic external ID
     url: text("url"),
     photoUrl: text("photo_url"),
+    photoUrls: text("photo_urls", { mode: "json" }).$type<string[]>(), // All QC photos from Superbuy
+
+    // Enrichment data (Gemini/Google Search)
+    enrichmentData: text("enrichment_data", { mode: "json" }).$type<{
+      confidence?: number;
+      originalUrl?: string;
+      source?: string;
+      modelUsed?: string;
+      enrichedAt?: string;
+      enrichmentStatus?: 'pending' | 'done' | 'failed' | 'conflict';
+      error?: string;
+      vintedBrandId?: number;
+      vintedCatalogId?: number;
+      productCode?: string;
+      retailPrice?: string;
+      color?: string;
+      size?: string;
+      generatedDescription?: string;
+      // Conflict resolution fields
+      resolvedAt?: string;
+      resolvedBy?: 'manual' | 'candidate' | 'skipped';
+      selectedCandidateId?: string;
+      // Multiple candidates for conflict resolution
+      candidates?: Array<{
+        id: string;
+        name: string;
+        brand?: string;
+        category?: string;
+        url?: string;
+        confidence: number;
+        imageUrl?: string;
+        description?: string;
+      }>;
+      marketStats?: {
+        minPrice: number;
+        maxPrice: number;
+        averagePrice: number;
+        medianPrice: number;
+        itemCount: number;
+        currency: string;
+        lastUpdated: string;
+      };
+    }>(),
 
     // Status and lifecycle
     status: text("status", {
-      enum: ["draft", "available", "reserved", "sold", "removed", "archived"],
+      enum: ["draft", "available", "reserved", "sold", "removed", "archived", "online"],
     })
       .notNull()
       .default("draft"),
@@ -197,14 +201,34 @@ export const products = sqliteTable(
     userIdx: index("product_user_idx").on(table.userId),
     statusIdx: index("product_status_idx").on(table.status),
     venduIdx: index("product_vendu_idx").on(table.vendu),
-    parcelleIdx: index("product_parcelle_idx").on(table.parcelleId),
+    parcelIdx: index("product_parcel_idx").on(table.parcelId),
     priceIdx: index("product_price_idx").on(table.price),
     createdAtIdx: index("product_created_at_idx").on(table.createdAt),
     updatedAtIdx: index("product_updated_at_idx").on(table.updatedAt),
     brandIdx: index("product_brand_idx").on(table.brand),
     categoryIdx: index("product_category_idx").on(table.category),
+    // Composite index for frequent filtering by user and status
+    userStatusIdx: index("product_user_status_idx").on(table.userId, table.status),
   }),
 );
+
+
+export interface OrderItem {
+  name: string;
+  price: number;
+  quantity: number;
+  currency: string;
+  skuId?: string;
+  itemId?: string; // Superbuy item ID
+  orderId?: string; // Superbuy order ID
+  status?: string;
+  snapshotUrl?: string; // Image of the item
+  remark?: string;
+  url?: string;
+  weight?: number;
+  itemBarcode?: string;
+  goodsCode?: string;
+}
 
 // Orders table - New entity for Superbuy orders
 export const orders = sqliteTable(
@@ -216,7 +240,6 @@ export const orders = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id),
-    orderNumber: text("order_number"), // Deprecated: use superbuyId
     superbuyId: text("superbuy_id").notNull(), // Superbuy Order No (e.g., DO24811014466)
     status: text("status").notNull().default("Pending"),
     platform: text("platform"), // e.g., Taobao, Weidian
@@ -228,7 +251,7 @@ export const orders = sqliteTable(
     currency: text("currency").default("CNY"),
 
     // Items
-    items: text("items", { mode: "json" }).$type<any[]>(),
+    items: text("items", { mode: "json" }).$type<OrderItem[]>(),
 
     createdAt: text("created_at")
       .notNull()
@@ -242,6 +265,8 @@ export const orders = sqliteTable(
     superbuyIdIdx: index("order_superbuy_id_idx").on(table.superbuyId),
     statusIdx: index("order_status_idx").on(table.status),
     createdAtIdx: index("order_created_at_idx").on(table.createdAt),
+    // Composite index for frequent filtering by user and status
+    userStatusIdx: index("order_user_status_idx").on(table.userId, table.status),
   }),
 );
 
@@ -256,10 +281,16 @@ export const parcels = sqliteTable(
       .notNull()
       .references(() => users.id),
     superbuyId: text("superbuy_id").notNull(), // Superbuy Parcel No (e.g., PN...)
+    name: text("name"), // User friendly name
     trackingNumber: text("tracking_number"), // International tracking
     weight: real("weight"), // Weight in grams
     status: text("status").notNull().default("Pending"),
     carrier: text("carrier"), // e.g., E-EMS
+
+    // Financials
+    totalPrice: real("total_price"),
+    pricePerGram: real("price_per_gram"),
+    isActive: integer("is_active").notNull().default(1),
 
     createdAt: text("created_at")
       .notNull()
@@ -451,8 +482,8 @@ export const dashboardConfig = sqliteTable(
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
-export type Parcelle = typeof parcelles.$inferSelect;
-export type NewParcelle = typeof parcelles.$inferInsert;
+export type Parcel = typeof parcels.$inferSelect;
+export type NewParcel = typeof parcels.$inferInsert;
 
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
@@ -537,6 +568,19 @@ export const superbuySync = sqliteTable(
   }),
 );
 
+
+export interface IntegrationCredentials {
+  api_key?: string;
+  client_id?: string;
+  client_secret?: string;
+  access_token?: string;
+  refresh_token?: string;
+  expires_at?: string;
+  username?: string;
+  password?: string; // Encrypted separate, this is likely for display or non-strict auth
+  [key: string]: string | number | boolean | undefined;
+}
+
 // Integration Credentials table - for storing external service tokens/cookies
 export const integrationCredentials = sqliteTable(
   "integration_credentials",
@@ -548,8 +592,8 @@ export const integrationCredentials = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     provider: text("provider").notNull(), // e.g., 'superbuy'
-    credentials: text("credentials", { mode: "json" }).$type<Record<string, any>>(),
-    cookies: text("cookies", { mode: "json" }).$type<any[]>(),
+    credentials: text("credentials", { mode: "json" }).$type<IntegrationCredentials>(),
+    cookies: text("cookies", { mode: "json" }).$type<unknown[]>(),
     lastUsedAt: text("last_used_at"),
     createdAt: text("created_at")
       .notNull()
@@ -573,3 +617,45 @@ export const integrationCredentials = sqliteTable(
 
 export type SuperbuyParcel = typeof parcels.$inferSelect;
 export type NewSuperbuyParcel = typeof parcels.$inferInsert;
+
+// ============================================================================
+// BACKGROUND JOBS
+// ============================================================================
+
+export const jobs = sqliteTable(
+  "jobs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    type: text("type").notNull(), // 'superbuy_sync', 'market_analysis', etc.
+    status: text("status", { enum: ["pending", "processing", "completed", "failed", "cancelling", "cancelled"] })
+      .notNull()
+      .default("pending"),
+    progress: integer("progress").default(0),
+    result: text("result", { mode: "json" }).$type<Record<string, unknown>>(),
+    error: text("error"),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text("updated_at")
+      .notNull()
+      .$onUpdate(() => new Date().toISOString()),
+  },
+  (table) => ({
+    userIdx: index("job_user_idx").on(table.userId),
+    statusIdx: index("job_status_idx").on(table.status),
+    createdAtIdx: index("job_created_at_idx").on(table.createdAt),
+  }),
+);
+
+export type NewSuperbuySync = typeof superbuySync.$inferInsert;
+
+export type Job = typeof jobs.$inferSelect;
+export type NewJob = typeof jobs.$inferInsert;
+
+export type IntegrationCredential = typeof integrationCredentials.$inferSelect;
+export type NewIntegrationCredential = typeof integrationCredentials.$inferInsert;
