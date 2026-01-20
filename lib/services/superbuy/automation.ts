@@ -119,7 +119,8 @@ export class SuperbuyAutomationService {
   public async sync(
     userId: string,
     credentials?: { email?: string; password?: string },
-    onProgress?: (progress: number, message: string) => Promise<void>
+    onProgress?: (progress: number, message: string) => Promise<void>,
+    enrichProducts: boolean = true
   ): Promise<{ success: boolean; message: string; data?: { parcelsCount: number; ordersCount: number } }> {
     let browser: Browser | null = null;
     try {
@@ -273,7 +274,7 @@ export class SuperbuyAutomationService {
       if (onProgress) await onProgress(20, "Scraping parcels...");
       // const ordersCount = await this.scrapeOrders(page, userId);
       const ordersCount = 0;
-      const parcelsCount = await this.scrapeParcels(page, userId, onProgress);
+      const parcelsCount = await this.scrapeParcels(page, userId, onProgress, enrichProducts);
 
       return {
         success: true,
@@ -500,7 +501,7 @@ export class SuperbuyAutomationService {
 
 
 
-  private async scrapeParcels(page: Page, userId: string, onProgress?: (p: number, m: string) => Promise<void>): Promise<number> {
+  private async scrapeParcels(page: Page, userId: string, onProgress?: (p: number, m: string) => Promise<void>, enrichProducts: boolean = true): Promise<number> {
 
     // Use the URL provided by user for parcels JSON
     await page.goto('https://front.superbuy.com/package/package/list');
@@ -520,7 +521,7 @@ export class SuperbuyAutomationService {
 
       if (products.length > 0) {
         if (onProgress) await onProgress(40, `Found ${products.length} products.Syncing...`);
-        await this.syncProductsFromParcels(userId, products, onProgress);
+        await this.syncProductsFromParcels(userId, products, onProgress, enrichProducts);
       }
     }
 
@@ -595,33 +596,36 @@ export class SuperbuyAutomationService {
     }
   }
 
-  private async syncProductsFromParcels(userId: string, productsList: ParsedSuperbuyProduct[], onProgress?: (p: number, m: string) => Promise<void>) {
+  private async syncProductsFromParcels(userId: string, productsList: ParsedSuperbuyProduct[], onProgress?: (p: number, m: string) => Promise<void>, enrichProducts: boolean = true) {
     const db = await databaseService.getDb() as BetterSQLite3Database<typeof schema>;
 
-    // 1. Initialize Enrichment Service if enabled
+    // 1. Initialize Enrichment Service if enabled and requested
     let enrichmentService: ProductEnrichmentService | null = null;
     let confidenceThreshold = 0.9;
-    try {
-      const cred = await db.query.integrationCredentials.findFirst({
-        where: (t, { eq, and }) => and(
-          eq(t.userId, userId),
-          eq(t.provider, "gemini")
-        )
-      });
 
-      if (cred && cred.credentials) {
-        const validation = GeminiCredentialsSchema.safeParse(cred.credentials);
+    if (enrichProducts) {
+      try {
+        const cred = await db.query.integrationCredentials.findFirst({
+          where: (t, { eq, and }) => and(
+            eq(t.userId, userId),
+            eq(t.provider, "gemini")
+          )
+        });
 
-        if (validation.success && validation.data.enabled && validation.data.apiKey) {
-          const credentials = validation.data;
-          const apiKey = await decryptSecret(credentials.apiKey, userId);
-          const model = credentials.model || "gemini-2.0-flash";
-          confidenceThreshold = credentials.confidenceThreshold ?? 0.9;
-          enrichmentService = new ProductEnrichmentService(apiKey, model);
+        if (cred && cred.credentials) {
+          const validation = GeminiCredentialsSchema.safeParse(cred.credentials);
+
+          if (validation.success && validation.data.enabled && validation.data.apiKey) {
+            const credentials = validation.data;
+            const apiKey = await decryptSecret(credentials.apiKey, userId);
+            const model = credentials.model || "gemini-2.0-flash";
+            confidenceThreshold = credentials.confidenceThreshold ?? 0.9;
+            enrichmentService = new ProductEnrichmentService(apiKey, model);
+          }
         }
+      } catch (e: unknown) {
+        logger.error("Failed to initialize enrichment service", { error: e });
       }
-    } catch (e: unknown) {
-      logger.error("Failed to initialize enrichment service", { error: e });
     }
 
     // Collect products that need enrichment for parallel processing

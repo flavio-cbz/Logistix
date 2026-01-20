@@ -138,7 +138,8 @@ export class SuperbuySyncService extends BaseService {
     userId: string,
     credentials?: { username: string; password: string },
     headless: boolean = false,
-    jobId?: string
+    jobId?: string,
+    enrichProducts: boolean = true
   ): Promise<{ parcelsCount: number; ordersCount: number }> {
     return this.executeOperation("syncUserData", async () => {
       this.logger.info("Starting Superbuy synchronization", { userId, headless, jobId });
@@ -170,7 +171,7 @@ export class SuperbuySyncService extends BaseService {
         // 2. Sync (Scrape & Save)
         // If credentials were provided, we just connected.
         // If not, sync() will look them up in DB.
-        const syncResult = await this.automationService.sync(userId, credentials, onProgress);
+        const syncResult = await this.automationService.sync(userId, credentials, onProgress, enrichProducts);
 
         if (!syncResult.success) {
           throw this.createBusinessError(syncResult.message || "Failed to sync Superbuy data.");

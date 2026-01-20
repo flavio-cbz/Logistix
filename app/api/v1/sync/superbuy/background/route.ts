@@ -12,15 +12,20 @@ export async function POST(req: NextRequest) {
     try {
         const { user } = await requireAuth(req);
 
-        // Parse body for optional credentials (re-login case)
+        // Parse body for optional credentials (re-login case) and enrichment flag
         let credentials: { username: string; password: string } | undefined;
+        let enrichProducts = true;
+
         try {
             const body = await req.json();
             if (body.username && body.password) {
                 credentials = { username: body.username, password: body.password };
             }
+            if (typeof body.enrichProducts === 'boolean') {
+                enrichProducts = body.enrichProducts;
+            }
         } catch (_e) {
-            // Ignore JSON parse error (body might be empty)
+            // Ignore JSON parse error
         }
 
         const jobService = serviceContainer.getJobService();
@@ -38,7 +43,7 @@ export async function POST(req: NextRequest) {
         // Ideally use waitUntil() if available or a proper queue.
         (async () => {
             try {
-                await syncService.syncUserData(user.id, credentials, false, job.id);
+                await syncService.syncUserData(user.id, credentials, false, job.id, enrichProducts);
             } catch (error: unknown) {
                 logger.error('Background sync failed:', { error });
                 // Job status is already updated to 'failed' inside syncUserData catch block

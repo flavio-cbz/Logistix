@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Loader2, RefreshCw, CheckCircle2, AlertCircle, CloudOff, XCircle } from "lucide-react";
+import { Loader2, RefreshCw, CheckCircle2, AlertCircle, CloudOff, XCircle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,8 @@ import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 import { useFormatting } from "@/lib/hooks/use-formatting";
 import { logger } from "@/lib/utils/logging/logger";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface SuperbuySyncDialogProps {
   trigger?: React.ReactNode;
@@ -49,6 +51,7 @@ export function SuperbuySyncDialog({ trigger, onSyncComplete }: SuperbuySyncDial
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [enrichProducts, setEnrichProducts] = useState(true);
   const { formatDateTime } = useFormatting();
 
   // Job State
@@ -190,7 +193,7 @@ export function SuperbuySyncDialog({ trigger, onSyncComplete }: SuperbuySyncDial
       const response = await fetch("/api/v1/sync/superbuy/background", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ enrichProducts }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || data.message || "Erreur de démarrage");
@@ -323,6 +326,26 @@ export function SuperbuySyncDialog({ trigger, onSyncComplete }: SuperbuySyncDial
                   </div>
                 )}
               </div>
+
+              <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
+                <div className="flex items-center justify-between space-x-2">
+                  <Label htmlFor="enrich-mode" className="flex flex-col gap-1 cursor-pointer">
+                    <span className="font-medium flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                      Enrichissement IA
+                    </span>
+                    <span className="text-xs text-muted-foreground font-normal">
+                      Analyser automatiquement les nouveaux produits (marque, catégorie...)
+                    </span>
+                  </Label>
+                  <Switch
+                    id="enrich-mode"
+                    checked={enrichProducts}
+                    onCheckedChange={setEnrichProducts}
+                  />
+                </div>
+              </div>
+
             </div>
           ) : (
             <div className="text-center space-y-4">
