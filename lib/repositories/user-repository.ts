@@ -1,4 +1,4 @@
-import { eq, and, sql, desc, SQL } from "drizzle-orm";
+import { eq, and, sql, desc, SQL, or, count } from "drizzle-orm";
 import {
   BaseRepository,
   FilterOptions,
@@ -6,7 +6,7 @@ import {
   combineConditions,
 } from "./base-repository";
 import { DatabaseService } from "@/lib/database";
-import { users, User, NewUser } from "@/lib/database/schema";
+import { users, User, NewUser, products, parcels } from "@/lib/database/schema";
 
 // ============================================================================
 // USER REPOSITORY
@@ -154,7 +154,7 @@ export class UserRepository extends BaseRepository<
             buildTextSearch(this.table.email, options.searchTerm),
             buildTextSearch(this.table.bio, options.searchTerm),
           ];
-          conditions.push(sql`(${searchConditions.join(" OR ")})`);
+          conditions.push(or(...searchConditions));
         }
 
         // Combine with existing where clause
@@ -273,22 +273,21 @@ export class UserRepository extends BaseRepository<
 
         // Get counts from related tables
         const productCount = _db
-          .select({ count: sql`COUNT(*)` })
-          .from(_db.select().from(this.table).as("products"))
-          .where(sql`user_id = ${id}`)
+          .select({ count: count() })
+          .from(products)
+          .where(eq(products.userId, id))
           .get();
 
         const parcelleCount = _db
-          .select({ count: sql`COUNT(*)` })
-          .from(_db.select().from(this.table).as("parcelles"))
-          .where(sql`user_id = ${id}`)
+          .select({ count: count() })
+          .from(parcels)
+          .where(eq(parcels.userId, id))
           .get();
 
-        const analysisCount = _db
-          .select({ count: sql`COUNT(*)` })
-          .from(_db.select().from(this.table).as("market_analyses"))
-          .where(sql`user_id = ${id}`)
-          .get();
+        // For now, market analyses are not tracked in their own table or the table is removed
+        // We return 0 or implement logic if table exists. 
+        // Based on schema, market_analyses is removed.
+        const analysisCount = { count: 0 };
 
         return {
           totalProducts: Number(productCount?.count || 0),

@@ -31,8 +31,11 @@ export async function GET(req: NextRequest) {
 
         let apiKey = "";
 
-        if (cred && cred.credentials) {
-            const encryptedKey = (cred.credentials as GeminiCredentials).apiKey;
+         
+        const credentials = (cred?.credentials as unknown) as GeminiCredentials | undefined;
+
+        if (credentials) {
+            const encryptedKey = credentials.apiKey;
             if (encryptedKey) {
                 try {
                     apiKey = await decryptSecret(encryptedKey, user.id);

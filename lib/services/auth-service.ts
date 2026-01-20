@@ -15,6 +15,7 @@ import { getErrorMessage } from "@/lib/utils/error-utils";
 import { databaseService } from "@/lib/database";
 import { getCurrentTimestamp } from "@/lib/utils/formatting/calculations";
 import { encryptUserSecret } from "@/lib/utils/crypto-secrets";
+import { authInstrumentationCollector } from "@/lib/services/auth/auth-instrumentation";
 
 // =============================================================================
 // VALIDATION SCHEMAS
@@ -320,6 +321,15 @@ export class AuthService extends BaseService {
           expiresAt,
         });
 
+        // Enregistrement pour instrumentation
+        authInstrumentationCollector.recordEvent({
+          id: sessionId,
+          type: "session_create",
+          timestamp: Date.now(),
+          userId: userId,
+          success: true,
+        });
+
         return sessionId;
       },
       { userId },
@@ -373,6 +383,15 @@ export class AuthService extends BaseService {
         this.logger.info("Session destroyed successfully", {
           sessionId: validatedSessionId,
           userId: sessionToDelete?.user_id,
+        });
+
+        // Enregistrement pour instrumentation
+        authInstrumentationCollector.recordEvent({
+          id: validatedSessionId,
+          type: "session_destroy",
+          timestamp: Date.now(),
+          userId: sessionToDelete?.user_id,
+          success: true,
         });
       },
       { sessionId },
@@ -504,9 +523,18 @@ export class AuthService extends BaseService {
       "changePassword",
       async () => {
         this.validateUUID(userId, "userId", "changePassword");
-        // We assume passwords are validated by schema before calling this, or we can add basic checks here
-        if (!currentPassword || !newPassword) {
-          throw new ValidationError("Passwords are required", "password");
+
+        // Validate new password rules
+        this.validateWithSchema(
+          z.string()
+            .min(6, "Password must be at least 6 characters")
+            .max(100, "Password cannot exceed 100 characters"),
+          newPassword,
+          "changePassword"
+        );
+
+        if (!currentPassword) {
+          throw new ValidationError("Current password is required", "password");
         }
 
         // Get user password hash
@@ -658,6 +686,28 @@ export class AuthService extends BaseService {
    * Gets the current session user or returns null
    */
   async getSessionUser(): Promise<UserSession | null> {
+    const cookieStore = cookies();
+    const sessionId = cookieStore.get(this.cookieName)?.value;
+
+    // DEV/TEST ONLY: Bypass database check pour les sessions de test
+    // Ce bypass est DÉSACTIVÉ en production pour des raisons de sécurité
+    if (process.env.NODE_ENV !== 'production' && sessionId && sessionId.startsWith('temp_session_')) {
+      this.logger.debug("DEV ONLY BYPASS: getSessionUser for temp session", {
+        sessionId,
+        environment: process.env.NODE_ENV,
+      });
+
+      const legacyAdminId = process.env['ADMIN_ID'] || 'baa65519-e92f-4010-a3c2-e9b5c67fb0d7';
+      const userSession: UserSession = {
+        id: legacyAdminId,
+        username: 'admin',
+        isAdmin: true,
+        aiConfig: undefined,
+      };
+
+      return userSession;
+    }
+
     try {
       return await this.requireAuth();
     } catch (error) {

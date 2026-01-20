@@ -13,16 +13,22 @@ import {
   Target,
   RefreshCw,
   CheckCircle2,
-  FileText
+  FileText,
+  Package,
+  Boxes,
+  ShoppingBag
 } from "lucide-react";
 import { PageLoading } from "@/components/ui/loading-state";
 import { useStatistiques, type PeriodType, type GroupByType } from "@/lib/hooks/useStatistiques";
 import { OverviewTab, ParcellesTab, ProduitsTab } from "@/components/features/statistiques";
+import { cn } from "@/lib/shared/utils";
+import { useFormatting } from "@/lib/hooks/use-formatting";
 
 
 export default function StatistiquesPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('30d');
   const [selectedGroupBy, setSelectedGroupBy] = useState<GroupByType>('day');
+  const { formatCurrency } = useFormatting();
 
   const { data, isLoading, isError, error, refetch } = useStatistiques(
     selectedPeriod,
@@ -82,64 +88,102 @@ export default function StatistiquesPage() {
 
   const d = data;
 
+  // Calcul du ROI moyen
+  const roiMoyen = d.performanceParcelle.length > 0
+    ? d.performanceParcelle.reduce((sum, p) => sum + p.ROI, 0) / d.performanceParcelle.length
+    : 0;
+
   return (
     <div className="min-h-screen bg-background">
       <div className="space-y-6 p-6 max-w-screen-xl mx-auto">
-        {/* Page Header */}
+        {/* Page Header - Style Premium */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">
-              Statistiques Avancées
-            </h1>
-            <p className="text-muted-foreground mt-2">
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                Statistiques Avancées
+              </h1>
+              <Badge variant="secondary" className="animate-pulse">
+                <Activity className="w-3 h-3 mr-1" />
+                Temps Réel
+              </Badge>
+            </div>
+            <p className="text-muted-foreground">
               Analyses complètes • Performance en temps réel • Insights intelligents
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Badge variant="secondary" className="animate-pulse">
-              <Activity className="w-3 h-3 mr-1" />
-              Mise à jour auto (60s)
-            </Badge>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Actualiser
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            className="shrink-0"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Actualiser
+          </Button>
         </div>
 
-        {/* Status indicators */}
-        <div className="flex flex-wrap items-center gap-6 text-sm">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <span className="text-muted-foreground">
-              {d.vueEnsemble.totalProduits} produits • {d.vueEnsemble.produitsVendus} vendus
-            </span>
+        {/* Quick Stats Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+            <div className="p-2 rounded-lg bg-emerald-500/10">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Produits</p>
+              <p className="font-semibold">{d.vueEnsemble.totalProduits}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Target className="w-4 h-4 text-blue-500" />
-            <span className="text-muted-foreground">
-              Taux de vente: {d.vueEnsemble.tauxVente.toFixed(1)}%
-            </span>
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+            <div className="p-2 rounded-lg bg-blue-500/10">
+              <ShoppingBag className="w-4 h-4 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Vendus</p>
+              <p className="font-semibold">{d.vueEnsemble.produitsVendus}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-purple-500" />
-            <span className="text-muted-foreground">
-              ROI moyen: {d.performanceParcelle.length > 0
-                ? (d.performanceParcelle.reduce((sum, p) => sum + p.ROI, 0) / d.performanceParcelle.length).toFixed(1)
-                : 0}%
-            </span>
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+            <div className="p-2 rounded-lg bg-purple-500/10">
+              <Target className="w-4 h-4 text-purple-500" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Taux Vente</p>
+              <p className="font-semibold">{d.vueEnsemble.tauxVente.toFixed(1)}%</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+            <div className="p-2 rounded-lg bg-amber-500/10">
+              <TrendingUp className="w-4 h-4 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">ROI Moyen</p>
+              <p className={cn(
+                "font-semibold",
+                roiMoyen >= 50 ? "text-emerald-500" : roiMoyen >= 20 ? "text-blue-500" : "text-amber-500"
+              )}>
+                {roiMoyen.toFixed(1)}%
+              </p>
+            </div>
+          </div>
+          <div className="hidden lg:flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20">
+            <div className="p-2 rounded-lg bg-emerald-500/20">
+              <TrendingUp className="w-4 h-4 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Bénéfices</p>
+              <p className="font-semibold text-emerald-500">
+                +{formatCurrency(d.vueEnsemble.beneficesTotal)}
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Contrôles de période et groupement */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <Select value={selectedPeriod} onValueChange={(value: PeriodType) => setSelectedPeriod(value)}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-36 bg-muted/30 border-border/50">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -152,7 +196,7 @@ export default function StatistiquesPage() {
             </Select>
 
             <Select value={selectedGroupBy} onValueChange={(value: GroupByType) => setSelectedGroupBy(value)}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-36 bg-muted/30 border-border/50">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -163,28 +207,45 @@ export default function StatistiquesPage() {
             </Select>
           </div>
 
-          <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-            <BarChart3 className="w-3 h-3 mr-1" />
-            Période : {d.periode} • Groupé par : {d.groupBy}
-          </Badge>
+
         </div>
 
+        {/* Tabs avec design premium */}
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Vue d'Ensemble</TabsTrigger>
-            <TabsTrigger value="parcelles">Parcelles</TabsTrigger>
-            <TabsTrigger value="produits">Produits</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-muted/50">
+            <TabsTrigger
+              value="overview"
+              className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Vue d'Ensemble</span>
+              <span className="sm:hidden">Aperçu</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="parcelles"
+              className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            >
+              <Boxes className="w-4 h-4" />
+              Parcelles
+            </TabsTrigger>
+            <TabsTrigger
+              value="produits"
+              className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            >
+              <Package className="w-4 h-4" />
+              Produits
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="space-y-6 mt-6">
             <OverviewTab data={d} selectedPeriod={selectedPeriod} />
           </TabsContent>
 
-          <TabsContent value="parcelles" className="space-y-6">
+          <TabsContent value="parcelles" className="space-y-6 mt-6">
             <ParcellesTab data={d} />
           </TabsContent>
 
-          <TabsContent value="produits" className="space-y-6">
+          <TabsContent value="produits" className="space-y-6 mt-6">
             <ProduitsTab data={d} />
           </TabsContent>
         </Tabs>

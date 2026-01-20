@@ -13,6 +13,7 @@ const mockOrderRepository = {
     orderNumberExists: vi.fn(),
     findByOrderNumbers: vi.fn(),
     createMany: vi.fn(),
+    superbuyIdExists: vi.fn(),
 } as unknown as OrderRepository;
 
 const VALID_USER_ID = "123e4567-e89b-12d3-a456-426614174000";
@@ -65,10 +66,18 @@ describe("OrderService", () => {
                 status: "pending",
                 totalAmount: 100,
                 currency: "EUR",
+                superbuyId: "SB-123",
             };
-            const expectedOrder = { id: VALID_ORDER_ID, ...input, userId: VALID_USER_ID } as Order;
+            const expectedOrder = {
+                id: VALID_ORDER_ID,
+                ...input,
+                userId: VALID_USER_ID,
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z'
+            } as Order;
 
             vi.mocked(mockOrderRepository.orderNumberExists).mockResolvedValue(false);
+            vi.mocked(mockOrderRepository.superbuyIdExists).mockResolvedValue(false);
             vi.mocked(mockOrderRepository.create).mockResolvedValue(expectedOrder);
 
             const result = await orderService.createOrder(VALID_USER_ID, input as any);
@@ -81,8 +90,9 @@ describe("OrderService", () => {
             const input = {
                 orderNumber: "ORD-123",
                 status: "pending",
-                totalAmount: 100,
+                totalPrice: 100,
                 currency: "EUR",
+                superbuyId: "SB-123",
             };
             vi.mocked(mockOrderRepository.orderNumberExists).mockResolvedValue(true);
 

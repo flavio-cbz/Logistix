@@ -428,8 +428,8 @@ export function generateTypeFromSchema(
     }
 
     // This is a simplified type generator for development purposes
-    // In a real implementation, you might use libraries like zod-to-ts
-    return `// Generated interface for ${name}\n// TODO: Implement proper type generation`;
+    // Returns a placeholder since we don't include a full Schema-to-TS generator in prod dependencies
+    return `// Generated interface for ${name}\n// Note: Run 'npm run typegen' locally to generate actual types`;
 }
 
 /**

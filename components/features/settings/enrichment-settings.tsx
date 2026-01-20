@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,183 +17,27 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { logger } from "@/lib/utils/logging/logger";
-
-interface EnrichmentConfig {
-    enabled: boolean;
-    apiKey: string;
-    model: string;
-    confidenceThreshold: number; // Minimum confidence for auto-acceptance (0.0-1.0)
-}
-
-interface TestProduct {
-    id: string;
-    name: string;
-    photoUrl: string | null;
-}
-
-interface EnrichmentTestResult {
-    originalName: string;
-    name: string;
-    url: string | null;
-    confidence: number;
-    source: string;
-}
+import { useEnrichmentConfig } from "@/lib/hooks/use-enrichment-config";
 
 export function EnrichmentSettings() {
-    const [loading, setLoading] = useState(false);
-    const [config, setConfig] = useState<EnrichmentConfig>({
-        enabled: false,
-        apiKey: "",
-        model: "gemini-2.5-flash",
-        confidenceThreshold: 0.9,
-    });
     const [showKey, setShowKey] = useState(false);
 
-    // Test state
-    const [products, setProducts] = useState<TestProduct[]>([]);
-    const [selectedProductId, setSelectedProductId] = useState<string>("");
-    const [testing, setTesting] = useState(false);
-    const [testResult, setTestResult] = useState<EnrichmentTestResult | null>(null);
-
-    const [availableModels, setAvailableModels] = useState<string[]>([]);
-
-    const fetchModels = useCallback(async (key?: string) => {
-        const apiKeyToUse = key || config.apiKey;
-
-        // Don't fetch if we have no key at all and no mask
-        if (!apiKeyToUse) return;
-
-        try {
-            const headers: HeadersInit = {};
-            // Only send key if it's not masked
-            if (apiKeyToUse && !apiKeyToUse.includes("...")) {
-                headers["x-gemini-api-key"] = apiKeyToUse;
-            }
-
-            const res = await fetch("/api/v1/settings/enrichment/models", { headers });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.models && data.models.length > 0) {
-                    setAvailableModels(data.models);
-                    return;
-                }
-            }
-        } catch (e) {
-            logger.error("Failed to fetch models", { error: e });
-        }
-
-        // Fallback defaults if API fails or returns empty
-        setAvailableModels([
-            "gemini-2.5-flash",
-            "gemini-3-flash-preview",
-            "gemini-3-pro-preview",
-            "gemini-1.5-pro",
-            "gemini-1.5-flash"
-        ]);
-    }, [config.apiKey]);
-
-    // Fetch initial config
-    useEffect(() => {
-        const fetchConfig = async () => {
-            try {
-                const res = await fetch("/api/v1/settings/enrichment");
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.config) {
-                        setConfig({
-                            enabled: data.config.enabled ?? false,
-                            apiKey: data.config.apiKey || "",
-                            model: data.config.model || "gemini-2.5-flash",
-                            confidenceThreshold: data.config.confidenceThreshold ?? 0.9,
-                        });
-                        // Fetch models after getting config
-                        fetchModels(data.config.apiKey);
-                    }
-                }
-            } catch (e) {
-                logger.error("Failed to load enrichment config", { error: e });
-            }
-        };
-        fetchConfig();
-    }, [fetchModels]);
-
-    // Fetch products for testing
-    const fetchProducts = useCallback(async () => {
-        try {
-            const res = await fetch("/api/v1/settings/enrichment/products");
-            if (res.ok) {
-                const data = await res.json();
-                setProducts(data.products || []);
-            }
-        } catch (e) {
-            logger.error("Failed to load products for test", { error: e });
-        }
-    }, []);
-
-    const handleSave = async () => {
-        setLoading(true);
-        try {
-            const res = await fetch("/api/v1/settings/enrichment", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(config),
-            });
-
-            if (!res.ok) throw new Error("Failed to save configuration");
-
-            toast.success("Configuration sauvegardée", {
-                description: "Les paramètres d'enrichissement ont été mis à jour."
-            });
-            fetchModels();
-        } catch (_error) {
-            toast.error("Erreur", {
-                description: "Impossible de sauvegarder la configuration."
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleTest = async () => {
-        if (!selectedProductId) {
-            toast.error("Sélectionnez un produit pour tester");
-            return;
-        }
-
-        setTesting(true);
-        setTestResult(null);
-        try {
-            const res = await fetch("/api/v1/settings/enrichment/test", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    productId: selectedProductId,
-                    config: config // Send current config to test without saving
-                }),
-            });
-
-            const data = await res.json();
-            if (!res.ok) {
-                // Handle specific error cases
-                if (res.status === 429) {
-                    throw new Error("Quota dépassé (429). Changez de modèle (ex: gemini-2.5-flash) ou attendez.");
-                }
-                throw new Error(data.error || "Le test a échoué");
-            }
-
-            setTestResult(data.result);
-            toast.success("Test terminé");
-        } catch (error) {
-            toast.error("Erreur lors du test", {
-                description: error instanceof Error ? error.message : "Erreur inconnue"
-            });
-        } finally {
-            setTesting(false);
-        }
-    };
-
-    const selectedProduct = products.find(p => p.id === selectedProductId);
+    const {
+        config,
+        updateConfig,
+        loading,
+        saveConfig,
+        availableModels,
+        fetchModels,
+        products,
+        selectedProductId,
+        setSelectedProductId,
+        selectedProduct,
+        testing,
+        testResult,
+        fetchProducts,
+        runTest,
+    } = useEnrichmentConfig();
 
     return (
         <Card>
@@ -213,7 +57,7 @@ export function EnrichmentSettings() {
                         <Switch
                             id="enrichment-enabled"
                             checked={config.enabled}
-                            onCheckedChange={(checked) => setConfig(prev => ({ ...prev, enabled: checked }))}
+                            onCheckedChange={(checked) => updateConfig({ enabled: checked })}
                         />
                     </div>
                 </div>
@@ -229,7 +73,7 @@ export function EnrichmentSettings() {
                                     id="gemini-key"
                                     type={showKey ? "text" : "password"}
                                     value={config.apiKey}
-                                    onChange={(e) => setConfig(prev => ({ ...prev, apiKey: e.target.value }))}
+                                    onChange={(e) => updateConfig({ apiKey: e.target.value })}
                                     placeholder="AIzaSy..."
                                     className="pr-10"
                                 />
@@ -280,7 +124,7 @@ export function EnrichmentSettings() {
                         <Label htmlFor="model-select">Modèle</Label>
                         <Select
                             value={config.model}
-                            onValueChange={(val) => setConfig(prev => ({ ...prev, model: val }))}
+                            onValueChange={(val) => updateConfig({ model: val })}
                         >
                             <SelectTrigger>
                                 <SelectValue placeholder="Sélectionner un modèle" />
@@ -308,10 +152,9 @@ export function EnrichmentSettings() {
                             max="100"
                             step="5"
                             value={Math.round(config.confidenceThreshold * 100)}
-                            onChange={(e) => setConfig(prev => ({
-                                ...prev,
+                            onChange={(e) => updateConfig({
                                 confidenceThreshold: parseInt(e.target.value) / 100
-                            }))}
+                            })}
                             className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                         />
                         <p className="text-xs text-muted-foreground">
@@ -319,7 +162,7 @@ export function EnrichmentSettings() {
                         </p>
                     </div>
 
-                    <Button onClick={handleSave} disabled={loading} className="w-full">
+                    <Button onClick={saveConfig} disabled={loading} className="w-full">
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Sauvegarder la configuration
                     </Button>
@@ -358,7 +201,7 @@ export function EnrichmentSettings() {
                                 )}
                             </SelectContent>
                         </Select>
-                        <Button onClick={handleTest} disabled={testing || !selectedProductId}>
+                        <Button onClick={runTest} disabled={testing || !selectedProductId}>
                             {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                         </Button>
                     </div>

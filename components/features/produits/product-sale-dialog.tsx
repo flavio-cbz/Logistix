@@ -33,6 +33,7 @@ import { Product, Platform } from "@/lib/shared/types/entities"
 import { getSellingPrice, getListedAt, getSoldAt, type ProductWithLegacyFields } from "@/lib/utils/product-field-normalizers"
 import { DollarSign, Calendar, Store } from "lucide-react"
 import { useFormatting } from "@/lib/hooks/use-formatting"
+import { PLATFORM_OPTIONS } from "@/lib/shared/constants"
 
 // Schéma de validation pour les informations de vente
 const saleFormSchema = z.object({
@@ -237,8 +238,11 @@ export function ProductSaleDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value={Platform.LEBONCOIN}>Leboncoin</SelectItem>
-                      <SelectItem value={Platform.OTHER}>Autre</SelectItem>
+                      {PLATFORM_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -266,6 +270,6 @@ export function ProductSaleDialog({
           </form>
         </Form>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   )
 }

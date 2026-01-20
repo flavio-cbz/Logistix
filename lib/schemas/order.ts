@@ -2,11 +2,17 @@ import { z } from "zod";
 
 // Base schema aligned with backend API validation and shared types
 const baseOrderSchema = z.object({
-  superbuyId: z
+  orderNumber: z
     .string()
     .min(1, "Le numéro de commande est requis")
     .max(50, "Le numéro de commande ne peut pas dépasser 50 caractères")
     .trim(),
+  superbuyId: z
+    .string()
+    .min(1, "L'ID Superbuy est requis")
+    .max(50, "L'ID Superbuy ne peut pas dépasser 50 caractères")
+    .trim()
+    .optional(),
   status: z
     .string()
     .min(1, "Le statut est requis")

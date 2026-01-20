@@ -5,7 +5,7 @@ import { databaseService } from "@/lib/database";
 import { z } from "zod";
 
 const bulkActionSchema = z.object({
-    action: z.enum(["delete", "duplicate", "archive"]),
+    action: z.enum(["delete", "duplicate", "archive", "enrich"]),
     ids: z.array(z.string().uuid()).min(1, "Au moins un ID requis"),
 });
 
@@ -102,6 +102,116 @@ async function handlePost(req: NextRequest) {
                 affected++;
             }
         }
+    } else if (action === "enrich") {
+        // 1. Get Gemini Credentials
+        const credResult = await databaseService.queryOne<{ credentials: string }>(
+            `SELECT credentials FROM integration_credentials WHERE user_id = ? AND provider = 'gemini'`,
+            [user.id]
+        );
+
+        // Parse credentials safely
+        let credentials: { apiKey: string; model?: string; enabled?: boolean } | null = null;
+        if (credResult && credResult.credentials) {
+            try {
+                const parsed = JSON.parse(credResult.credentials);
+                // Handle both direct object or wrapper object structure
+                credentials = parsed.credentials || parsed;
+            } catch (e) {
+                console.error("Failed to parse credentials", e);
+            }
+        }
+
+        if (!credentials || !credentials.enabled) {
+            return NextResponse.json(
+                { success: false, error: { code: "CONFIG_ERROR", message: "L'enrichissement Gemini n'est pas activé ou configuré" } },
+                { status: 400 }
+            );
+        }
+
+        // Dynamically import to avoid circular deps or heavy loads
+        const { ProductEnrichmentService } = await import("@/lib/services/product-enrichment-service");
+        const { parallelWithRateLimit } = await import("@/lib/utils/rate-limiter");
+        const { decryptSecret } = await import("@/lib/utils/crypto");
+
+        const apiKey = await decryptSecret(credentials.apiKey, user.id);
+        const model = credentials.model || "gemini-2.5-flash";
+        const enrichmentService = new ProductEnrichmentService(apiKey, model);
+
+        // 2. Get Products to Enrich
+        const productsToEnrich = await databaseService.query<{
+            id: string;
+            name: string;
+            photo_url: string | null;
+            photo_urls: string | null;
+        }>(
+            `SELECT id, name, photo_url, photo_urls FROM products WHERE id IN (${placeholders}) AND user_id = ?`,
+            [...ids, user.id]
+        ) as { id: string; name: string; photo_url: string | null; photo_urls: string | null }[];
+
+        // 3. Process in Parallel
+        const tasks = productsToEnrich.map(product => async () => {
+            try {
+                // Mark as pending
+                await databaseService.execute(
+                    `UPDATE products SET enrichment_data = json_set(COALESCE(enrichment_data, '{}'), '$.enrichmentStatus', 'pending', '$.enrichedAt', ?) WHERE id = ?`,
+                    [new Date().toISOString(), product.id]
+                );
+
+                const photoUrls = product.photo_urls ? JSON.parse(product.photo_urls) : (product.photo_url ? [product.photo_url] : []);
+                if (!photoUrls.length) return false;
+
+                const result = await enrichmentService.enrichProduct(product.name, photoUrls);
+
+                // Update with result
+                // Note: We update specific fields only if they have values to avoid overwriting with empty
+                // Simple approach: Construct dynamic update
+                const now = new Date().toISOString();
+                const enrichmentData = {
+                    confidence: result.confidence,
+                    originalUrl: result.url,
+                    source: result.source,
+                    modelUsed: model,
+                    enrichedAt: now,
+                    enrichmentStatus: 'done',
+                    vintedBrandId: result.vintedBrandId,
+                    vintedCatalogId: result.vintedCatalogId,
+                };
+
+                // Helper to safely format string for SQL
+                await databaseService.execute(
+                    `UPDATE products 
+                     SET 
+                        name = COALESCE(?, name),
+                        brand = COALESCE(?, brand),
+                        category = COALESCE(?, category),
+                        subcategory = COALESCE(?, subcategory),
+                        description = COALESCE(?, description),
+                        enrichment_data = ?
+                     WHERE id = ?`,
+                    [
+                        result.name || null,
+                        result.brand || null,
+                        result.category || null,
+                        result.subcategory || null,
+                        result.description || null,
+                        JSON.stringify(enrichmentData),
+                        product.id
+                    ]
+                );
+
+                return true;
+            } catch (err) {
+                console.error(`Enrichment failed for ${product.id}`, err);
+                await databaseService.execute(
+                    `UPDATE products SET enrichment_data = json_set(COALESCE(enrichment_data, '{}'), '$.enrichmentStatus', 'failed', '$.error', ?) WHERE id = ?`,
+                    [err instanceof Error ? err.message : "Unknown error", product.id]
+                );
+                return false;
+            }
+        });
+
+        const { results } = await parallelWithRateLimit(tasks, { maxConcurrent: 3, delayBetweenMs: 500 });
+        affected = results.filter(Boolean).length;
     }
 
     return NextResponse.json({

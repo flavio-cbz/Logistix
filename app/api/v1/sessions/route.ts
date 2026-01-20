@@ -33,7 +33,7 @@ export async function GET() {
     const sessions = await authService.getUserSessions(user.id);
 
     const response = {
-      sessions: sessions.map((session: { id: string;[key: string]: unknown }) => ({
+      sessions: sessions.map((session) => ({
         ...session,
         isCurrent: session.id === currentSessionId,
       })),

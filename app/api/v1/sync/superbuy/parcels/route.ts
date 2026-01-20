@@ -45,6 +45,8 @@ import { z } from "zod";
 import { logger } from "@/lib/utils/logging/logger";
 import { SuperbuyPackageStatus } from "@/lib/services/superbuy/constants";
 
+import { type SuperbuyParcelData } from '@/lib/shared/types/superbuy';
+
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
@@ -153,6 +155,7 @@ export async function POST(req: NextRequest) {
 
     // 6. Valide les données
     const validated = syncRequestSchema.parse({ parcels, options });
+    const validatedParcels = validated.parcels as unknown as SuperbuyParcelData[];
 
     // 4. Initialise les services
     // const databaseService = DatabaseService.getInstance(); // Removed
@@ -162,7 +165,7 @@ export async function POST(req: NextRequest) {
     // 5. Lance la synchronisation
     const summary = await syncService.syncParcels(
       user.id,
-      validated.parcels,
+      validatedParcels,
       validated.options
     );
 
@@ -305,21 +308,21 @@ export async function DELETE(req: NextRequest) {
 /**
  * Normalise les données extraites de Superbuy pour correspondre au type SuperbuyParcel
  */
-function normalizeExtractedData(rawData: Record<string, unknown>): Record<string, unknown> {
-  const parcelId = (rawData['parcelId'] || rawData['orderNo']) as string;
-  const status = (rawData['status'] as string) || '';
+function normalizeExtractedData(rawData: Record<string, unknown>): SuperbuyParcelData {
+  const parcelId = (rawData['parcelId'] || rawData['orderNo'] || '') as string;
+  const status = ((rawData['status'] as string) || '');
 
   return {
     // Map champs extraits → SuperbuyParcel
     packageOrderNo: parcelId,
-    packageId: rawData['packageId'] || parseInt(parcelId?.replace(/[^0-9]/g, '') || '0'),
-    trackingNumber: rawData['trackingNumber'],
-    carrier: rawData['carrier'], // Sera normalisé par deriveCarrier
+    packageId: (rawData['packageId'] as string | number)?.toString() || parseInt(parcelId?.replace(/[^0-9]/g, '') || '0').toString(),
+    trackingNumber: (rawData['trackingNumber'] as string) || '',
+    carrier: (rawData['carrier'] as string) || '', // Sera normalisé par deriveCarrier
     orderStatus: status ? (status.toLowerCase() === 'shipped' ? SuperbuyPackageStatus.SHIPPED : status.toLowerCase() === 'received' ? SuperbuyPackageStatus.RECEIVED : SuperbuyPackageStatus.PENDING) : SuperbuyPackageStatus.PENDING,
     status: status,
-    packageRealWeight: rawData['weight'] || rawData['packageRealWeight'],
-    packageWeight: rawData['packageWeight'],
-    weight: rawData['weight'],
+    packageRealWeight: rawData['weight'] || rawData['packageRealWeight'] as number,
+    packageWeight: rawData['packageWeight'] as number,
+    weight: rawData['weight'] as number | string,
     packageTotalAmount: rawData['shippingFee'],
     shippingFee: rawData['shippingFee'],
     createdTime: rawData['createdAt'] ? new Date(rawData['createdAt'] as string).getTime() / 1000 : 0,

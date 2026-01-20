@@ -45,7 +45,6 @@ export async function POST(
 
         // Get Gemini credentials using the same pattern as automation.ts
         const db = await databaseService.getDb() as BetterSQLite3Database<typeof schema>;
-        // type QueryFn = typeof eqType;
         const cred = await db.query.integrationCredentials.findFirst({
             where: (t, { eq, and }) => and(
                 eq(t.userId, user.id),
@@ -53,15 +52,18 @@ export async function POST(
             )
         });
 
-        if (!cred?.credentials || !(cred.credentials as GeminiCredentials).enabled) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const credentials = (cred as any)?.credentials as GeminiCredentials | undefined;
+
+        if (!credentials || !credentials.enabled) {
             return NextResponse.json(
                 { error: "L'enrichissement Gemini n'est pas activé" },
                 { status: 400 }
             );
         }
 
-        const apiKey = await decryptSecret((cred.credentials as GeminiCredentials).apiKey, user.id);
-        const model = (cred.credentials as GeminiCredentials).model || "gemini-2.5-flash";
+        const apiKey = await decryptSecret(credentials.apiKey, user.id);
+        const model = credentials.model || "gemini-2.5-flash";
 
         // Get photo URLs for enrichment
         const photoUrls = (product.photoUrls as string[]) ||
@@ -88,7 +90,7 @@ export async function POST(
         const result = await enrichmentService.enrichProduct(product.name, photoUrls);
 
         // Get confidence threshold from config
-        const confidenceThreshold = (cred.credentials as GeminiCredentials).confidenceThreshold ?? 0.9;
+        const confidenceThreshold = credentials.confidenceThreshold ?? 0.9;
         const isLowConfidence = result.confidence < confidenceThreshold;
         const newName = isLowConfidence ? `"${result.name}"` : result.name;
 

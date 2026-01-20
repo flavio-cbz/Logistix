@@ -8,16 +8,9 @@ import {
 } from "@/lib/utils/api-response";
 import { logger } from "@/lib/utils/logging/logger";
 
-interface EnrichmentData {
-    enrichmentStatus?: 'pending' | 'done' | 'failed' | 'conflict';
-    candidates?: unknown[];
-    confidence?: number;
-    source?: string;
-    modelUsed?: string;
-    resolvedAt?: string;
-    resolvedBy?: 'manual' | 'candidate' | 'skipped';
-    selectedCandidateId?: string;
-}
+import { type Product } from "@/lib/database/schema";
+
+type EnrichmentData = NonNullable<Product["enrichmentData"]>;
 
 // Validation schema for conflict resolution
 const resolveConflictSchema = z.object({
@@ -53,7 +46,7 @@ export async function POST(
         }
 
         // Check if the product has a conflict status
-        const enrichmentData = product.enrichmentData as EnrichmentData | null;
+        const enrichmentData = product.enrichmentData;
 
         if (enrichmentData?.enrichmentStatus !== 'conflict' && enrichmentData?.enrichmentStatus !== 'failed') {
             logger.warn("[ResolveConflict] Product is not in conflict state", {
@@ -83,7 +76,9 @@ export async function POST(
             return createErrorResponse(new Error("Le nom du produit est requis"));
         }
 
-        const resolvedBy: 'manual' | 'candidate' = validated.candidateId === 'manual' ? 'manual' : 'candidate';
+        let resolvedBy: 'manual' | 'candidate' | 'merged' = 'candidate';
+        if (validated.candidateId === 'manual') resolvedBy = 'manual';
+        if (validated.candidateId === 'merged') resolvedBy = 'merged';
 
         const updateData = {
             name: validated.name,
@@ -106,7 +101,7 @@ export async function POST(
 
         logger.info("[ResolveConflict] Conflict resolved", {
             productId: params.id,
-            method: validated.candidateId === 'manual' ? 'manual' : 'candidate',
+            method: resolvedBy,
             newName: validated.name,
         });
 

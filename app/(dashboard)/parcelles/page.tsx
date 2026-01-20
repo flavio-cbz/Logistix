@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Package,
   RefreshCw,
@@ -11,7 +12,8 @@ import {
   Edit,
   Trash2,
   Copy,
-  UploadCloud
+  UploadCloud,
+  Eye
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -56,6 +58,7 @@ export default function ParcellesPage() {
   const deleteMutation = useDeleteParcelle();
   const updateMutation = useUpdateParcelle();
   const createMutation = useCreateParcelle();
+  const router = useRouter();
 
 
 
@@ -146,38 +149,61 @@ export default function ParcellesPage() {
   // Calculer les statistiques avec normalisation des statuts
   const stats = useMemo(() => {
     const total = parcellesList.length;
-    const enTransit = parcellesList.filter(p => p.status === "In Transit").length;
-    const livrees = parcellesList.filter(p => p.status === "Delivered").length;
-    const enAttente = parcellesList.filter(p => p.status === "Pending").length;
+    // Handle both English and French status strings
+    const enTransit = parcellesList.filter(p => ["In Transit", "En transit"].includes(p.status)).length;
+    const livrees = parcellesList.filter(p => ["Delivered", "Livré"].includes(p.status)).length;
+    const enAttente = parcellesList.filter(p => ["Pending", "En attente"].includes(p.status)).length;
     return { total, enTransit, livrees, enAttente };
   }, [parcellesList]);
 
   const getStatutBadge = (statut: string) => {
+    // Normalisation pour le calcul de l'index de progression (timeline)
+    let normalizedStatus = statut;
+    if (statut === "En attente") normalizedStatus = "Pending";
+    if (statut === "En transit") normalizedStatus = "In Transit";
+    if (statut === "Livré") normalizedStatus = "Delivered";
+
     const steps = ["Pending", "In Transit", "Delivered"];
-    const currentStepIndex = steps.indexOf(statut);
+    const currentStepIndex = steps.indexOf(normalizedStatus);
 
     // Status mapping for display
     const labels: Record<string, string> = {
+      // English
       "Pending": "En attente",
       "In Transit": "En transit",
       "Delivered": "Livré",
       "Returned": "Retourné",
       "Lost": "Perdu",
       "Cancelled": "Annulé",
+      // French (already translated)
+      "En attente": "En attente",
+      "En transit": "En transit",
+      "Livré": "Livré",
+      "Retourné": "Retourné",
+      "Perdu": "Perdu",
+      "Annulé": "Annulé",
     };
 
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: React.ComponentType<{ className?: string }> }> = {
+      // English
       "Pending": { variant: "secondary", icon: AlertTriangle },
       "In Transit": { variant: "default", icon: Truck },
       "Delivered": { variant: "outline", icon: CheckCircle2 },
       "Returned": { variant: "destructive", icon: AlertTriangle },
       "Lost": { variant: "destructive", icon: AlertTriangle },
       "Cancelled": { variant: "destructive", icon: Trash2 },
+      // French
+      "En attente": { variant: "secondary", icon: AlertTriangle },
+      "En transit": { variant: "default", icon: Truck },
+      "Livré": { variant: "outline", icon: CheckCircle2 },
+      "Retourné": { variant: "destructive", icon: AlertTriangle },
+      "Perdu": { variant: "destructive", icon: AlertTriangle },
+      "Annulé": { variant: "destructive", icon: Trash2 },
     };
 
     const config = variants[statut] || { variant: "secondary" as const, icon: AlertTriangle };
     const Icon = config.icon;
-    const isError = ["Returned", "Lost", "Cancelled"].includes(statut);
+    const isError = ["Returned", "Lost", "Cancelled", "Retourné", "Perdu", "Annulé"].includes(statut);
 
     return (
       <div className="flex flex-col gap-1.5 w-[140px]">
@@ -456,6 +482,14 @@ export default function ParcellesPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => router.push(`/parcelles/${parcelle.id}`)}
+                            title="Voir les détails"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"

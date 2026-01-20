@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { YoloCaptchaService } from '@/lib/services/captcha/yolo-captcha-service';
 import { generateHorizontalDragTrajectory } from '@/lib/utils/trajectory-generator';
+import { logger } from '@/lib/utils/logging/logger';
 
 // Types
 type FrameLike = Page | Frame;
@@ -40,7 +41,9 @@ export class AdvancedCaptchaSolver {
         if ((await locator.count()) > 0 && (await locator.isVisible())) {
           return locator;
         }
-      } catch { }
+      } catch (error) {
+        logger.debug('[CaptchaSolver] Error checking selector visibility:', { selector, error });
+      }
     }
     return null;
   }
@@ -68,13 +71,15 @@ export class AdvancedCaptchaSolver {
                 const recheckContent = await frame.locator('.tc-captcha, #tcWrap, canvas').count();
                 if (recheckContent > 0) return frame;
               }
-            } catch (_e) {
-
+            } catch (error) {
+              logger.debug('[CaptchaSolver] Iframe load timeout:', { error });
             }
             return frame;
           }
         }
-      } catch { }
+      } catch (error) {
+        logger.debug('[CaptchaSolver] Error checking iframe selector:', { error });
+      }
     }
 
     // Priority 2: Check all frames for Tencent Captcha elements
@@ -93,7 +98,9 @@ export class AdvancedCaptchaSolver {
 
             return context;
           }
-        } catch { }
+        } catch (error) {
+          logger.debug('[CaptchaSolver] Error checking container selector:', { selector, error });
+        }
       }
     }
 
@@ -111,7 +118,9 @@ export class AdvancedCaptchaSolver {
 
             return context;
           }
-        } catch { }
+        } catch (error) {
+          logger.debug('[CaptchaSolver] Error checking canvas selector:', { selector, error });
+        }
       }
     }
 
@@ -129,7 +138,9 @@ export class AdvancedCaptchaSolver {
 
             return context;
           }
-        } catch { }
+        } catch (error) {
+          logger.debug('[CaptchaSolver] Error checking fallback selector:', { selector, error });
+        }
       }
     }
 
@@ -152,7 +163,9 @@ export class AdvancedCaptchaSolver {
       if (refreshButton) {
         await refreshButton.click({ delay: 100 });
       }
-    } catch { }
+    } catch (error) {
+      logger.debug('[CaptchaSolver] Failed to click refresh button:', { error });
+    }
     await this.page.waitForTimeout(1200);
   }
 
@@ -174,14 +187,18 @@ export class AdvancedCaptchaSolver {
         }).catch(() => false);
         if (isSuccess) return true;
       }
-    } catch { }
+    } catch (error) {
+      logger.debug('[CaptchaSolver] Error checking immediate success indicators:', { error });
+    }
 
     // 2. Wait for success indicators
     try {
       await context.waitForSelector('.tc-success, .tc-success-icon, .tc-success-text', { timeout: 2000 }).catch(() => { });
       const successLocator = context.locator('.tc-success, .tc-success-icon, .tc-success-text');
       if ((await successLocator.count()) > 0 && (await successLocator.first().isVisible())) return true;
-    } catch { }
+    } catch (error) {
+      logger.debug('[CaptchaSolver] Error waiting for success indicators:', { error });
+    }
 
     // 3. Success text
     try {
@@ -190,7 +207,9 @@ export class AdvancedCaptchaSolver {
         const loc = context.locator(`text=${text}`);
         if ((await loc.count()) > 0 && (await loc.first().isVisible())) return true;
       }
-    } catch { }
+    } catch (error) {
+      logger.debug('[CaptchaSolver] Error checking success text:', { error });
+    }
 
     // 4. Continue buttons
     try {
@@ -199,7 +218,9 @@ export class AdvancedCaptchaSolver {
         const loc = context.locator(sel);
         if ((await loc.count()) > 0 && (await loc.first().isVisible())) return true;
       }
-    } catch { }
+    } catch (error) {
+      logger.debug('[CaptchaSolver] Error checking continue buttons:', { error });
+    }
 
     // 5. Iframe hidden
     try {
@@ -211,14 +232,18 @@ export class AdvancedCaptchaSolver {
         });
         if (isHidden) return true;
       }
-    } catch { }
+    } catch (error) {
+      logger.debug('[CaptchaSolver] Error checking iframe hidden state:', { error });
+    }
 
     // 6. Cookies
     try {
       const cookies = await this.page.context().cookies();
       const hasAuth = cookies.some(c => c.domain.includes('superbuy.com') && (c.name === 'LOGSTATE' && c.value === 'logged'));
       if (hasAuth) return true;
-    } catch { }
+    } catch (error) {
+      logger.debug('[CaptchaSolver] Error checking auth cookies:', { error });
+    }
 
     return false;
   }
@@ -325,11 +350,15 @@ export class AdvancedCaptchaSolver {
           try {
             fs.unlinkSync(imagePath);
             fs.rmdirSync(tempDir);
-          } catch { }
+          } catch (error) {
+            logger.debug('[CaptchaSolver] Failed to cleanup temp captcha files:', { error });
+          }
         }
         try {
           await sliderLocator.scrollIntoViewIfNeeded();
-        } catch { }
+        } catch (error) {
+          logger.debug('[CaptchaSolver] Failed to scroll slider into view:', { error });
+        }
 
         const startX = sliderBox.x + sliderBox.width / 2;
         const startY = sliderBox.y + sliderBox.height / 2;
@@ -371,15 +400,17 @@ export class AdvancedCaptchaSolver {
 
         if (attempt < 3) await this.refreshCaptcha(context);
 
-      } catch (_error) {
-
+      } catch (error) {
+        logger.warn('[CaptchaSolver] Error during captcha solve attempt:', { attempt, error });
 
         // Cleanup temp file on error
         if (!IS_DEBUG && tempDir && imagePath) {
           try {
             fs.unlinkSync(imagePath);
             fs.rmdirSync(tempDir);
-          } catch { }
+          } catch (error) {
+            logger.debug('[CaptchaSolver] Failed to cleanup temp files on error:', { error });
+          }
         }
 
         if (attempt < 3) await this.refreshCaptcha(context);

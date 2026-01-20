@@ -320,14 +320,22 @@ export function createApiHandler<TBody = unknown, TQuery = unknown>(options: {
       query = validateQuery(request);
     }
 
-    // Vérification d'authentification si nécessaire
     let userId: string | undefined;
+
+    // Vérification d'authentification si nécessaire
     if (options.requireAuth) {
-      const authHeader = request.headers.get('Authorization');
-      if (!authHeader) {
-        throw new AuthenticationError('Authorization header required');
+      try {
+        const { serviceContainer } = await import("@/lib/services/container");
+        const authService = serviceContainer.getAuthService();
+
+        // This will throw if not authenticated
+        const user = await authService.requireAuth();
+        userId = user.id;
+      } catch (error) {
+        // If it's already an API error (AuthenticationError), it will be caught by the wrapper
+        // If it's a different error, we rethrow to let the wrapper handle it
+        throw error;
       }
-      // TODO: Implement token validation
     }
 
     // Appel du handler principal
@@ -335,6 +343,7 @@ export function createApiHandler<TBody = unknown, TQuery = unknown>(options: {
       request,
       body,
       query,
+      // We can try to get the user ID if available, even if auth wasn't strictly required but present
       userId,
     });
   });

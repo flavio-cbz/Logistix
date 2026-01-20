@@ -94,7 +94,7 @@ describe('Product Calculations', () => {
         null, // prix vente
         null, // date mise en ligne
         null, // date vente
-        { id: '1', prixParGramme: 0.05 } as any // parcelle
+        { id: '1', pricePerGram: 0.05 } as any // parcelle
       );
 
       expect(metrics.coutLivraison).toBe(25);
@@ -112,7 +112,7 @@ describe('Product Calculations', () => {
         150, // prix vente
         '2025-01-01', // date mise en ligne
         '2025-01-08', // date vente
-        { id: '1', prixParGramme: 0.05 } as any // parcelle
+        { id: '1', pricePerGram: 0.05 } as any // parcelle
       );
 
       expect(metrics.coutLivraison).toBe(25);
@@ -131,7 +131,7 @@ describe('Product Calculations', () => {
           '2025-01-01',
           '2025-01-08',
           150,
-            // 'Vinted' removed as part of the update
+          // 'Vinted' removed as part of the update
         )
       ).toBe(true);
     });
@@ -142,7 +142,7 @@ describe('Product Calculations', () => {
           null,
           '2025-01-08',
           150,
-            // 'Vinted' removed as part of the update
+          // 'Vinted' removed as part of the update
         )
       ).toBe(false);
 
@@ -151,7 +151,7 @@ describe('Product Calculations', () => {
           '2025-01-01',
           null,
           150,
-            // 'Vinted' removed as part of the update
+          // 'Vinted' removed as part of the update
         )
       ).toBe(false);
 
@@ -171,7 +171,7 @@ describe('Product Calculations', () => {
         '2025-01-01',
         '2025-01-08',
         150,
-          // 'Vinted' removed as part of the update
+        // 'Vinted' removed as part of the update
       );
       expect(missing).toEqual([]);
     });

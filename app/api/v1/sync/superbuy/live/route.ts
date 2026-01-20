@@ -37,6 +37,8 @@ class NeedsAuthError extends Error {
   }
 }
 
+import { type SuperbuyParcelData } from '@/lib/shared/types/superbuy';
+
 export async function POST(req: NextRequest) {
   const steps: SyncStep[] = [];
   const logStep = (step: string, status: SyncStep['status'], message: string) => {
@@ -63,6 +65,7 @@ export async function POST(req: NextRequest) {
 
     const sessionValid = await checkSuperbuySession();
 
+
     if (!sessionValid) {
       logStep('superbuy-session', 'error', 'Session Superbuy invalide ou expirée');
 
@@ -80,7 +83,7 @@ export async function POST(req: NextRequest) {
     // 3. Lancer l'extraction Puppeteer
     logStep('extraction', 'running', 'Lancement de l\'extraction des données Superbuy');
 
-    let extractedData: unknown[];
+    let extractedData: SuperbuyParcelData[];
     try {
       extractedData = await runSuperbuyExtraction();
       logStep('extraction', 'success', `${extractedData.length} parcelles extraites`);
@@ -232,7 +235,7 @@ async function checkSuperbuySession(): Promise<boolean> {
 /**
  * Lance l'extraction Puppeteer des données Superbuy
  */
-async function runSuperbuyExtraction(): Promise<unknown[]> {
+async function runSuperbuyExtraction(): Promise<SuperbuyParcelData[]> {
   logger.info('[Extraction] 🚀 Lancement de Playwright...');
 
   const { chromium } = await import('playwright');
@@ -296,7 +299,7 @@ async function runSuperbuyExtraction(): Promise<unknown[]> {
     // Extraire les données via l'API Superbuy directement
     logger.info('[Extraction] 📊 Appel API packages...');
 
-    const parcelsData: unknown[] = [];
+    const parcelsData: SuperbuyParcelData[] = [];
 
     try {
       // Appeler l'API packages pour récupérer les parcelles
@@ -333,6 +336,7 @@ async function runSuperbuyExtraction(): Promise<unknown[]> {
 
             // Extraire les informations importantes
             const parcel = {
+              packageId: (info.packageNo || pkg.packageNo || crypto.randomUUID()), // Ensure packageId exists
               packageOrderNo: info.packageNo || pkg.packageNo || '',
               trackingNumber: info.expressNo || info.packageNo || '',
               carrier: info.deliveryCompanyName || info.deliveryName || 'Unknown',

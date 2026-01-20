@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Eraser } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
 import { CreateProductFormData } from "@/lib/schemas/product";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 const cleanSubcategoryText = (text: string) => {
     if (!text) return "";
@@ -23,7 +24,9 @@ const cleanSubcategoryText = (text: string) => {
     if (cleaned.startsWith('["') && cleaned.endsWith('"]')) {
         try {
             cleaned = JSON.parse(cleaned)[0];
-        } catch (_e) { }
+        } catch (_e) {
+            // Parsing failed - use original text as fallback
+        }
     }
     // Remove common prefixes
     cleaned = cleaned.replace(/^category:/i, "").replace(/^catégorie:/i, "").trim();
@@ -152,12 +155,11 @@ export function BasicInfoSection({ form, isSubmitting }: BasicInfoSectionProps) 
                 name="photoUrl"
                 render={({ field }) => (
                     <FormItem>
+                        <FormLabel>Photo du produit</FormLabel>
                         <FormControl>
-                            <Input
-                                placeholder="URL de l'image (ex: https://...)"
-                                {...field}
-                                value={field.value ?? ""}
-                                onChange={(e) => field.onChange(e.target.value)}
+                            <ImageUpload
+                                value={field.value}
+                                onChange={(url) => field.onChange(url)}
                                 disabled={isSubmitting}
                             />
                         </FormControl>

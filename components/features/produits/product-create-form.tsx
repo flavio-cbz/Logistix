@@ -89,11 +89,11 @@ function ProductCreateFormRefactored({
       subcategory: "",
       price: 0,
       poids: 0,
-      parcelleId: "",
+      parcelId: "",
       vendu: "0",
-      dateMiseEnLigne: "",
-      dateVente: "",
-      prixVente: 0,
+      listedAt: "",
+      soldAt: "",
+      sellingPrice: 0,
       plateforme: "leboncoin" as Platform,
       currency: "EUR",
       status: ProductStatus.DRAFT,
@@ -123,24 +123,24 @@ function ProductCreateFormRefactored({
 
   // Memoized calculations
   const selectedParcelle = useMemo(() => {
-    return (parcelles ?? []).find((p) => p.id === watchedValues.parcelleId);
-  }, [parcelles, watchedValues.parcelleId]);
+    return (parcelles ?? []).find((p) => p.id === watchedValues.parcelId);
+  }, [parcelles, watchedValues.parcelId]);
 
   const metrics = useMemo(() => {
     return calculateProductMetrics(
       watchedValues.price || 0,
       watchedValues.poids || 0,
-      watchedValues.prixVente,
-      watchedValues.dateMiseEnLigne,
-      watchedValues.dateVente,
+      watchedValues.sellingPrice,
+      watchedValues.listedAt,
+      watchedValues.soldAt,
       selectedParcelle
     );
   }, [
     watchedValues.price,
     watchedValues.poids,
-    watchedValues.prixVente,
-    watchedValues.dateMiseEnLigne,
-    watchedValues.dateVente,
+    watchedValues.sellingPrice,
+    watchedValues.listedAt,
+    watchedValues.soldAt,
     selectedParcelle,
   ]);
 
@@ -148,9 +148,9 @@ function ProductCreateFormRefactored({
     if (!isVendu) return { isValid: true, missing: [] };
 
     const missing = getMissingSoldFields(
-      watchedValues.dateMiseEnLigne,
-      watchedValues.dateVente,
-      watchedValues.prixVente
+      watchedValues.listedAt,
+      watchedValues.soldAt,
+      watchedValues.sellingPrice
     );
 
     return {
@@ -190,14 +190,14 @@ function ProductCreateFormRefactored({
       // Transform form values - convert empty strings to null for consistency
       const transformedValues = {
         ...values,
-        parcelleId: values.parcelleId || null,
+        parcelId: values.parcelId || null,
         userId: editProduct?.userId || "current-user",
         color: values.color && values.color.trim() !== "" ? values.color : null,
         size: values.size && values.size.trim() !== "" ? values.size : null,
-        dateMiseEnLigne: values.dateMiseEnLigne || null,
-        dateVente: values.dateVente || null,
+        listedAt: values.listedAt || null,
+        soldAt: values.soldAt || null,
         coutLivraison: values.coutLivraison ?? null,
-        prixVente: values.prixVente ?? null,
+        sellingPrice: values.sellingPrice ?? null,
         plateforme: values.plateforme ?? null,
         photoUrl: values.photoUrl && values.photoUrl.trim() !== "" ? values.photoUrl : null,
         brand: values.brand && values.brand.trim() !== "" ? values.brand : null,
@@ -256,7 +256,7 @@ function ProductCreateFormRefactored({
   const isSubmitting =
     createProductMutation.isPending || updateProductMutation.isPending;
   const hasMetrics = metrics.coutTotal > 0;
-  const showProfitMetrics = isVendu && (watchedValues.prixVente || 0) > 0;
+  const showProfitMetrics = isVendu && (watchedValues.sellingPrice || 0) > 0;
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>

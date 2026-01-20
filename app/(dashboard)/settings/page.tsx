@@ -16,7 +16,8 @@ export default async function SettingsPage() {
   }
 
   // Load user data
-  const db = await databaseService.getDb();
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const db = await databaseService.getDb() as import("drizzle-orm/better-sqlite3").BetterSQLite3Database<typeof import("@/lib/database/schema") >;
   const profile = await db.select().from(users).where(eq(users.id, user.id)).get();
 
   if (!profile) {

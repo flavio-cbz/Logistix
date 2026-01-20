@@ -244,7 +244,8 @@ async function determineTestAdminUserId(): Promise<string> {
     );
 
     // Initialiser la base de données si nécessaire
-    const db = await databaseService.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db: any = await databaseService.getDb();
 
     // Chercher d'abord un utilisateur avec le plus de données
     try {

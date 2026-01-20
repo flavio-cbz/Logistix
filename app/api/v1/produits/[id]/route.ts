@@ -4,6 +4,7 @@ import {
   createSuccessResponse,
   createNotFoundResponse
 } from "@/lib/utils/api-response";
+import { updateProductSchema } from "@/lib/schemas/product";
 
 // GET /api/v1/produits/[id] - Récupérer un produit
 export async function GET(
@@ -37,10 +38,13 @@ export async function PUT(
     const user = await authService.requireAuth();
 
     const json = await request.json();
-    const productService = serviceContainer.getProductService();
 
-    // Note: ProductService handles ownership check internally
-    const updatedProduct = await productService.updateProduct(params.id, user.id, json);
+    // Validate with shared schema - field names now match database directly
+    const validatedData = updateProductSchema.parse(json);
+
+    // No manual mapping needed - schema fields match database columns
+    const productService = serviceContainer.getProductService();
+    const updatedProduct = await productService.updateProduct(params.id, user.id, validatedData);
 
     if (!updatedProduct) {
       return createNotFoundResponse("Produit");

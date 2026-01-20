@@ -14,7 +14,7 @@ const mockProductRepository = {
 
 const mockParcelleRepository = {
     getTransporteurSuggestions: vi.fn(),
-    findParcelles: vi.fn(),
+    findParcels: vi.fn(),
 } as unknown as ParcelleRepository;
 
 const mockUserRepository = {
@@ -50,15 +50,19 @@ describe("SearchService", () => {
     describe("globalSearch", () => {
         it("should return products and parcels", async () => {
             const products = [{ id: "p1", userId: VALID_USER_ID, name: "Product 1", createdAt: "2023-01-01" }];
-            const parcels = [{ id: "pa1", userId: VALID_USER_ID, numero: "123", transporteur: "DHL", createdAt: "2023-01-01" }];
+            const parcels = [{ id: "pa1", userId: VALID_USER_ID, superbuyId: "123", transporteur: "DHL", createdAt: "2023-01-01" }];
 
             vi.mocked(mockProductRepository.search).mockResolvedValue(products as any);
-            vi.mocked(mockParcelleRepository.findParcelles).mockResolvedValue(parcels as any);
+            vi.mocked(mockParcelleRepository.findParcels).mockResolvedValue(parcels as any);
 
             const result = await searchService.globalSearch("query", VALID_USER_ID);
 
             expect(mockProductRepository.search).toHaveBeenCalledWith(expect.objectContaining({ name: "query", userId: VALID_USER_ID }));
-            expect(mockParcelleRepository.findParcelles).toHaveBeenCalledWith(expect.objectContaining({ searchTerm: "query", userId: VALID_USER_ID }));
+            expect(mockParcelleRepository.findParcels).toHaveBeenCalledWith(expect.objectContaining({
+                searchTerm: "query",
+                userId: VALID_USER_ID,
+                limit: 10
+            }));
             expect(result.products).toHaveLength(1);
             expect(result.parcels).toHaveLength(1);
             expect(result.products[0].productName).toBe("Product 1");

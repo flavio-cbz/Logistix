@@ -1,7 +1,5 @@
 
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
-import * as fs from 'fs';
-import * as path from 'path';
 import { databaseService } from '@/lib/database/database-service';
 import { integrationCredentials, products, parcels, type NewParcel, type NewProduct } from '@/lib/database/schema';
 import { eq, and, getTableColumns } from 'drizzle-orm';
@@ -496,12 +494,6 @@ export class SuperbuyAutomationService {
     } catch (e: unknown) {
       logger.error('[Superbuy] Login exception', { error: e });
 
-      try {
-        const debugDir = path.resolve(process.cwd(), 'superbuy-debug');
-        if (!fs.existsSync(debugDir)) fs.mkdirSync(debugDir, { recursive: true });
-        await page.screenshot({ path: path.join(debugDir, `error - ${Date.now()}.png`), fullPage: true });
-      } catch { }
-
       return false;
     }
   }
@@ -972,37 +964,43 @@ export class SuperbuyAutomationService {
   private mapStatus(status: string): string {
     const s = status.toLowerCase().trim();
 
-    // En attente
+    // Pending
     if (['payment pending', 'payment verification', 'review pending', 'verified', 'waiting packing'].includes(s)) {
-      return 'En attente';
+      return 'Pending';
     }
 
-    // En transit
+    // In Transit
     if (['packing', 'packaging completed', 'shipped'].includes(s)) {
-      return 'En transit';
+      return 'In Transit';
     }
 
-    // Livré
+    // Delivered
     if (['received'].includes(s)) {
-      return 'Livré';
+      return 'Delivered';
     }
 
-    // Retourné
+    // Returned
     if (['returned', 'returned by chinese customs', 'returned by customs'].includes(s)) {
-      return 'Retourné';
+      return 'Returned';
     }
 
-    // Perdu
-    if (['cancelled'].includes(s)) {
-      return 'Perdu';
+    // Cancelled
+    if (['cancelled', 'void'].includes(s)) {
+      return 'Cancelled';
+    }
+
+    // Lost
+    if (['lost'].includes(s)) {
+      return 'Lost';
     }
 
     // Fallback heuristics if exact match fails
-    if (s.includes('ship') || s.includes('transit')) return 'En transit';
-    if (s.includes('deliver') || s.includes('sign') || s.includes('received')) return 'Livré';
-    if (s.includes('return')) return 'Retourné';
-    if (s.includes('cancel') || s.includes('lost')) return 'Perdu';
+    if (s.includes('ship') || s.includes('transit')) return 'In Transit';
+    if (s.includes('deliver') || s.includes('sign') || s.includes('received')) return 'Delivered';
+    if (s.includes('return')) return 'Returned';
+    if (s.includes('cancel')) return 'Cancelled';
+    if (s.includes('lost')) return 'Lost';
 
-    return 'En attente';
+    return 'Pending';
   }
 }

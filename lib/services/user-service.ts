@@ -40,8 +40,8 @@ export class UserService extends BaseService {
                 email: user.email,
                 bio: user.bio,
                 avatar: user.avatar,
-                language: user.language,
-                theme: user.theme,
+                language: user["language"],
+                theme: user["theme"],
                 role: user.role,
                 lastLoginAt: user.lastLoginAt,
                 createdAt: user.createdAt,
@@ -144,8 +144,8 @@ export class UserService extends BaseService {
 
             // Prepare update data
             const updateData: Record<string, unknown> = {};
-            if (data.theme) updateData.theme = data.theme;
-            if (data.language) updateData.language = data.language;
+            if (data.theme) updateData["theme"] = data.theme;
+            if (data.language) updateData["language"] = data.language;
 
             // Update user
             // We need to update preferences field manually as updateProfile only handles specific fields
@@ -155,7 +155,7 @@ export class UserService extends BaseService {
 
             await userRepository.update(userId, {
                 ...updateData,
-                preferences: JSON.stringify(updatedPreferences),
+                preferences: updatedPreferences,
             });
 
             return { message: "Settings updated successfully" };

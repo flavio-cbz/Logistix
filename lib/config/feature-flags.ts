@@ -390,8 +390,8 @@ export function withFeatureFlag(flagName: keyof FeatureFlagsConfig) {
   ) {
     const method = descriptor.value;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    descriptor.value = async function (this: ContextWithUser, ...args: any[]) {
+     
+    descriptor.value = async function (this: ContextWithUser, ...args: unknown[]) {
       // Try to extract userId from this or first argument
       const userId = this.userId || (args.length > 0 && typeof args[0] === 'object' && args[0] && 'userId' in args[0] ? (args[0] as ContextWithUser).userId : undefined);
       const enabled = await isFeatureEnabled(flagName, userId);

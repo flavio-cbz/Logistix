@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ProductCreateForm from "@/components/features/produits/product-create-form";
 import { useProducts } from "@/lib/hooks/use-products";
-import { Product } from "@/lib/shared/types/entities";
+import { Product, EnrichmentData } from "@/lib/shared/types/entities";
 import { SuperbuySyncDialog } from "@/components/features/superbuy/sync-dialog";
 import {
   calculateProductProfit,
@@ -28,7 +28,7 @@ import {
 } from "@/lib/utils/product-field-normalizers";
 import ProductsList from "@/components/features/produits/produits-list";
 import ProductsGridView from "@/components/features/produits/products-grid-view";
-import { ProductFilters } from "@/components/features/produits/components/product-filters";
+import { ProductFilters, EnrichmentStatusFilter } from "@/components/features/produits/components/product-filters";
 import { PageLoading } from "@/components/ui/loading-state";
 
 // NOTE: ProductsList now consumes products via `useProducts()` internally.
@@ -45,6 +45,7 @@ export default function RevolutionaryProductsPage() {
   const [searchValue, setSearchValue] = useState("");
   const [statusFilter, setStatusFilter] = useState<("all" | "available" | "online" | "sold")[]>(["all"]);
   const [platformFilter, setPlatformFilter] = useState<string[]>([]);
+  const [enrichmentFilter, setEnrichmentFilter] = useState<EnrichmentStatusFilter[]>(["all"]);
 
   // Hooks pour les données
   const { data: productsResponse, isLoading, error, refetch } = useProducts();
@@ -88,9 +89,33 @@ export default function RevolutionaryProductsPage() {
         }
       }
 
+      // Filtre enrichissement
+      if (!enrichmentFilter.includes("all")) {
+        const enrichmentData = product.enrichmentData as EnrichmentData | undefined;
+        const enrichmentStatus = enrichmentData?.enrichmentStatus;
+
+        let productEnrichmentStatus: EnrichmentStatusFilter;
+        if (!enrichmentData || !enrichmentStatus) {
+          productEnrichmentStatus = "not_analyzed";
+        } else if (enrichmentStatus === 'done') {
+          productEnrichmentStatus = "identified";
+        } else if (enrichmentStatus === 'pending') {
+          productEnrichmentStatus = "pending";
+        } else if (enrichmentStatus === 'conflict') {
+          productEnrichmentStatus = "conflict";
+        } else if (enrichmentStatus === 'failed') {
+          // Treat both quota errors and regular failures as "error"
+          productEnrichmentStatus = "error";
+        } else {
+          productEnrichmentStatus = "not_analyzed";
+        }
+
+        if (!enrichmentFilter.includes(productEnrichmentStatus)) return false;
+      }
+
       return true;
     });
-  }, [products, searchValue, statusFilter, platformFilter]);
+  }, [products, searchValue, statusFilter, platformFilter, enrichmentFilter]);
 
   // bulk actions placeholder (unused for now)
   // const handleBulkAction = async (action: 'archive' | 'export' | 'edit') => { /* ... */ };
@@ -273,6 +298,8 @@ export default function RevolutionaryProductsPage() {
         onStatusFilterChange={setStatusFilter}
         platformFilter={platformFilter}
         onPlatformFilterChange={setPlatformFilter}
+        enrichmentFilter={enrichmentFilter}
+        onEnrichmentFilterChange={setEnrichmentFilter}
       />
 
       {/* Liste des produits dans une Card */}

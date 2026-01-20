@@ -87,6 +87,11 @@ describe('Utilitaires de base', () => {
       expect(result).toContain('15');
       expect(result).toMatch(/(06|juin)/i);
     });
+
+    it('devrait retourner une chaîne vide pour une date invalide', () => {
+      const result = formatDate('invalid-date');
+      expect(result).toBe('');
+    });
   });
 
   describe('sleep', () => {

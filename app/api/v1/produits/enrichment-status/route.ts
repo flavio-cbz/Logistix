@@ -30,19 +30,27 @@ export async function POST(request: NextRequest) {
         const completedIds: string[] = [];
         const stillPendingIds: string[] = [];
 
-        for (const productId of productIds) {
-            const product = await productService.getProduct(productId, user.id);
-            if (product) {
-                const enrichmentData = product.enrichmentData as EnrichmentData | null;
-                const status = enrichmentData?.enrichmentStatus;
+        // Process in parallel for better performance
+        await Promise.all(
+            productIds.map(async (productId: string) => {
+                try {
+                    const product = await productService.getProduct(productId, user.id);
+                    if (product) {
+                        const enrichmentData = product.enrichmentData as EnrichmentData | null;
+                        const status = enrichmentData?.enrichmentStatus;
 
-                if (status === 'done' || status === 'failed') {
-                    completedIds.push(productId);
-                } else if (status === 'pending') {
-                    stillPendingIds.push(productId);
+                        if (status === 'done' || status === 'failed') {
+                            completedIds.push(productId);
+                        } else if (status === 'pending') {
+                            stillPendingIds.push(productId);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error checking status for product ${productId}:`, error);
+                    // Continue with other products
                 }
-            }
-        }
+            })
+        );
 
         return NextResponse.json({
             completedIds,

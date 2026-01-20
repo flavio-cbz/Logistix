@@ -10,6 +10,7 @@ import { StatisticsService } from "./statistics-service";
 import { UserService } from "./user-service";
 import { JobService } from "./job-service";
 import { MarketAnalysisService } from "./market-analysis-service";
+import { ProductEnrichmentService } from "./product-enrichment-service";
 
 import { OrderRepository, ProductRepository, UserRepository, SuperbuySyncRepository, JobRepository, ParcelRepository } from "@/lib/repositories";
 import { DatabaseService } from "@/lib/database";
@@ -36,7 +37,7 @@ interface ServiceRegistration<T = unknown> {
 /**
  * Enhanced dependency injection container with proper service management
  */
-class ServiceContainer {
+export class ServiceContainer {
   private static instance: ServiceContainer;
   private readonly services = new Map<string, ServiceRegistration>();
   private readonly logger: ILogger;
@@ -257,6 +258,24 @@ class ServiceContainer {
 
     const service = new MarketAnalysisService(this.getProductRepository());
     this.register("MarketAnalysisService", () => service, true);
+    return service;
+  }
+
+  /**
+   * Convenience getter for ProductEnrichmentService
+   */
+  getProductEnrichmentService(): ProductEnrichmentService {
+    if (this.has("ProductEnrichmentService")) {
+      return this.get("ProductEnrichmentService");
+    }
+
+    const apiKey = process.env["GEMINI_API_KEY"] || "";
+    if (!apiKey) {
+      this.logger.warn("GEMINI_API_KEY is not set. Product enrichment will not work.");
+    }
+
+    const service = new ProductEnrichmentService(apiKey);
+    this.register("ProductEnrichmentService", () => service, true);
     return service;
   }
 

@@ -98,6 +98,22 @@ export function useParcelles() {
 }
 
 /**
+ * Hook pour récupérer une parcelle spécifique par ID
+ * Utilise le cache des parcelles si disponible
+ */
+export function useParcelle(id: string | undefined) {
+  const { data: parcelles, isLoading, error } = useParcelles();
+
+  const parcelle = parcelles?.find(p => p.id === id);
+
+  return {
+    data: parcelle,
+    isLoading,
+    error,
+  };
+}
+
+/**
  * Hook pour créer une nouvelle parcelle avec transformation automatique des données
  * @returns Une mutation pour créer une parcelle
  */
@@ -153,11 +169,17 @@ export const useUpdateParcelle = () => {
   return useMutation<Parcelle, Error, { id: string; data: UpdateParcelFormData }>({
     mutationFn: ({ id, data }) => updateParcelle(id, data),
     onSuccess: async () => {
+      // Invalidate parcelles cache
       await queryClient.invalidateQueries({
         queryKey: ["parcelles"],
-        refetchType: 'active' // Force le refetch immédiat des queries actives
+        refetchType: 'active'
       });
-      // Petit délai pour s'assurer que le refetch est terminé
+      // Also invalidate products cache - products depend on parcel's pricePerGram
+      // for shipping cost calculations
+      await queryClient.invalidateQueries({
+        queryKey: ["products"],
+        refetchType: 'active'
+      });
       await new Promise(resolve => setTimeout(resolve, 100));
     },
     onError: (error: unknown) => {
@@ -169,7 +191,6 @@ export const useUpdateParcelle = () => {
         // Silently ignore; apiFetch will have redirected
         return;
       }
-      // logger.error("Failed to update parcelle:", error);
     },
   });
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { MoreVertical, Edit, Trash2, DollarSign, Package, TrendingUp, RefreshCw, CheckCircle, AlertTriangle, Sparkles, HelpCircle, Shirt, Footprints, ShoppingBag } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,10 +17,13 @@ import { Product, EnrichmentData } from "@/lib/shared/types/entities";
 import { formatEuro } from "@/lib/utils/formatting";
 import ProductCreateForm from "./product-create-form";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { ConflictResolutionDialog } from "./conflict-resolution-dialog";
+import { EnhancedConflictResolutionDialog } from "./enhanced-conflict-resolution-dialog";
 import { useDeleteProduct } from "@/lib/hooks/use-products";
 import { useEnrichmentPolling, useRetryEnrichment } from "@/lib/hooks/use-enrichment";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useProductSelection } from "@/lib/hooks/use-product-selection";
+import { BatchActionsBar } from "./batch-actions-bar";
 
 interface ProductsGridViewProps {
   products: Product[];
@@ -32,16 +35,25 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [conflictProduct, setConflictProduct] = useState<Product | null>(null);
+  const [canceledEnrichments, setCanceledEnrichments] = useState<Set<string>>(new Set());
 
   const deleteMutation = useDeleteProduct();
   const { retryEnrichment } = useRetryEnrichment();
 
+  const selection = useProductSelection(products);
+  const { selectedIds, toggleSelect, clearSelection, selectRange } = selection;
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+
   // Get IDs of products with pending enrichment for polling
   const pendingProductIds = useMemo(() => {
     return products
-      .filter(p => (p.enrichmentData as EnrichmentData | undefined)?.enrichmentStatus === 'pending')
+      .filter(p => {
+        // Exclude canceled products from polling
+        if (canceledEnrichments.has(p.id)) return false;
+        return (p.enrichmentData as EnrichmentData | undefined)?.enrichmentStatus === 'pending';
+      })
       .map(p => p.id);
-  }, [products]);
+  }, [products, canceledEnrichments]);
 
   // Poll for enrichment completion
   useEnrichmentPolling({
@@ -49,6 +61,26 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
     pendingProductIds,
     intervalMs: 5000,
   });
+
+  // Show toast notification for quota errors
+  useEffect(() => {
+    const quotaErrors = products.filter(p => {
+      const enrichmentData = p.enrichmentData as EnrichmentData | undefined;
+      if (!enrichmentData || enrichmentData.enrichmentStatus !== 'failed') return false;
+      const errorMessage = enrichmentData.error || '';
+      return errorMessage.includes('429') ||
+        errorMessage.toLowerCase().includes('quota') ||
+        errorMessage.toLowerCase().includes('rate limit');
+    });
+
+    if (quotaErrors.length > 0) {
+      // Show toast only if we haven't shown it recently
+      toast.error("Quota API épuisé", {
+        description: "Le quota gratuit Gemini est épuisé. Réessayez plus tard ou configurez une clé API payante.",
+        id: "quota-error-toast", // Use ID to prevent duplicate toasts
+      });
+    }
+  }, [products]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -98,6 +130,13 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
 
   const handleRetryEnrichment = useCallback(async (productId: string) => {
     setRetryingId(productId);
+    // Remove from canceled set so the pending badge shows up again
+    setCanceledEnrichments(prev => {
+      const next = new Set(prev);
+      next.delete(productId);
+      return next;
+    });
+
     try {
       await retryEnrichment(productId);
       toast.success("✓ Enrichissement relancé", {
@@ -133,15 +172,74 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
 
     const status = enrichmentData.enrichmentStatus;
 
-    if (status === 'pending') {
+    // Don't show pending badge if product has been canceled
+    if (status === 'pending' && !canceledEnrichments.has(product.id)) {
+      const handleCancelEnrichment = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        // Immediately mark as canceled to hide the badge
+        setCanceledEnrichments(prev => new Set(prev).add(product.id));
+
+        try {
+          const response = await fetch(`/api/v1/produits/${product.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              enrichmentData: {
+                ...enrichmentData,
+                enrichmentStatus: 'failed',
+                error: 'Annulé par l\'utilisateur',
+              },
+            }),
+          });
+
+          if (!response.ok) throw new Error('Erreur lors de l\'annulation');
+
+          toast.success("✓ Enrichissement annulé");
+          onUpdate?.();
+        } catch (error) {
+          // On error, remove from canceled set to show pending badge again
+          setCanceledEnrichments(prev => {
+            const next = new Set(prev);
+            next.delete(product.id);
+            return next;
+          });
+          toast.error("Échec de l'annulation", {
+            description: error instanceof Error ? error.message : "Erreur inconnue",
+          });
+        }
+      };
+
       return (
-        <Badge variant="outline" className="ml-1 text-xs animate-pulse">
-          <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+        <Badge variant="outline" className="ml-1 text-xs animate-pulse flex items-center gap-1">
+          <RefreshCw className="h-3 w-3 animate-spin" />
           Enrichissement...
+          <button
+            onClick={handleCancelEnrichment}
+            className="ml-1 w-3 h-3 bg-red-600 hover:bg-red-700 rounded-sm flex items-center justify-center transition-colors"
+            title="Annuler l'enrichissement"
+          >
+            <span className="sr-only">Annuler</span>
+          </button>
         </Badge>
       );
     }
     if (status === 'failed') {
+      // Check if the error is a quota/rate limit error
+      const errorMessage = enrichmentData.error || '';
+      const isQuotaError = errorMessage.includes('429') ||
+        errorMessage.toLowerCase().includes('quota') ||
+        errorMessage.toLowerCase().includes('rate limit');
+
+      if (isQuotaError) {
+        return (
+          <Badge variant="destructive" className="ml-1 text-xs">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Erreur
+          </Badge>
+        );
+      }
+
       return (
         <Badge variant="destructive" className="ml-1 text-xs">
           <AlertTriangle className="h-3 w-3 mr-1" />
@@ -159,7 +257,7 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
     }
     if (status === 'done' && enrichmentData.confidence >= 0.9) {
       return (
-        <Badge variant="default" className="ml-1 text-xs bg-success hover:bg-success/90">
+        <Badge variant="secondary" className="ml-1 text-xs bg-emerald-600 text-white hover:bg-emerald-600/90 border-0">
           <CheckCircle className="h-3 w-3 mr-1" />
           Identifié
         </Badge>
@@ -201,6 +299,14 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
 
   return (
     <>
+      <BatchActionsBar
+        selectedIds={selectedIds}
+        onClearSelection={clearSelection}
+        onSuccess={() => {
+          clearSelection();
+          onUpdate?.();
+        }}
+      />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {products.map((product) => {
           const profit = calculateProfit(product);
@@ -210,6 +316,26 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
             <Card key={product.id} className="hover:shadow-lg transition-shadow group">
               <CardHeader className="space-y-2 pb-3">
                 <div className="flex items-start justify-between">
+                  <Checkbox
+                    checked={selectedIds.has(product.id)}
+                    onCheckedChange={(checked) => {
+                      // Handled by onClick for shift key access, but keeping this for accessibility/completeness
+                      if (!checked) toggleSelect(product.id);
+                    }}
+                    className="mr-3 mt-1 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                    onClick={(e) => {
+                      e.stopPropagation();
+
+                      if (e.shiftKey && lastSelectedId) {
+                        // Range selection
+                        selectRange(lastSelectedId, product.id);
+                      } else {
+                        // Single toggle
+                        toggleSelect(product.id);
+                        setLastSelectedId(product.id);
+                      }
+                    }}
+                  />
                   <div className="flex-1 space-y-1 flex flex-wrap gap-1 items-center">
                     {getStatusBadge(product)}
                     {getEnrichmentBadge(product)}
@@ -380,7 +506,7 @@ export default function ProductsGridView({ products, onUpdate }: ProductsGridVie
       />
 
       {/* Dialog de résolution de conflit */}
-      <ConflictResolutionDialog
+      <EnhancedConflictResolutionDialog
         product={conflictProduct}
         open={!!conflictProduct}
         onOpenChange={(open) => {

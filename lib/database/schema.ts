@@ -42,6 +42,20 @@ export const users = sqliteTable(
       dateFormat?: "DD/MM/YYYY" | "MM/DD/YYYY";
       autoExchangeRate?: boolean;
       animations?: boolean;
+      // Auto-sync settings
+      autoSync?: {
+        enabled?: boolean;
+        interval?: "hourly" | "daily" | "weekly" | "manual";
+        syncParcels?: boolean;
+        syncOrders?: boolean;
+        notifyOnSync?: boolean;
+      };
+      // Order-to-product matching settings
+      orderMatching?: {
+        autoCreateProducts?: boolean;
+        autoEnrich?: boolean;
+        defaultParcelId?: string;
+      };
     }>(),
     createdAt: text("created_at")
       .notNull()
@@ -153,7 +167,7 @@ export const products = sqliteTable(
       generatedDescription?: string;
       // Conflict resolution fields
       resolvedAt?: string;
-      resolvedBy?: 'manual' | 'candidate' | 'skipped';
+      resolvedBy?: 'manual' | 'candidate' | 'skipped' | 'merged';
       selectedCandidateId?: string;
       // Multiple candidates for conflict resolution
       candidates?: Array<{
@@ -186,6 +200,11 @@ export const products = sqliteTable(
     vendu: text("vendu", { enum: ["0", "1"] })
       .notNull()
       .default("0"), // Legacy compatibility
+
+    // Source tracking for order-to-product matching
+    sourceOrderId: text("source_order_id").references(() => orders.id, { onDelete: "set null" }),
+    sourceItemId: text("source_item_id"), // Item ID within the order
+    sourceUrl: text("source_url"), // Original link from order
 
     // Timestamps
     createdAt: text("created_at")
@@ -240,6 +259,7 @@ export const orders = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id),
+    orderNumber: text("order_number"),
     superbuyId: text("superbuy_id").notNull(), // Superbuy Order No (e.g., DO24811014466)
     status: text("status").notNull().default("Pending"),
     platform: text("platform"), // e.g., Taobao, Weidian
@@ -307,6 +327,39 @@ export const parcels = sqliteTable(
     createdAtIdx: index("parcel_created_at_idx").on(table.createdAt),
   }),
 );
+
+// Shipping Price History - Tracks changes in price per gram over time
+export const shippingPriceHistory = sqliteTable(
+  "shipping_price_history",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    parcelId: text("parcel_id")
+      .references(() => parcels.id, { onDelete: "set null" }),
+    carrier: text("carrier").notNull(),
+    pricePerGram: real("price_per_gram").notNull(),
+    totalWeight: real("total_weight"),
+    totalPrice: real("total_price"),
+    source: text("source").notNull().default("manual"), // manual, superbuy_sync, parcel_update
+    notes: text("notes"),
+    recordedAt: text("recorded_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => ({
+    userIdx: index("shipping_history_user_idx").on(table.userId),
+    carrierIdx: index("shipping_history_carrier_idx").on(table.carrier),
+    recordedAtIdx: index("shipping_history_recorded_at_idx").on(table.recordedAt),
+    userCarrierIdx: index("shipping_history_user_carrier_idx").on(table.userId, table.carrier),
+  }),
+);
+
+export type ShippingPriceHistoryRecord = typeof shippingPriceHistory.$inferSelect;
+export type NewShippingPriceHistoryRecord = typeof shippingPriceHistory.$inferInsert;
 
 // ============================================================================
 // MARKET ANALYSIS AND TRACKING - REMOVED AS PART OF FEATURE REMOVAL
@@ -570,7 +623,8 @@ export const superbuySync = sqliteTable(
 
 
 export interface IntegrationCredentials {
-  api_key?: string;
+  api_key?: string; // Legacy/Standard
+  apiKey?: string; // Gemini/Modern
   client_id?: string;
   client_secret?: string;
   access_token?: string;

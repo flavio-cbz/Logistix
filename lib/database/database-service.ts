@@ -4,8 +4,7 @@ import {
 } from "drizzle-orm/better-sqlite3";
 import { sql } from "drizzle-orm";
 // import Database from "better-sqlite3"; // Removed static import to allow conditional require
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let Database: any = null;
+let Database: unknown = null;
 import * as schema from "./schema";
 // import { migrate } from "drizzle-orm/better-sqlite3/migrator"; // Unused
 import path from "path";
@@ -19,7 +18,9 @@ let useFallback = false;
 try {
   Database = require("better-sqlite3");
   // Test si les binaries fonctionnent
-  const testDb = new Database(":memory:");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const DatabaseConstructor = Database as new (path: string) => any;
+  const testDb = new DatabaseConstructor(":memory:");
   testDb.close();
 } catch (error: unknown) {
   logger.warn("better-sqlite3 not available, using fallback service", {
@@ -65,13 +66,33 @@ export interface TransactionOptions {
  * - Error handling and logging
  * - Type safety through Drizzle ORM
  */
+
+
 export type { FallbackDatabaseService };
+
+// Interface definitions for better-sqlite3 to avoid 'any'
+interface SQLiteRunResult {
+  changes: number;
+  lastInsertRowid: number | bigint;
+}
+
+interface SQLiteStatement {
+  all(...params: unknown[]): unknown[];
+  get(...params: unknown[]): unknown;
+  run(...params: unknown[]): SQLiteRunResult;
+}
+
+interface BetterSqlite3Database {
+  pragma(statement: string): unknown;
+  prepare(sql: string): SQLiteStatement;
+  transaction<T>(fn: () => T): () => T;
+  close(): void;
+}
 
 export class DatabaseService {
   private static instance: DatabaseService;
   private db!: BetterSQLite3Database<typeof schema>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private sqliteDb!: any; // Kept as any because better-sqlite3 is conditionally imported
+  private sqliteDb!: BetterSqlite3Database; // Dynamic import, now typed
   private fallbackService?: FallbackDatabaseService;
   private config: DatabaseConfig;
   private isInitialized = false;
@@ -139,7 +160,9 @@ export class DatabaseService {
       // Essayer better-sqlite3 d'abord
       try {
         // Create SQLite connection
-        this.sqliteDb = new Database(this.config.path!);
+         
+        const DatabaseConstructor = Database as new (path: string) => BetterSqlite3Database;
+        this.sqliteDb = new DatabaseConstructor(this.config.path!);
 
         // Configure SQLite for optimal performance
         if (this.config.enableWAL) {
@@ -151,7 +174,8 @@ export class DatabaseService {
         this.sqliteDb.pragma("temp_store = MEMORY");
 
         // Initialize Drizzle ORM
-        this.db = drizzle(this.sqliteDb, {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.db = drizzle(this.sqliteDb as any, {
           schema,
           logger: this.config.enableLogging ?? false,
         });
@@ -193,13 +217,12 @@ export class DatabaseService {
     await this.ensureInitialized();
 
     if (this.fallbackService) {
-      // TODO: Typer correctement le fallback service
       return await this.fallbackService.queryMany<T>(query, params);
     }
 
     // Utiliser better-sqlite3 avec Drizzle
     const stmt = this.sqliteDb.prepare(query);
-    return stmt.all(...params);
+    return stmt.all(...params) as T[];
   }
 
   /**
@@ -209,13 +232,12 @@ export class DatabaseService {
     await this.ensureInitialized();
 
     if (this.fallbackService) {
-      // TODO: Typer correctement le fallback service
       return await this.fallbackService.queryOne<T>(query, params);
     }
 
     // Utiliser better-sqlite3 avec Drizzle
     const stmt = this.sqliteDb.prepare(query);
-    return stmt.get(...params) || null;
+    return (stmt.get(...params) as T) || null;
   }
 
   /**

@@ -30,7 +30,9 @@ export async function GET() {
             return NextResponse.json({ config: { enabled: false } });
         }
 
-        const { apiKey, model, enabled } = cred.credentials as GeminiCredentials;
+         
+        const credentials = (cred.credentials as unknown) as GeminiCredentials;
+        const { apiKey, model, enabled } = credentials;
         // Decrypt key
         let decryptedKey = "";
         if (apiKey) {
@@ -66,7 +68,8 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { enabled, apiKey, model } = body;
 
-        const db = await databaseService.getDb();
+         
+        const db = await databaseService.getDb() as import("drizzle-orm/better-sqlite3").BetterSQLite3Database<typeof import("@/lib/database/schema") >;
 
         // Prepare credentials object
         // If apiKey is masked (contains ...), we need to fetch existing and keep it
@@ -78,14 +81,16 @@ export async function POST(req: NextRequest) {
             encryptedKey = await encryptSecret(apiKey, user.id);
         } else {
             // Fetch existing to preserve key
-            const existing = await db.query.integrationCredentials.findFirst({
+            const dbQuery = db as unknown as import("drizzle-orm/better-sqlite3").BetterSQLite3Database<typeof import("@/lib/database/schema") >;
+            const existing = await dbQuery.query.integrationCredentials.findFirst({
                 where: (t, { eq, and }) => and(
                     eq(t.userId, user.id),
                     eq(t.provider, "gemini")
                 )
             });
             if (existing && existing.credentials) {
-                encryptedKey = (existing.credentials as GeminiCredentials).apiKey;
+                 
+                encryptedKey = ((existing.credentials as unknown) as GeminiCredentials).apiKey;
             }
         }
 

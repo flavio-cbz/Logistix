@@ -25,7 +25,7 @@ vi.mock("@/lib/services/container", () => ({
     serviceContainer: {
         getUserRepository: vi.fn(),
         getProductRepository: vi.fn(),
-        getParcelleRepository: vi.fn(),
+        getParcelRepository: vi.fn(),
     },
 }));
 
@@ -40,7 +40,7 @@ describe("UserService", () => {
 
         vi.mocked(serviceContainer.getUserRepository).mockReturnValue(mockUserRepository);
         vi.mocked(serviceContainer.getProductRepository).mockReturnValue(mockProductRepository);
-        vi.mocked(serviceContainer.getParcelleRepository).mockReturnValue(mockParcelleRepository);
+        vi.mocked(serviceContainer.getParcelRepository).mockReturnValue(mockParcelleRepository);
     });
 
     describe("getProfile", () => {
@@ -130,7 +130,7 @@ describe("UserService", () => {
 
             expect(mockUserRepository.update).toHaveBeenCalledWith(VALID_USER_ID, expect.objectContaining({
                 theme: "light",
-                preferences: expect.stringContaining('"currency":"USD"'),
+                preferences: expect.objectContaining({ currency: "USD" }),
             }));
         });
     });

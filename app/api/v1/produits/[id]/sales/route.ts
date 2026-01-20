@@ -53,7 +53,7 @@ export async function POST(
       sellingPrice: prixVente, // Modern field
       dateVente: dateVente || today,
       dateMiseEnLigne: dateMiseEnLigne, // Utiliser la date fournie par le formulaire
-      plateforme: plateforme, // Requis par le schéma
+      plateforme: plateforme as import("@/lib/database/schema").Platform, // Requis par le schéma
       status: 'sold' as const,
     };
 

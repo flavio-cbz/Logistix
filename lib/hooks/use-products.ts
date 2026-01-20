@@ -125,7 +125,8 @@ export function useProductFormData(product?: Product) {
   return useMemo(() => {
     if (!product) return undefined;
 
-    // Convertir les valeurs pour le formulaire (null -> "" pour les champs texte)
+    // Convert values for form (null -> "" for text fields)
+    // Field names now match schema directly - no translation needed
     return {
       name: product.name || "",
       brand: product.brand || "",
@@ -137,9 +138,10 @@ export function useProductFormData(product?: Product) {
       poids: product.poids || 0,
       parcelId: product.parcelId || "",
       vendu: product.vendu || "0",
-      dateMiseEnLigne: product.dateMiseEnLigne || "",
-      dateVente: product.dateVente || "",
-      prixVente: product.prixVente || 0,
+      // Use database field names directly
+      listedAt: product.listedAt || "",
+      soldAt: product.soldAt || "",
+      sellingPrice: product.sellingPrice || 0,
       plateforme: (product.plateforme || Platform.LEBONCOIN) as Platform,
       url: product.url || "",
       photoUrl: product.photoUrl || "",

@@ -60,7 +60,7 @@ export function FinancialDetailsSection({
                                 <div className="relative">
                                     <Input
                                         type="number"
-                                        step="0.01"
+                                        step="0.0001"
                                         {...field}
                                         onChange={(e) =>
                                             field.onChange(
@@ -128,7 +128,7 @@ export function FinancialDetailsSection({
             {/* Parcelle */}
             <FormField
                 control={form.control}
-                name="parcelleId"
+                name="parcelId"
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>

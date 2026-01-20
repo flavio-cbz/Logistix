@@ -157,6 +157,47 @@ export class OrderRepository extends BaseRepository<
   }
 
   /**
+   * Check if order number exists for a user
+   */
+  public async orderNumberExists(
+    userId: string,
+    orderNumber: string,
+    excludeId?: string,
+  ): Promise<boolean> {
+    try {
+      return await this.executeCustomQuery((db) => {
+        let whereClause = and(
+          eq(this.table.orderNumber, orderNumber),
+          eq(this.table.userId, userId),
+        );
+
+        if (excludeId) {
+          whereClause = and(
+            eq(this.table.orderNumber, orderNumber),
+            eq(this.table.userId, userId),
+            sql`${this.table.id} != ${excludeId}`,
+          );
+        }
+
+        const result = db
+          .select({ id: this.table.id })
+          .from(this.table)
+          .where(whereClause)
+          .get();
+
+        return result !== undefined;
+      }, "orderNumberExists");
+    } catch (error) {
+      this.logError("orderNumberExists failed", error, {
+        orderNumber,
+        userId,
+        excludeId,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Find orders by a list of Superbuy IDs for a specific user
    */
   async findBySuperbuyIds(userId: string, superbuyIds: string[]): Promise<Order[]> {

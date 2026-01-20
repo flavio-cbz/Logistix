@@ -73,19 +73,46 @@ export function useRetryEnrichment() {
     const queryClient = useQueryClient();
 
     const retryEnrichment = useCallback(async (productId: string) => {
-        const response = await fetch(`/api/v1/produits/${productId}/retry-enrichment`, {
-            method: "POST",
+        // Optimistic update: Mark as pending immediately
+        queryClient.setQueryData(["products"], (old: any) => {
+            if (!old?.data) return old;
+            return {
+                ...old,
+                data: old.data.map((p: any) => {
+                    if (p.id === productId) {
+                        return {
+                            ...p,
+                            enrichmentData: {
+                                ...(p.enrichmentData || {}),
+                                enrichmentStatus: 'pending', // Force pending status
+                                enrichedAt: new Date().toISOString()
+                            }
+                        };
+                    }
+                    return p;
+                })
+            };
         });
 
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.message || "Échec du ré-enrichissement");
+        try {
+            const response = await fetch(`/api/v1/produits/${productId}/retry-enrichment`, {
+                method: "POST",
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.message || "Échec du ré-enrichissement");
+            }
+
+            // Invalidate to get the final result (success or error)
+            await queryClient.invalidateQueries({ queryKey: ["products"] });
+
+            return response.json();
+        } catch (error) {
+            // Revert on error (invalidate will handle it, but good practice)
+            await queryClient.invalidateQueries({ queryKey: ["products"] });
+            throw error;
         }
-
-        // Invalidate products to refresh the UI
-        await queryClient.invalidateQueries({ queryKey: ["products"] });
-
-        return response.json();
     }, [queryClient]);
 
     return { retryEnrichment };

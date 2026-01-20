@@ -66,6 +66,7 @@ export function StatusSection({ form }: StatusSectionProps) {
 
 import { Input } from "@/components/ui/input";
 import { useFormatting } from "@/lib/hooks/use-formatting";
+import { PLATFORM_OPTIONS } from "@/lib/shared/constants";
 
 interface SalesInfoSectionProps {
     form: UseFormReturn<CreateProductFormData>;
@@ -84,7 +85,7 @@ export function SalesInfoSection({ form }: SalesInfoSectionProps) {
             <div className="grid grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
-                    name="dateMiseEnLigne"
+                    name="listedAt"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Date de mise en ligne</FormLabel>
@@ -103,7 +104,7 @@ export function SalesInfoSection({ form }: SalesInfoSectionProps) {
 
                 <FormField
                     control={form.control}
-                    name="dateVente"
+                    name="soldAt"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Date de vente</FormLabel>
@@ -125,7 +126,7 @@ export function SalesInfoSection({ form }: SalesInfoSectionProps) {
             <div className="grid grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
-                    name="prixVente"
+                    name="sellingPrice"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Prix de vente</FormLabel>
@@ -174,10 +175,11 @@ export function SalesInfoSection({ form }: SalesInfoSectionProps) {
                                         <SelectValue placeholder="Choisir" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="leboncoin">
-                                            Le Bon Coin
-                                        </SelectItem>
-                                        <SelectItem value="autre">Autre</SelectItem>
+                                        {PLATFORM_OPTIONS.map((option) => (
+                                            <SelectItem key={option.value} value={option.value}>
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </FormControl>

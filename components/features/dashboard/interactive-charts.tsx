@@ -152,6 +152,10 @@ export function InteractiveChart({
                   borderRadius: '8px',
                   boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                 }}
+                labelFormatter={(value) => {
+                  if (!value || value === 'Invalid Date') return 'Date inconnue';
+                  return value;
+                }}
               />
               <Area
                 type="monotone"
@@ -177,6 +181,10 @@ export function InteractiveChart({
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '8px'
                 }}
+                labelFormatter={(value) => {
+                  if (!value || value === 'Invalid Date') return 'Date inconnue';
+                  return value;
+                }}
               />
               <Bar dataKey={dataKey} fill={color} radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -195,6 +203,10 @@ export function InteractiveChart({
                   backgroundColor: 'hsl(var(--popover))',
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '8px'
+                }}
+                labelFormatter={(value) => {
+                  if (!value || value === 'Invalid Date') return 'Date inconnue';
+                  return value;
                 }}
               />
               <Line

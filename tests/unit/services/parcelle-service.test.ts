@@ -3,6 +3,13 @@ import { ParcelleService } from "@/lib/services/parcelle-service";
 import { ParcelleRepository } from "@/lib/repositories/parcel-repository";
 import { Parcelle } from "@/lib/database/schema";
 
+// Mock databaseService for transactions
+vi.mock("@/lib/database/database-service", () => ({
+  databaseService: {
+    executeTransaction: vi.fn((callback) => callback()),
+  },
+}));
+
 // Mock dependencies
 const mockParcelleRepository = {
   create: vi.fn(),
@@ -13,13 +20,17 @@ const mockParcelleRepository = {
   findByUserId: vi.fn(),
   findByNumero: vi.fn(),
   numeroExists: vi.fn(),
+  superbuyIdExists: vi.fn(),
   updatePrixParGramme: vi.fn(),
   updateWithCalculation: vi.fn(),
-  getParcelleStats: vi.fn(),
+  getParcelStats: vi.fn(),
   getUserTransporteurs: vi.fn(),
   findParcellesWithProducts: vi.fn(),
-  countProductsByParcelleId: vi.fn(),
+  countProductsByParcelId: vi.fn(),
   deleteWithProducts: vi.fn(),
+  getUserCarriers: vi.fn(),
+  findBySuperbuyId: vi.fn(),
+  findByCarrier: vi.fn(),
 } as unknown as ParcelleRepository;
 
 const VALID_USER_ID = "123e4567-e89b-12d3-a456-426614174000";
@@ -36,12 +47,12 @@ describe("ParcelleService", () => {
   describe("createParcelle", () => {
     it("should create a parcelle successfully", async () => {
       const input = {
-        numero: "123456",
-        transporteur: "DHL",
-        nom: "Test Parcel",
-        statut: "En attente" as const,
-        prixAchat: 100,
-        poids: 1000,
+        superbuyId: "SB-123",
+        carrier: "DHL",
+        name: "Test Parcel",
+        status: "Pending" as const,
+        weight: 1000,
+        totalPrice: 100,
       };
 
       const expectedParcelle = {
@@ -55,6 +66,7 @@ describe("ParcelleService", () => {
         prixParGramme: 0.1,
       } as unknown as Parcelle;
 
+      vi.mocked(mockParcelleRepository.superbuyIdExists).mockResolvedValue(false);
       vi.mocked(mockParcelleRepository.create).mockResolvedValue(expectedParcelle);
 
       const result = await parcelleService.createParcelle(VALID_USER_ID, input);
@@ -102,7 +114,7 @@ describe("ParcelleService", () => {
         actif: 1,
       } as unknown as Parcelle);
 
-      vi.mocked(mockParcelleRepository.countProductsByParcelleId).mockResolvedValue(0);
+      vi.mocked(mockParcelleRepository.countProductsByParcelId).mockResolvedValue(0);
       vi.mocked(mockParcelleRepository.delete).mockResolvedValue(true);
 
       const result = await parcelleService.deleteParcelle(VALID_PARCELLE_ID, VALID_USER_ID);
@@ -122,11 +134,11 @@ describe("ParcelleService", () => {
         averagePrixParGramme: 0.03,
         byTransporteur: {},
       };
-      vi.mocked(mockParcelleRepository.getParcelleStats).mockResolvedValue(stats);
+      vi.mocked(mockParcelleRepository.getParcelStats).mockResolvedValue(stats);
 
       const result = await parcelleService.getParcelleStats(VALID_USER_ID);
 
-      expect(mockParcelleRepository.getParcelleStats).toHaveBeenCalledWith(VALID_USER_ID);
+      expect(mockParcelleRepository.getParcelStats).toHaveBeenCalledWith(VALID_USER_ID);
       expect(result).toEqual(stats);
     });
   });

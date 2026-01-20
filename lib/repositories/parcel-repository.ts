@@ -1,4 +1,4 @@
-import { eq, and, sql, gte, lte, asc, desc, inArray, SQL } from "drizzle-orm";
+import { eq, and, sql, gte, lte, asc, desc, inArray, SQL, or } from "drizzle-orm";
 import {
   BaseRepository,
   FilterOptions,
@@ -7,7 +7,7 @@ import {
   combineConditions,
 } from "./base-repository";
 import { DatabaseService } from "@/lib/database";
-import { parcels, NewParcel } from "@/lib/database/schema";
+import { parcels, NewParcel, products } from "@/lib/database/schema";
 import { Parcel } from "@/lib/types/entities";
 
 // ============================================================================
@@ -260,7 +260,7 @@ export class ParcelRepository extends BaseRepository<
             buildTextSearch(this.table.carrier, options.searchTerm),
             buildTextSearch(this.table.name, options.searchTerm),
           ];
-          conditions.push(sql`(${searchConditions.join(" OR ")})`);
+          conditions.push(or(...searchConditions));
         }
 
         // Combine all conditions
@@ -555,8 +555,6 @@ export class ParcelRepository extends BaseRepository<
   ): Promise<ParcelWithProducts[]> {
     try {
       return await this.executeCustomQuery((db) => {
-        // Import products table dynamically to avoid circular dependencies
-        const { products } = require("@/lib/database/schema");
 
         let query2 = db
           .select()
@@ -615,8 +613,6 @@ export class ParcelRepository extends BaseRepository<
   public async countProductsByParcelId(parcelId: string): Promise<number> {
     try {
       return await this.executeCustomQuery((db) => {
-        // Import products table dynamically to avoid circular dependencies
-        const { products } = require("@/lib/database/schema");
 
         const result = db
           .select({ count: sql<number>`COUNT(*)` })
@@ -638,7 +634,6 @@ export class ParcelRepository extends BaseRepository<
   public async deleteWithProducts(id: string): Promise<boolean> {
     try {
       return await this.executeCustomTransaction((db) => {
-        const { products } = require("@/lib/database/schema");
 
         // First, update any products that reference this parcel
         db.update(products)

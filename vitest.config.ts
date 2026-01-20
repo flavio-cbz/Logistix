@@ -52,6 +52,7 @@ export default defineConfig({
     },
     env: {
       JWT_SECRET: 'test-secret',
+      ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
     },
     include: [
       '**/*.test.ts',

@@ -142,4 +142,27 @@ export class ProductService extends BaseService {
             return this.productRepository.search({ userId, ...criteria });
         }, { userId, ...criteria });
     }
+
+    /**
+     * Get all products associated with a specific parcel
+     */
+    async getProductsByParcelId(parcelId: string, userId: string): Promise<Product[]> {
+        return this.executeOperation("getProductsByParcelId", async () => {
+            const { eq, and } = await import("drizzle-orm");
+            const { products } = await import("@/lib/database/schema");
+
+            const result = await this.productRepository.findWithPagination({
+                where: and(
+                    eq(products.userId, userId),
+                    eq(products.parcelId, parcelId)
+                ),
+                limit: 1000, // Get all products for the parcel
+                offset: 0,
+                orderBy: "createdAt",
+                orderDirection: "desc"
+            });
+
+            return result.data;
+        }, { parcelId, userId });
+    }
 }

@@ -15,6 +15,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+export type EnrichmentStatusFilter = "all" | "identified" | "pending" | "error" | "conflict" | "not_analyzed";
+
 interface ProductFiltersProps {
     searchValue?: string
     onSearchChange?: (value: string) => void
@@ -22,6 +24,8 @@ interface ProductFiltersProps {
     onStatusFilterChange?: (statuses: ("all" | "available" | "online" | "sold")[]) => void
     platformFilter?: string[]
     onPlatformFilterChange?: (platforms: string[]) => void
+    enrichmentFilter?: EnrichmentStatusFilter[]
+    onEnrichmentFilterChange?: (statuses: EnrichmentStatusFilter[]) => void
     className?: string
 }
 
@@ -39,6 +43,15 @@ const platformOptions = [
     { value: "eBay", label: "eBay" },
 ]
 
+const enrichmentOptions: { value: EnrichmentStatusFilter; label: string }[] = [
+    { value: "all", label: "Tous" },
+    { value: "identified", label: "Identifié" },
+    { value: "pending", label: "En cours" },
+    { value: "error", label: "Erreur" },
+    { value: "conflict", label: "Conflit" },
+    { value: "not_analyzed", label: "Non analysé" },
+]
+
 export function ProductFilters({
     searchValue = "",
     onSearchChange,
@@ -46,11 +59,14 @@ export function ProductFilters({
     onStatusFilterChange,
     platformFilter = [],
     onPlatformFilterChange,
+    enrichmentFilter = ["all"],
+    onEnrichmentFilterChange,
     className,
 }: ProductFiltersProps) {
     const activeFiltersCount =
         (statusFilter.length > 0 && !statusFilter.includes("all") ? 1 : 0) +
-        (platformFilter.length > 0 ? 1 : 0)
+        (platformFilter.length > 0 ? 1 : 0) +
+        (enrichmentFilter.length > 0 && !enrichmentFilter.includes("all") ? 1 : 0)
 
     const handleClearSearch = () => {
         onSearchChange?.("")
@@ -74,9 +90,21 @@ export function ProductFilters({
         onPlatformFilterChange?.(newPlatforms)
     }
 
+    const toggleEnrichment = (status: EnrichmentStatusFilter) => {
+        if (status === "all") {
+            onEnrichmentFilterChange?.(["all"])
+        } else {
+            const newStatuses = enrichmentFilter.includes(status)
+                ? enrichmentFilter.filter((s) => s !== status)
+                : [...enrichmentFilter.filter((s) => s !== "all"), status]
+            onEnrichmentFilterChange?.(newStatuses.length > 0 ? newStatuses : ["all"])
+        }
+    }
+
     const handleClearFilters = () => {
         onStatusFilterChange?.(["all"])
         onPlatformFilterChange?.([])
+        onEnrichmentFilterChange?.(["all"])
         onSearchChange?.("")
     }
 
@@ -141,6 +169,19 @@ export function ProductFilters({
                                 {option.label}
                             </DropdownMenuCheckboxItem>
                         ))}
+
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuLabel>État Enrichissement</DropdownMenuLabel>
+                        {enrichmentOptions.map((option) => (
+                            <DropdownMenuCheckboxItem
+                                key={option.value}
+                                checked={enrichmentFilter.includes(option.value)}
+                                onCheckedChange={() => toggleEnrichment(option.value)}
+                            >
+                                {option.label}
+                            </DropdownMenuCheckboxItem>
+                        ))}
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
@@ -165,6 +206,13 @@ export function ProductFilters({
                     {platformFilter.length > 0 && (
                         <Badge variant="secondary">
                             Plateforme: {platformFilter.join(", ")}
+                        </Badge>
+                    )}
+                    {!enrichmentFilter.includes("all") && enrichmentFilter.length > 0 && (
+                        <Badge variant="secondary">
+                            Enrichissement: {enrichmentFilter.map(s =>
+                                enrichmentOptions.find(o => o.value === s)?.label || s
+                            ).join(", ")}
                         </Badge>
                     )}
                     <Button

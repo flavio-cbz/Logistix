@@ -445,7 +445,9 @@ async function runSuperbuyExtractionDirect(): Promise<ExtractedParcel[]> {
         // Log un extrait pour aide au debug
         try {
           logger.debug('[Extraction] Structure API reçue:', { jsonPreview: JSON.stringify(json, null, 2).substring(0, 500) });
-        } catch { }
+        } catch {
+          // Intentionally ignored: debug logging failure is not critical
+        }
         throw new Error('Session Superbuy invalide ou expirée. Veuillez vous reconnecter.');
       }
     }
@@ -475,7 +477,9 @@ async function runSuperbuyExtractionDirect(): Promise<ExtractedParcel[]> {
       // Log la structure pour debug
       try {
         logger.debug('[Extraction] Structure API reçue:', { jsonPreview: JSON.stringify(json, null, 2).substring(0, 500) });
-      } catch { }
+      } catch {
+        // Intentionally ignored: debug logging failure is not critical
+      }
       throw new Error('Aucune parcelle trouvée dans la réponse Superbuy');
     }
 

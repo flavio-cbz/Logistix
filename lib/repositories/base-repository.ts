@@ -283,7 +283,7 @@ export abstract class BaseRepository<
           .get();
 
         return result !== undefined;
-      }, `${this.getTableName()}.delete `);
+      }, `${this.getTableName()}.delete`);
     } catch (error) {
       this.logError("delete failed", error, { id });
       throw error;

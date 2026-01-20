@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -12,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
 import {
   User,
   Mail,
@@ -37,212 +35,28 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useFormatting } from "@/lib/hooks/use-formatting";
-
-interface ProfileData {
-  id: string;
-  username: string;
-  email: string | null;
-  bio: string | null;
-  avatar: string | null;
-  language: string | null;
-  theme: string | null;
-  role: string;
-  lastLoginAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  stats?: {
-    totalProducts: number;
-    totalParcels: number;
-    daysActive: number;
-  };
-}
+import { useProfileEditor, usePasswordChange, type ProfileData } from "@/lib/hooks/use-profile";
 
 interface ProfileClientProps {
   initialData?: ProfileData;
 }
 
 export function ProfileClient({ initialData }: ProfileClientProps) {
-  const [profile, setProfile] = useState<ProfileData | null>(
-    initialData || null,
-  );
-  const [editedProfile, setEditedProfile] = useState<Partial<ProfileData>>({});
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(!initialData);
-  const [saving, setSaving] = useState(false);
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-  const [changingPassword, setChangingPassword] = useState(false);
   const { formatDateTime } = useFormatting();
 
+  const {
+    profile,
+    editedProfile,
+    isEditing,
+    setIsEditing,
+    loading,
+    saving,
+    handleSave,
+    handleCancel,
+    updateField,
+  } = useProfileEditor(initialData);
 
-  const getApiErrorMessage = (
-    apiResponse: unknown,
-    fallback = "Erreur inconnue",
-  ) => {
-    try {
-      if (!apiResponse) return fallback;
-      if (typeof apiResponse === "string") return apiResponse;
-
-      const res = apiResponse as {
-        error?: {
-          message?: string;
-          validationErrors?: Array<{ field?: string; message: string }>
-        };
-        success?: boolean;
-        message?: string;
-      };
-      const err = (res.error || res) as { message?: string; validationErrors?: Array<{ field?: string; message: string }> } | string;
-      if (!err) return fallback;
-      if (typeof err === "string") return err;
-
-      if (err.message) {
-        // If validation errors exist, concatenate them
-        if (
-          Array.isArray(err.validationErrors) &&
-          err.validationErrors.length
-        ) {
-          const details = err.validationErrors
-            .map((v) => (v.field ? `${v.field}: ${v.message}` : v.message))
-            .join("; ");
-          return `${err.message} — ${details}`;
-        }
-        return err.message;
-      }
-      return JSON.stringify(err);
-    } catch {
-      return fallback;
-    }
-  };
-
-  const loadProfile = useCallback(async () => {
-    try {
-      const response = await fetch("/api/v1/profile");
-      const data = await response.json();
-      if (data.success) {
-        setProfile(data.data);
-        setEditedProfile({
-          email: data.data.email || "",
-          bio: data.data.bio || "",
-          avatar: data.data.avatar || "",
-        });
-      }
-    } catch (_error) {
-      toast.error("Erreur", {
-        description: "Impossible de charger le profil",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!initialData) {
-      loadProfile();
-    } else {
-      setProfile(initialData);
-      setEditedProfile({
-        email: initialData.email || "",
-        bio: initialData.bio || "",
-        avatar: initialData.avatar || "",
-      });
-      setLoading(false);
-    }
-
-  }, [initialData, loadProfile]);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const response = await fetch("/api/v1/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editedProfile),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success("Succès", {
-          description: "Profil mis à jour avec succès",
-        });
-        setIsEditing(false);
-        await loadProfile();
-      } else {
-        const message = getApiErrorMessage(
-          data,
-          "Erreur lors de la mise à jour",
-        );
-        throw new Error(message);
-      }
-    } catch (error) {
-      toast.error("Erreur", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "Erreur lors de la mise à jour",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    setEditedProfile({
-      email: profile?.email || "",
-      bio: profile?.bio || "",
-      avatar: profile?.avatar || "",
-    });
-  };
-
-  const handlePasswordChange = async () => {
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("Erreur", {
-        description: "Les mots de passe ne correspondent pas",
-      });
-      return;
-    }
-
-    setChangingPassword(true);
-    try {
-      const response = await fetch("/api/v1/profile/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(passwordData),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success("Succès", {
-          description: "Mot de passe changé avec succès",
-        });
-        setShowPasswordDialog(false);
-        setPasswordData({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        });
-      } else {
-        const message = getApiErrorMessage(
-          data,
-          "Erreur lors du changement de mot de passe",
-        );
-        throw new Error(message);
-      }
-    } catch (error) {
-      toast.error("Erreur", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "Erreur lors du changement de mot de passe",
-      });
-    } finally {
-      setChangingPassword(false);
-    }
-  };
+  const password = usePasswordChange();
 
   if (loading || !profile) {
     return (
@@ -325,12 +139,7 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
               <Input
                 type="email"
                 value={editedProfile.email || ""}
-                onChange={(e) =>
-                  setEditedProfile((prev) => ({
-                    ...prev,
-                    email: e.target.value,
-                  }))
-                }
+                onChange={(e) => updateField("email", e.target.value)}
                 placeholder="votre@email.com"
               />
             ) : (
@@ -344,9 +153,7 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
             {isEditing ? (
               <Textarea
                 value={editedProfile.bio || ""}
-                onChange={(e) =>
-                  setEditedProfile((prev) => ({ ...prev, bio: e.target.value }))
-                }
+                onChange={(e) => updateField("bio", e.target.value)}
                 placeholder="Parlez-nous de vous..."
                 rows={4}
                 maxLength={500}
@@ -372,12 +179,7 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
               <Input
                 type="url"
                 value={editedProfile.avatar || ""}
-                onChange={(e) =>
-                  setEditedProfile((prev) => ({
-                    ...prev,
-                    avatar: e.target.value,
-                  }))
-                }
+                onChange={(e) => updateField("avatar", e.target.value)}
                 placeholder="https://exemple.com/avatar.jpg"
               />
             ) : (
@@ -409,8 +211,8 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
               </p>
             </div>
             <Dialog
-              open={showPasswordDialog}
-              onOpenChange={setShowPasswordDialog}
+              open={password.showDialog}
+              onOpenChange={password.setShowDialog}
             >
               <DialogTrigger asChild>
                 <Button variant="outline">
@@ -432,13 +234,8 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
                     <Input
                       id="currentPassword"
                       type="password"
-                      value={passwordData.currentPassword}
-                      onChange={(e) =>
-                        setPasswordData((prev) => ({
-                          ...prev,
-                          currentPassword: e.target.value,
-                        }))
-                      }
+                      value={password.passwordData.currentPassword}
+                      onChange={(e) => password.updateField("currentPassword", e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -446,13 +243,8 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
                     <Input
                       id="newPassword"
                       type="password"
-                      value={passwordData.newPassword}
-                      onChange={(e) =>
-                        setPasswordData((prev) => ({
-                          ...prev,
-                          newPassword: e.target.value,
-                        }))
-                      }
+                      value={password.passwordData.newPassword}
+                      onChange={(e) => password.updateField("newPassword", e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
                       Minimum 8 caractères, avec majuscule, minuscule, chiffre
@@ -466,29 +258,24 @@ export function ProfileClient({ initialData }: ProfileClientProps) {
                     <Input
                       id="confirmPassword"
                       type="password"
-                      value={passwordData.confirmPassword}
-                      onChange={(e) =>
-                        setPasswordData((prev) => ({
-                          ...prev,
-                          confirmPassword: e.target.value,
-                        }))
-                      }
+                      value={password.passwordData.confirmPassword}
+                      onChange={(e) => password.updateField("confirmPassword", e.target.value)}
                     />
                   </div>
                 </div>
                 <DialogFooter>
                   <Button
                     variant="outline"
-                    onClick={() => setShowPasswordDialog(false)}
-                    disabled={changingPassword}
+                    onClick={() => password.setShowDialog(false)}
+                    disabled={password.changing}
                   >
                     Annuler
                   </Button>
                   <Button
-                    onClick={handlePasswordChange}
-                    disabled={changingPassword}
+                    onClick={password.handleChange}
+                    disabled={password.changing}
                   >
-                    {changingPassword
+                    {password.changing
                       ? "Changement..."
                       : "Changer le mot de passe"}
                   </Button>

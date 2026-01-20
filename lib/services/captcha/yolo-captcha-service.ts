@@ -63,16 +63,13 @@ interface OrtModule {
   Tensor: new (type: string, data: Float32Array, dims: number[]) => unknown;
 }
 
-let ort: OrtModule | null = null;
-try {
-  ort = require('onnxruntime-node') as OrtModule;
-} catch {
-  // Ignore error, will be handled at runtime if needed
-}
+// ort will be stored in static property
+
 
 export class YoloCaptchaService {
   private static instance: YoloCaptchaService;
   // `ort` is loaded at runtime on the server.
+  public static ortModule: OrtModule | null = null;
   private session: OrtSession | null = null;
   private readonly modelPath: string;
   private readonly minConf: number;
@@ -94,13 +91,22 @@ export class YoloCaptchaService {
 
   private async ensureSession(): Promise<OrtSession> {
     if (!this.session) {
-      if (!ort) {
+      if (!YoloCaptchaService.ortModule) {
+        // Try to load it if not loaded (e.g. first run)
+        try {
+          YoloCaptchaService.ortModule = require('onnxruntime-node') as OrtModule;
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!YoloCaptchaService.ortModule) {
         throw new Error('onnxruntime-node failed to load. Check server logs for details.');
       }
       if (!fs.existsSync(this.modelPath)) {
         throw new Error(`[YoloCaptchaService] Model not found at ${this.modelPath}`);
       }
-      this.session = await (ort as OrtModule).InferenceSession.create(this.modelPath);
+      this.session = await YoloCaptchaService.ortModule.InferenceSession.create(this.modelPath);
     }
     return this.session;
   }
@@ -151,7 +157,7 @@ export class YoloCaptchaService {
       float32Data[2 * targetSize * targetSize + i] = b / 255.0; // B
     }
 
-    const tensor = new (ort as OrtModule).Tensor('float32', float32Data, [1, 3, targetSize, targetSize]);
+    const tensor = new (YoloCaptchaService.ortModule as OrtModule).Tensor('float32', float32Data, [1, 3, targetSize, targetSize]);
     return { tensor, scale, padX, padY, origWidth, origHeight };
   }
 

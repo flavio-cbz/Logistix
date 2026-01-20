@@ -38,7 +38,9 @@ export class ProductRepository extends BaseRepository<typeof products, Product, 
             conditions.push(like(products.brand, `%${criteria.brand}%`));
         }
         if (criteria.status) {
-            conditions.push(eq(products.status, criteria.status));
+            if (['draft', 'available', 'reserved', 'sold', 'removed', 'archived', 'online'].includes(criteria.status as string)) {
+                conditions.push(eq(products.status, criteria.status as import("@/lib/database/schema").ProductStatus));
+            }
         }
 
         return this.executeCustomQuery(async (db) => {

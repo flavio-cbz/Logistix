@@ -64,6 +64,10 @@ export interface PerformanceParcelle {
   ROI: number;
   prixParGramme: number;
   coutLivraisonTotal: number;
+  trackingNumber: string | null;
+  carrier: string | null;
+  status: string;
+  createdAt: string;
 }
 
 export interface TopFlopProduit {

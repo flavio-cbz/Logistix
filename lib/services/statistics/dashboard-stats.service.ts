@@ -373,6 +373,336 @@ export class DashboardStatsService extends BaseService {
 
         return alertes;
     }
+
+    // =========================================================================
+    // Profitability Dashboard Methods
+    // =========================================================================
+
+    /**
+     * Get profit breakdown by month (last 12 months)
+     */
+    async getProfitByMonth(userId: string): Promise<Array<{
+        month: string;
+        revenue: number;
+        costs: number;
+        profit: number;
+        margin: number;
+        salesCount: number;
+    }>> {
+        return this.executeOperation("getProfitByMonth", async () => {
+            const results = await databaseService.query<{
+                month: string;
+                revenue: number;
+                costs: number;
+                profit: number;
+                salesCount: number;
+            }>(
+                `SELECT 
+                    strftime('%Y-%m', p.sold_at) as month,
+                    COALESCE(SUM(p.selling_price), 0) as revenue,
+                    COALESCE(SUM(p.price + COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)), 0) as costs,
+                    COALESCE(SUM(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)), 0) as profit,
+                    COUNT(*) as salesCount
+                FROM products p
+                LEFT JOIN parcels parc ON p.parcel_id = parc.id
+                WHERE p.user_id = ? 
+                    AND p.vendu = '1' 
+                    AND p.sold_at IS NOT NULL
+                    AND p.sold_at >= date('now', '-12 months')
+                GROUP BY strftime('%Y-%m', p.sold_at)
+                ORDER BY month ASC`,
+                [userId],
+                "get-profit-by-month"
+            );
+
+            return results.map(r => ({
+                ...r,
+                margin: r.revenue > 0 ? Math.round((r.profit / r.revenue) * 10000) / 100 : 0
+            }));
+        }, { userId });
+    }
+
+    /**
+     * Get profit breakdown by category
+     */
+    async getProfitByCategory(userId: string): Promise<Array<{
+        category: string;
+        revenue: number;
+        costs: number;
+        profit: number;
+        margin: number;
+        salesCount: number;
+    }>> {
+        return this.executeOperation("getProfitByCategory", async () => {
+            const results = await databaseService.query<{
+                category: string;
+                revenue: number;
+                costs: number;
+                profit: number;
+                salesCount: number;
+            }>(
+                `SELECT 
+                    COALESCE(p.category, 'Non catégorisé') as category,
+                    COALESCE(SUM(p.selling_price), 0) as revenue,
+                    COALESCE(SUM(p.price + COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)), 0) as costs,
+                    COALESCE(SUM(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)), 0) as profit,
+                    COUNT(*) as salesCount
+                FROM products p
+                LEFT JOIN parcels parc ON p.parcel_id = parc.id
+                WHERE p.user_id = ? AND p.vendu = '1'
+                GROUP BY COALESCE(p.category, 'Non catégorisé')
+                ORDER BY profit DESC
+                LIMIT 10`,
+                [userId],
+                "get-profit-by-category"
+            );
+
+            return results.map(r => ({
+                ...r,
+                margin: r.revenue > 0 ? Math.round((r.profit / r.revenue) * 10000) / 100 : 0
+            }));
+        }, { userId });
+    }
+
+    /**
+     * Get profit breakdown by brand
+     */
+    async getProfitByBrand(userId: string): Promise<Array<{
+        brand: string;
+        revenue: number;
+        costs: number;
+        profit: number;
+        margin: number;
+        salesCount: number;
+    }>> {
+        return this.executeOperation("getProfitByBrand", async () => {
+            const results = await databaseService.query<{
+                brand: string;
+                revenue: number;
+                costs: number;
+                profit: number;
+                salesCount: number;
+            }>(
+                `SELECT 
+                    COALESCE(p.brand, 'Sans marque') as brand,
+                    COALESCE(SUM(p.selling_price), 0) as revenue,
+                    COALESCE(SUM(p.price + COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)), 0) as costs,
+                    COALESCE(SUM(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)), 0) as profit,
+                    COUNT(*) as salesCount
+                FROM products p
+                LEFT JOIN parcels parc ON p.parcel_id = parc.id
+                WHERE p.user_id = ? AND p.vendu = '1'
+                GROUP BY COALESCE(p.brand, 'Sans marque')
+                ORDER BY profit DESC
+                LIMIT 10`,
+                [userId],
+                "get-profit-by-brand"
+            );
+
+            return results.map(r => ({
+                ...r,
+                margin: r.revenue > 0 ? Math.round((r.profit / r.revenue) * 10000) / 100 : 0
+            }));
+        }, { userId });
+    }
+
+    /**
+     * Get top profitable products with detailed breakdown
+     */
+    async getTopProfitableProducts(userId: string, limit: number = 10): Promise<Array<{
+        id: string;
+        name: string;
+        brand: string | null;
+        category: string | null;
+        purchasePrice: number;
+        shippingCost: number;
+        sellingPrice: number;
+        profit: number;
+        margin: number;
+        soldAt: string | null;
+    }>> {
+        return this.executeOperation("getTopProfitableProducts", async () => {
+            const results = await databaseService.query<{
+                id: string;
+                name: string;
+                brand: string | null;
+                category: string | null;
+                purchasePrice: number;
+                shippingCost: number;
+                sellingPrice: number;
+                profit: number;
+                soldAt: string | null;
+            }>(
+                `SELECT 
+                    p.id,
+                    p.name,
+                    p.brand,
+                    p.category,
+                    p.price as purchasePrice,
+                    COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0) as shippingCost,
+                    p.selling_price as sellingPrice,
+                    (p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) as profit,
+                    p.sold_at as soldAt
+                FROM products p
+                LEFT JOIN parcels parc ON p.parcel_id = parc.id
+                WHERE p.user_id = ? AND p.vendu = '1' AND p.selling_price IS NOT NULL
+                ORDER BY profit DESC
+                LIMIT ?`,
+                [userId, limit],
+                "get-top-profitable-products"
+            );
+
+            return results.map(r => ({
+                ...r,
+                margin: r.sellingPrice > 0 ? Math.round((r.profit / r.sellingPrice) * 10000) / 100 : 0
+            }));
+        }, { userId, limit });
+    }
+
+    /**
+     * Get products sold at a loss
+     */
+    async getLossProducts(userId: string): Promise<Array<{
+        id: string;
+        name: string;
+        brand: string | null;
+        purchasePrice: number;
+        shippingCost: number;
+        sellingPrice: number;
+        loss: number;
+        soldAt: string | null;
+    }>> {
+        return this.executeOperation("getLossProducts", async () => {
+            return databaseService.query<{
+                id: string;
+                name: string;
+                brand: string | null;
+                purchasePrice: number;
+                shippingCost: number;
+                sellingPrice: number;
+                loss: number;
+                soldAt: string | null;
+            }>(
+                `SELECT 
+                    p.id,
+                    p.name,
+                    p.brand,
+                    p.price as purchasePrice,
+                    COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0) as shippingCost,
+                    p.selling_price as sellingPrice,
+                    ABS(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) as loss,
+                    p.sold_at as soldAt
+                FROM products p
+                LEFT JOIN parcels parc ON p.parcel_id = parc.id
+                WHERE p.user_id = ? 
+                    AND p.vendu = '1' 
+                    AND p.selling_price IS NOT NULL
+                    AND (p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) < 0
+                ORDER BY loss DESC`,
+                [userId],
+                "get-loss-products"
+            );
+        }, { userId });
+    }
+
+    /**
+     * Get overall profitability summary
+     */
+    async getProfitabilitySummary(userId: string): Promise<{
+        totalRevenue: number;
+        totalCosts: number;
+        totalProfit: number;
+        averageMargin: number;
+        totalSales: number;
+        profitableSales: number;
+        lossingSales: number;
+        bestMonth: { month: string; profit: number } | null;
+        bestCategory: { category: string; profit: number } | null;
+        bestBrand: { brand: string; profit: number } | null;
+    }> {
+        return this.executeOperation("getProfitabilitySummary", async () => {
+            // Get overall totals
+            const totals = await databaseService.queryOne<{
+                totalRevenue: number;
+                totalCosts: number;
+                totalProfit: number;
+                totalSales: number;
+                profitableSales: number;
+                lossingSales: number;
+            }>(
+                `SELECT 
+                    COALESCE(SUM(p.selling_price), 0) as totalRevenue,
+                    COALESCE(SUM(p.price + COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)), 0) as totalCosts,
+                    COALESCE(SUM(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)), 0) as totalProfit,
+                    COUNT(*) as totalSales,
+                    SUM(CASE WHEN (p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) >= 0 THEN 1 ELSE 0 END) as profitableSales,
+                    SUM(CASE WHEN (p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) < 0 THEN 1 ELSE 0 END) as lossingSales
+                FROM products p
+                LEFT JOIN parcels parc ON p.parcel_id = parc.id
+                WHERE p.user_id = ? AND p.vendu = '1' AND p.selling_price IS NOT NULL`,
+                [userId],
+                "get-profitability-totals"
+            );
+
+            // Get best month
+            const bestMonth = await databaseService.queryOne<{ month: string; profit: number }>(
+                `SELECT 
+                    strftime('%Y-%m', p.sold_at) as month,
+                    SUM(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) as profit
+                FROM products p
+                LEFT JOIN parcels parc ON p.parcel_id = parc.id
+                WHERE p.user_id = ? AND p.vendu = '1' AND p.sold_at IS NOT NULL
+                GROUP BY strftime('%Y-%m', p.sold_at)
+                ORDER BY profit DESC
+                LIMIT 1`,
+                [userId],
+                "get-best-month"
+            );
+
+            // Get best category
+            const bestCategory = await databaseService.queryOne<{ category: string; profit: number }>(
+                `SELECT 
+                    COALESCE(p.category, 'Non catégorisé') as category,
+                    SUM(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) as profit
+                FROM products p
+                LEFT JOIN parcels parc ON p.parcel_id = parc.id
+                WHERE p.user_id = ? AND p.vendu = '1'
+                GROUP BY category
+                ORDER BY profit DESC
+                LIMIT 1`,
+                [userId],
+                "get-best-category"
+            );
+
+            // Get best brand
+            const bestBrand = await databaseService.queryOne<{ brand: string; profit: number }>(
+                `SELECT 
+                    COALESCE(p.brand, 'Sans marque') as brand,
+                    SUM(p.selling_price - p.price - COALESCE(p.cout_livraison, parc.price_per_gram * p.poids, 0)) as profit
+                FROM products p
+                LEFT JOIN parcels parc ON p.parcel_id = parc.id
+                WHERE p.user_id = ? AND p.vendu = '1'
+                GROUP BY brand
+                ORDER BY profit DESC
+                LIMIT 1`,
+                [userId],
+                "get-best-brand"
+            );
+
+            return {
+                totalRevenue: totals?.totalRevenue || 0,
+                totalCosts: totals?.totalCosts || 0,
+                totalProfit: totals?.totalProfit || 0,
+                averageMargin: totals?.totalRevenue ? Math.round((totals.totalProfit / totals.totalRevenue) * 10000) / 100 : 0,
+                totalSales: totals?.totalSales || 0,
+                profitableSales: totals?.profitableSales || 0,
+                lossingSales: totals?.lossingSales || 0,
+                bestMonth: bestMonth || null,
+                bestCategory: bestCategory || null,
+                bestBrand: bestBrand || null,
+            };
+        }, { userId });
+    }
 }
 
 // Export singleton instance

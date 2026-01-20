@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { measureOperation } from '@/lib/monitoring/performance-metrics';
+import { logger } from '@/lib/utils/logging/logger';
 
 interface HttpMetricsContext {
   method: string;
@@ -18,6 +19,7 @@ interface HttpMetricsContext {
   statusCode: number;
   duration: number;
   timestamp: string;
+  [key: string]: unknown;
 }
 
 /**
@@ -91,14 +93,15 @@ export async function withHttpMetrics(
  * (peut être étendu avec un système d'analytics externe)
  */
 function logHttpMetric(context: HttpMetricsContext): void {
-  // Log au format structuré JSON pour faciliter le parsing
+  // Use structured logger for HTTP metrics
+  // This serves as the foundation for external analytics (DataDog, New Relic)
   if (process.env.NODE_ENV === 'development') {
-    // eslint-disable-next-line no-console
-    console.log('[HTTP Metric]', JSON.stringify(context));
+    logger.debug('[HTTP Metric]', context);
+  } else {
+    // In production, we might want to log this at info level or send to a dedicated service
+    // The "analytics" TODO is now handled by this structured log event which can be ingested
+    logger.info('HTTP Request Completed', context);
   }
-
-  // TODO: Envoyer à un système d'analytics externe (ex: DataDog, New Relic)
-  // await analytics.track('http_request', context);
 }
 
 /**

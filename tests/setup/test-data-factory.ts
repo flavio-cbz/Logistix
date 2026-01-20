@@ -6,7 +6,7 @@ export const createTestUser = (overrides: any = {}) => {
     // Use plain UUIDs to satisfy validators that expect RFC4122 UUIDs
     id: overrides.id ?? uuidv4(),
     username: overrides.username ?? `user_${Math.random().toString(36).slice(2, 8)}`,
-    email: overrides.email ?? `user+${Math.random().toString(36).slice(2,6)}@example.com`,
+    email: overrides.email ?? `user+${Math.random().toString(36).slice(2, 6)}@example.com`,
     passwordHash: overrides.passwordHash ?? 'hashed-password',
     encryptionSecret: overrides.encryptionSecret ?? 'enc-secret',
     createdAt: overrides.createdAt ?? now,
@@ -22,7 +22,7 @@ export const createTestParcelle = (overrides: any = {}) => {
   return {
     id: overrides.id ?? uuidv4(),
     userId: overrides.userId ?? uuidv4(),
-    numero: overrides.numero ?? `P-${Math.floor(Math.random()*10000)}`,
+    numero: overrides.numero ?? `P-${Math.floor(Math.random() * 10000)}`,
     transporteur: overrides.transporteur ?? 'La Poste',
     poids: overrides.poids ?? 1000,
     prixAchat: overrides.prixAchat ?? 10,
@@ -31,7 +31,7 @@ export const createTestParcelle = (overrides: any = {}) => {
     createdAt: overrides.createdAt ?? now,
     updatedAt: overrides.updatedAt ?? now,
     nom: overrides.nom ?? overrides.numero ?? 'Parcelle',
-  statut: overrides.statut ?? 'En attente',
+    statut: overrides.statut ?? 'En attente',
   } as const;
 };
 
@@ -41,7 +41,7 @@ export const createTestProduct = (overrides: any = {}) => {
   return {
     id,
     userId: overrides.userId ?? uuidv4(),
-    parcelleId: overrides.parcelleId ?? uuidv4(),
+    parcelleId: overrides.parcelleId !== undefined ? overrides.parcelleId : uuidv4(),
     name: overrides.name ?? `Product ${id}`,
     titre: overrides.titre ?? `Titre ${id}`,
     description: overrides.description ?? 'Lorem ipsum',

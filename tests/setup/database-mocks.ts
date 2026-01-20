@@ -44,10 +44,10 @@ export const createMockParcelleRepository = () => ({
 export const setupInMemoryDatabase = async () => {
   const Database = require('better-sqlite3');
   const { drizzle } = require('drizzle-orm/better-sqlite3');
-  
+
   // Import schema using ES module syntax pour que l'alias @ fonctionne
   const schema = await import('../../lib/database/schema');
-  
+
   // Create in-memory database
   const sqlite = new Database(':memory:');
   // Enforce foreign key constraints for integration tests (Better-SQLite3 requires explicit PRAGMA)
@@ -73,118 +73,124 @@ export const setupInMemoryDatabase = async () => {
   (db as any).exec = (sql: string) => {
     return sqlite.exec(sql);
   };
-  
+
   // Create tables (you would run migrations here in a real setup)
   // This is a simplified version - in practice, you'd run your actual migrations
+  // Create tables (you would run migrations here in a real setup)
   sqlite.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      username TEXT UNIQUE NOT NULL,
-      email TEXT,
-      -- keep canonical snake_case columns used by test SQL inserts
-      password_hash TEXT,
-      encryption_secret TEXT,
-      created_at TEXT,
-      updated_at TEXT
-    );
-    
-    CREATE TABLE IF NOT EXISTS parcelles (
-      id TEXT PRIMARY KEY,
-      -- user_id / userId compatibility
-      user_id TEXT,
-      userId TEXT,
-      numero TEXT NOT NULL,
-      transporteur TEXT NOT NULL,
-      poids REAL NOT NULL,
-      prix_achat REAL,
-      prixAchat REAL,
-      prix_total REAL,
-      prixTotal REAL,
-      prix_par_gramme REAL,
-      prixParGramme REAL,
-      created_at TEXT,
-      createdAt TEXT,
-      updated_at TEXT,
-      updatedAt TEXT,
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    );
-    
-    CREATE TABLE IF NOT EXISTS products (
-      id TEXT PRIMARY KEY,
-      -- userId / user_id compatibility
-      user_id TEXT,
-      userId TEXT,
-      parcelle_id TEXT,
-      parcelleId TEXT,
-      name TEXT,
-      titre TEXT,
-      description TEXT,
-      brand TEXT,
-      marque TEXT,
-      category TEXT,
-      subcategory TEXT,
-      size TEXT,
-      taille TEXT,
-      color TEXT,
-      couleur TEXT,
-      material TEXT,
-      condition TEXT,
-      weight REAL,
-      poids REAL,
-      purchase_price REAL,
-      purchasePrice REAL,
-      prix REAL,
-      price REAL,
-      selling_price REAL,
-      sellingPrice REAL,
-      prixVente REAL,
-      currency TEXT DEFAULT 'EUR',
-      status TEXT DEFAULT 'available',
-      platform TEXT,
-      plateforme TEXT,
-      externalId TEXT,
-      vintedItemId TEXT,
-      url TEXT,
-      photoUrl TEXT,
-      frais_port REAL,
-      fraisPort REAL,
-      vendu TEXT,
-      dateMiseEnLigne TEXT,
-      dateVente TEXT,
-      created_at TEXT,
-      updated_at TEXT,
-      createdAt TEXT,
-      updatedAt TEXT,
-      listedAt TEXT,
-      soldAt TEXT,
-      FOREIGN KEY (user_id) REFERENCES users(id),
-      FOREIGN KEY (parcelle_id) REFERENCES parcelles(id)
-    );
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user',
+        encryption_secret TEXT,
+        email TEXT,
+        bio TEXT,
+        avatar TEXT,
+        language TEXT,
+        theme TEXT,
+        ai_config TEXT,
+        last_login_at TEXT,
+        preferences TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      
+      -- New parcels table (replacing legacy parcelles)
+      CREATE TABLE IF NOT EXISTS parcels (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        superbuy_id TEXT NOT NULL,
+        name TEXT,
+        tracking_number TEXT,
+        weight REAL,
+        status TEXT NOT NULL DEFAULT 'Pending',
+        carrier TEXT,
+        total_price REAL,
+        price_per_gram REAL,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      );
 
-    -- Sessions table for authentication
-    CREATE TABLE IF NOT EXISTS sessions (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      expires_at TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-
-    -- Per-device user sessions (used by /api/v1/sessions)
-    CREATE TABLE IF NOT EXISTS user_sessions (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      device_name TEXT,
-      device_type TEXT,
-      ip_address TEXT,
-      user_agent TEXT,
-      last_activity_at TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      expires_at TEXT NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-  `);
+      -- Legacy parcelles table kept if needed by other tests, but should ideally be removed
+      CREATE TABLE IF NOT EXISTS parcelles (
+        id TEXT PRIMARY KEY,
+        user_id TEXT, -- Legacy compatibility
+        userId TEXT,
+        numero TEXT NOT NULL,
+        transporteur TEXT NOT NULL,
+        poids REAL NOT NULL,
+        prix_achat REAL,
+        prixAchat REAL,
+        prix_total REAL,
+        prixTotal REAL,
+        prix_par_gramme REAL,
+        prixParGramme REAL,
+        created_at TEXT,
+        createdAt TEXT,
+        updated_at TEXT,
+        updatedAt TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      );
+      
+      CREATE TABLE IF NOT EXISTS products (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        parcel_id TEXT,
+        name TEXT NOT NULL,
+        description TEXT,
+        brand TEXT,
+        category TEXT,
+        subcategory TEXT,
+        size TEXT,
+        color TEXT,
+        poids REAL DEFAULT 0,
+        price REAL NOT NULL,
+        currency TEXT DEFAULT 'EUR',
+        cout_livraison REAL,
+        selling_price REAL,
+        plateforme TEXT,
+        external_id TEXT,
+        url TEXT,
+        photo_url TEXT,
+        photo_urls TEXT,
+        enrichment_data TEXT,
+        status TEXT NOT NULL DEFAULT 'draft',
+        vendu TEXT DEFAULT '0',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        listed_at TEXT,
+        sold_at TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (parcel_id) REFERENCES parcels(id)
+      );
   
+      -- Sessions table for authentication
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+  
+      -- Per-device user sessions (used by /api/v1/sessions)
+      CREATE TABLE IF NOT EXISTS user_sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        device_name TEXT,
+        device_type TEXT,
+        ip_address TEXT,
+        user_agent TEXT,
+        last_activity_at TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
+
   return { db, sqlite };
 };
 

@@ -100,6 +100,11 @@ export function formatDate(
 
   const dateObj = new Date(date);
 
+  // Check if date is valid
+  if (isNaN(dateObj.getTime())) {
+    return "";
+  }
+
   // If custom options provided, use them with appropriate locale
   if (options) {
     const locale = format === "MM/DD/YYYY" ? "en-US" : "fr-FR";

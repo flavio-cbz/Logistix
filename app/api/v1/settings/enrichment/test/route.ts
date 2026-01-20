@@ -41,7 +41,8 @@ export async function POST(req: NextRequest) {
             });
 
             if (cred && cred.credentials) {
-                const encryptedKey = (cred.credentials as GeminiCredentials).apiKey;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const encryptedKey = ((cred as any).credentials as GeminiCredentials).apiKey;
                 if (encryptedKey) {
                     try {
                         apiKey = await decryptSecret(encryptedKey, user.id);
@@ -56,7 +57,8 @@ export async function POST(req: NextRequest) {
 
         // Fetch product to get name
         const db = await databaseService.getDb();
-        const product = await db.query.products.findFirst({
+        const dbQuery = db as unknown as import("drizzle-orm/better-sqlite3").BetterSQLite3Database<typeof import("@/lib/database/schema") >;
+        const product = await dbQuery.query.products.findFirst({
             where: eq(products.id, productId)
         });
 

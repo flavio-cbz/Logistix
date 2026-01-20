@@ -100,8 +100,13 @@ export class OrderService extends BaseService {
           superbuyId: validatedData.superbuyId,
         });
 
+        // Check uniqueness of Order Number for this user
+        await this.validateUniqueOrderNumber(userId, validatedData.orderNumber);
+
         // Check uniqueness of Superbuy ID for this user
-        await this.validateUniqueSuperbuyId(userId, validatedData.superbuyId);
+        if (validatedData.superbuyId) {
+          await this.validateUniqueSuperbuyId(userId, validatedData.superbuyId);
+        }
 
         const orderData = {
           ...validatedData,
@@ -125,6 +130,28 @@ export class OrderService extends BaseService {
         superbuyId: data.superbuyId,
       },
     );
+  }
+
+  /**
+   * Validate order number uniqueness
+   */
+  private async validateUniqueOrderNumber(
+    userId: string,
+    orderNumber: string,
+    excludeOrderId?: string,
+  ): Promise<void> {
+    const exists = await this.orderRepository.orderNumberExists(
+      userId,
+      orderNumber,
+      excludeOrderId,
+    );
+
+    if (exists) {
+      throw this.createBusinessError(
+        `An order with number "${orderNumber}" already exists`,
+        { code: "ORDER_NUMBER_EXISTS" },
+      );
+    }
   }
 
   /**

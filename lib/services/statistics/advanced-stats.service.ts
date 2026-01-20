@@ -234,8 +234,8 @@ export class AdvancedStatsService extends BaseService {
     private getPerformanceParcel(db: DrizzleDB, userId: string, startDateStr: string) {
         return db.select({
             parcelId: products.parcelId,
-            parcelNumero: parcels.superbuyId,
-            parcelNom: parcels.name,
+            parcelNumero: sql<string>`COALESCE(${parcels.superbuyId}, 'Sans parcelle')`,
+            parcelNom: sql<string>`COALESCE(${parcels.name}, '')`,
             nbProduitsTotal: count(),
             nbProduitsVendus: sql<number>`SUM(CASE WHEN ${products.vendu} = '1' THEN 1 ELSE 0 END)`,
             chiffreAffaires: sql<number>`COALESCE(SUM(CASE WHEN ${products.vendu} = '1' THEN ${products.sellingPrice} ELSE 0 END), 0)`,
@@ -243,12 +243,16 @@ export class AdvancedStatsService extends BaseService {
             beneficesTotal: sql<number>`COALESCE(SUM(CASE WHEN ${products.vendu} = '1' THEN(${products.sellingPrice} - ${products.price} - COALESCE(${products.coutLivraison}, ${parcels.pricePerGram} * ${products.poids}, 0)) ELSE 0 END), 0)`,
             prixParGramme: sql<number>`COALESCE(${parcels.pricePerGram}, 0)`,
             poidsTotal: sql<number>`COALESCE(SUM(${products.poids}), 0)`,
-            coutLivraisonTotal: sql<number>`COALESCE(SUM(COALESCE(${products.coutLivraison}, ${parcels.pricePerGram} * ${products.poids}, 0)), 0)`
+            coutLivraisonTotal: sql<number>`COALESCE(SUM(COALESCE(${products.coutLivraison}, ${parcels.pricePerGram} * ${products.poids}, 0)), 0)`,
+            trackingNumber: sql<string>`COALESCE(${parcels.trackingNumber}, '')`,
+            carrier: sql<string>`COALESCE(${parcels.carrier}, '')`,
+            status: sql<string>`COALESCE(${parcels.status}, 'Inconnu')`,
+            createdAt: sql<string>`COALESCE(${parcels.createdAt}, datetime('now'))`
         })
             .from(products)
             .leftJoin(parcels, eq(products.parcelId, parcels.id))
             .where(and(eq(products.userId, userId), gte(products.createdAt, startDateStr)))
-            .groupBy(products.parcelId, parcels.superbuyId, parcels.name, parcels.pricePerGram)
+            .groupBy(products.parcelId)
             .orderBy(desc(sql`COALESCE(SUM(CASE WHEN ${products.vendu} = '1' THEN(${products.sellingPrice} - ${products.price} - COALESCE(${products.coutLivraison}, ${parcels.pricePerGram} * ${products.poids}, 0)) ELSE 0 END), 0)`))
             .all()
             .map((p: { nbProduitsTotal: number; nbProduitsVendus: number; coutTotal: number; beneficesTotal: number }) => ({

@@ -11,6 +11,8 @@ import {
   updateParcelSchema,
 } from "@/lib/schemas/parcelle";
 import { NewParcel } from "@/lib/database/schema";
+import { CreateParcelFormData } from "@/lib/schemas/parcelle";
+import { shippingHistoryService } from "./shipping-history.service";
 // Removed unused imports
 
 // =============================================================================
@@ -134,7 +136,7 @@ export class ParcelleService extends BaseService {
         const validatedData = this.validateWithSchema(
           createParcelSchema,
           data,
-        );
+        ) as CreateParcelFormData;
 
         this.logger.debug("Parcelle data validated successfully", {
           userId,
@@ -150,6 +152,7 @@ export class ParcelleService extends BaseService {
         // Prepare create data - the schema already handles transformations
         const parcelleData: NewParcel = {
           ...validatedData,
+          superbuyId: validatedData.superbuyId!, // Zod schema guarantees this
           userId,
           isActive: validatedData.isActive === false ? 0 : 1,
         };
@@ -157,6 +160,23 @@ export class ParcelleService extends BaseService {
         const newParcelle = await this.parcelRepository.create(
           parcelleData,
         );
+
+        // Record shipping price history if we have price per gram
+        if (newParcelle.pricePerGram && newParcelle.carrier) {
+          try {
+            await shippingHistoryService.recordPrice(userId, {
+              carrier: newParcelle.carrier,
+              pricePerGram: newParcelle.pricePerGram,
+              totalWeight: newParcelle.weight ?? undefined,
+              totalPrice: newParcelle.totalPrice ?? undefined,
+              parcelId: newParcelle.id,
+              source: "parcel_update",
+            });
+          } catch (error) {
+            // Log but don't fail parcel creation if history recording fails
+            this.logger.warn("Failed to record shipping history", { error });
+          }
+        }
 
         this.logger.debug("Parcelle created successfully", {
           userId,
@@ -236,6 +256,28 @@ export class ParcelleService extends BaseService {
               id,
               updateData,
             );
+
+          // Record shipping price history if price per gram changed
+          if (updatedParcelle?.pricePerGram && updatedParcelle.carrier) {
+            const priceChanged = existingParcelle.pricePerGram !== updatedParcelle.pricePerGram;
+            const carrierChanged = existingParcelle.carrier !== updatedParcelle.carrier;
+
+            if (priceChanged || carrierChanged) {
+              try {
+                await shippingHistoryService.recordPrice(userId, {
+                  carrier: updatedParcelle.carrier,
+                  pricePerGram: updatedParcelle.pricePerGram,
+                  totalWeight: updatedParcelle.weight ?? undefined,
+                  totalPrice: updatedParcelle.totalPrice ?? undefined,
+                  parcelId: updatedParcelle.id,
+                  source: "parcel_update",
+                });
+              } catch (error) {
+                // Log but don't fail parcel update if history recording fails
+                this.logger.warn("Failed to record shipping history", { error });
+              }
+            }
+          }
 
           this.logger.debug("Parcelle updated successfully", {
             parcelleId: id,
@@ -363,7 +405,7 @@ export class ParcelleService extends BaseService {
 
         // 1. Validate all inputs
         const validInputs = inputs.map((input) => {
-          const validated = this.validateWithSchema(createParcelSchema, input);
+          const validated = this.validateWithSchema(createParcelSchema, input) as CreateParcelFormData;
           return { ...validated, userId };
         });
 
@@ -377,7 +419,7 @@ export class ParcelleService extends BaseService {
 
         // 3. Filter out duplicates
         const newParcellesData = validInputs.filter(
-          (p) => p.superbuyId && !existingNumeros.has(p.superbuyId),
+          (p): p is typeof p & { superbuyId: string } => !!p.superbuyId && !existingNumeros.has(p.superbuyId),
         );
 
         if (newParcellesData.length === 0) {
@@ -385,10 +427,24 @@ export class ParcelleService extends BaseService {
         }
 
         // 4. Bulk create
-        const bulkData: NewParcel[] = newParcellesData.map(data => ({
-          ...data,
-          isActive: data.isActive === false ? 0 : 1
-        }));
+        const bulkData: NewParcel[] = newParcellesData.map(data => {
+          // TS check fails to see that superbuyId is required in NewParcel even though we filtered it
+          // We construct the object explicitly to satisfy TypeScript
+          const newParcel: NewParcel = {
+            userId,
+            superbuyId: data.superbuyId as string, // Guaranteed by filter above
+            name: data.name,
+            trackingNumber: data.trackingNumber,
+            carrier: data.carrier,
+            weight: typeof data.weight === 'string' ? parseInt(data.weight) : data.weight,
+            pricePerGram: data.pricePerGram,
+            totalPrice: typeof data.totalPrice === 'string' ? parseFloat(data.totalPrice) : data.totalPrice,
+            status: data.status,
+            isActive: data.isActive === false ? 0 : 1,
+            // Add optional fields if they exist in schema but not in input
+          };
+          return newParcel;
+        });
 
         const createdParcelles = await this.parcelRepository.createMany(
           bulkData,
