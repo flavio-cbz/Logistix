@@ -24,7 +24,7 @@ describe.skip('/api/v1/health - Integration Tests', () => {
 
   it('should return health status with database and auth information', async () => {
     // Arrange - Mock successful health check (stub Vinted service locally)
-    const mockDatabaseService = await vi.importMock('@/lib/services/database/db');
+    const mockDatabaseService = await vi.importMock('@/lib/database');
     const mockDatabaseInit = await vi.importMock('@/lib/middlewares/database-initialization');
 
     // Local stub for vintedSessionManager to avoid importing feature code
@@ -53,14 +53,14 @@ describe.skip('/api/v1/health - Integration Tests', () => {
 
     // Act
     const response = await GET();
-    
+
     // Assert
     expect(response).toBeInstanceOf(NextResponse);
     expect(response.status).toBe(200);
-    
+
     // Vérifier que les services sont appelés
-  // Vérifier que la base de données a été interrogée
-  expect(mockDatabaseInit["checkDatabaseStatus"]).toHaveBeenCalled();
+    // Vérifier que la base de données a été interrogée
+    expect(mockDatabaseInit["checkDatabaseStatus"]).toHaveBeenCalled();
   });
 
   it('should handle database connection errors gracefully', async () => {
@@ -80,10 +80,10 @@ describe.skip('/api/v1/health - Integration Tests', () => {
 
     // Act
     const response = await GET();
-    
+
     // Assert
     expect(response).toBeInstanceOf(NextResponse);
-    
+
     // Le health check devrait toujours retourner une réponse, même en cas d'erreur
     const responseData = await response.json();
     expect(responseData).toHaveProperty('status');
@@ -108,17 +108,17 @@ describe.skip('/api/v1/health - Integration Tests', () => {
 
     // Act
     const response = await GET();
-    
+
     // Assert
     expect(response.status).toBe(200);
-    
+
     const responseData = await response.json();
-    
+
     // Vérifier la structure de la réponse
     expect(responseData).toHaveProperty('status');
     expect(responseData).toHaveProperty('timestamp');
     expect(responseData).toHaveProperty('services');
-    
+
     if (responseData.services) {
       expect(responseData.services).toHaveProperty('database');
       expect(responseData.services).toHaveProperty('vintedAuth');
@@ -139,13 +139,13 @@ describe.skip('/api/v1/health - Integration Tests', () => {
 
     // Act
     const response = await GET();
-    
+
     // Assert
     expect(response).toBeInstanceOf(NextResponse);
-    
+
     const responseData = await response.json();
     expect(responseData).toHaveProperty('status');
-    
+
     // L'API devrait indiquer un statut dégradé si un service est en panne
     if (responseData.services?.vintedAuth) {
       expect(responseData.services.vintedAuth).toHaveProperty('status');
@@ -166,18 +166,18 @@ describe.skip('/api/v1/health - Integration Tests', () => {
 
     // Act
     const response = await GET();
-    
+
     // Assert
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toContain('application/json');
-    
+
     const responseData = await response.json();
-    
+
     // Vérifier les propriétés requises
     expect(responseData).toHaveProperty('status');
     expect(responseData).toHaveProperty('timestamp');
     expect(typeof responseData.timestamp).toBe('string');
-    
+
     // Vérifier que le timestamp est une date ISO valide
     expect(() => new Date(responseData.timestamp)).not.toThrow();
   });

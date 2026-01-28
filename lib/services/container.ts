@@ -4,27 +4,34 @@ import { OrderService } from "./order-service";
 import { AuthService } from "./auth-service";
 import { ProductService } from "./product-service";
 import { SuperbuySyncService } from "./superbuy-sync-service";
+import { SuperbuyAutomationService } from "./superbuy/automation";
 import { SearchService } from "./search-service";
 import { StatisticsService } from "./statistics-service";
 import { UserService } from "./user-service";
+import { JobService } from "./job-service";
+import { MarketAnalysisService } from "./market-analysis-service";
+import { ProductEnrichmentService } from "./product-enrichment-service";
+import { DashboardStatsService } from "./statistics/dashboard-stats.service";
+import { AlertService } from "./statistics/alert.service";
+import { IntegrationService } from "./integration-service";
 
-import { ParcelleRepository, OrderRepository, IntegrationRepository, ProductRepository, UserRepository } from "@/lib/repositories";
+import { OrderRepository, ProductRepository, UserRepository, SuperbuySyncRepository, JobRepository, ParcelRepository, IntegrationRepository } from "@/lib/repositories";
 import { DatabaseService } from "@/lib/database";
 
 /**
  * Service factory function type
  */
-type ServiceFactory<T = any> = () => T;
+type ServiceFactory<T = unknown> = () => T;
 
 /**
  * Service constructor type
  */
-type ServiceConstructor<T = any> = new (...args: any[]) => T;
+type ServiceConstructor<T = unknown> = new (...args: unknown[]) => T;
 
 /**
  * Service registration options
  */
-interface ServiceRegistration<T = any> {
+interface ServiceRegistration<T = unknown> {
   factory: ServiceFactory<T>;
   singleton: boolean;
   instance?: T;
@@ -33,7 +40,7 @@ interface ServiceRegistration<T = any> {
 /**
  * Enhanced dependency injection container with proper service management
  */
-class ServiceContainer {
+export class ServiceContainer {
   private static instance: ServiceContainer;
   private readonly services = new Map<string, ServiceRegistration>();
   private readonly logger: ILogger;
@@ -51,7 +58,7 @@ class ServiceContainer {
     }
 
     const databaseService = DatabaseService.getInstance();
-    const repository = new ParcelleRepository(databaseService);
+    const repository = new ParcelRepository(databaseService);
     const service = new ParcelleService(repository);
     this.register("ParcelleService", () => service, true);
     return service;
@@ -93,12 +100,70 @@ class ServiceContainer {
       return this.get("SuperbuySyncService");
     }
 
-    const databaseService = DatabaseService.getInstance();
-    const integrationRepository = new IntegrationRepository(databaseService);
-    const parcelleService = this.getParcelleService();
-    const orderService = this.getOrderService();
-    const service = new SuperbuySyncService(parcelleService, orderService, integrationRepository);
+    // The new signature only requires SuperbuySyncRepository and SuperbuyAutomationService
+    const service = new SuperbuySyncService(
+      this.getSuperbuySyncRepository(),
+      this.getSuperbuyAutomationService(),
+      this.getJobService()
+    );
     this.register("SuperbuySyncService", () => service, true);
+    return service;
+  }
+
+  /**
+   * Convenience getter for SuperbuySyncRepository
+   */
+  getSuperbuySyncRepository(): SuperbuySyncRepository {
+    if (this.has("SuperbuySyncRepository")) {
+      return this.get("SuperbuySyncRepository");
+    }
+
+    const databaseService = DatabaseService.getInstance();
+    const repository = new SuperbuySyncRepository(databaseService);
+    this.register("SuperbuySyncRepository", () => repository, true);
+    return repository;
+  }
+
+  /**
+   * Convenience getter for ParcelRepository (replacing getParcelsRepository)
+   */
+  getParcelRepository(): ParcelRepository {
+    if (this.has("ParcelRepository")) {
+      return this.get("ParcelRepository");
+    }
+
+    const databaseService = DatabaseService.getInstance();
+    const repository = new ParcelRepository(databaseService);
+    this.register("ParcelRepository", () => repository, true);
+    return repository;
+  }
+
+  /**
+   * Convenience getter for IntegrationRepository
+   */
+  getIntegrationRepository(): IntegrationRepository {
+    if (this.has("IntegrationRepository")) {
+      return this.get("IntegrationRepository");
+    }
+
+    const databaseService = DatabaseService.getInstance();
+    const repository = new IntegrationRepository(databaseService);
+    this.register("IntegrationRepository", () => repository, true);
+    return repository;
+  }
+
+  /**
+   * Convenience getter for SuperbuyAutomationService
+   */
+  getSuperbuyAutomationService(): SuperbuyAutomationService {
+    if (this.has("SuperbuyAutomationService")) {
+      return this.get("SuperbuyAutomationService");
+    }
+
+    const parcelsRepository = this.getParcelRepository();
+    const integrationRepository = this.getIntegrationRepository();
+    const service = new SuperbuyAutomationService(parcelsRepository, integrationRepository);
+    this.register("SuperbuyAutomationService", () => service, true);
     return service;
   }
 
@@ -127,7 +192,7 @@ class ServiceContainer {
 
     const databaseService = DatabaseService.getInstance();
     const productRepository = new ProductRepository(databaseService);
-    const parcelleRepository = new ParcelleRepository(databaseService);
+    const parcelleRepository = new ParcelRepository(databaseService);
     const userRepository = new UserRepository(databaseService);
 
     const service = new SearchService(productRepository, parcelleRepository, userRepository);
@@ -190,20 +255,145 @@ class ServiceContainer {
   }
 
   /**
-   * Convenience getter for ParcelleRepository
+   * Convenience getter for ParcelleRepository (Legacy alias)
    */
-  getParcelleRepository(): ParcelleRepository {
-    if (this.has("ParcelleRepository")) {
-      return this.get("ParcelleRepository");
-    }
-
-    const databaseService = DatabaseService.getInstance();
-    const repository = new ParcelleRepository(databaseService);
-    this.register("ParcelleRepository", () => repository, true);
-    return repository;
+  getParcelleRepository(): ParcelRepository {
+    return this.getParcelRepository();
   }
 
 
+
+  /**
+   * Gets the singleton instance of the service container
+   */
+  /**
+   * Convenience getter for ProductStatsService
+   */
+  getProductStatsService(): import("./statistics/product-stats.service").ProductStatsService {
+    if (this.has("ProductStatsService")) {
+      return this.get("ProductStatsService");
+    }
+
+    const { ProductStatsService } = require("./statistics/product-stats.service");
+    const service = new ProductStatsService();
+    this.register("ProductStatsService", () => service, true);
+    return service;
+  }
+
+  /**
+   * Convenience getter for MarketAnalysisService
+   */
+  getMarketAnalysisService(): MarketAnalysisService {
+    if (this.has("MarketAnalysisService")) {
+      return this.get("MarketAnalysisService");
+    }
+
+    const service = new MarketAnalysisService(this.getProductRepository());
+    this.register("MarketAnalysisService", () => service, true);
+    return service;
+  }
+
+  /**
+   * Convenience getter for ProductEnrichmentService
+   */
+  getProductEnrichmentService(): ProductEnrichmentService {
+    if (this.has("ProductEnrichmentService")) {
+      return this.get("ProductEnrichmentService");
+    }
+
+    const apiKey = process.env["GEMINI_API_KEY"] || "";
+    if (!apiKey) {
+      this.logger.warn("GEMINI_API_KEY is not set. Product enrichment will not work.");
+    }
+
+    const service = new ProductEnrichmentService(apiKey);
+    this.register("ProductEnrichmentService", () => service, true);
+    return service;
+  }
+
+  /**
+   * Convenience getter for JobRepository
+   */
+  getJobRepository(): JobRepository {
+    if (this.has("JobRepository")) {
+      return this.get("JobRepository");
+    }
+
+    const databaseService = DatabaseService.getInstance();
+    const repository = new JobRepository(databaseService);
+    this.register("JobRepository", () => repository, true);
+    return repository;
+  }
+
+  /**
+   * Convenience getter for JobService
+   */
+  getJobService(): JobService {
+    if (this.has("JobService")) {
+      return this.get("JobService");
+    }
+
+    const repository = this.getJobRepository();
+    const service = new JobService(repository);
+    this.register("JobService", () => service, true);
+    return service;
+  }
+
+  /**
+   * Convenience getter for JobRecoveryService
+   */
+  getJobRecoveryService(): import("./job-recovery-service").JobRecoveryService {
+    if (this.has("JobRecoveryService")) {
+      return this.get("JobRecoveryService");
+    }
+
+    const { JobRecoveryService } = require("./job-recovery-service");
+    const service = new JobRecoveryService(
+      this.getJobRepository(),
+      this.getJobService()
+    );
+    this.register("JobRecoveryService", () => service, true);
+    return service;
+  }
+
+  /**
+   * Convenience getter for IntegrationService
+   */
+  getIntegrationService(): IntegrationService {
+    if (this.has("IntegrationService")) {
+      return this.get("IntegrationService");
+    }
+
+    const service = new IntegrationService(this.getIntegrationRepository());
+    this.register("IntegrationService", () => service, true);
+    return service;
+  }
+
+  /**
+   * Convenience getter for DashboardStatsService
+   */
+  getDashboardStatsService(): DashboardStatsService {
+    if (this.has("DashboardStatsService")) {
+      return this.get("DashboardStatsService");
+    }
+
+    const service = new DashboardStatsService();
+    this.register("DashboardStatsService", () => service, true);
+    return service;
+  }
+
+  /**
+   * Convenience getter for AlertService
+   */
+  getAlertService(): AlertService {
+    if (this.has("AlertService")) {
+      return this.get("AlertService");
+    }
+
+    const service = new AlertService();
+    this.register("AlertService", () => service, true);
+    return service;
+  }
 
   /**
    * Gets the singleton instance of the service container

@@ -9,9 +9,9 @@ import {
   Parcelle,
   User,
   CreateProductInput,
-  CreateParcelleInput,
+  CreateParcelInput,
   UpdateProductInput,
-  UpdateParcelleInput,
+  UpdateParcelInput,
   ProductStatus,
   Platform,
 } from "./entities";
@@ -23,7 +23,7 @@ import {
 /**
  * Standard API response wrapper
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: ApiError;
@@ -37,7 +37,7 @@ export interface ApiError {
   code: string;
   message: string;
   field?: string;
-  details?: any;
+  details?: unknown;
 }
 
 /**
@@ -138,19 +138,18 @@ export interface ProductListRequest {
 /**
  * Product creation request
  */
-export interface CreateProductRequest extends CreateProductInput {}
+export interface CreateProductRequest extends CreateProductInput { }
 
 /**
  * Product update request
  */
-export interface UpdateProductRequest extends UpdateProductInput {}
+export interface UpdateProductRequest extends UpdateProductInput { }
 
 /**
  * Product response data
  */
 export interface ProductResponse extends Product {
   // Additional computed fields that might be added by the API
-  benefices?: number;
   pourcentageBenefice?: number;
   tempsEnLigne?: string;
 }
@@ -159,7 +158,7 @@ export interface ProductResponse extends Product {
  * Product list response
  */
 export interface ProductListResponse
-  extends PaginatedResponse<ProductResponse> {}
+  extends PaginatedResponse<ProductResponse> { }
 
 /**
  * Product statistics response
@@ -202,12 +201,12 @@ export interface ParcelleListRequest {
 /**
  * Parcelle creation request
  */
-export interface CreateParcelleRequest extends CreateParcelleInput {}
+export interface CreateParcelOptions extends CreateParcelInput { }
 
 /**
  * Parcelle update request
  */
-export interface UpdateParcelleRequest extends UpdateParcelleInput {}
+export interface UpdateParcelOptions extends UpdateParcelInput { }
 
 /**
  * Parcelle response data with computed fields
@@ -224,7 +223,7 @@ export interface ParcelleResponse extends Parcelle {
  * Parcelle list response
  */
 export interface ParcelleListResponse
-  extends PaginatedResponse<ParcelleResponse> {}
+  extends PaginatedResponse<ParcelleResponse> { }
 
 /**
  * Parcelle statistics response
@@ -314,7 +313,7 @@ export interface FileUploadResponse {
 export interface SearchRequest {
   query: string;
   type?: "products" | "parcelles" | "all";
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   page?: number;
   limit?: number;
 }
@@ -352,7 +351,7 @@ export interface FieldError {
   field: string;
   message: string;
   code: string;
-  value?: any;
+  value?: unknown;
 }
 
 /**

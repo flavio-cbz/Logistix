@@ -1,7 +1,11 @@
-import { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
-import { eq, and, desc, asc, count, SQL, sql } from "drizzle-orm";
-import { DatabaseService } from "@/lib/database";
+import {
+  type BetterSQLite3Database,
+} from "drizzle-orm/better-sqlite3";
+import { eq, sql, count as sqlCount, type SQL, desc, asc, and, type AnyColumn } from "drizzle-orm";
+import { type SQLiteTable } from "drizzle-orm/sqlite-core";
 import * as schema from "@/lib/database/schema";
+import { logger } from "@/lib/utils/logging/logger";
+import { DatabaseService } from "@/lib/database/database-service";
 
 // ============================================================================
 // BASE REPOSITORY PATTERN
@@ -47,11 +51,8 @@ export abstract class BaseRepository<
   TSelect = unknown,
   TInsert = unknown,
 > {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected db: BetterSQLite3Database<typeof schema> | any;
   protected databaseService: DatabaseService;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected table: any;
+  protected table: TTable;
   protected options: RepositoryOptions;
   protected tableName: string;
 
@@ -62,7 +63,6 @@ export abstract class BaseRepository<
   ) {
     this.table = table;
     this.databaseService = databaseService;
-    this.db = databaseService.getDb();
     this.tableName = options.tableName || this.extractTableName(table);
     this.options = {
       enableLogging: options.enableLogging || false,
@@ -77,11 +77,12 @@ export abstract class BaseRepository<
    */
   public async findById(id: string): Promise<TSelect | null> {
     try {
-      return await this.databaseService.executeQuery((db) => {
+      return await this.databaseService.executeQuery((db: BetterSQLite3Database<typeof schema>) => {
+        const table = this.table as SQLiteTable & { id: AnyColumn };
         const result = db
           .select()
-          .from(this.table)
-          .where(eq(this.table.id, id))
+          .from(table)
+          .where(eq(table.id, id))
           .get();
         return (result as TSelect | undefined) || null;
       }, `${this.getTableName()}.findById`);
@@ -96,23 +97,21 @@ export abstract class BaseRepository<
    */
   public async findAll(options: FilterOptions = {}): Promise<TSelect[]> {
     try {
-      return await this.databaseService.executeQuery((db) => {
-        let query = db.select().from(this.table);
+      return await this.databaseService.executeQuery((db: BetterSQLite3Database<typeof schema>) => {
+        let query = db.select().from(this.table as SQLiteTable);
 
         // Apply where clause
         if (options.where) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          query = (query as any).where(options.where);
+          query = query.where(options.where) as typeof query;
         }
 
         // Apply ordering
         if (options.orderBy) {
           const direction = options.orderDirection === "desc" ? desc : asc;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const column = (this.table as any)[options.orderBy];
+          const tableWithColumns = this.table as Record<string, AnyColumn>;
+          const column = tableWithColumns[options.orderBy];
           if (column) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            query = (query as any).orderBy(direction(column));
+            query = query.orderBy(direction(column)) as typeof query;
           }
         }
 
@@ -121,12 +120,10 @@ export abstract class BaseRepository<
           options.limit || this.options.defaultLimit!,
           this.options.maxLimit!,
         );
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        query = (query as any).limit(limit);
+        query = query.limit(limit) as typeof query;
 
         if (options.offset) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          query = (query as any).offset(options.offset);
+          query = query.offset(options.offset) as typeof query;
         }
 
         return query.all() as TSelect[];
@@ -144,31 +141,28 @@ export abstract class BaseRepository<
     options: FilterOptions = {},
   ): Promise<PaginationResult<TSelect>> {
     try {
-      return await this.databaseService.executeQuery((db) => {
+      return await this.databaseService.executeQuery((db: BetterSQLite3Database<typeof schema>) => {
         // Get total count
-        let countQuery = db.select({ count: count() }).from(this.table);
+        let countQuery = db.select({ count: sqlCount() }).from(this.table as SQLiteTable);
         if (options.where) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          countQuery = (countQuery as any).where(options.where);
+          countQuery = countQuery.where(options.where) as typeof countQuery;
         }
         const totalResult = countQuery.get();
         const total = totalResult?.count || 0;
 
         // Get data
-        let dataQuery = db.select().from(this.table);
+        let dataQuery = db.select().from(this.table as SQLiteTable);
 
         if (options.where) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          dataQuery = (dataQuery as any).where(options.where);
+          dataQuery = dataQuery.where(options.where) as typeof dataQuery;
         }
 
         if (options.orderBy) {
           const direction = options.orderDirection === "desc" ? desc : asc;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const column = (this.table as any)[options.orderBy];
+          const tableWithColumns = this.table as Record<string, AnyColumn>;
+          const column = tableWithColumns[options.orderBy];
           if (column) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            dataQuery = (dataQuery as any).orderBy(direction(column));
+            dataQuery = dataQuery.orderBy(direction(column)) as typeof dataQuery;
           }
         }
 
@@ -178,10 +172,7 @@ export abstract class BaseRepository<
         );
         const offset = options.offset || 0;
 
-
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        dataQuery = (dataQuery as any).limit(limit).offset(offset);
+        dataQuery = dataQuery.limit(limit).offset(offset) as typeof dataQuery;
         const data = dataQuery.all() as TSelect[];
 
         return {
@@ -203,13 +194,13 @@ export abstract class BaseRepository<
    */
   public async create(data: TInsert): Promise<TSelect> {
     try {
-      return await this.databaseService.executeQuery((db) => {
+      return await this.databaseService.executeQuery((db: BetterSQLite3Database<typeof schema>) => {
         // Add timestamps if they exist
         const insertData = this.addTimestamps(data, "create");
 
         const result = db
-          .insert(this.table)
-          .values(insertData)
+          .insert(this.table as SQLiteTable)
+          .values(insertData as Record<string, unknown>)
           .returning()
           .get();
 
@@ -227,14 +218,14 @@ export abstract class BaseRepository<
   public async createMany(data: TInsert[]): Promise<TSelect[]> {
     try {
       return await this.databaseService.executeTransaction(
-        (db) => {
+        (db: BetterSQLite3Database<typeof schema>) => {
           const results: TSelect[] = [];
 
           for (const item of data) {
             const insertData = this.addTimestamps(item, "create");
             const result = db
-              .insert(this.table)
-              .values(insertData)
+              .insert(this.table as SQLiteTable)
+              .values(insertData as Record<string, unknown>)
               .returning()
               .get();
             results.push(result as TSelect);
@@ -258,14 +249,15 @@ export abstract class BaseRepository<
     data: Partial<TInsert>,
   ): Promise<TSelect | null> {
     try {
-      return await this.databaseService.executeQuery((db) => {
+      return await this.databaseService.executeQuery((db: BetterSQLite3Database<typeof schema>) => {
         // Add update timestamp if it exists
-        const updateData = this.addTimestamps(data, "update");
+        const updateData = this.addTimestamps(data as Partial<TInsert>, "update");
+        const table = this.table as SQLiteTable & { id: AnyColumn };
 
         const result = db
-          .update(this.table)
-          .set(updateData)
-          .where(eq(this.table.id, id))
+          .update(table)
+          .set(updateData as Record<string, unknown>)
+          .where(eq(table.id, id))
           .returning()
           .get();
 
@@ -282,10 +274,11 @@ export abstract class BaseRepository<
    */
   public async delete(id: string): Promise<boolean> {
     try {
-      return await this.databaseService.executeQuery((db) => {
+      return await this.databaseService.executeQuery((db: BetterSQLite3Database<typeof schema>) => {
+        const table = this.table as SQLiteTable & { id: AnyColumn };
         const result = db
-          .delete(this.table)
-          .where(eq(this.table.id, id))
+          .delete(table)
+          .where(eq(table.id, id))
           .returning()
           .get();
 
@@ -302,47 +295,52 @@ export abstract class BaseRepository<
    */
   public async exists(id: string): Promise<boolean> {
     try {
-      return await this.databaseService.executeQuery((db) => {
+      return await this.databaseService.executeQuery((db: BetterSQLite3Database<typeof schema>) => {
+        const table = this.table as SQLiteTable & { id: AnyColumn };
         const result = db
-          .select({ id: this.table.id })
-          .from(this.table)
-          .where(eq(this.table.id, id))
+          .select({ count: sqlCount() })
+          .from(table)
+          .where(eq(table.id, id))
           .get();
 
-        return result !== undefined;
+        return !!result && result.count > 0;
       }, `${this.getTableName()}.exists`);
     } catch (error) {
-      this.logError("exists failed", error, { id });
-      throw error;
+      this.logError("exists check failed", error, { id });
+      return false;
     }
   }
 
   /**
-   * Count records with optional filtering
+   * Count records matching criteria
    */
-  public async count(where?: SQL | undefined): Promise<number> {
+  public async count(options?: FilterOptions): Promise<number> {
     try {
-      return await this.databaseService.executeQuery((db) => {
-        let query = db.select({ count: count() }).from(this.table);
+      return await this.databaseService.executeQuery((db: BetterSQLite3Database<typeof schema>) => {
+        const table = this.table as SQLiteTable;
+        let query = db.select({ count: sqlCount() }).from(table);
 
-        if (where) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          query = (query as any).where(where);
+        if (options?.where) {
+          query = query.where(options.where) as typeof query;
         }
 
         const result = query.get();
         return result?.count || 0;
       }, `${this.getTableName()}.count`);
     } catch (error) {
-      this.logError("count failed", error, { where });
-      throw error;
+      this.logError("count failed", error, { options });
+      return 0;
     }
+  }
+
+  public getTable(): TTable {
+    return this.table;
   }
 
   /**
    * Execute a custom query within this repository's context
    */
-  protected async executeCustomQuery<T>(
+  public async executeCustomQuery<T>(
     operation: (db: BetterSQLite3Database<typeof schema>) => T,
     _context?: string,
   ): Promise<T> {
@@ -372,59 +370,60 @@ export abstract class BaseRepository<
   protected extractTableName(table: unknown): string {
     // Fallback method to extract table name from Drizzle table object
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (table as any)._.name || "unknown";
+      return (table as { _: { name: string } })._.name || "unknown";
     } catch {
       return "unknown";
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected addTimestamps(data: any, operation: "create" | "update"): any {
+  protected addTimestamps(data: TInsert | Partial<TInsert>, operation: "create" | "update"): TInsert {
     const now = new Date().toISOString();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = { ...data } as any;
+    const tableAny = this.table as Record<string, unknown>; // Access the Drizzle table definition
+
+    // Check for createdAt/updatedAt/id columns in the table definition using bracket notation
+    const hasCreatedAt = tableAny['createdAt'] !== undefined;
+    const hasUpdatedAt = tableAny['updatedAt'] !== undefined;
+    const hasId = tableAny['id'] !== undefined;
+
+    const result = { ...data } as Record<string, unknown>;
 
     if (operation === "create") {
-      // Add createdAt if the field exists and is not already set
-      if ("createdAt" in this.table && !result.createdAt) {
-        result.createdAt = now;
+      // Add createdAt if the field exists in the table and is not already set in data
+      if (hasCreatedAt && !result['createdAt']) {
+        result['createdAt'] = now;
       }
-      // Add updatedAt if the field exists and is not already set
-      if ("updatedAt" in this.table && !result.updatedAt) {
-        result.updatedAt = now;
+      // Add updatedAt if the field exists in the table and is not already set in data
+      if (hasUpdatedAt && !result['updatedAt']) {
+        result['updatedAt'] = now;
+      }
+      // Add ID if not present and this is a create operation
+      if (hasId && !result['id']) {
+        result['id'] = crypto.randomUUID();
       }
     } else if (operation === "update") {
       // Always update updatedAt if the field exists
-      if ("updatedAt" in this.table) {
-        result.updatedAt = now;
+      if (hasUpdatedAt) {
+        result['updatedAt'] = now;
       }
     }
 
-    // Add ID if not present and this is a create operation
-    if (operation === "create" && "id" in this.table && !result.id) {
-      result.id = crypto.randomUUID();
-    }
-
-    return result;
+    return result as TInsert;
   }
 
   protected log(message: string, data?: unknown): void {
     if (this.options.enableLogging) {
       const timestamp = new Date().toISOString();
-      // eslint-disable-next-line no-console
-      console.log(
-        `[REPO:${this.getTableName()}] ${timestamp} - ${message}`,
-        data ? JSON.stringify(data) : "",
+      logger.info(
+        `[REPO:${this.getTableName()}] ${timestamp} - ${message} `,
+        { data: data ? JSON.stringify(data) : undefined },
       );
     }
   }
 
   protected logError(message: string, error: unknown, data?: unknown): void {
     const timestamp = new Date().toISOString();
-    // eslint-disable-next-line no-console
-    console.error(
-      `[REPO:${this.getTableName()} ERROR] ${timestamp} - ${message}`,
+    logger.error(
+      `[REPO:${this.getTableName()} ERROR] ${timestamp} - ${message} `,
       {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
@@ -441,43 +440,40 @@ export abstract class BaseRepository<
 /**
  * Build a WHERE clause for text search
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildTextSearch(column: any, searchTerm: string): SQL {
-  return sql`${column} LIKE ${`%${searchTerm}%`}`;
+export function buildTextSearch(column: AnyColumn, searchTerm: string): SQL {
+  return sql`${column} LIKE ${`%${searchTerm}%`} `;
 }
 
 /**
  * Build a WHERE clause for date range
  */
 export function buildDateRange(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  column: any,
+  column: AnyColumn,
   startDate?: string,
   endDate?: string,
 ): SQL | undefined {
   if (!startDate && !endDate) return undefined;
 
   if (startDate && endDate) {
-    return and(sql`${column} >= ${startDate}`, sql`${column} <= ${endDate}`);
+    return and(sql`${column} >= ${startDate} `, sql`${column} <= ${endDate} `);
   } else if (startDate) {
-    return sql`${column} >= ${startDate}`;
+    return sql`${column} >= ${startDate} `;
   } else {
-    return sql`${column} <= ${endDate}`;
+    return sql`${column} <= ${endDate} `;
   }
 }
 
 /**
  * Build a WHERE clause for multiple values (IN clause)
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildInClause(column: any, values: unknown[]): SQL | undefined {
+export function buildInClause(column: AnyColumn, values: unknown[]): SQL | undefined {
   if (!values || values.length === 0) return undefined;
 
   if (values.length === 1) {
     return eq(column, values[0]);
   }
 
-  return sql`${column} IN ${values}`;
+  return sql`${column} IN ${values} `;
 }
 
 /**

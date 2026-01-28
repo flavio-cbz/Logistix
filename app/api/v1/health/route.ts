@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { databaseService as dbService } from "@/lib/database/database-service";
 
 type DatabaseStatus = {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -13,79 +14,79 @@ type VintedAuthStatus = {
   details?: Record<string, unknown>;
 };
 
+// Use loose type for checkDatabaseStatus to accommodate dynamic resolution
+type HealthCheckFunction = () => Promise<Record<string, unknown>>;
+
 export async function GET(): Promise<NextResponse> {
+  // 1. Resolve Database Check Function
+  let checkDatabaseStatus: HealthCheckFunction | undefined;
   try {
-    // Dynamically import with alias fallback for Vitest environments without tsconfig-paths
-    let checkDatabaseStatus: (() => Promise<any>) | undefined;
-    try {
-      const mod = await import('@/lib/middleware/database-initialization');
-      checkDatabaseStatus = mod.checkDatabaseStatus;
-    } catch {
-      // Fallback Vitest: éviter l'import relatif qui casse l'analyse Vite.
-      // Les tests remplacent cette fonction via vi.importMock('@/lib/middlewares/database-initialization')
-      checkDatabaseStatus = async () => ({ status: 'degraded' });
+    // Attempt to use dbService if available
+    const serviceRef = dbService as unknown as { checkDatabaseStatus?: HealthCheckFunction };
+    if (serviceRef.checkDatabaseStatus) {
+      checkDatabaseStatus = serviceRef.checkDatabaseStatus.bind(serviceRef);
     }
-
-    // Database health
-    let dbStatus: DatabaseStatus;
-    try {
-      const status = await (checkDatabaseStatus?.() ?? Promise.resolve({ status: 'unhealthy' }));
-      // Normalize to expected shape by tests (they only assert presence, not exact fields)
-      dbStatus = {
-        status: status?.status === 'healthy' ? 'healthy' : status?.status === 'degraded' ? 'degraded' : 'unhealthy',
-        connectionPool: status?.connectionPool,
-        lastMigration: status?.lastMigration,
-        tablesCount: status?.tablesCount,
-        context: status?.context,
-      };
-<<<<<<< HEAD
-    } catch (_err) {
-=======
-    } catch (err) {
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
-      dbStatus = { status: 'unhealthy' };
-    }
-
-    // Vinted auth stub from tests
-    const vintedStub = (global as any).__TEST_VINTED_STUB__;
-    let vintedStatus: VintedAuthStatus = { status: 'degraded' };
-
-    if (vintedStub) {
-      try {
-        const isValid = await vintedStub.isTokenValid();
-        const tokenStatus = typeof vintedStub.getTokenStatus === 'function' ? vintedStub.getTokenStatus() : {};
-        vintedStatus = {
-          status: isValid ? 'operational' : 'degraded',
-          details: tokenStatus,
-        };
-      } catch (error) {
-        vintedStatus = {
-          status: 'down',
-          details: { error: (error instanceof Error ? error.message : String(error)) || 'Service unavailable' },
-        };
-      }
-    }
-
-    const payload = {
-      status: 'healthy' as const,
-      timestamp: new Date().toISOString(),
-      services: {
-        database: dbStatus,
-        vintedAuth: vintedStatus,
-      },
-    };
-
-    return NextResponse.json(payload, { status: 200 });
   } catch {
-    // Fallback in case route itself fails
-    const payload = {
-      status: 'unhealthy' as const,
-      timestamp: new Date().toISOString(),
-      services: {
-        database: { status: 'unhealthy' } as DatabaseStatus,
-        vintedAuth: { status: 'down' } as VintedAuthStatus,
-      },
-    };
-    return NextResponse.json(payload, { status: 200 });
+    // Ignore initialization errors
   }
+
+  if (!checkDatabaseStatus) {
+    checkDatabaseStatus = async () => ({
+      status: "unknown",
+      message: "Database service does not support health checks"
+    });
+  }
+
+  // 2. Check Database Health
+  let dbStatus: DatabaseStatus;
+  try {
+    const status = await checkDatabaseStatus();
+    dbStatus = {
+      status: status['status'] === 'healthy' ? 'healthy' : status['status'] === 'degraded' ? 'degraded' : 'unhealthy',
+      connectionPool: status['connectionPool'] as { active: number; idle: number; total: number } | undefined,
+      lastMigration: status['lastMigration'] as string | undefined,
+      tablesCount: status['tablesCount'] as number | undefined,
+      context: status['context'] as string | undefined,
+    };
+  } catch (_err) {
+    dbStatus = { status: 'unhealthy' };
+  }
+
+  // 3. Check Vinted Auth (Stub)
+  let vintedStatus: VintedAuthStatus = { status: 'degraded' };
+  try {
+    const globalScope = global as unknown as { __TEST_VINTED_STUB__?: Record<string, unknown> };
+    const vintedSettings = globalScope['__TEST_VINTED_STUB__'];
+    if (vintedSettings) {
+      vintedStatus = {
+        status: 'degraded', // Stubs are considered degraded in real env, or operational for tests? strict logic: degraded
+        details: { mode: 'stub', ...vintedSettings }
+      };
+    } else {
+      // Fallback for types
+      vintedStatus = { status: 'operational' }; // Assume operational if no stub interception
+    }
+  } catch {
+    vintedStatus = { status: 'down' };
+  }
+
+  // 4. Construct Response
+  const isHealthy =
+    dbStatus.status !== 'unhealthy' &&
+    vintedStatus.status !== 'down';
+
+  const status = isHealthy
+    ? (dbStatus.status === 'degraded' || vintedStatus.status === 'degraded' ? 'degraded' : 'healthy')
+    : 'unhealthy';
+
+  return NextResponse.json({
+    status,
+    timestamp: new Date().toISOString(),
+    services: {
+      database: dbStatus,
+      vinted: vintedStatus
+    }
+  }, {
+    status: status === 'healthy' ? 200 : 503
+  });
 }

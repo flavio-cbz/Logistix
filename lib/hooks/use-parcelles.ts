@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Parcelle } from "@/lib/types/entities";
@@ -6,20 +5,11 @@ import { apiFetch, postJson, patchJson, deleteJson } from "@/lib/utils/api-fetch
 import { toast } from "sonner";
 import {
   validateApiResponse,
-  validateEntityArray,
-  validateParcelle,
   assertSuccessfulResponse,
 } from "@/lib/utils/api-validation";
-import {
-  transformParcelleFormToCreateInput,
-  transformParcelleFormToUpdateInput,
-  transformParcelleApiToFormData,
-  transformLegacyParcelleToModern,
-  formatParcelleForDisplay,
-} from "@/lib/transformers/parcelle-transformer";
 import type {
-  CreateParcelleFormData,
-  UpdateParcelleFormData,
+  CreateParcelFormData,
+  UpdateParcelFormData,
 } from "@/lib/schemas/parcelle";
 
 // ============================================================================
@@ -27,7 +17,7 @@ import type {
 // ============================================================================
 
 async function fetchParcelles(): Promise<Parcelle[]> {
-  const data = await apiFetch<any>("/api/v1/parcelles");
+  const data = await apiFetch<unknown>("/api/v1/parcelles");
 
   // Validate API response structure
   const validatedResponse = validateApiResponse<Parcelle[]>(
@@ -48,52 +38,41 @@ async function fetchParcelles(): Promise<Parcelle[]> {
     ? responseData
     : (responseData?.parcelles || []);
 
-  // Transform legacy parcelles to modern format if needed
-  const transformedParcelles = parcelles.map((parcelle: any) => {
-    try {
-      return validateParcelle(parcelle, "fetchParcelles");
-    } catch (_error) {
-      // Try to transform legacy format
-      return transformLegacyParcelleToModern(parcelle);
-    }
-  });
+  // No transformation needed if API returns correct format
+  // But we might want to validate
 
-  return validateEntityArray(
-    transformedParcelles,
-    validateParcelle,
-    "fetchParcelles",
-  );
+  return parcelles;
 }
 
 const createParcelle = async (
-  formData: CreateParcelleFormData,
+  formData: CreateParcelFormData,
 ): Promise<Parcelle> => {
-  // Transform form data to API format
-  const apiData = transformParcelleFormToCreateInput(formData);
+  // formData should already match API requirement thanks to Zod schema update
+  const apiData = formData;
 
-  const jsonResponse = await postJson<typeof apiData, any>("/api/v1/parcelles", apiData);
+  const jsonResponse = await postJson<typeof apiData, unknown>("/api/v1/parcelles", apiData);
   const responseData = assertSuccessfulResponse<{ parcelle: Parcelle }>(
     jsonResponse,
     "createParcelle",
   );
 
-  return validateParcelle(responseData.parcelle, "createParcelle");
+  return responseData.parcelle;
 };
 
 const updateParcelle = async (
   id: string,
-  formData: UpdateParcelleFormData,
+  formData: UpdateParcelFormData,
 ): Promise<Parcelle> => {
-  // Transform form data to API format
-  const apiData = transformParcelleFormToUpdateInput(formData);
+  // formData matches schema
+  const apiData = formData;
 
-  const jsonResponse = await patchJson<typeof apiData, any>(`/api/v1/parcelles/${id}`, apiData);
+  const jsonResponse = await patchJson<typeof apiData, unknown>(`/api/v1/parcelles/${id}`, apiData);
   const responseData = assertSuccessfulResponse<{ parcelle: Parcelle }>(
     jsonResponse,
     "updateParcelle",
   );
 
-  return validateParcelle(responseData.parcelle, "updateParcelle");
+  return responseData.parcelle;
 };
 
 const deleteParcelle = async (id: string): Promise<void> => {
@@ -119,6 +98,22 @@ export function useParcelles() {
 }
 
 /**
+ * Hook pour récupérer une parcelle spécifique par ID
+ * Utilise le cache des parcelles si disponible
+ */
+export function useParcelle(id: string | undefined) {
+  const { data: parcelles, isLoading, error } = useParcelles();
+
+  const parcelle = parcelles?.find(p => p.id === id);
+
+  return {
+    data: parcelle,
+    isLoading,
+    error,
+  };
+}
+
+/**
  * Hook pour créer une nouvelle parcelle avec transformation automatique des données
  * @returns Une mutation pour créer une parcelle
  */
@@ -128,7 +123,7 @@ export const useCreateParcelle = () => {
 
   const router = useRouter();
 
-  return useMutation<Parcelle, Error, CreateParcelleFormData>({
+  return useMutation<Parcelle, Error, CreateParcelFormData>({
     mutationFn: createParcelle,
     onSuccess: async () => {
       // Invalider et refetch le cache React Query - ATTENDRE la fin
@@ -171,14 +166,20 @@ export const useCreateParcelle = () => {
 export const useUpdateParcelle = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<Parcelle, Error, { id: string; data: UpdateParcelleFormData }>({
+  return useMutation<Parcelle, Error, { id: string; data: UpdateParcelFormData }>({
     mutationFn: ({ id, data }) => updateParcelle(id, data),
     onSuccess: async () => {
+      // Invalidate parcelles cache
       await queryClient.invalidateQueries({
         queryKey: ["parcelles"],
-        refetchType: 'active' // Force le refetch immédiat des queries actives
+        refetchType: 'active'
       });
-      // Petit délai pour s'assurer que le refetch est terminé
+      // Also invalidate products cache - products depend on parcel's pricePerGram
+      // for shipping cost calculations
+      await queryClient.invalidateQueries({
+        queryKey: ["products"],
+        refetchType: 'active'
+      });
       await new Promise(resolve => setTimeout(resolve, 100));
     },
     onError: (error: unknown) => {
@@ -190,7 +191,6 @@ export const useUpdateParcelle = () => {
         // Silently ignore; apiFetch will have redirected
         return;
       }
-      // logger.error("Failed to update parcelle:", error);
     },
   });
 };
@@ -224,285 +224,4 @@ export const useDeleteParcelle = () => {
   });
 };
 
-/**
- * Hook pour transformer une parcelle API en données de formulaire
- * @param parcelle - La parcelle à transformer
- * @returns Les données formatées pour le formulaire
- */
-export const useParcelleFormData = (parcelle?: Parcelle) => {
-  if (!parcelle) return undefined;
-
-  try {
-    return transformParcelleApiToFormData(parcelle);
-  } catch (_error) {
-    // console.error("Failed to transform parcelle to form data:", _error);
-    return undefined;
-  }
-};
-
-/**
- * Hook pour formater une parcelle pour l'affichage
- * @param parcelle - La parcelle à formater
- * @returns Les données formatées pour l'affichage
- */
-export const useParcelleDisplayData = (parcelle?: Parcelle) => {
-  if (!parcelle) return undefined;
-
-  try {
-    return formatParcelleForDisplay(parcelle);
-  } catch (_error) {
-    // console.error("Failed to format parcelle for display:", _error);
-    return undefined;
-  }
-};
-=======
-"use client";
-
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from '@/components/ui/use-toast';
-import { useRouter } from 'next/navigation';
-import type {
-  Parcelle,
-} from "@/lib/types/entities";
-import { apiFetch, postJson, patchJson, deleteJson } from '@/lib/utils/api-fetch';
-import {
-  validateApiResponse,
-  validateEntityArray,
-  validateParcelle,
-  assertSuccessfulResponse,
-} from "@/lib/utils/api-validation";
-import {
-  transformParcelleFormToCreateInput,
-  transformParcelleFormToUpdateInput,
-  transformParcelleApiToFormData,
-  transformLegacyParcelleToModern,
-  formatParcelleForDisplay,
-} from "@/lib/transformers/parcelle-transformer";
-import type {
-  CreateParcelleFormData,
-  UpdateParcelleFormData,
-} from "@/lib/schemas/parcelle";
-
-// ============================================================================
-// API Functions
-// ============================================================================
-
-async function fetchParcelles(): Promise<Parcelle[]> {
-  const data = await apiFetch<any>("/api/v1/parcelles");
-
-  // Validate API response structure
-  const validatedResponse = validateApiResponse<{ parcelles: Parcelle[] }>(
-    data,
-    "fetchParcelles",
-  );
-
-  if (!validatedResponse.success) {
-    throw new Error(
-      validatedResponse.error?.message || "Failed to fetch parcelles",
-    );
-  }
-
-  // Extract parcelles from the validated response
-  const parcelles = validatedResponse.data!.parcelles;
-
-  // Transform legacy parcelles to modern format if needed
-  const transformedParcelles = parcelles.map((parcelle: any) => {
-    try {
-      return validateParcelle(parcelle, "fetchParcelles");
-    } catch (error) {
-      // Try to transform legacy format
-      return transformLegacyParcelleToModern(parcelle);
-    }
-  });
-
-  return validateEntityArray(
-    transformedParcelles,
-    validateParcelle,
-    "fetchParcelles",
-  );
-}
-
-const createParcelle = async (
-  formData: CreateParcelleFormData,
-): Promise<Parcelle> => {
-  // Transform form data to API format
-  const apiData = transformParcelleFormToCreateInput(formData);
-
-  const jsonResponse = await postJson<typeof apiData, any>("/api/v1/parcelles", apiData);
-  const responseData = assertSuccessfulResponse<{ parcelle: Parcelle }>(
-    jsonResponse,
-    "createParcelle",
-  );
-
-  return validateParcelle(responseData.parcelle, "createParcelle");
-};
-
-const updateParcelle = async (
-  id: string,
-  formData: UpdateParcelleFormData,
-): Promise<Parcelle> => {
-  // Transform form data to API format
-  const apiData = transformParcelleFormToUpdateInput(formData);
-
-  const jsonResponse = await patchJson<typeof apiData, any>(`/api/v1/parcelles/${id}`, apiData);
-  const responseData = assertSuccessfulResponse<{ parcelle: Parcelle }>(
-    jsonResponse,
-    "updateParcelle",
-  );
-
-  return validateParcelle(responseData.parcelle, "updateParcelle");
-};
-
-const deleteParcelle = async (id: string): Promise<void> => {
-  await deleteJson(`/api/v1/parcelles/${id}`);
-};
-
-// ============================================================================
-// React Hooks
-// ============================================================================
-
-/**
- * Hook pour récupérer la liste des parcelles avec validation et transformation automatique
- * @returns Une requête `useQuery` qui contient les données des parcelles, l'état de chargement et les erreurs
- */
-export function useParcelles() {
-  return useQuery<Parcelle[], Error>({
-    queryKey: ["parcelles"],
-    queryFn: fetchParcelles,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
-    retry: 2,
-  });
-}
-
-/**
- * Hook pour créer une nouvelle parcelle avec transformation automatique des données
- * @returns Une mutation pour créer une parcelle
- */
-export const useCreateParcelle = () => {
-  const queryClient = useQueryClient();
-
-  const { toast } = useToast();
-  const router = useRouter();
-
-  return useMutation<Parcelle, Error, CreateParcelleFormData>({
-    mutationFn: createParcelle,
-    onSuccess: async () => {
-      // Invalider et refetch le cache React Query - ATTENDRE la fin
-      await queryClient.invalidateQueries({ 
-        queryKey: ['parcelles'],
-        refetchType: 'active' // Force le refetch immédiat des queries actives
-      });
-      // Petit délai pour s'assurer que le refetch est terminé
-      await new Promise(resolve => setTimeout(resolve, 100));
-    },
-    onError: (error: any) => {
-      const status = (error as any)?.status;
-      const message = (error as any)?.message || 'Échec de création de la parcelle';
-
-      if (status === 401) {
-        toast({
-          variant: 'destructive',
-            title: 'Session expirée',
-            description: 'Veuillez vous reconnecter pour créer une parcelle.'
-        });
-        router.push('/login');
-        return;
-      }
-
-      toast({
-        variant: 'destructive',
-        title: 'Erreur création',
-        description: message,
-      });
-      console.error('Failed to create parcelle:', error);
-    }
-  });
-};
-
-/**
- * Hook pour mettre à jour une parcelle existante avec transformation automatique des données
- * @returns Une mutation pour mettre à jour une parcelle
- */
-export const useUpdateParcelle = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<Parcelle, Error, { id: string; data: UpdateParcelleFormData }>({
-    mutationFn: ({ id, data }) => updateParcelle(id, data),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ 
-        queryKey: ["parcelles"],
-        refetchType: 'active' // Force le refetch immédiat des queries actives
-      });
-      // Petit délai pour s'assurer que le refetch est terminé
-      await new Promise(resolve => setTimeout(resolve, 100));
-    },
-    onError: (error: any) => {
-      const status = (error as any)?.status;
-      if (status === 401) {
-        // Silently ignore; apiFetch will have redirected
-        return;
-      }
-      console.error("Failed to update parcelle:", error);
-    },
-  });
-};
-
-/**
- * Hook pour supprimer une parcelle
- * @returns Une mutation pour supprimer une parcelle
- */
-export const useDeleteParcelle = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, string>({
-    mutationFn: deleteParcelle,
-    onSuccess: async () => {
-      // Invalider et refetch le cache React Query - ATTENDRE la fin
-      await queryClient.invalidateQueries({ 
-        queryKey: ['parcelles'],
-        refetchType: 'active' // Force le refetch immédiat des queries actives
-      });
-      // Petit délai pour s'assurer que le refetch est terminé
-      await new Promise(resolve => setTimeout(resolve, 100));
-    },
-    onError: (error: any) => {
-      const status = (error as any)?.status;
-      if (status === 401) { return; }
-      console.error("Failed to delete parcelle:", error);
-    },
-  });
-};
-
-/**
- * Hook pour transformer une parcelle API en données de formulaire
- * @param parcelle - La parcelle à transformer
- * @returns Les données formatées pour le formulaire
- */
-export const useParcelleFormData = (parcelle?: Parcelle) => {
-  if (!parcelle) return undefined;
-
-  try {
-    return transformParcelleApiToFormData(parcelle);
-  } catch (error) {
-    console.error("Failed to transform parcelle to form data:", error);
-    return undefined;
-  }
-};
-
-/**
- * Hook pour formater une parcelle pour l'affichage
- * @param parcelle - La parcelle à formater
- * @returns Les données formatées pour l'affichage
- */
-export const useParcelleDisplayData = (parcelle?: Parcelle) => {
-  if (!parcelle) return undefined;
-
-  try {
-    return formatParcelleForDisplay(parcelle);
-  } catch (error) {
-    console.error("Failed to format parcelle for display:", error);
-    return undefined;
-  }
-};
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
+// Removed unused transformer hooks

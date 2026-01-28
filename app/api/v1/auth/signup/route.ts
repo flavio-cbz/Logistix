@@ -3,20 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSuccessResponse, createErrorResponse } from "@/lib/utils/api-response";
 import { logger } from "@/lib/utils/logging/logger";
 import { z } from "zod";
-import { databaseService } from "@/lib/services/database/db";
-import { DatabaseError, ValidationError, ConflictError } from "@/lib/shared/errors/base-errors";
-import { v4 as uuidv4 } from "uuid";
-import { hash } from "bcryptjs";
-import { COOKIE_NAME } from "@/lib/constants/config";
+import { env, getSignupConfig } from "@/lib/config/env";
 
 // =============================================================================
 // CONFIGURATION DE SÉCURITÉ
 // =============================================================================
 
-const SIGNUP_ENABLED = process.env['SIGNUP_ENABLED'] === 'true' || false;
-const REQUIRE_INVITATION_CODE = process.env['REQUIRE_INVITATION_CODE'] === 'true' || false;
-const VALID_INVITATION_CODES = process.env['INVITATION_CODES']?.split(',') || [];
-const MAX_SIGNUPS_PER_HOUR = parseInt(process.env['MAX_SIGNUPS_PER_HOUR'] || '10');
+const signupConfig = getSignupConfig();
 
 // =============================================================================
 // SCHÉMAS DE VALIDATION
@@ -59,110 +52,6 @@ const signupSchema = z.object({
 });
 
 // =============================================================================
-// FONCTIONS UTILITAIRES
-// =============================================================================
-
-/**
- * Vérifie si les inscriptions sont temporairement limitées
- */
-async function checkSignupRateLimit(clientIp: string): Promise<boolean> {
-  try {
-    const oneHourAgo = new Date();
-    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
-
-    const recentSignups = await databaseService.query<{ count: number }>(
-      `SELECT COUNT(*) as count FROM users 
-       WHERE client_ip = ? AND created_at >= ?`,
-      [clientIp, oneHourAgo.toISOString()],
-      'check-signup-rate-limit'
-    );
-
-    const count = recentSignups[0]?.count || 0;
-    return count < MAX_SIGNUPS_PER_HOUR;
-  } catch (error) {
-    logger.error('Error checking signup rate limit:', { error });
-    // En cas d'erreur, on autorise l'inscription pour ne pas bloquer injustement
-    return true;
-  }
-}
-
-/**
- * Vérifie si un nom d'utilisateur ou email existe déjà
- */
-async function checkUserExists(username: string, email: string): Promise<{
-  usernameExists: boolean;
-  emailExists: boolean;
-}> {
-  try {
-    const existingUsername = await databaseService.queryOne(
-      'SELECT id FROM users WHERE username = ?',
-      [username],
-      'check-username-exists'
-    );
-
-    const existingEmail = await databaseService.queryOne(
-      'SELECT id FROM users WHERE email = ?',
-      [email],
-      'check-email-exists'
-    );
-
-    return {
-      usernameExists: !!existingUsername,
-      emailExists: !!existingEmail,
-    };
-  } catch (error) {
-    logger.error('Error checking user existence:', { error });
-    throw new DatabaseError('Erreur lors de la vérification des données utilisateur');
-  }
-}
-
-/**
- * Crée un nouvel utilisateur avec des privilèges de base
- */
-async function createUser(userData: {
-  username: string;
-  email: string;
-  hashedPassword: string;
-  clientIp: string;
-}): Promise<{ id: string; username: string; email: string }> {
-  try {
-    const userId = uuidv4();
-    const now = new Date().toISOString();
-
-    await databaseService.execute(
-      `INSERT INTO users (
-        id, username, email, password_hash, role, client_ip,
-        email_verified, active, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        userId,
-        userData.username,
-        userData.email,
-        userData.hashedPassword,
-        'user', // Rôle par défaut
-        userData.clientIp,
-        false, // Email non vérifié par défaut
-        true, // Compte actif par défaut
-        now,
-        now,
-      ],
-      'create-new-user'
-    );
-
-    logger.info(`New user created: ${userId} (${userData.username})`);
-
-    return {
-      id: userId,
-      username: userData.username,
-      email: userData.email,
-    };
-  } catch (error) {
-    logger.error('Error creating user:', { error });
-    throw new DatabaseError('Erreur lors de la création du compte utilisateur');
-  }
-}
-
-// =============================================================================
 // HANDLER D'API
 // =============================================================================
 
@@ -177,23 +66,14 @@ export async function POST(request: NextRequest) {
     const validationResult = signupSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        createErrorResponse(new ValidationError("Données invalides", validationResult.error.flatten() as any)),
+        createErrorResponse({ message: "Données invalides", details: validationResult.error.flatten() }),
         { status: 400 }
       );
     }
 
     const validatedBody = validationResult.data;
 
-    // Vérifier si les inscriptions sont activées
-    if (!SIGNUP_ENABLED) {
-      logger.warn('Signup attempt blocked - signups disabled');
-      return NextResponse.json(
-        createErrorResponse(new ValidationError('Les inscriptions sont actuellement désactivées. Veuillez contacter l\'administrateur.')),
-        { status: 403 }
-      );
-    }
-
-    // Récupérer l'IP du client pour la limitation de taux
+    // Récupérer l'IP du client
     const clientIp = request.headers.get('x-forwarded-for') ||
       request.headers.get('x-real-ip') ||
       'unknown';
@@ -203,89 +83,32 @@ export async function POST(request: NextRequest) {
       email: validatedBody.email,
     });
 
-    // Vérifier la limitation de taux
-    const rateLimitOk = await checkSignupRateLimit(clientIp);
-    if (!rateLimitOk) {
-      logger.warn(`Signup rate limit exceeded for IP: ${clientIp}`);
-      return NextResponse.json(
-        createErrorResponse(new ValidationError('Trop de tentatives d\'inscription récentes. Veuillez réessayer plus tard.')),
-        { status: 429 }
-      );
-    }
-
-    // Vérifier le code d'invitation si requis
-    if (REQUIRE_INVITATION_CODE) {
-      if (!validatedBody.invitationCode) {
-        return NextResponse.json(
-          createErrorResponse(new ValidationError('Un code d\'invitation est requis')),
-          { status: 400 }
-        );
-      }
-
-      if (!VALID_INVITATION_CODES.includes(validatedBody.invitationCode)) {
-        logger.warn(`Invalid invitation code used: ${validatedBody.invitationCode}`);
-        return NextResponse.json(
-          createErrorResponse(new ValidationError('Code d\'invitation invalide')),
-          { status: 400 }
-        );
-      }
-    }
-
-    // Vérifier si l'utilisateur existe déjà
-    const { usernameExists, emailExists } = await checkUserExists(
-      validatedBody.username,
-      validatedBody.email
-    );
-
-    if (usernameExists) {
-      return NextResponse.json(
-        createErrorResponse(new ConflictError('Ce nom d\'utilisateur est déjà utilisé')),
-        { status: 409 }
-      );
-    }
-
-    if (emailExists) {
-      return NextResponse.json(
-        createErrorResponse(new ConflictError('Cette adresse email est déjà utilisée')),
-        { status: 409 }
-      );
-    }
-
-    // Hasher le mot de passe
-    const saltRounds = 12;
-    const hashedPassword = await hash(validatedBody.password, saltRounds);
-
-    // Créer l'utilisateur
-    const newUser = await createUser({
+    // Use AuthService to handle signup
+    const authService = serviceContainer.getAuthService();
+    const result = await authService.signupUser({
       username: validatedBody.username,
       email: validatedBody.email,
-      hashedPassword,
+      password: validatedBody.password,
       clientIp,
+      invitationCode: validatedBody.invitationCode,
+      signupConfig
     });
 
-    // Créer une session pour l'utilisateur nouvellement inscrit
-    const authService = serviceContainer.getAuthService();
-    const sessionToken = await authService.createSession(newUser.id);
+    logger.info(`User successfully signed up and logged in: ${result.user.id}`);
 
-    logger.info(`User successfully signed up and logged in: ${newUser.id}`);
-
-    // Utilisateur créé ET connecté automatiquement
+    // Create response with user data
     const response = NextResponse.json(
       createSuccessResponse({
-        user: {
-          id: newUser.id,
-          username: newUser.username,
-          email: newUser.email,
-        },
+        user: result.user,
         message: 'Compte créé et connexion réussie',
       }),
       { status: 201 }
     );
 
-    // Définir le cookie de session
+    // Set session cookie
     response.cookies.set(
-      COOKIE_NAME,
-      sessionToken,
+      env.COOKIE_NAME,
+      result.sessionToken,
       {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -299,8 +122,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Signup error:', { error });
     return NextResponse.json(
-      createErrorResponse(error instanceof Error ? error : new DatabaseError('Erreur lors de la création du compte')),
-      { status: 500 }
+      createErrorResponse(error),
+      { status: error instanceof Error && 'statusCode' in error ? (error as { statusCode: number }).statusCode || 500 : 500 }
     );
   }
 }
@@ -317,10 +140,10 @@ export async function GET() {
 
   return NextResponse.json(
     createSuccessResponse({
-      signupEnabled: SIGNUP_ENABLED,
-      requiresInvitationCode: REQUIRE_INVITATION_CODE,
+      signupEnabled: signupConfig.enabled,
+      requiresInvitationCode: signupConfig.requireInvitationCode,
       rateLimit: {
-        maxSignupsPerHour: MAX_SIGNUPS_PER_HOUR,
+        maxSignupsPerHour: signupConfig.maxSignupsPerHour,
       },
       validation: {
         usernameMinLength: 3,

@@ -70,7 +70,7 @@ export function validateTransformedData<T>(
     return schema.parse(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors
+      const errorMessages = error.issues
         .map((err) => `${err.path.join(".")}: ${err.message}`)
         .join(", ");
       throw new Error(`Validation failed for ${context}: ${errorMessages}`);
@@ -82,14 +82,14 @@ export function validateTransformedData<T>(
 /**
  * Removes undefined values from an object
  */
-export function removeUndefinedValues<T extends Record<string, any>>(
+export function removeUndefinedValues<T extends Record<string, unknown>>(
   obj: T,
 ): Partial<T> {
   const result: Partial<T> = {};
 
   for (const [key, value] of Object.entries(obj)) {
     if (value !== undefined) {
-      result[key as keyof T] = value;
+      result[key as keyof T] = value as T[keyof T];
     }
   }
 

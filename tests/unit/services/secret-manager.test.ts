@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SecretManager } from '../../../lib/services/security/secret-manager';
-import { databaseService } from '../../../lib/services/database/db';
+import { databaseService } from "@/lib/database";
 import { logger } from '../../../lib/utils/logging/logger';
 
-vi.mock('../../../lib/services/database/db', () => {
+vi.mock('../../../lib/database', () => {
   const query = vi.fn();
   const queryOne = vi.fn();
   const execute = vi.fn();
@@ -119,5 +119,52 @@ describe('SecretManager', () => {
     );
     expect(manager.getSecret('ai_api_key')).toBe('new-secret');
     expect(manager.getSecret('default')).toBe('new-secret');
+  });
+
+  it('lit les variables d\'environnement en priorité sur le cache DB', async () => {
+    const manager = SecretManager.getInstance();
+
+    // Définir une variable d'environnement
+    process.env['SECRET_MY_TEST_KEY'] = 'from-env-value';
+
+    // Simuler une valeur différente en cache DB
+    mockDatabaseService.queryOne.mockResolvedValueOnce({ name: 'app_secrets' });
+    mockDatabaseService.query.mockResolvedValueOnce([
+      { name: 'id' },
+      { name: 'name' },
+      { name: 'value' },
+    ]);
+    mockDatabaseService.query.mockResolvedValueOnce([
+      { id: 's1', name: 'my_test_key', value: 'from-db-value', is_active: 1 },
+    ]);
+
+    await manager.init();
+
+    // La valeur env doit être prioritaire
+    expect(manager.getSecret('my_test_key')).toBe('from-env-value');
+
+    // Cleanup
+    delete process.env['SECRET_MY_TEST_KEY'];
+  });
+
+  it('retourne la valeur DB si aucune variable d\'environnement n\'existe', async () => {
+    const manager = SecretManager.getInstance();
+
+    // S'assurer qu'aucune env n'existe
+    delete process.env['SECRET_OTHER_KEY'];
+
+    mockDatabaseService.queryOne.mockResolvedValueOnce({ name: 'app_secrets' });
+    mockDatabaseService.query.mockResolvedValueOnce([
+      { name: 'id' },
+      { name: 'name' },
+      { name: 'value' },
+    ]);
+    mockDatabaseService.query.mockResolvedValueOnce([
+      { id: 's2', name: 'other_key', value: 'db-only-value', is_active: 1 },
+    ]);
+
+    await manager.init();
+
+    expect(manager.getSecret('other_key')).toBe('db-only-value');
   });
 });

@@ -3,7 +3,7 @@ import { UserService } from "@/lib/services/user-service";
 import { serviceContainer } from "@/lib/services/container";
 import { UserRepository } from "@/lib/repositories/user-repository";
 import { ProductRepository } from "@/lib/repositories/product-repository";
-import { ParcelleRepository } from "@/lib/repositories/parcelle-repository";
+import { ParcelleRepository } from "@/lib/repositories/parcel-repository";
 
 // Mock dependencies
 const mockUserRepository = {
@@ -25,7 +25,7 @@ vi.mock("@/lib/services/container", () => ({
     serviceContainer: {
         getUserRepository: vi.fn(),
         getProductRepository: vi.fn(),
-        getParcelleRepository: vi.fn(),
+        getParcelRepository: vi.fn(),
     },
 }));
 
@@ -40,7 +40,7 @@ describe("UserService", () => {
 
         vi.mocked(serviceContainer.getUserRepository).mockReturnValue(mockUserRepository);
         vi.mocked(serviceContainer.getProductRepository).mockReturnValue(mockProductRepository);
-        vi.mocked(serviceContainer.getParcelleRepository).mockReturnValue(mockParcelleRepository);
+        vi.mocked(serviceContainer.getParcelRepository).mockReturnValue(mockParcelleRepository);
     });
 
     describe("getProfile", () => {
@@ -130,7 +130,7 @@ describe("UserService", () => {
 
             expect(mockUserRepository.update).toHaveBeenCalledWith(VALID_USER_ID, expect.objectContaining({
                 theme: "light",
-                preferences: expect.stringContaining('"currency":"USD"'),
+                preferences: expect.objectContaining({ currency: "USD" }),
             }));
         });
     });

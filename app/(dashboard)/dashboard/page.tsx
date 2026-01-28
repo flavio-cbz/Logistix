@@ -7,7 +7,6 @@ import {
   TrendingUp,
   Package,
   DollarSign,
-  Users,
   AlertTriangle,
   Target,
   RefreshCw,
@@ -20,10 +19,14 @@ import { Badge } from "@/components/ui/badge";
 import { MetricCard, AlertCard, QuickAction } from "@/components/features/dashboard/metric-cards";
 import { InteractiveChart, ChartGrid } from "@/components/features/dashboard/interactive-charts";
 import { useOptimizedDashboard, useRealTimeAlerts } from "@/lib/hooks/useDashboardData";
-import { cn, formatCurrency, formatPercentage } from "@/lib/shared/utils";
+import { cn } from "@/lib/shared/utils";
+import { useFormatting } from "@/lib/hooks/use-formatting";
+
+import { PageLoading } from "@/components/ui/loading-state";
 
 export default function RevolutionaryDashboard() {
   const router = useRouter();
+  const { formatCurrency } = useFormatting();
   const {
     data,
     loading,
@@ -37,18 +40,11 @@ export default function RevolutionaryDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
-            <Activity className="w-6 h-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Chargement du Dashboard Intelligence</h3>
-            <p className="text-muted-foreground">Préparation des métriques temps réel...</p>
-          </div>
-        </div>
-      </div>
+      <PageLoading
+        title="Chargement du Dashboard Intelligence"
+        message="Préparation des métriques temps réel..."
+        icon={<Activity className="w-6 h-6" />}
+      />
     );
   }
 
@@ -76,45 +72,9 @@ export default function RevolutionaryDashboard() {
 
   if (!data) return null;
 
-  // Calculs avancés basés sur les données réelles
-  const trends = {
-    // Tendance des revenus (aujourd'hui vs hier)
-    revenue: data.performanceJournaliere.length > 1 ?
-      ((data.performanceJournaliere[data.performanceJournaliere.length - 1]?.ventes || 0) -
-        (data.performanceJournaliere[data.performanceJournaliere.length - 2]?.ventes || 0)) /
-      (data.performanceJournaliere[data.performanceJournaliere.length - 2]?.ventes || 1) * 100 : 0,
+  // Use server-side calculated trends (fallback to 0 if not available)
+  const trends = data.trends || { revenue: 0, orders: 0, profit: 0, conversion: 0 };
 
-    // Tendance des commandes (aujourd'hui vs hier)
-    orders: data.performanceJournaliere.length > 1 ?
-      ((data.performanceJournaliere[data.performanceJournaliere.length - 1]?.commandes || 0) -
-        (data.performanceJournaliere[data.performanceJournaliere.length - 2]?.commandes || 0)) /
-      (data.performanceJournaliere[data.performanceJournaliere.length - 2]?.commandes || 1) * 100 : 0,
-
-    // Tendance des bénéfices (aujourd'hui vs hier)
-    profit: data.performanceJournaliere.length > 1 ?
-      ((data.performanceJournaliere[data.performanceJournaliere.length - 1]?.benefices || 0) -
-        (data.performanceJournaliere[data.performanceJournaliere.length - 2]?.benefices || 0)) /
-      (data.performanceJournaliere[data.performanceJournaliere.length - 2]?.benefices || 1) * 100 : 0,
-
-    // Tendance du taux de conversion (comparaison sur 7 jours)
-    conversion: data.performanceJournaliere.length >= 4 ? (() => {
-      const recent = data.performanceJournaliere.slice(-2);
-      const previous = data.performanceJournaliere.slice(-4, -2);
-
-      const recentAvg = recent.reduce((sum, day) => sum + (day.commandes || 0), 0) / recent.length;
-      const previousAvg = previous.reduce((sum, day) => sum + (day.commandes || 0), 0) / previous.length;
-
-      return previousAvg > 0 ? ((recentAvg - previousAvg) / previousAvg) * 100 : 0;
-    })() : 0,
-
-    // Tendance des clients actifs (basé sur le nombre de jours avec ventes)
-    clients: data.performanceJournaliere.length > 1 ? (() => {
-      const recentDaysWithSales = data.performanceJournaliere.slice(-3).filter(d => d.commandes > 0).length;
-      const previousDaysWithSales = data.performanceJournaliere.slice(-6, -3).filter(d => d.commandes > 0).length;
-
-      return previousDaysWithSales > 0 ? ((recentDaysWithSales - previousDaysWithSales) / previousDaysWithSales) * 100 : 0;
-    })() : 0
-  };
 
   const quickActions = [
     {
@@ -209,43 +169,38 @@ export default function RevolutionaryDashboard() {
         {/* Métriques principales */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <MetricCard
-            title="Chiffre d'Affaires"
-            value={formatCurrency(data.ventesTotales || 0)}
-            change={trends.revenue}
-            trend={trends.revenue > 0 ? 'up' : trends.revenue < 0 ? 'down' : 'stable'}
-            icon={<DollarSign className="w-4 h-4 text-primary" />}
-            description="Revenus totaux"
-            target={data.targets?.revenue || 20000}
-            progressValue={data.ventesTotales || 0}
+            title="Valeur du Stock"
+            value={formatCurrency(data.rotationStock?.valeurStockTotal || 0)}
+            change={0}
+            trend="stable"
+            icon={<Package className="w-4 h-4 text-blue-500" />}
+            description="Actifs en inventaire"
+            className="border-blue-500/20"
           />
           <MetricCard
             title="Produits Vendus"
             value={data.produitsVendus}
             change={trends.orders}
             trend={trends.orders > 0 ? 'up' : trends.orders < 0 ? 'down' : 'stable'}
-            icon={<Package className="w-4 h-4 text-green-600" />}
+            icon={<Target className="w-4 h-4 text-orange-500" />}
             description="Unités vendues"
-            target={data.targets?.productsSold || 500}
-            progressValue={data.produitsVendus}
           />
           <MetricCard
-            title="Taux de Conversion"
-            value={formatPercentage(Number(data.tauxConversion || 0))}
-            change={trends.conversion}
-            trend={trends.conversion > 0 ? 'up' : trends.conversion < 0 ? 'down' : 'stable'}
-            icon={<Target className="w-4 h-4 text-blue-600" />}
-            description="Produits vendus / Total"
-            target={data.targets?.conversionRate || 60}
-            progressValue={Number(data.tauxConversion || 0)}
+            title="Chiffre d'Affaires"
+            value={formatCurrency(data.ventesTotales || 0)}
+            change={trends.revenue}
+            trend={trends.revenue > 0 ? 'up' : trends.revenue < 0 ? 'down' : 'stable'}
+            icon={<Activity className="w-4 h-4 text-purple-500" />}
+            description="Revenus totaux"
           />
           <MetricCard
-            title="Bénéfices"
+            title="Bénéfices Net"
             value={formatCurrency(data.beneficesTotaux || 0)}
             change={trends.profit}
             trend={trends.profit > 0 ? 'up' : trends.profit < 0 ? 'down' : 'stable'}
-            icon={<Users className="w-4 h-4 text-purple-600" />}
-            description="Bénéfices totaux"
-            progressValue={data.beneficesTotaux || 0}
+            icon={<DollarSign className="w-5 h-5 text-white" />}
+            description="Marge nette après coûts"
+            className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/20 shadow-lg"
           />
         </div>
         {/* Actions rapides */}
@@ -285,7 +240,7 @@ export default function RevolutionaryDashboard() {
                     <div className="space-y-1">
                       <p className="font-medium">{produit.nom}</p>
                       <p className="text-sm text-muted-foreground">
-                        {produit.ventesCount} unités • {produit.ventesRevenue.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })} CA • {produit.benefices}€ bénéfices
+                        {produit.ventesCount} unités • {formatCurrency(produit.ventesRevenue)} CA • {formatCurrency(produit.benefices)} bénéfices
                       </p>
                     </div>
                     <Badge variant={produit.stock < 5 ? "destructive" : "secondary"}>
@@ -305,11 +260,11 @@ export default function RevolutionaryDashboard() {
               <div className="grid gap-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Panier Moyen</span>
-                  <span className="text-xl font-bold">{data.panierMoyen}€</span>
+                  <span className="text-xl font-bold">{formatCurrency(data.panierMoyen)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Bénéfices Totaux</span>
-                  <span className="text-xl font-bold">{data.beneficesTotaux.toLocaleString()}€</span>
+                  <span className="text-xl font-bold">{formatCurrency(data.beneficesTotaux)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Colis Actifs</span>
@@ -323,7 +278,7 @@ export default function RevolutionaryDashboard() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Valeur Stock</span>
-                      <span className="text-xl font-bold">{data.rotationStock.valeurStockTotal.toLocaleString()}€</span>
+                      <span className="text-xl font-bold">{formatCurrency(data.rotationStock.valeurStockTotal)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Âge Moyen</span>
@@ -371,7 +326,7 @@ export default function RevolutionaryDashboard() {
                         </span>
                         <span className="text-muted-foreground">•</span>
                         <span className="text-muted-foreground">
-                          Coût: {parcelle.coutTotal.toLocaleString()}€
+                          Coût: {formatCurrency(parcelle.coutTotal)}
                         </span>
                       </div>
                     </div>
@@ -390,7 +345,7 @@ export default function RevolutionaryDashboard() {
                       <div className="text-right">
                         <p className="text-sm text-muted-foreground">Bénéfices</p>
                         <p className="text-xl font-bold text-green-600">
-                          +{parcelle.benefices.toLocaleString()}€
+                          +{formatCurrency(parcelle.benefices)}
                         </p>
                       </div>
                     </div>

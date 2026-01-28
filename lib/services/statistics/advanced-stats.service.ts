@@ -1,60 +1,15 @@
+
 import { BaseService } from "../base-service";
-import { databaseService } from "@/lib/services/database/db";
-import { products, parcelles, users } from "@/lib/database/schema";
-import { eq, and, gte, lt, sql, desc, asc, count } from "drizzle-orm";
+import { databaseService } from "@/lib/database";
+import { products, parcels } from "@/lib/database/schema";
+import { eq, and, gte, lt, sql, desc, asc, count, type SQL } from "drizzle-orm";
 import { StatsSearchParams } from "@/lib/schemas/stats";
+import { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import * as schema from "@/lib/database/schema";
+import { sqlFormulas } from "./sql-formulas";
+import { calculateTrend, getDateRanges } from "./utils";
 
-// Trend calculation utility
-export function calculateTrend(current: number, previous: number): number {
-    if (!previous || previous === 0) return current > 0 ? 100 : 0;
-    return ((current - previous) / previous) * 100;
-}
-
-// Date range calculation
-export function getDateRanges(period: string): {
-    startDate: Date;
-    previousStartDate: Date;
-    previousEndDate: Date;
-} {
-    const now = new Date();
-    const startDate = new Date();
-    const previousStartDate = new Date();
-    const previousEndDate = new Date();
-
-    switch (period) {
-        case '7d':
-            startDate.setDate(now.getDate() - 7);
-            previousStartDate.setDate(now.getDate() - 14);
-            previousEndDate.setDate(now.getDate() - 7);
-            break;
-        case '30d':
-            startDate.setDate(now.getDate() - 30);
-            previousStartDate.setDate(now.getDate() - 60);
-            previousEndDate.setDate(now.getDate() - 30);
-            break;
-        case '90d':
-            startDate.setDate(now.getDate() - 90);
-            previousStartDate.setDate(now.getDate() - 180);
-            previousEndDate.setDate(now.getDate() - 90);
-            break;
-        case '1y':
-            startDate.setFullYear(now.getFullYear() - 1);
-            previousStartDate.setFullYear(now.getFullYear() - 2);
-            previousEndDate.setFullYear(now.getFullYear() - 1);
-            break;
-        case 'all':
-        default:
-            startDate.setTime(new Date('2000-01-01').getTime());
-            previousStartDate.setTime(new Date('1900-01-01').getTime());
-            previousEndDate.setTime(new Date('2000-01-01').getTime());
-            break;
-    }
-
-    return { startDate, previousStartDate, previousEndDate };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DrizzleDB = any;
+type DrizzleDB = BetterSQLite3Database<typeof schema>;
 
 export class AdvancedStatsService extends BaseService {
     constructor() {
@@ -70,18 +25,17 @@ export class AdvancedStatsService extends BaseService {
             const previousStartDateStr = previousStartDate.toISOString();
             const previousEndDateStr = previousEndDate.toISOString();
 
-            return await databaseService.executeWithConnection((db) => {
+            return await databaseService.executeQuery((db) => {
                 const vueEnsemble = this.getVueEnsemble(db, userId, startDateStr);
                 const trends = this.calculateTrends(db, userId, vueEnsemble, period, previousStartDateStr, previousEndDateStr);
                 const evolutionTemporelle = this.getEvolutionTemporelle(db, userId, groupBy, startDateStr);
                 const performancePlateforme = this.getPerformancePlateforme(db, userId, startDateStr);
-                const performanceParcelle = this.getPerformanceParcelle(db, userId, startDateStr);
+                const performanceParcel = this.getPerformanceParcel(db, userId, startDateStr);
                 const topProduits = this.getTopProduits(db, userId, startDateStr);
                 const flopProduits = this.getFlopProduits(db, userId, startDateStr);
                 const delaisVente = this.getDelaisVente(db, userId, startDateStr);
                 const produitsNonVendus = this.getProduitsNonVendus(db, userId, startDateStr);
                 const analyseCouts = this.getAnalyseCouts(db, userId, startDateStr);
-                const targets = this.getUserTargets(db, userId);
 
                 const margeMoyenne = vueEnsemble.chiffreAffaires > 0
                     ? (vueEnsemble.beneficesTotal / vueEnsemble.chiffreAffaires) * 100
@@ -90,7 +44,6 @@ export class AdvancedStatsService extends BaseService {
                 return {
                     periode: period,
                     groupBy: groupBy,
-                    targets,
                     vueEnsemble: {
                         ...vueEnsemble,
                         margeMoyenne,
@@ -99,7 +52,7 @@ export class AdvancedStatsService extends BaseService {
                     },
                     evolutionTemporelle,
                     performancePlateforme,
-                    performanceParcelle,
+                    performanceParcelle: performanceParcel,
                     topProduits,
                     flopProduits,
                     delaisVente,
@@ -114,15 +67,16 @@ export class AdvancedStatsService extends BaseService {
     private getVueEnsemble(db: DrizzleDB, userId: string, startDateStr: string) {
         const result = db.select({
             totalProduits: count(),
-            produitsVendus: sql<number>`SUM(CASE WHEN ${products.vendu} = '1' THEN 1 ELSE 0 END)`,
+            produitsVendus: sqlFormulas.countVendus,
             produitsEnLigne: sql<number>`SUM(CASE WHEN ${products.listedAt} IS NOT NULL AND ${products.vendu} = '0' THEN 1 ELSE 0 END)`,
             produitsStock: sql<number>`SUM(CASE WHEN ${products.listedAt} IS NULL AND ${products.vendu} = '0' THEN 1 ELSE 0 END)`,
-            chiffreAffaires: sql<number>`COALESCE(SUM(CASE WHEN ${products.vendu} = '1' THEN ${products.sellingPrice} ELSE 0 END), 0)`,
-            beneficesTotal: sql<number>`COALESCE(SUM(CASE WHEN ${products.vendu} = '1' THEN (${products.sellingPrice} - ${products.price} - COALESCE(${products.coutLivraison}, 0)) ELSE 0 END), 0)`,
+            chiffreAffaires: sqlFormulas.sumChiffreAffairesVendus,
+            beneficesTotal: sqlFormulas.sumBeneficesVendus,
             prixMoyenVente: sql<number>`COALESCE(AVG(CASE WHEN ${products.vendu} = '1' THEN ${products.sellingPrice} END), 0)`,
             prixMoyenAchat: sql<number>`COALESCE(AVG(${products.price}), 0)`,
         })
             .from(products)
+            .leftJoin(parcels, eq(products.parcelId, parcels.id))
             .where(and(eq(products.userId, userId), gte(products.createdAt, startDateStr)))
             .get();
 
@@ -142,60 +96,65 @@ export class AdvancedStatsService extends BaseService {
         }
 
         const prevResult = db.select({
-            produitsVendus: sql<number>`SUM(CASE WHEN ${products.vendu} = '1' THEN 1 ELSE 0 END)`,
-            chiffreAffaires: sql<number>`COALESCE(SUM(CASE WHEN ${products.vendu} = '1' THEN ${products.sellingPrice} ELSE 0 END), 0)`,
-            beneficesTotal: sql<number>`COALESCE(SUM(CASE WHEN ${products.vendu} = '1' THEN (${products.sellingPrice} - ${products.price} - COALESCE(${products.coutLivraison}, 0)) ELSE 0 END), 0)`,
+            produitsVendus: sqlFormulas.countVendus,
+            chiffreAffaires: sqlFormulas.sumChiffreAffairesVendus,
+            beneficesTotal: sqlFormulas.sumBeneficesVendus,
             prixMoyenVente: sql<number>`COALESCE(AVG(CASE WHEN ${products.vendu} = '1' THEN ${products.sellingPrice} END), 0)`,
             totalCount: count(),
         })
             .from(products)
+            .leftJoin(parcels, eq(products.parcelId, parcels.id))
             .where(and(eq(products.userId, userId), gte(products.createdAt, previousStartDateStr), lt(products.createdAt, previousEndDateStr)))
             .get();
 
         const margeMoyenne = vueEnsemble.chiffreAffaires > 0 ? (vueEnsemble.beneficesTotal / vueEnsemble.chiffreAffaires) * 100 : 0;
-        const prevMargeMoyenne = prevResult?.chiffreAffaires > 0 ? (prevResult.beneficesTotal / prevResult.chiffreAffaires) * 100 : 0;
-        const prevTauxVente = prevResult?.totalCount > 0 ? (prevResult.produitsVendus / prevResult.totalCount) * 100 : 0;
+        const prevMargeMoyenne = (prevResult?.chiffreAffaires ?? 0) > 0 ? ((prevResult?.beneficesTotal ?? 0) / (prevResult?.chiffreAffaires ?? 1)) * 100 : 0;
+        const prevTauxVente = (prevResult?.totalCount ?? 0) > 0 ? ((prevResult?.produitsVendus ?? 0) / (prevResult?.totalCount ?? 1)) * 100 : 0;
 
         return {
-            chiffreAffaires: calculateTrend(vueEnsemble.chiffreAffaires, prevResult?.chiffreAffaires || 0),
-            produitsVendus: calculateTrend(vueEnsemble.produitsVendus, prevResult?.produitsVendus || 0),
+            chiffreAffaires: calculateTrend(vueEnsemble.chiffreAffaires, prevResult?.chiffreAffaires ?? 0),
+            produitsVendus: calculateTrend(vueEnsemble.produitsVendus, prevResult?.produitsVendus ?? 0),
             margeMoyenne: margeMoyenne - prevMargeMoyenne,
-            prixMoyenVente: calculateTrend(vueEnsemble.prixMoyenVente, prevResult?.prixMoyenVente || 0),
-            beneficesTotal: calculateTrend(vueEnsemble.beneficesTotal, prevResult?.beneficesTotal || 0),
+            prixMoyenVente: calculateTrend(vueEnsemble.prixMoyenVente, prevResult?.prixMoyenVente ?? 0),
+            beneficesTotal: calculateTrend(vueEnsemble.beneficesTotal, prevResult?.beneficesTotal ?? 0),
             tauxVente: ((vueEnsemble.produitsVendus / (vueEnsemble.totalProduits || 1)) * 100) - prevTauxVente
         };
     }
 
     private getEvolutionTemporelle(db: DrizzleDB, userId: string, groupBy: string, startDateStr: string) {
-        let groupByClause, dateFormat;
+        let groupByClause: SQL<unknown>;
+        let dateFormat: SQL<unknown>;
+
         switch (groupBy) {
-            case 'day':
-                groupByClause = sql`DATE(${products.soldAt})`;
-                dateFormat = sql`strftime('%Y-%m-%d', ${products.soldAt})`;
-                break;
             case 'week':
                 groupByClause = sql`strftime('%Y-%W', ${products.soldAt})`;
                 dateFormat = sql`strftime('%Y-W%W', ${products.soldAt})`;
                 break;
             case 'month':
                 groupByClause = sql`strftime('%Y-%m', ${products.soldAt})`;
-                dateFormat = sql`strftime('%Y-%m', ${products.soldAt})`;
+                dateFormat = sql`strftime('%Y-m', ${products.soldAt})`;
+                break;
+            case 'day':
+            default:
+                groupByClause = sql`DATE(${products.soldAt})`;
+                dateFormat = sql`strftime('%Y-%m-%d', ${products.soldAt})`;
                 break;
         }
 
         return db.select({
             periode: dateFormat,
             nbVentes: count(),
-            chiffreAffaires: sql<number>`COALESCE(SUM(${products.sellingPrice}), 0)`,
-            benefices: sql<number>`COALESCE(SUM(${products.sellingPrice} - ${products.price} - COALESCE(${products.coutLivraison}, 0)), 0)`,
+            chiffreAffaires: sqlFormulas.sumChiffreAffaires,
+            benefices: sqlFormulas.sumBenefices,
             prixMoyenVente: sql<number>`COALESCE(AVG(${products.sellingPrice}), 0)`,
         })
             .from(products)
+            .leftJoin(parcels, eq(products.parcelId, parcels.id))
             .where(and(eq(products.userId, userId), eq(products.vendu, '1'), sql`${products.soldAt} IS NOT NULL`, gte(products.soldAt, startDateStr)))
             .groupBy(groupByClause)
             .orderBy(asc(dateFormat))
             .all()
-            .map((e: { chiffreAffaires: number; benefices: number }) => ({
+            .map((e) => ({
                 ...e,
                 margeMoyenne: e.chiffreAffaires > 0 ? (e.benefices / e.chiffreAffaires) * 100 : 0
             }));
@@ -210,14 +169,15 @@ export class AdvancedStatsService extends BaseService {
         return db.select({
             plateforme: sql<string>`COALESCE(${products.plateforme}, 'Non spécifié')`,
             nbVentes: count(),
-            chiffreAffaires: sql<number>`COALESCE(SUM(${products.sellingPrice}), 0)`,
-            benefices: sql<number>`COALESCE(SUM(${products.sellingPrice} - ${products.price} - COALESCE(${products.coutLivraison}, 0)), 0)`,
+            chiffreAffaires: sqlFormulas.sumChiffreAffaires,
+            benefices: sqlFormulas.sumBenefices,
             prixMoyenVente: sql<number>`COALESCE(AVG(${products.sellingPrice}), 0)`,
         })
             .from(products)
+            .leftJoin(parcels, eq(products.parcelId, parcels.id))
             .where(and(eq(products.userId, userId), eq(products.vendu, '1'), gte(products.soldAt, startDateStr)))
             .groupBy(products.plateforme)
-            .orderBy(desc(sql`COALESCE(SUM(${products.sellingPrice}), 0)`))
+            .orderBy(desc(sqlFormulas.sumChiffreAffaires))
             .all()
             .map((p: { chiffreAffaires: number; benefices: number; nbVentes: number }) => ({
                 ...p,
@@ -226,25 +186,29 @@ export class AdvancedStatsService extends BaseService {
             }));
     }
 
-    private getPerformanceParcelle(db: DrizzleDB, userId: string, startDateStr: string) {
+    private getPerformanceParcel(db: DrizzleDB, userId: string, startDateStr: string) {
         return db.select({
-            parcelleId: products.parcelleId,
-            parcelleNumero: parcelles.numero,
-            parcelleNom: parcelles.nom,
+            parcelId: products.parcelId,
+            parcelNumero: sql<string>`COALESCE(${parcels.superbuyId}, 'Sans parcelle')`,
+            parcelNom: sql<string>`COALESCE(${parcels.name}, '')`,
             nbProduitsTotal: count(),
-            nbProduitsVendus: sql<number>`SUM(CASE WHEN ${products.vendu} = '1' THEN 1 ELSE 0 END)`,
-            chiffreAffaires: sql<number>`COALESCE(SUM(CASE WHEN ${products.vendu} = '1' THEN ${products.sellingPrice} ELSE 0 END), 0)`,
-            coutTotal: sql<number>`COALESCE(SUM(${products.price} + COALESCE(${products.coutLivraison}, ${parcelles.prixParGramme} * ${products.poids}, 0)), 0)`,
-            beneficesTotal: sql<number>`COALESCE(SUM(CASE WHEN ${products.vendu} = '1' THEN (${products.sellingPrice} - ${products.price} - COALESCE(${products.coutLivraison}, ${parcelles.prixParGramme} * ${products.poids}, 0)) ELSE 0 END), 0)`,
-            prixParGramme: sql<number>`COALESCE(${parcelles.prixParGramme}, 0)`,
+            nbProduitsVendus: sqlFormulas.countVendus,
+            chiffreAffaires: sqlFormulas.sumChiffreAffairesVendus,
+            coutTotal: sql<number>`COALESCE(SUM(${sqlFormulas.coutTotal}), 0)`,
+            beneficesTotal: sqlFormulas.sumBeneficesVendus,
+            prixParGramme: sql<number>`COALESCE(${parcels.pricePerGram}, 0)`,
             poidsTotal: sql<number>`COALESCE(SUM(${products.poids}), 0)`,
-            coutLivraisonTotal: sql<number>`COALESCE(SUM(COALESCE(${products.coutLivraison}, ${parcelles.prixParGramme} * ${products.poids}, 0)), 0)`
+            coutLivraisonTotal: sql<number>`COALESCE(SUM(${sqlFormulas.coutLivraison}), 0)`,
+            trackingNumber: sql<string>`COALESCE(${parcels.trackingNumber}, '')`,
+            carrier: sql<string>`COALESCE(${parcels.carrier}, '')`,
+            status: sql<string>`COALESCE(${parcels.status}, 'Inconnu')`,
+            createdAt: sql<string>`COALESCE(${parcels.createdAt}, datetime('now'))`
         })
             .from(products)
-            .leftJoin(parcelles, eq(products.parcelleId, parcelles.id))
+            .leftJoin(parcels, eq(products.parcelId, parcels.id))
             .where(and(eq(products.userId, userId), gte(products.createdAt, startDateStr)))
-            .groupBy(products.parcelleId, parcelles.numero, parcelles.nom, parcelles.prixParGramme)
-            .orderBy(desc(sql`COALESCE(SUM(CASE WHEN ${products.vendu} = '1' THEN (${products.sellingPrice} - ${products.price} - COALESCE(${products.coutLivraison}, ${parcelles.prixParGramme} * ${products.poids}, 0)) ELSE 0 END), 0)`))
+            .groupBy(products.parcelId)
+            .orderBy(desc(sqlFormulas.sumBeneficesVendus))
             .all()
             .map((p: { nbProduitsTotal: number; nbProduitsVendus: number; coutTotal: number; beneficesTotal: number }) => ({
                 ...p,
@@ -256,13 +220,14 @@ export class AdvancedStatsService extends BaseService {
     private getTopProduits(db: DrizzleDB, userId: string, startDateStr: string) {
         return db.select({
             id: products.id, nom: products.name, prixAchat: products.price, prixVente: products.sellingPrice,
-            benefice: sql<number>`(${products.sellingPrice} - ${products.price} - COALESCE(${products.coutLivraison}, 0))`,
+            benefice: sqlFormulas.benefice,
             plateforme: sql<string>`COALESCE(${products.plateforme}, 'Non spécifié')`,
             dateVente: products.soldAt, dateMiseEnLigne: products.listedAt,
         })
             .from(products)
+            .leftJoin(parcels, eq(products.parcelId, parcels.id))
             .where(and(eq(products.userId, userId), eq(products.vendu, '1'), gte(products.soldAt, startDateStr)))
-            .orderBy(desc(sql`(${products.sellingPrice} - ${products.price} - COALESCE(${products.coutLivraison}, 0))`))
+            .orderBy(desc(sqlFormulas.benefice))
             .limit(10)
             .all()
             .map((p: { prixVente: number | null; benefice: number; dateMiseEnLigne: string | null; dateVente: string | null }) => ({
@@ -277,13 +242,14 @@ export class AdvancedStatsService extends BaseService {
     private getFlopProduits(db: DrizzleDB, userId: string, startDateStr: string) {
         return db.select({
             id: products.id, nom: products.name, prixAchat: products.price, prixVente: products.sellingPrice,
-            benefice: sql<number>`(${products.sellingPrice} - ${products.price} - COALESCE(${products.coutLivraison}, 0))`,
+            benefice: sqlFormulas.benefice,
             plateforme: sql<string>`COALESCE(${products.plateforme}, 'Non spécifié')`,
             dateVente: products.soldAt,
         })
             .from(products)
+            .leftJoin(parcels, eq(products.parcelId, parcels.id))
             .where(and(eq(products.userId, userId), eq(products.vendu, '1'), gte(products.soldAt, startDateStr)))
-            .orderBy(asc(sql`(${products.sellingPrice} - ${products.price} - COALESCE(${products.coutLivraison}, 0))`))
+            .orderBy(asc(sqlFormulas.benefice))
             .limit(10)
             .all()
             .map((p: { prixVente: number | null; benefice: number }) => ({
@@ -310,12 +276,12 @@ export class AdvancedStatsService extends BaseService {
     private getProduitsNonVendus(db: DrizzleDB, userId: string, startDateStr: string) {
         return db.select({
             id: products.id, nom: products.name, prixAchat: products.price,
-            coutLivraison: sql<number>`COALESCE(${products.coutLivraison}, ${parcelles.prixParGramme} * ${products.poids}, 0)`,
+            coutLivraison: sqlFormulas.coutLivraison,
             dateMiseEnLigne: products.listedAt,
-            parcelleNumero: sql<string>`COALESCE(${parcelles.numero}, 'Non spécifié')`
+            parcelNumero: sql<string>`COALESCE(${parcels.superbuyId}, 'Non spécifié')`
         })
             .from(products)
-            .leftJoin(parcelles, eq(products.parcelleId, parcelles.id))
+            .leftJoin(parcels, eq(products.parcelId, parcels.id))
             .where(and(eq(products.userId, userId), eq(products.vendu, '0'), gte(products.createdAt, startDateStr)))
             .orderBy(asc(products.listedAt))
             .limit(50)
@@ -328,27 +294,18 @@ export class AdvancedStatsService extends BaseService {
     private getAnalyseCouts(db: DrizzleDB, userId: string, startDateStr: string) {
         const result = db.select({
             coutAchatTotal: sql<number>`COALESCE(SUM(${products.price}), 0)`,
-            coutLivraisonTotal: sql<number>`COALESCE(SUM(COALESCE(${products.coutLivraison}, ${parcelles.prixParGramme} * ${products.poids}, 0)), 0)`,
-            coutTotalInvesti: sql<number>`COALESCE(SUM(${products.price} + COALESCE(${products.coutLivraison}, ${parcelles.prixParGramme} * ${products.poids}, 0)), 0)`,
-            nbParcelles: sql<number>`COUNT(DISTINCT ${products.parcelleId})`,
+            coutLivraisonTotal: sql<number>`COALESCE(SUM(${sqlFormulas.coutLivraison}), 0)`,
+            coutTotalInvesti: sql<number>`COALESCE(SUM(${sqlFormulas.coutTotal}), 0)`,
+            nbParcelles: sql<number>`COUNT(DISTINCT ${products.parcelId})`,
             coutMoyenParProduit: sql<number>`COALESCE(AVG(${products.price}), 0)`,
-            coutMoyenLivraison: sql<number>`COALESCE(AVG(COALESCE(${products.coutLivraison}, ${parcelles.prixParGramme} * ${products.poids}, 0)), 0)`
+            coutMoyenLivraison: sql<number>`COALESCE(AVG(${sqlFormulas.coutLivraison}), 0)`
         })
             .from(products)
-            .leftJoin(parcelles, eq(products.parcelleId, parcelles.id))
+            .leftJoin(parcels, eq(products.parcelId, parcels.id))
             .where(and(eq(products.userId, userId), gte(products.createdAt, startDateStr)))
             .get();
 
         return result || { coutAchatTotal: 0, coutLivraisonTotal: 0, coutTotalInvesti: 0, nbParcelles: 0, coutMoyenParProduit: 0, coutMoyenLivraison: 0 };
-    }
-
-    private getUserTargets(db: DrizzleDB, userId: string) {
-        const userProfile = db.select({ preferences: users.preferences }).from(users).where(eq(users.id, userId)).get();
-        const preferences = userProfile?.preferences
-            ? (typeof userProfile.preferences === 'string' ? JSON.parse(userProfile.preferences) : userProfile.preferences)
-            : {};
-        const targets = preferences.targets || {};
-        return { revenue: targets.revenue || 20000, productsSold: targets.productsSold || 500, margin: targets.margin || 35, conversionRate: targets.conversionRate || 60 };
     }
 }
 

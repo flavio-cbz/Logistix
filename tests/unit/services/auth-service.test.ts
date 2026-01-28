@@ -2,17 +2,18 @@
  * @vitest-environment node
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+// import { databaseService } from "@/lib/database"; // Unused
 import { AuthService } from '@/lib/services/auth-service';
 import {
   createTestUser,
-  createTestApiRequest
+  // createTestApiRequest // Unused and not exported
 } from '../../setup/test-data-factory';
 import {
   expectValidationError,
   expectCustomError,
-  expectAuthorizationError
+  // expectAuthorizationError // Unused
 } from '../../utils/test-helpers';
-import { ValidationError, AuthError, NotFoundError } from '@/lib/errors/custom-error';
+// import { ValidationError, AuthError, NotFoundError } from '@/lib/errors/custom-error'; // Unused
 
 // Mock dependencies
 const mockCookiesInstance = {
@@ -35,7 +36,7 @@ vi.mock('uuid', () => ({
 }));
 
 // Mock pour databaseService (utilisé par AuthService)
-vi.mock('@/lib/services/database/db', () => {
+vi.mock('@/lib/database/database-service', () => {
   const mockFn = () => {
     // Factory qui génère les mocks pour chaque test
     return {
@@ -43,6 +44,7 @@ vi.mock('@/lib/services/database/db', () => {
       execute: vi.fn(),
       queryMany: vi.fn(),
       transaction: vi.fn(),
+      query: vi.fn(),
     };
   };
 
@@ -62,6 +64,11 @@ vi.mock('@/lib/utils/formatting/calculations', () => ({
   getCurrentTimestamp: vi.fn(() => '2024-01-01T00:00:00.000Z'),
 }));
 
+vi.mock('@/lib/utils/crypto-secrets', () => ({
+  encryptUserSecret: vi.fn(() => 'encrypted-secret-mock'),
+  decryptUserSecret: vi.fn(() => 'decrypted-secret-mock'),
+}));
+
 describe('AuthService', () => {
   let authService: AuthService;
   let mockCookies: any;
@@ -71,8 +78,9 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     // Reset environment variables
-    process.env.JWT_SECRET = 'test-jwt-secret-that-is-at-least-32-characters-long';
-    process.env.COOKIE_NAME = 'test_session';
+    vi.stubEnv('JWT_SECRET', 'test-jwt-secret-that-is-at-least-32-characters-long');
+    vi.stubEnv('COOKIE_NAME', 'test_session');
+    vi.stubEnv('ENCRYPTION_MASTER_KEY', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2');
 
     // Setup mocks - Reset les fonctions mockées
     mockCookiesInstance.get.mockReset();
@@ -82,13 +90,14 @@ describe('AuthService', () => {
     mockCookies = mockCookiesInstance;
 
     // Import mock databaseService depuis le module mocké
-    const { databaseService } = await import('@/lib/services/database/db');
+    const { databaseService } = await import('@/lib/database/database-service');
     mockDb = databaseService;
 
     // Reset mocks databaseService
     mockDb.queryOne.mockReset();
     mockDb.execute.mockReset();
     mockDb.queryMany.mockReset();
+    mockDb.query.mockReset();
     mockDb.transaction.mockReset();
 
     // Import mock bcrypt avec vi.mocked pour accéder aux fonctions mockées
@@ -354,7 +363,7 @@ describe('AuthService', () => {
         expires_at: new Date(Date.now() + 86400000).toISOString(), // 1 day from now
         username: testUser.username,
         email: testUser.email,
-        avatar: testUser.profile?.avatar,
+        avatar: undefined,
         language: 'fr',
         theme: 'light',
         ai_config: null
@@ -371,7 +380,7 @@ describe('AuthService', () => {
         id: testUser.id,
         username: testUser.username,
         email: testUser.email,
-        avatar: testUser.profile?.avatar,
+        avatar: undefined,
         language: 'fr',
         theme: 'light',
         isAdmin: false,
@@ -628,6 +637,275 @@ describe('AuthService', () => {
       // Assert
       expect(result.success).toBe(false);
       expect(result.message).toBe('Not authenticated');
+    });
+  });
+
+  describe('changePassword', () => {
+    it('should change password successfully', async () => {
+      // Arrange
+      const userId = testUser.id;
+      const currentPassword = 'oldpassword123';
+      const newPassword = 'newpassword456';
+
+      const dbUser = {
+        id: userId,
+        username: 'testuser',
+        password_hash: 'hashed-old-password'
+      };
+
+      mockDb.queryOne.mockResolvedValue(dbUser);
+      mockBcrypt.compare.mockResolvedValue(true);
+      mockBcrypt.hash.mockResolvedValue('hashed-new-password');
+      mockDb.execute.mockResolvedValue(undefined);
+
+      // Act
+      await authService.changePassword(userId, currentPassword, newPassword);
+
+      // Assert
+      expect(mockBcrypt.compare).toHaveBeenCalledWith(currentPassword, 'hashed-old-password');
+      expect(mockBcrypt.hash).toHaveBeenCalledWith(newPassword, 12);
+      expect(mockDb.execute).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?'),
+        expect.arrayContaining(['hashed-new-password']),
+        'changePassword'
+      );
+    });
+
+    it('should throw AuthError for incorrect current password', async () => {
+      // Arrange
+      const userId = testUser.id;
+      const dbUser = {
+        id: userId,
+        username: 'testuser',
+        password_hash: 'hashed-old-password'
+      };
+
+      mockDb.queryOne.mockResolvedValue(dbUser);
+      mockBcrypt.compare.mockResolvedValue(false);
+
+      // Act & Assert
+      await expectCustomError(
+        () => authService.changePassword(userId, 'wrongpassword', 'newpassword456'),
+        'AUTH_ERROR',
+        'Invalid current password'
+      );
+    });
+
+    it('should throw NotFoundError for non-existent user', async () => {
+      // Arrange
+      mockDb.queryOne.mockResolvedValue(null);
+
+      // Act & Assert
+      await expectCustomError(
+        () => authService.changePassword('550e8400-e29b-41d4-a716-446655440000', 'oldPassword123', 'newPassword123'),
+        'NOT_FOUND',
+        'User with identifier'
+      );
+    });
+
+    it('should validate new password length', async () => {
+      // Act & Assert
+      await expectValidationError(
+        () => authService.changePassword(testUser.id, 'oldpass', '123'),
+        undefined,
+        'Password must be at least 6 characters'
+      );
+    });
+  });
+
+  describe('getUserSessions', () => {
+
+    it('should return all active sessions for a user', async () => {
+      // Arrange
+      const dbSessions = [
+        {
+          id: 'session-1',
+          user_id: testUser.id,
+          device_name: 'Chrome on Windows',
+          device_type: 'desktop',
+          ip_address: '192.168.1.1',
+          user_agent: 'Mozilla/5.0...',
+          last_activity_at: '2024-01-01T00:00:00.000Z',
+          created_at: '2024-01-01T00:00:00.000Z',
+          expires_at: new Date(Date.now() + 86400000).toISOString()
+        },
+        {
+          id: 'session-2',
+          user_id: testUser.id,
+          device_name: 'iPhone',
+          device_type: 'mobile',
+          ip_address: '192.168.1.2',
+          user_agent: 'Safari...',
+          last_activity_at: '2024-01-01T01:00:00.000Z',
+          created_at: '2024-01-01T00:00:00.000Z',
+          expires_at: new Date(Date.now() + 86400000).toISOString()
+        }
+      ];
+
+      const expectedSessions = dbSessions.map(s => ({
+        id: s.id,
+        userId: s.user_id,
+        deviceName: s.device_name,
+        deviceType: s.device_type,
+        ipAddress: s.ip_address,
+        userAgent: s.user_agent,
+        lastActivityAt: s.last_activity_at,
+        createdAt: s.created_at,
+        expiresAt: s.expires_at
+      }));
+
+      // Use mockDb.query instead of queryMany
+      mockDb.query.mockResolvedValue(dbSessions);
+
+      // Act
+      const result = await authService.getUserSessions(testUser.id);
+
+      // Assert
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual(expectedSessions[0]);
+      expect(result[1]).toEqual(expectedSessions[1]);
+      expect(mockDb.query).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT * FROM user_sessions'),
+        [testUser.id, expect.any(String)],
+        'getUserSessions'
+      );
+    });
+
+    it('should return empty array for user with no sessions', async () => {
+      // Arrange
+      mockDb.query.mockResolvedValue([]);
+
+      // Act
+      const result = await authService.getUserSessions(testUser.id);
+
+      // Assert
+      expect(result).toEqual([]);
+    });
+
+    it('should validate userId is a valid UUID', async () => {
+      // Act & Assert
+      await expectValidationError(
+        () => authService.getUserSessions('invalid-uuid'),
+        'userId',
+        'must be a valid UUID'
+      );
+    });
+  });
+
+  describe('revokeAllSessionsExcept', () => {
+    it('should revoke all sessions except current one', async () => {
+      // Arrange
+      const currentSessionId = 'current-session';
+      // Mock user check
+      mockDb.queryOne.mockResolvedValue({ id: testUser.id });
+      mockDb.execute.mockResolvedValue({ changes: 3 });
+
+      // Act
+      const result = await authService.revokeAllSessionsExcept(testUser.id, currentSessionId);
+
+      // Assert
+      expect(result).toBe(3);
+      expect(mockDb.execute).toHaveBeenCalledWith(
+        expect.stringContaining('DELETE FROM user_sessions WHERE user_id = ? AND id != ?'),
+        [testUser.id, currentSessionId],
+        'revokeAllSessionsExcept'
+      );
+    });
+
+    it('should return 0 when no sessions to revoke', async () => {
+      // Arrange
+      // Mock user check
+      mockDb.queryOne.mockResolvedValue({ id: testUser.id });
+      mockDb.execute.mockResolvedValue({ changes: 0 });
+
+      // Act
+      const result = await authService.revokeAllSessionsExcept(testUser.id, 'current-session');
+
+      // Assert
+      expect(result).toBe(0);
+    });
+
+    it('should validate userId is a valid UUID', async () => {
+      // Act & Assert
+      await expectValidationError(
+        () => authService.revokeAllSessionsExcept('invalid-uuid', 'session-id'),
+        'userId',
+        'must be a valid UUID'
+      );
+    });
+
+    it('should validate sessionId format', async () => {
+      // Act & Assert
+      await expectValidationError(
+        () => authService.revokeAllSessionsExcept(testUser.id, ''),
+        undefined,
+        'Session ID cannot be empty'
+      );
+    });
+  });
+
+  describe('revokeUserSession', () => {
+    it('should revoke a specific session', async () => {
+      // Arrange
+      const sessionId = 'session-to-revoke';
+      const sessionData = {
+        id: sessionId,
+        user_id: testUser.id
+      };
+
+      mockDb.queryOne.mockResolvedValue(sessionData);
+      mockDb.execute.mockResolvedValue(undefined);
+
+      // Act
+      await authService.revokeUserSession(testUser.id, sessionId);
+
+      // Assert
+      expect(mockDb.queryOne).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT id FROM user_sessions WHERE id = ? AND user_id = ?'),
+        [sessionId, testUser.id],
+        'revokeUserSession-checkOwnership'
+      );
+      expect(mockDb.execute).toHaveBeenCalledWith(
+        expect.stringContaining('DELETE FROM user_sessions WHERE id = ?'),
+        [sessionId],
+        'revokeUserSession'
+      );
+    });
+
+    it('should throw NotFoundError for non-existent session', async () => {
+      // Arrange
+      mockDb.queryOne.mockResolvedValue(null);
+
+      // Act & Assert
+      await expectCustomError(
+        () => authService.revokeUserSession(testUser.id, 'non-existent-session'),
+        'NOT_FOUND',
+        'Session'
+      );
+    });
+
+    it('should throw AuthorizationError when session belongs to different user', async () => {
+      // Arrange
+      const sessionId = 'session-id';
+      // Returns null because filter includes user_id
+      mockDb.queryOne.mockResolvedValue(null);
+
+      // Act & Assert
+      // The service uses a single query with AND user_id = ?, so it returns NOT_FOUND if it doesn't match
+      await expectCustomError(
+        () => authService.revokeUserSession(testUser.id, 'session-id'),
+        'NOT_FOUND',
+        'Session'
+      );
+    });
+
+    it('should validate userId is a valid UUID', async () => {
+      // Act & Assert
+      await expectValidationError(
+        () => authService.revokeUserSession('invalid-uuid', 'session-id'),
+        'userId',
+        'must be a valid UUID'
+      );
     });
   });
 });

@@ -3,14 +3,14 @@
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { serviceContainer } from "@/lib/services/container";
-import { databaseService as db } from "@/lib/services/database/db";
+import { databaseService } from "@/lib/database";
 
 describe('Batch 4 Verification (Integration)', () => {
     let userId: string;
 
     beforeAll(async () => {
         // Get a test user
-        const user = await db.queryOne<{ id: string }>("SELECT id FROM users LIMIT 1");
+        const user = await databaseService.queryOne<{ id: string }>("SELECT id FROM users LIMIT 1");
         if (!user) {
             throw new Error("No user found in database. Cannot verify statistics.");
         }

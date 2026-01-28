@@ -39,17 +39,20 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/middleware/auth-middleware";
-import { SuperbuySyncService } from "@/lib/integrations/superbuy";
 import { serviceContainer } from "@/lib/services/container";
-import { DatabaseService } from "@/lib/database";
+// import { DatabaseService } from "@/lib/database";
 import { z } from "zod";
+import { logger } from "@/lib/utils/logging/logger";
+import { SuperbuyPackageStatus } from "@/lib/services/superbuy/constants";
+
+import { type SuperbuyParcelData } from '@/lib/shared/types/superbuy';
 
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
 
 const syncRequestSchema = z.object({
-  parcels: z.array(z.any()), // SuperbuyParcel[] - validé par le mapper
+  parcels: z.array(z.unknown()), // SuperbuyParcel[] - validé par le mapper
   options: z
     .object({
       skipExisting: z.boolean().optional().default(true),
@@ -91,14 +94,14 @@ export async function POST(req: NextRequest) {
     // 4. Determine source and load parcels
     let parcels = body.parcels;
     let dataSource = "direct";
-    
+
     // Mode AUTO: detect based on whether parcels are provided
     if (mode === "auto" || mode === "file") {
       if (!parcels || parcels.length === 0) {
         // Load from file
         parcels = await loadLatestExtractedData();
         dataSource = "file";
-        
+
         if (parcels.length === 0) {
           return NextResponse.json(
             {
@@ -142,37 +145,34 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Merge options from query params and body
-  const options = { ...(body.options || {}) } as { skipExisting?: boolean; forceUpdate?: boolean };
+    const options = { ...(body.options || {}) } as { skipExisting?: boolean; forceUpdate?: boolean };
     if (skipExistingParam !== null) options.skipExisting = skipExistingParam === "true";
     if (forceUpdateParam !== null) options.forceUpdate = forceUpdateParam === "true";
-    
+
     // Set defaults
     if (options.skipExisting === undefined) options.skipExisting = true;
     if (options.forceUpdate === undefined) options.forceUpdate = false;
 
     // 6. Valide les données
     const validated = syncRequestSchema.parse({ parcels, options });
+    const validatedParcels = validated.parcels as unknown as SuperbuyParcelData[];
 
     // 4. Initialise les services
-    const databaseService = DatabaseService.getInstance();
-    const parcelleService = serviceContainer.getParcelleService();
+    // const databaseService = DatabaseService.getInstance(); // Removed
+    // const parcelleService = serviceContainer.getParcelleService(); // Removed
 
-    const syncService = new SuperbuySyncService(
-      parcelleService,
-      databaseService,
-      user.id
-    );
-
+    const syncService = serviceContainer.getSuperbuySyncService();
     // 5. Lance la synchronisation
     const summary = await syncService.syncParcels(
-      validated.parcels,
+      user.id,
+      validatedParcels,
       validated.options
     );
 
     // Log detailed errors for debugging
     if (summary.failed > 0 && summary.results) {
-      const failures = summary.results.filter((r: any) => !r.success);
-      console.error("[Superbuy Sync API] Failures:", failures);
+      const failures = summary.results.filter((r: { success: boolean }) => !r.success);
+      logger.error("[Superbuy Sync API] Failures:", { failures });
     }
 
     // 6. Retourne le résumé
@@ -187,19 +187,19 @@ export async function POST(req: NextRequest) {
         dataSource, // 'file' or 'direct'
         mode, // The mode used for this sync
         totalProcessed: summary.totalProcessed,
-        details: summary.failed > 0 ? summary.results?.filter((r: any) => !r.success) : undefined,
+        details: summary.failed > 0 ? summary.results?.filter((r: { success: boolean }) => !r.success) : undefined,
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("[Superbuy Sync API] Error:", error);
+    logger.error("[Superbuy Sync API] Error:", { error });
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
           success: false,
           error: "Validation error",
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       );
@@ -225,17 +225,11 @@ export async function GET(req: NextRequest) {
     const { user } = await requireAuth(req);
 
     // 2. Initialise les services
-    const databaseService = DatabaseService.getInstance();
-    const parcelleService = serviceContainer.getParcelleService();
-
-    const syncService = new SuperbuySyncService(
-      parcelleService,
-      databaseService,
-      user.id
-    );
+    // 2. Obtient le service depuis le conteneur
+    const syncService = serviceContainer.getSuperbuySyncService();
 
     // 3. Récupère l'historique de sync
-    const history = await syncService.getSyncHistory();
+    const history = await syncService.getSyncHistory(user.id);
 
     return NextResponse.json(
       {
@@ -245,7 +239,7 @@ export async function GET(req: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("[Superbuy Sync API] Error:", error);
+    logger.error("[Superbuy Sync API] Error:", { error });
 
     return NextResponse.json(
       {
@@ -281,17 +275,11 @@ export async function DELETE(req: NextRequest) {
     }
 
     // 3. Initialise les services
-    const databaseService = DatabaseService.getInstance();
-    const parcelleService = serviceContainer.getParcelleService();
-
-    const syncService = new SuperbuySyncService(
-      parcelleService,
-      databaseService,
-      user.id
-    );
+    // 3. Obtient le service depuis le conteneur
+    const syncService = serviceContainer.getSuperbuySyncService();
 
     // 4. Supprime le record de sync
-    await syncService.deleteSyncRecord(superbuyId, "parcel");
+    await syncService.deleteSyncRecordWithUser(user.id, superbuyId, "parcel");
 
     return NextResponse.json(
       {
@@ -301,7 +289,7 @@ export async function DELETE(req: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("[Superbuy Sync API] Error:", error);
+    logger.error("[Superbuy Sync API] Error:", { error });
 
     return NextResponse.json(
       {
@@ -320,32 +308,44 @@ export async function DELETE(req: NextRequest) {
 /**
  * Normalise les données extraites de Superbuy pour correspondre au type SuperbuyParcel
  */
-function normalizeExtractedData(rawData: any): any {
+function normalizeExtractedData(rawData: Record<string, unknown>): SuperbuyParcelData {
+  const parcelId = (rawData['parcelId'] || rawData['orderNo'] || '') as string;
+  const status = ((rawData['status'] as string) || '');
+
   return {
     // Map champs extraits → SuperbuyParcel
-    packageOrderNo: rawData.parcelId || rawData.orderNo,
-    packageId: rawData.packageId || parseInt(rawData.parcelId?.replace(/[^0-9]/g, '') || '0'),
-    trackingNumber: rawData.trackingNumber,
-    carrier: rawData.carrier, // Sera normalisé par deriveCarrier
-    orderStatus: rawData.status ? (rawData.status.toLowerCase() === 'shipped' ? 57 : rawData.status.toLowerCase() === 'received' ? 100 : 2) : 2,
-    status: rawData.status,
-    packageRealWeight: rawData.weight || rawData.packageRealWeight,
-    packageWeight: rawData.packageWeight,
-    weight: rawData.weight,
-    packageTotalAmount: rawData.shippingFee,
-    shippingFee: rawData.shippingFee,
-    createdTime: new Date(rawData.createdAt).getTime() / 1000,
-    deliveryTime: new Date(rawData.deliveryTime || rawData.updatedAt).getTime() / 1000,
-    destination: rawData.destination,
-    expressUrl: rawData.expressUrl,
-    warehouseName: rawData.warehouseName,
-    goodsName: rawData.goodsName,
-    goodsLink: rawData.goodsLink,
-    images: rawData.images,
-    remark: rawData.remark,
-    orderNo: rawData.orderNo,
-    deliveryCompanyName: rawData.carrier,
-    packageItems: (rawData.items || []).map((item: any) => ({
+    packageOrderNo: parcelId,
+    packageId: (rawData['packageId'] as string | number)?.toString() || parseInt(parcelId?.replace(/[^0-9]/g, '') || '0').toString(),
+    trackingNumber: (rawData['trackingNumber'] as string) || '',
+    carrier: (rawData['carrier'] as string) || '', // Sera normalisé par deriveCarrier
+    orderStatus: status ? (status.toLowerCase() === 'shipped' ? SuperbuyPackageStatus.SHIPPED : status.toLowerCase() === 'received' ? SuperbuyPackageStatus.RECEIVED : SuperbuyPackageStatus.PENDING) : SuperbuyPackageStatus.PENDING,
+    status: status,
+    packageRealWeight: rawData['weight'] || rawData['packageRealWeight'] as number,
+    packageWeight: rawData['packageWeight'] as number,
+    weight: rawData['weight'] as number | string,
+    packageTotalAmount: rawData['shippingFee'],
+    shippingFee: rawData['shippingFee'],
+    createdTime: rawData['createdAt'] ? new Date(rawData['createdAt'] as string).getTime() / 1000 : 0,
+    deliveryTime: (rawData['deliveryTime'] || rawData['updatedAt']) ? new Date((rawData['deliveryTime'] || rawData['updatedAt']) as string).getTime() / 1000 : 0,
+    destination: rawData['destination'],
+    expressUrl: rawData['expressUrl'],
+    warehouseName: rawData['warehouseName'],
+    goodsName: rawData['goodsName'],
+    goodsLink: rawData['goodsLink'],
+    images: rawData['images'],
+    remark: rawData['remark'],
+    orderNo: rawData['orderNo'],
+    deliveryCompanyName: rawData['carrier'],
+    packageItems: ((rawData['items'] || []) as Array<{
+      itemId: string;
+      barcode: string;
+      name: string;
+      goodsLink: string;
+      quantity: number;
+      unitPrice: number;
+      weight: number;
+      status: string;
+    }>).map((item) => ({
       itemId: item.itemId,
       itemBarcode: item.barcode,
       goodsName: item.name,
@@ -353,7 +353,7 @@ function normalizeExtractedData(rawData: any): any {
       count: item.quantity,
       unitPrice: item.unitPrice,
       weight: item.weight,
-      itemStatus: item.status === 'Shipped' ? 57 : 2,
+      itemStatus: item.status === 'Shipped' ? SuperbuyPackageStatus.SHIPPED : SuperbuyPackageStatus.PENDING,
     })),
     rawPackageInfo: rawData, // Garder les données brutes pour fallback
   };
@@ -362,42 +362,42 @@ function normalizeExtractedData(rawData: any): any {
 /**
  * Charge les données extraites les plus récentes depuis extracted_data/
  */
-async function loadLatestExtractedData(): Promise<any[]> {
+async function loadLatestExtractedData(): Promise<unknown[]> {
   const fs = await import('fs');
   const path = await import('path');
-  
+
   const extractedDataDir = path.resolve(process.cwd(), 'extracted_data');
-  
+
   if (!fs.existsSync(extractedDataDir)) {
-    console.warn('Extracted data directory not found');
+    logger.warn('Extracted data directory not found');
     return [];
   }
-  
+
   // Lister tous les fichiers parcels_*.json
   const files = fs.readdirSync(extractedDataDir)
     .filter(f => f.startsWith('parcels_') && f.endsWith('.json'))
     .sort()
     .reverse(); // Plus récent en premier
-  
+
   if (files.length === 0) {
-    console.warn('No parcel files found in extracted_data');
+    logger.warn('No parcel files found in extracted_data');
     return [];
   }
-  
+
   // Charger le plus récent
   const latestFile = files[0];
-  
+
   if (!latestFile) {
-    console.warn('No latest file found');
+    logger.warn('No latest file found');
     return [];
   }
-  
+
   const filePath = path.join(extractedDataDir, latestFile);
-  
-  console.log(`Loading data from ${latestFile}`);
-  
+
+  logger.info(`Loading data from ${latestFile}`);
+
   const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-  
+
   // Normaliser les données extraites
   return (Array.isArray(data) ? data : []).map(normalizeExtractedData);
 }

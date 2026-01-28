@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/middleware/auth-middleware';
-import { SuperbuyAutomationService } from '@/lib/services/superbuy/automation';
+import { serviceContainer } from '@/lib/services/container';
 import { z } from 'zod';
 
 const connectSchema = z.object({
@@ -12,17 +12,17 @@ export async function POST(req: NextRequest) {
   try {
     const { user } = await requireAuth(req);
     const body = await req.json();
-    
+
     const validation = connectSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json({ error: 'Invalid input', details: validation.error }, { status: 400 });
     }
 
     const { email, password } = validation.data;
-    const service = SuperbuyAutomationService.getInstance();
-    
+    const service = serviceContainer.getSuperbuyAutomationService();
+
     const result = await service.connect(user.id, email, password);
-    
+
     if (!result.success) {
       return NextResponse.json({ error: result.message }, { status: 400 });
     }

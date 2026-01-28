@@ -8,6 +8,7 @@
  */
 
 import { z } from "zod";
+import { logger } from "@/lib/utils/logging/logger";
 
 // ============================================================================
 // FEATURE FLAG DEFINITIONS
@@ -21,7 +22,7 @@ export const FeatureFlagSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   description: z.string().optional(),
-  metadata: z.record(z.any()).default({}),
+  metadata: z.record(z.string(), z.unknown()).default({}),
 });
 
 export type FeatureFlag = z.infer<typeof FeatureFlagSchema>;
@@ -33,6 +34,9 @@ export const FeatureFlagsConfigSchema = z.object({
     rolloutPercentage: 0,
     description:
       "Use the new unified database service instead of legacy database clients",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   standardizedApiRoutes: FeatureFlagSchema.default({
@@ -40,24 +44,36 @@ export const FeatureFlagsConfigSchema = z.object({
     rolloutPercentage: 0,
     description:
       "Use standardized API routes with new middleware and validation",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   newAuthenticationSystem: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Use the new authentication service and middleware",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   enhancedErrorHandling: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Use the new error handling system with custom error classes",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   centralizedConfiguration: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Use the centralized configuration service",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   // Performance and monitoring flags
@@ -65,18 +81,27 @@ export const FeatureFlagsConfigSchema = z.object({
     enabled: false,
     rolloutPercentage: 0,
     description: "Enable database query optimization and monitoring",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   cachingLayer: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Enable caching layer for frequently accessed data",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   performanceMonitoring: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Enable performance monitoring and metrics collection",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   // Frontend-backend alignment flags
@@ -85,12 +110,18 @@ export const FeatureFlagsConfigSchema = z.object({
     rolloutPercentage: 0,
     description:
       "Use aligned TypeScript type definitions between frontend and backend",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   standardizedFormValidation: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Use standardized form validation aligned with API schemas",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   // A/B Testing flags
@@ -98,6 +129,9 @@ export const FeatureFlagsConfigSchema = z.object({
     enabled: false,
     rolloutPercentage: 50,
     description: "A/B test for new product form UI design",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   // Development and debugging flags
@@ -106,12 +140,18 @@ export const FeatureFlagsConfigSchema = z.object({
     rolloutPercentage: 0,
     userGroups: ["developers", "testers"],
     description: "Enable debug mode with additional logging and error details",
+    // userGroups is already defined here
+    excludeUserGroups: [],
+    metadata: {},
   }),
 
   maintenanceMode: FeatureFlagSchema.default({
     enabled: false,
     rolloutPercentage: 0,
     description: "Enable maintenance mode to prevent certain operations",
+    userGroups: [],
+    excludeUserGroups: [],
+    metadata: {},
   }),
 });
 
@@ -165,13 +205,15 @@ export class FeatureFlagService {
           return FeatureFlagsConfigSchema.parse(parsed);
         }
       } catch (error) {
-        console.warn("Failed to load feature flags from file:", error);
+        const safeError: unknown = error;
+        logger.warn("Failed to load feature flags from file:", { error: String(safeError) });
       }
 
       // Return default configuration
       return FeatureFlagsConfigSchema.parse({});
     } catch (error) {
-      console.error("Failed to parse feature flags configuration:", error);
+      const safeError: unknown = error;
+      logger.error("Failed to parse feature flags configuration:", { error: String(safeError) });
       return FeatureFlagsConfigSchema.parse({});
     }
   }
@@ -214,7 +256,8 @@ export class FeatureFlagService {
       try {
         resolvedUserGroups = await this.userGroupResolver(userId);
       } catch (error) {
-        console.warn("Failed to resolve user groups:", error);
+        const safeError: unknown = error;
+        logger.warn("Failed to resolve user groups:", { error: String(safeError) });
         resolvedUserGroups = [];
       }
     }
@@ -331,19 +374,26 @@ export function getFeatureFlag(
   return service.getFlag(flagName);
 }
 
+interface ContextWithUser {
+  userId?: string;
+  [key: string]: unknown;
+}
+
 /**
  * Feature flag decorator for functions
  */
 export function withFeatureFlag(flagName: keyof FeatureFlagsConfig) {
   return function (
-    _target: any,
+    _target: unknown,
     _propertyName: string,
     descriptor: PropertyDescriptor,
   ) {
     const method = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
-      const userId = (this as any).userId || args[0]?.userId;
+     
+    descriptor.value = async function (this: ContextWithUser, ...args: unknown[]) {
+      // Try to extract userId from this or first argument
+      const userId = this.userId || (args.length > 0 && typeof args[0] === 'object' && args[0] && 'userId' in args[0] ? (args[0] as ContextWithUser).userId : undefined);
       const enabled = await isFeatureEnabled(flagName, userId);
 
       if (!enabled) {
@@ -379,11 +429,22 @@ export function useFeatureFlag(
 // MIDDLEWARE INTEGRATION
 // ============================================================================
 
+interface RequestWithUser {
+  user?: {
+    id: string;
+    groups?: string[];
+  };
+  featureFlags?: {
+    isEnabled: (flagName: keyof FeatureFlagsConfig) => Promise<boolean>;
+    getFlag: (flagName: keyof FeatureFlagsConfig) => FeatureFlag | undefined;
+  };
+}
+
 /**
  * Express middleware to add feature flag context to requests
  */
 export function featureFlagMiddleware() {
-  return async (req: any, _res: any, next: any) => {
+  return async (req: RequestWithUser, _res: unknown, next: (err?: unknown) => void) => {
     const service = FeatureFlagService.getInstance();
 
     req.featureFlags = {

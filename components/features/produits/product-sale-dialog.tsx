@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, Control } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import {
@@ -32,6 +32,8 @@ import { Button } from "@/components/ui/button"
 import { Product, Platform } from "@/lib/shared/types/entities"
 import { getSellingPrice, getListedAt, getSoldAt, type ProductWithLegacyFields } from "@/lib/utils/product-field-normalizers"
 import { DollarSign, Calendar, Store } from "lucide-react"
+import { useFormatting } from "@/lib/hooks/use-formatting"
+import { PLATFORM_OPTIONS } from "@/lib/shared/constants"
 
 // Schéma de validation pour les informations de vente
 const saleFormSchema = z.object({
@@ -39,7 +41,7 @@ const saleFormSchema = z.object({
   dateVente: z.string().min(1, "La date de vente est requise"),
   dateMiseEnLigne: z.string().min(1, "La date de mise en ligne est requise"),
   plateforme: z.nativeEnum(Platform, {
-    errorMap: () => ({ message: "Veuillez sélectionner une plateforme" }),
+    message: "Veuillez sélectionner une plateforme",
   }),
 })
 
@@ -61,6 +63,7 @@ export function ProductSaleDialog({
   coutTotal = 0,
 }: ProductSaleDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { formatCurrency, getCurrencySymbol } = useFormatting();
 
   // S'assurer que coutTotal est un nombre
   const coutTotalNum = Number(coutTotal) || 0
@@ -105,7 +108,7 @@ export function ProductSaleDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-green-600" />
+            <DollarSign className="h-5 w-5 text-success" />
             Confirmer la vente
           </DialogTitle>
           <DialogDescription>
@@ -120,12 +123,12 @@ export function ProductSaleDialog({
             <div className="bg-muted/50 border rounded-lg p-3 space-y-1">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Coût total</span>
-                <span className="font-medium">{coutTotalNum.toFixed(2)} €</span>
+                <span className="font-medium">{formatCurrency(coutTotalNum)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Prix de vente</span>
-                <span className="font-semibold text-green-600">
-                  {prixVente ? prixVente.toFixed(2) : "0.00"} €
+                <span className="font-semibold text-success">
+                  {formatCurrency(prixVente)}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
@@ -139,12 +142,12 @@ export function ProductSaleDialog({
                   <span className="font-medium">Bénéfice estimé</span>
                   <span
                     className={`font-bold ${beneficeEstime >= 0
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400"
+                      ? "text-success"
+                      : "text-destructive"
                       }`}
                   >
                     {beneficeEstime >= 0 ? "+" : ""}
-                    {beneficeEstime.toFixed(2)} €
+                    {formatCurrency(beneficeEstime)}
                   </span>
                 </div>
               </div>
@@ -152,7 +155,7 @@ export function ProductSaleDialog({
 
             {/* Prix de vente */}
             <FormField
-              control={form.control as any}
+              control={form.control as unknown as Control<SaleFormValues>}
               name="prixVente"
               render={({ field }) => (
                 <FormItem>
@@ -170,7 +173,7 @@ export function ProductSaleDialog({
                         className="pr-8"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        €
+                        {getCurrencySymbol()}
                       </span>
                     </div>
                   </FormControl>
@@ -181,7 +184,7 @@ export function ProductSaleDialog({
 
             {/* Date de mise en ligne */}
             <FormField
-              control={form.control as any}
+              control={form.control as unknown as Control<SaleFormValues>}
               name="dateMiseEnLigne"
               render={({ field }) => (
                 <FormItem>
@@ -199,7 +202,7 @@ export function ProductSaleDialog({
 
             {/* Date de vente */}
             <FormField
-              control={form.control as any}
+              control={form.control as unknown as Control<SaleFormValues>}
               name="dateVente"
               render={({ field }) => (
                 <FormItem>
@@ -217,7 +220,7 @@ export function ProductSaleDialog({
 
             {/* Plateforme */}
             <FormField
-              control={form.control as any}
+              control={form.control as unknown as Control<SaleFormValues>}
               name="plateforme"
               render={({ field }) => (
                 <FormItem>
@@ -235,8 +238,11 @@ export function ProductSaleDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value={Platform.LEBONCOIN}>Leboncoin</SelectItem>
-                      <SelectItem value={Platform.OTHER}>Autre</SelectItem>
+                      {PLATFORM_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -256,7 +262,7 @@ export function ProductSaleDialog({
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-success hover:bg-success/90"
               >
                 {isSubmitting ? "Validation..." : "Confirmer la vente"}
               </Button>
@@ -264,6 +270,6 @@ export function ProductSaleDialog({
           </form>
         </Form>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   )
 }

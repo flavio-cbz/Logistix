@@ -97,11 +97,16 @@ export class OrderService extends BaseService {
 
         this.logger.debug("Order data validated successfully", {
           userId,
-          orderNumber: validatedData.orderNumber,
+          superbuyId: validatedData.superbuyId,
         });
 
-        // Check uniqueness of order number for this user
+        // Check uniqueness of Order Number for this user
         await this.validateUniqueOrderNumber(userId, validatedData.orderNumber);
+
+        // Check uniqueness of Superbuy ID for this user
+        if (validatedData.superbuyId) {
+          await this.validateUniqueSuperbuyId(userId, validatedData.superbuyId);
+        }
 
         const orderData = {
           ...validatedData,
@@ -109,22 +114,44 @@ export class OrderService extends BaseService {
         };
 
         const newOrder = await this.orderRepository.create(
-          orderData as any,
+          orderData as CreateOrderInput & { userId: string },
         );
 
         this.logger.debug("Order created successfully", {
           userId,
           orderId: newOrder.id,
-          orderNumber: newOrder.orderNumber,
+          superbuyId: newOrder.superbuyId,
         });
 
         return newOrder;
       },
       {
         userId,
-        orderNumber: data.orderNumber,
+        superbuyId: data.superbuyId,
       },
     );
+  }
+
+  /**
+   * Validate order number uniqueness
+   */
+  private async validateUniqueOrderNumber(
+    userId: string,
+    orderNumber: string,
+    excludeOrderId?: string,
+  ): Promise<void> {
+    const exists = await this.orderRepository.orderNumberExists(
+      userId,
+      orderNumber,
+      excludeOrderId,
+    );
+
+    if (exists) {
+      throw this.createBusinessError(
+        `An order with number "${orderNumber}" already exists`,
+        { code: "ORDER_NUMBER_EXISTS" },
+      );
+    }
   }
 
   /**
@@ -151,7 +178,7 @@ export class OrderService extends BaseService {
         let validatedData: UpdateOrderInput = {};
         if (Object.keys(data).length > 0) {
           const rawValidatedData = this.validateWithSchema(updateOrderSchema, data);
-          
+
           // Filter out undefined values
           validatedData = Object.fromEntries(
             Object.entries(rawValidatedData).filter(([_, value]) => value !== undefined)
@@ -166,7 +193,7 @@ export class OrderService extends BaseService {
 
         const updatedOrder = await this.orderRepository.update(
           id,
-          validatedData as any,
+          validatedData as UpdateOrderInput,
         );
 
         this.logger.debug("Order updated successfully", {
@@ -234,16 +261,16 @@ export class OrderService extends BaseService {
         });
 
         // 2. Check for existing orders
-        const orderNumbers = validInputs.map((i) => i.orderNumber).filter(Boolean) as string[];
-        const existingOrders = await this.orderRepository.findByOrderNumbers(
+        const superbuyIds = validInputs.map((i) => i.superbuyId).filter(Boolean) as string[];
+        const existingOrders = await this.orderRepository.findBySuperbuyIds(
           userId,
-          orderNumbers,
+          superbuyIds,
         );
-        const existingNumbers = new Set(existingOrders.map((o) => o.orderNumber));
+        const existingNumbers = new Set(existingOrders.map((o) => o.superbuyId));
 
         // 3. Filter out duplicates
         const newOrdersData = validInputs.filter(
-          (o) => !existingNumbers.has(o.orderNumber),
+          (o) => !existingNumbers.has(o.superbuyId ?? ""),
         );
 
         if (newOrdersData.length === 0) {
@@ -252,7 +279,7 @@ export class OrderService extends BaseService {
 
         // 4. Bulk create
         const createdOrders = await this.orderRepository.createMany(
-          newOrdersData as any,
+          newOrdersData as (CreateOrderInput & { userId: string })[],
         );
 
         this.logger.info("Bulk created orders", {
@@ -276,35 +303,35 @@ export class OrderService extends BaseService {
   // =============================================================================
 
   /**
-   * Validate uniqueness of order number for a user
+   * Validate uniqueness of Superbuy ID for a user
    */
-  private async validateUniqueOrderNumber(
+  private async validateUniqueSuperbuyId(
     userId: string,
-    orderNumber: string,
+    superbuyId: string,
     excludeOrderId?: string,
   ): Promise<void> {
     try {
-      this.logger.debug("Validating order number uniqueness", {
+      this.logger.debug("Validating Superbuy ID uniqueness", {
         userId,
-        orderNumber,
+        superbuyId,
         excludeOrderId,
       });
 
-      const exists = await this.orderRepository.orderNumberExists(
-        orderNumber,
+      const exists = await this.orderRepository.superbuyIdExists(
+        superbuyId,
         userId,
         excludeOrderId,
       );
 
       if (exists) {
         throw this.createBusinessError(
-          `An order with number "${orderNumber}" already exists`,
+          `An order with Superbuy ID "${superbuyId}" already exists`,
         );
       }
     } catch (error: unknown) {
-      this.handleError(error, "validateUniqueOrderNumber", {
+      this.handleError(error, "validateUniqueSuperbuyId", {
         userId,
-        orderNumber,
+        superbuyId,
       });
     }
   }

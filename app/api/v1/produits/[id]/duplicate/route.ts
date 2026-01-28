@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { serviceContainer } from "@/lib/services/container";
 import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-response";
 import { requireAuth } from "@/lib/middleware/auth-middleware";
+import type { NewProduct } from "@/lib/database/schema";
 
 /**
  * POST /api/v1/produits/[id]/duplicate
@@ -28,7 +29,7 @@ export async function POST(
         }
 
         // 2. Créer un nouveau produit avec les mêmes données (sauf l'ID)
-        const duplicateData: any = {
+        const duplicateData: Partial<NewProduct> = {
             userId: user.id,
             name: `${sourceProduct.name} (Copie)`,
             price: sourceProduct.price,
@@ -36,11 +37,11 @@ export async function POST(
         };
 
         // Ajouter les propriétés optionnelles seulement si elles existent
-        if (sourceProduct.parcelleId) duplicateData.parcelleId = sourceProduct.parcelleId;
+        if (sourceProduct.parcelId) duplicateData.parcelId = sourceProduct.parcelId;
         if (sourceProduct.brand) duplicateData.brand = sourceProduct.brand;
         if (sourceProduct.category) duplicateData.category = sourceProduct.category;
 
-        const newProduct = await productService.createProduct(user.id, duplicateData);
+        const newProduct = await productService.createProduct(user.id, duplicateData as NewProduct);
 
         return NextResponse.json(
             createSuccessResponse({
@@ -54,40 +55,4 @@ export async function POST(
             { status: 500 }
         );
     }
-<<<<<<< HEAD
-=======
-    
-    // 2. Créer un nouveau produit avec les mêmes données (sauf l'ID)
-    console.log('DUPLICATE ENDPOINT: Creating duplicate data from source:', sourceProduct);
-    const duplicateData: any = {
-      userId: user.id,
-      name: `${sourceProduct.name} (Copie)`,
-      price: sourceProduct.price,
-      poids: sourceProduct.poids,
-    };
-    
-    // Ajouter les propriétés optionnelles seulement si elles existent
-    if (sourceProduct.parcelleId) duplicateData.parcelleId = sourceProduct.parcelleId;
-    if (sourceProduct.brand) duplicateData.brand = sourceProduct.brand;
-    if (sourceProduct.category) duplicateData.category = sourceProduct.category;
-    
-    console.log('DUPLICATE ENDPOINT: Duplicate data prepared:', duplicateData);
-    
-    console.log('DUPLICATE ENDPOINT: Calling createProduct...');
-    const newProduct = await productService.createProduct(duplicateData);
-    console.log('DUPLICATE ENDPOINT: Product created successfully:', newProduct);
-
-    return NextResponse.json(
-      createSuccessResponse({
-        product: newProduct,
-        message: 'Produit dupliqué avec succès',
-      })
-    );
-  } catch (error) {
-    return NextResponse.json(
-      createErrorResponse(error instanceof Error ? error : new Error('Erreur lors de la duplication')),
-      { status: 500 }
-    );
-  }
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
 }

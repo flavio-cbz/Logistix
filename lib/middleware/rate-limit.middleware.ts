@@ -1,12 +1,30 @@
 /**
  * Rate Limiting Middleware
- * 
+ *
  * Protège les endpoints sensibles contre les attaques par force brute
  * et les abus en limitant le nombre de requêtes par IP/utilisateur.
- * 
- * Stratégie : In-memory storage (Map) avec nettoyage automatique.
- * Pour un environnement distribué, utiliser Redis.
- * 
+ *
+ * ⚠️  LIMITATION IMPORTANTE (Environnement Serverless) :
+ * Ce rate limiter utilise un stockage en mémoire (Map), ce qui fonctionne
+ * pour un serveur unique mais est INEFFICACE sur Vercel/Serverless car :
+ * - Chaque instance de fonction a sa propre mémoire isolée
+ * - Un attaquant peut contourner les limites en frappant différentes instances
+ *
+ * SOLUTION PRODUCTION : Remplacer RateLimitStore par un store Redis.
+ * Options recommandées :
+ * - Upstash Redis (@upstash/ratelimit) : Optimisé pour serverless, gratuit jusqu'à 10k req/jour
+ * - Vercel KV : Intégration native Vercel
+ *
+ * Exemple avec Upstash :
+ * ```
+ * import { Ratelimit } from "@upstash/ratelimit";
+ * import { Redis } from "@upstash/redis";
+ * const ratelimit = new Ratelimit({
+ *   redis: Redis.fromEnv(),
+ *   limiter: Ratelimit.slidingWindow(5, "60 s"),
+ * });
+ * ```
+ *
  * @module middleware/rate-limit
  */
 
@@ -153,8 +171,10 @@ function getClientIp(req: NextRequest): string {
   // Essayer les headers standards de proxy
   const forwardedValue = req.headers.get("x-forwarded-for");
   if (forwardedValue !== null && forwardedValue !== undefined) {
-    // TypeScript correctly infers this is not undefined after null check
-    return forwardedValue.split(",")[0].trim();
+    const firstIp = forwardedValue.split(",")[0];
+    if (firstIp) {
+      return firstIp.trim();
+    }
   }
 
   const realIp = req.headers.get("x-real-ip");

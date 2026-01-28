@@ -11,6 +11,7 @@ export interface ValidationContext {
   requestId: string;
   path: string;
   method: string;
+  [key: string]: unknown;
 }
 
 export interface ValidationResult<T> {
@@ -70,7 +71,7 @@ function createValidationContext(request?: NextRequest): ValidationContext {
  * Converts Zod errors to validation error details
  */
 function formatZodErrors(zodError: ZodError): ValidationErrorDetail[] {
-  return zodError.errors.map((error) => ({
+  return zodError.issues.map((error) => ({
     field: error.path.join("."),
     message: error.message,
     code: error.code,
@@ -83,12 +84,12 @@ function formatZodErrors(zodError: ZodError): ValidationErrorDetail[] {
 async function safeParseJson(
   request: NextRequest,
   context: ValidationContext,
-): Promise<any> {
+): Promise<unknown> {
   try {
     const text = await request.text();
 
     if (!text || text.trim() === "") {
-      logger.debug("Empty request body received", context);
+      logger.debug("Empty request body received", context as Record<string, unknown>);
       return {};
     }
 
@@ -112,8 +113,8 @@ async function safeParseJson(
 /**
  * Safely extracts URL search params
  */
-function extractSearchParams(request: NextRequest): Record<string, any> {
-  const params: Record<string, any> = {};
+function extractSearchParams(request: NextRequest): Record<string, unknown> {
+  const params: Record<string, unknown> = {};
 
   request.nextUrl.searchParams.forEach((value, key) => {
     // Handle multiple values for the same key
@@ -140,13 +141,13 @@ function extractSearchParams(request: NextRequest): Record<string, any> {
  */
 function validateWithSchema<T>(
   schema: ZodSchema<T>,
-  data: any,
+  data: unknown,
   context: ValidationContext,
   fieldType: "body" | "query" | "params",
 ): T {
   try {
     logger.debug(`Validating ${fieldType}`, {
-      ...context,
+      ...(context as Record<string, unknown>),
       dataKeys:
         typeof data === "object" && data !== null
           ? Object.keys(data)
@@ -156,7 +157,7 @@ function validateWithSchema<T>(
     const result = schema.parse(data);
 
     logger.debug(`${fieldType} validation successful`, {
-      ...context,
+      ...(context as Record<string, unknown>),
       validatedKeys:
         typeof result === "object" && result !== null
           ? Object.keys(result)
@@ -169,7 +170,7 @@ function validateWithSchema<T>(
       const validationErrors = formatZodErrors(error);
 
       logger.warn(`${fieldType} validation failed`, {
-        ...context,
+        ...(context as Record<string, unknown>),
         validationErrors,
         receivedData: data,
       });
@@ -273,192 +274,19 @@ export function validateQuery<T>(
   }
 }
 
-/**
- * Validates URL parameters against a Zod schema
- * @param schema - Zod schema to validate against
- * @param params - URL parameters object (from Next.js route params)
- * @param request - Next.js request object (optional, for context)
- * @returns ValidationResult<T> - Validated data with context
- * @throws RequestValidationError if validation fails
- */
-export function validateParams<T>(
-  schema: ZodSchema<T>,
-  params: Record<string, string | string[]>,
-  request?: NextRequest,
-): ValidationResult<T> {
-  const context = createValidationContext(request);
 
-  try {
-    logger.debug("Starting params validation", {
-      ...context,
-      params,
-    });
-
-    const validatedData = validateWithSchema(schema, params, context, "params");
-
-    return {
-      data: validatedData,
-      context,
-    };
-  } catch (error) {
-    logger.error("Params validation failed", {
-      ...context,
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-    throw error;
-  }
-}
 
 // =============================================================================
 // COMBINED VALIDATION FUNCTIONS
 // =============================================================================
 
-/**
- * Validates both body and query parameters
- * @param bodySchema - Zod schema for body validation
- * @param querySchema - Zod schema for query validation
- * @param request - Next.js request object
- * @returns Promise with validated body and query data
- */
-export async function validateBodyAndQuery<TBody, TQuery>(
-  bodySchema: ZodSchema<TBody>,
-  querySchema: ZodSchema<TQuery>,
-  request: NextRequest,
-): Promise<{
-  body: ValidationResult<TBody>;
-  query: ValidationResult<TQuery>;
-}> {
-  const [bodyResult, queryResult] = await Promise.all([
-    validateBody(bodySchema, request),
-    Promise.resolve(validateQuery(querySchema, request)),
-  ]);
 
-  return {
-    body: bodyResult,
-    query: queryResult,
-  };
-}
-
-/**
- * Validates body, query, and params together
- * @param bodySchema - Zod schema for body validation
- * @param querySchema - Zod schema for query validation
- * @param paramsSchema - Zod schema for params validation
- * @param request - Next.js request object
- * @param params - URL parameters object
- * @returns Promise with all validated data
- */
-export async function validateAll<TBody, TQuery, TParams>(
-  bodySchema: ZodSchema<TBody>,
-  querySchema: ZodSchema<TQuery>,
-  paramsSchema: ZodSchema<TParams>,
-  request: NextRequest,
-  params: Record<string, string | string[]>,
-): Promise<{
-  body: ValidationResult<TBody>;
-  query: ValidationResult<TQuery>;
-  params: ValidationResult<TParams>;
-}> {
-  const [bodyResult, queryResult, paramsResult] = await Promise.all([
-    validateBody(bodySchema, request),
-    Promise.resolve(validateQuery(querySchema, request)),
-    Promise.resolve(validateParams(paramsSchema, params, request)),
-  ]);
-
-  return {
-    body: bodyResult,
-    query: queryResult,
-    params: paramsResult,
-  };
-}
-
-// =============================================================================
-// UTILITY VALIDATION HELPERS
-// =============================================================================
-
-/**
- * Creates a validation middleware wrapper for route handlers
- * @param bodySchema - Optional body schema
- * @param querySchema - Optional query schema
- * @returns Middleware function that validates and passes data to handler
- */
-export function createValidationMiddleware<TBody = any, TQuery = any>(
-  bodySchema?: ZodSchema<TBody>,
-  querySchema?: ZodSchema<TQuery>,
-) {
-  return async function validationMiddleware(
-    request: NextRequest,
-    handler: (validatedData: {
-      body?: ValidationResult<TBody>;
-      query?: ValidationResult<TQuery>;
-    }) => Promise<Response>,
-  ): Promise<Response> {
-    try {
-      const validatedData: {
-        body?: ValidationResult<TBody>;
-        query?: ValidationResult<TQuery>;
-      } = {};
-
-      // Validate body if schema provided
-      if (bodySchema) {
-        validatedData.body = await validateBody(bodySchema, request);
-      }
-
-      // Validate query if schema provided
-      if (querySchema) {
-        validatedData.query = validateQuery(querySchema, request);
-      }
-
-      return await handler(validatedData);
-    } catch (error) {
-      // Let the error bubble up to be handled by error middleware
-      throw error;
-    }
-  };
-}
 
 // =============================================================================
 // COMMON VALIDATION SCHEMAS
 // =============================================================================
 
-/**
- * Common pagination schema for query parameters
- */
-export const paginationSchema = z
-  .object({
-    page: z
-      .string()
-      .optional()
-      .transform((val) => (val ? parseInt(val, 10) : 1)),
-    limit: z
-      .string()
-      .optional()
-      .transform((val) => (val ? parseInt(val, 10) : 10)),
-    offset: z
-      .string()
-      .optional()
-      .transform((val) => (val ? parseInt(val, 10) : 0)),
-  })
-  .refine(
-    (data) => {
-      return (
-        data.page >= 1 &&
-        data.limit >= 1 &&
-        data.limit <= 100 &&
-        data.offset >= 0
-      );
-    },
-    {
-      message: "Invalid pagination parameters",
-    },
-  );
 
-/**
- * Common UUID parameter schema
- */
-export const uuidParamSchema = z.object({
-  id: z.string().uuid("Invalid UUID format"),
-});
 
 /**
  * Common search query schema

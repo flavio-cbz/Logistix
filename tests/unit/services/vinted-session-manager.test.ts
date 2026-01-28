@@ -1,31 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { vintedSessionManager } from '../../../lib/services/auth/vinted-session-manager';
-import { databaseService, getCurrentTimestamp } from '../../../lib/services/database/db';
-import { encryptSecret, decryptSecret } from '../../../lib/utils/crypto';
-import { logger } from '../../../lib/utils/logging/logger';
+import { vintedSessionManager } from '@/lib/services/auth/vinted-session-manager';
+import { getCurrentTimestamp } from "@/lib/database";
+import { encryptSecret, decryptSecret } from '@/lib/utils/crypto';
+import { logger } from '@/lib/utils/logging/logger';
+import { vintedRepository } from '@/lib/repositories/vinted-repository';
 
-vi.mock('../../../lib/services/database/db', () => {
-  const queryOne = vi.fn();
-  const execute = vi.fn();
-  const getCurrentTimestamp = vi.fn(() => '2025-09-26T12:00:00.000Z');
+// Mock dependencies
+vi.mock('@/lib/database', () => ({
+  getCurrentTimestamp: vi.fn(() => '2025-09-26T12:00:00.000Z'),
+}));
 
-  return {
-    databaseService: {
-      queryOne,
-      execute,
-    },
-    getCurrentTimestamp,
-  };
-});
+vi.mock('@/lib/utils/crypto', () => ({
+  encryptSecret: vi.fn(),
+  decryptSecret: vi.fn(),
+}));
 
-vi.mock('../../../lib/utils/crypto', () => {
-  return {
-    encryptSecret: vi.fn(),
-    decryptSecret: vi.fn(),
-  };
-});
-
-vi.mock('../../../lib/utils/logging/logger', () => {
+vi.mock('@/lib/utils/logging/logger', () => {
   const mockLogger = {
     error: vi.fn(),
     warn: vi.fn(),
@@ -38,9 +28,19 @@ vi.mock('../../../lib/utils/logging/logger', () => {
   };
 });
 
+// Mock Repository
+vi.mock('@/lib/repositories/vinted-repository', () => ({
+  vintedRepository: {
+    findByUserId: vi.fn(),
+    update: vi.fn(),
+    create: vi.fn(),
+    deleteByUserId: vi.fn(),
+  }
+}));
+
 const refreshAccessTokenMock = vi.fn();
 
-vi.mock('../../../lib/services/auth/vinted-auth-service', () => ({
+vi.mock('@/lib/services/auth/vinted-auth-service', () => ({
   VintedAuthService: class {
     public cookie: string;
 
@@ -53,7 +53,7 @@ vi.mock('../../../lib/services/auth/vinted-auth-service', () => ({
 }));
 
 describe('vintedSessionManager', () => {
-  const mockDatabaseService = vi.mocked(databaseService);
+  const mockVintedRepository = vi.mocked(vintedRepository);
   const mockGetCurrentTimestamp = vi.mocked(getCurrentTimestamp);
   const mockEncryptSecret = vi.mocked(encryptSecret);
   const mockDecryptSecret = vi.mocked(decryptSecret);
@@ -69,102 +69,116 @@ describe('vintedSessionManager', () => {
   });
 
   it('returns decrypted cookie when session exists', async () => {
-    mockDatabaseService.queryOne.mockResolvedValueOnce({
+    mockVintedRepository.findByUserId.mockResolvedValueOnce({
       id: 'session-1',
-      user_id: 'user-1',
-      session_cookie: 'encrypted-cookie',
+      userId: 'user-1',
+      sessionCookie: 'encrypted-cookie',
       status: 'active',
-      last_validated_at: null,
-      last_refreshed_at: null,
-      refresh_error_message: null,
+      lastValidatedAt: null,
+      lastRefreshedAt: null,
+      refreshErrorMessage: null,
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:00.000Z'
     });
     mockDecryptSecret.mockResolvedValueOnce('plain-cookie');
 
     const cookie = await vintedSessionManager.getSessionCookie('user-1');
 
     expect(cookie).toBe('plain-cookie');
-    expect(mockDecryptSecret).toHaveBeenCalledWith('encrypted-cookie');
-    expect(mockDatabaseService.execute).not.toHaveBeenCalled();
+    expect(mockDecryptSecret).toHaveBeenCalledWith('encrypted-cookie', 'user-1');
   });
 
   it('marks session as requiring configuration when decryption fails', async () => {
-    mockDatabaseService.queryOne.mockResolvedValueOnce({
+    // First call for getSessionCookie
+    mockVintedRepository.findByUserId.mockResolvedValueOnce({
       id: 'session-2',
-      user_id: 'user-2',
-      session_cookie: 'encrypted-cookie',
+      userId: 'user-2',
+      sessionCookie: 'encrypted-cookie',
       status: 'active',
-      last_validated_at: null,
-      last_refreshed_at: null,
-      refresh_error_message: null,
+      lastValidatedAt: null,
+      lastRefreshedAt: null,
+      refreshErrorMessage: null,
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:00.000Z'
     });
+
+    // Second call for updateSessionStatus (checking existence)
+    mockVintedRepository.findByUserId.mockResolvedValueOnce({
+      id: 'session-2',
+      userId: 'user-2',
+      sessionCookie: 'encrypted-cookie',
+      status: 'active',
+      lastValidatedAt: null,
+      lastRefreshedAt: null,
+      refreshErrorMessage: null,
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:00.000Z'
+    });
+
     mockDecryptSecret.mockRejectedValueOnce(new Error('decrypt failed'));
 
     const result = await vintedSessionManager.getSessionCookie('user-2');
 
     expect(result).toBeNull();
-    expect(mockDatabaseService.execute).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE vinted_sessions SET'),
-      [
-        'requires_configuration',
-        'Impossible de déchiffrer la session',
-        null,
-        '2025-09-26T12:00:00.000Z',
-        'user-2',
-      ],
-      'vinted-session-decrypt-failure',
+    expect(mockVintedRepository.update).toHaveBeenCalledWith(
+        'session-2',
+        {
+            status: 'requires_configuration',
+            refreshErrorMessage: 'Impossible de déchiffrer la session'
+        }
     );
     expect(mockLogger.error).toHaveBeenCalled();
   });
 
   it('refreshes session when token is still valid', async () => {
-    mockDatabaseService.queryOne.mockResolvedValueOnce({
+    mockVintedRepository.findByUserId.mockResolvedValueOnce({
       id: 'session-3',
-      user_id: 'user-3',
-      session_cookie: 'encrypted-cookie',
+      userId: 'user-3',
+      sessionCookie: 'encrypted-cookie',
       status: 'active',
-      last_validated_at: null,
-      last_refreshed_at: null,
-      refresh_error_message: null,
+      lastValidatedAt: null,
+      lastRefreshedAt: null,
+      refreshErrorMessage: null,
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:00.000Z'
     });
     mockDecryptSecret.mockResolvedValueOnce('plain-cookie');
 
-    const tokenValiditySpy = vi
-      .spyOn(vintedSessionManager, 'isTokenValid')
-      .mockResolvedValueOnce(true);
+    // Access private method for spying
+    const tokenValiditySpy = vi.spyOn(vintedSessionManager as any, 'isTokenValid').mockResolvedValueOnce(true);
 
     const response = await vintedSessionManager.refreshSession('user-3');
 
     expect(response).toEqual({ success: true });
     expect(tokenValiditySpy).toHaveBeenCalledWith('plain-cookie');
-    expect(mockDatabaseService.execute).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE vinted_sessions SET'),
-      [
-        'active',
-        '2025-09-26T12:00:00.000Z',
-        null,
-        '2025-09-26T12:00:00.000Z',
-        'user-3',
-      ],
-      'vinted-session-validated',
+    expect(mockVintedRepository.update).toHaveBeenCalledWith(
+        'session-3',
+        expect.objectContaining({
+            status: 'active',
+            lastValidatedAt: '2025-09-26T12:00:00.000Z',
+            refreshErrorMessage: null,
+        })
     );
   });
 
   it('refreshes cookie when token is invalid but refresh succeeds', async () => {
     const initialCookie = 'access_token_web=oldAccess; refresh_token_web=oldRefresh; foo=bar';
 
-    mockDatabaseService.queryOne.mockResolvedValueOnce({
+    mockVintedRepository.findByUserId.mockResolvedValueOnce({
       id: 'session-4',
-      user_id: 'user-4',
-      session_cookie: 'encrypted-cookie',
+      userId: 'user-4',
+      sessionCookie: 'encrypted-cookie',
       status: 'active',
-      last_validated_at: null,
-      last_refreshed_at: null,
-      refresh_error_message: null,
+      lastValidatedAt: null,
+      lastRefreshedAt: null,
+      refreshErrorMessage: null,
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:00.000Z'
     });
     mockDecryptSecret.mockResolvedValueOnce(initialCookie);
     mockEncryptSecret.mockResolvedValueOnce('encrypted-new');
 
-    vi.spyOn(vintedSessionManager, 'isTokenValid').mockResolvedValueOnce(false);
+    vi.spyOn(vintedSessionManager as any, 'isTokenValid').mockResolvedValueOnce(false);
     refreshAccessTokenMock.mockResolvedValueOnce({
       accessToken: 'newAccess',
       refreshToken: 'newRefresh',
@@ -178,19 +192,17 @@ describe('vintedSessionManager', () => {
     });
     expect(mockEncryptSecret).toHaveBeenCalledWith(
       'access_token_web=newAccess; refresh_token_web=newRefresh; foo=bar',
+      'user-4'
     );
-    expect(mockDatabaseService.execute).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE vinted_sessions SET'),
-      [
-        'encrypted-new',
-        'active',
-        '2025-09-26T12:00:00.000Z',
-        '2025-09-26T12:00:00.000Z',
-        null,
-        '2025-09-26T12:00:00.000Z',
-        'user-4',
-      ],
-      'vinted-session-refresh-success',
+    expect(mockVintedRepository.update).toHaveBeenCalledWith(
+        'session-4',
+        expect.objectContaining({
+            sessionCookie: 'encrypted-new',
+            status: 'active',
+            lastRefreshedAt: '2025-09-26T12:00:00.000Z',
+            lastValidatedAt: '2025-09-26T12:00:00.000Z',
+            refreshErrorMessage: null,
+        })
     );
   });
 });

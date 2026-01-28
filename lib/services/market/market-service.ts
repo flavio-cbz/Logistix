@@ -1,102 +1,111 @@
-import { MarketAnalysis, MarketProduct, SearchFilters } from "@/lib/types/market";
+import { MarketProduct, SearchFilters } from "@/lib/types/market";
+import { databaseService } from "@/lib/database/database-service";
+import { products } from "@/lib/database/schema";
+import { eq } from "drizzle-orm";
+import { vintedClient } from "./vinted-client-wrapper";
+import { EnrichmentData, MarketStats, Product } from "@/lib/shared/types/entities";
+import { VintedItem } from "./types";
 
-// Simulation de délai réseau
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const VINTED_STATUS_SOLD = 3;
+const DEFAULT_CURRENCY = "EUR";
+const ANALYSIS_SAMPLE_SIZE = 40;
 
-// Données factices pour la démo
-const MOCK_PRODUCTS: MarketProduct[] = [
-    {
-        id: '1',
-        title: 'Nike Air Force 1 White - T38',
-        price: 85.00,
-        currency: 'EUR',
-        platform: 'Vinted',
-        url: '#',
-        imageUrl: '👟',
-        condition: 'Très bon état',
-        sellerRating: 4.8,
-        postedAt: new Date()
-    },
-    {
-        id: '2',
-        title: 'Nike Air Force 1 Black - T39',
-        price: 80.00,
-        currency: 'EUR',
-        platform: 'Vinted',
-        url: '#',
-        imageUrl: '👟',
-        condition: 'Bon état',
-        sellerRating: 4.5,
-        postedAt: new Date()
-    },
-    {
-        id: '3',
-        title: 'Nike Air Force 1 Shadow - T38',
-        price: 95.00,
-        currency: 'EUR',
-        platform: 'Vinted',
-        url: '#',
-        imageUrl: '👟',
-        condition: 'Neuf avec étiquette',
-        sellerRating: 5.0,
-        postedAt: new Date()
-    },
-    {
-        id: '4',
-        title: 'Nike Air Force 1 Custom',
-        price: 120.00,
-        currency: 'EUR',
-        platform: 'eBay',
-        url: '#',
-        imageUrl: '🎨',
-        condition: 'Neuf',
-        sellerRating: 4.9,
-        postedAt: new Date()
+export class MarketService {
+  async searchProducts(_filters: SearchFilters): Promise<MarketProduct[]> {
+    // Keep mock for generic search if not used, or implement later.
+    return [];
+  }
+
+  async analyzeProduct(productId: string, userId: string): Promise<Product> {
+    const product = await this.getProduct(productId);
+    if (!product) throw new Error("Produit non trouvé");
+
+    const items = await this.searchSoldItems(userId, product.name);
+    if (items.length === 0) {
+      throw new Error("Aucun article similaire vendu trouvé sur Vinted");
     }
-];
 
-export const MarketService = {
-    async searchProducts(filters: SearchFilters): Promise<MarketProduct[]> {
-        await delay(800); // Simuler latence API
+    const marketStats = this.calculateMarketStats(items);
+    const updatedProduct = await this.updateProductEnrichment(productId, product, marketStats);
 
-        if (!filters.query) return [];
+    return updatedProduct;
+  }
 
-        // Filtrage basique simulé
-        return MOCK_PRODUCTS.filter(p =>
-            p.title.toLowerCase().includes(filters.query.toLowerCase())
-        );
-    },
+  private async getProduct(productId: string): Promise<Product | undefined> {
+    return databaseService.executeQuery(async (db) => {
+      const [p] = await db.select().from(products).where(eq(products.id, productId));
+      return p as Product | undefined;
+    }, "analyzeProduct_get");
+  }
 
-    async analyzeProduct(productId: string): Promise<MarketAnalysis> {
-        await delay(1500); // Simuler temps de calcul/scraping
+  private async searchSoldItems(userId: string, query: string): Promise<VintedItem[]> {
+    const searchResults = await vintedClient.searchItems(userId, {
+      searchText: query,
+      statusIds: [VINTED_STATUS_SOLD],
+      order: 'relevance',
+      perPage: ANALYSIS_SAMPLE_SIZE
+    });
+    return searchResults.items || [];
+  }
 
-        const product = MOCK_PRODUCTS.find(p => p.id === productId);
-        if (!product) throw new Error("Produit non trouvé");
+  private calculateMarketStats(items: VintedItem[]): MarketStats {
+    const prices = this.extractPrices(items);
 
-        // Génération de données d'analyse basées sur le produit sélectionné
-        const basePrice = product.price;
-
-        return {
-            productId,
-            timestamp: new Date(),
-            totalListings: Math.floor(Math.random() * 100) + 50,
-            averagePrice: basePrice,
-            medianPrice: basePrice - 5,
-            minPrice: basePrice * 0.7,
-            maxPrice: basePrice * 1.3,
-            bestPlatform: 'Vinted',
-            demandLevel: 'High',
-            priceDistribution: [
-                { range: `${Math.floor(basePrice * 0.7)}-${Math.floor(basePrice * 0.8)}€`, min: basePrice * 0.7, max: basePrice * 0.8, count: 10 },
-                { range: `${Math.floor(basePrice * 0.8)}-${Math.floor(basePrice * 0.9)}€`, min: basePrice * 0.8, max: basePrice * 0.9, count: 25 },
-                { range: `${Math.floor(basePrice * 0.9)}-${Math.floor(basePrice * 1.1)}€`, min: basePrice * 0.9, max: basePrice * 1.1, count: 45 },
-                { range: `${Math.floor(basePrice * 1.1)}-${Math.floor(basePrice * 1.3)}€`, min: basePrice * 1.1, max: basePrice * 1.3, count: 15 },
-            ],
-            recommendation: {
-                suggestedPrice: basePrice * 0.95, // Prix légèrement agressif
-                confidenceScore: 85,
-                reasoning: "Forte demande détectée sur Vinted pour ce modèle. Un prix légèrement inférieur à la moyenne garantit une vente rapide."
-            }
-        };
+    if (prices.length === 0) {
+      throw new Error("Impossible d'extraire les prix");
     }
-};
+
+    const sum = prices.reduce((a, b) => a + b, 0);
+    const avg = sum / prices.length;
+    const median = prices[Math.floor(prices.length / 2)];
+
+    return {
+      minPrice: prices[0] ?? 0,
+      maxPrice: prices[prices.length - 1] ?? 0,
+      avgPrice: Math.round(avg * 100) / 100,
+      medianPrice: median ?? 0,
+      currency: DEFAULT_CURRENCY,
+      source: "vinted_sold",
+      sampleSize: prices.length
+    };
+  }
+
+  private extractPrices(items: VintedItem[]): number[] {
+    return items
+      .map((item) => {
+        if (!item.price?.amount) return 0;
+        return parseFloat(item.price.amount);
+      })
+      .filter((p) => !isNaN(p) && p > 0)
+      .sort((a, b) => a - b);
+  }
+
+  private async updateProductEnrichment(productId: string, product: Product, marketStats: MarketStats): Promise<Product> {
+    const currentEnrichment = (product.enrichmentData as EnrichmentData) || {
+      enrichmentStatus: 'pending',
+      confidence: 0
+    };
+
+    const newEnrichment: EnrichmentData = {
+      ...currentEnrichment,
+      marketStats: marketStats,
+      enrichmentStatus: 'done'
+    };
+
+    await databaseService.executeQuery(async (db) => {
+      await db.update(products)
+        .set({
+          enrichmentData: newEnrichment,
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(products.id, productId));
+    }, "analyzeProduct_update");
+
+    return {
+      ...product,
+      enrichmentData: newEnrichment
+    };
+  }
+}
+
+export const marketService = new MarketService();

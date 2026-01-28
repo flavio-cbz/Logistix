@@ -91,7 +91,7 @@ describe('Database Integration Tests', () => {
     it('should update user successfully', async () => {
       // Arrange
       const testUser = createTestUser();
-      
+
       // Insert user
       await db.run(`
         INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
@@ -109,7 +109,7 @@ describe('Database Integration Tests', () => {
       // Act - Update user
       const newEmail = 'updated@example.com';
       const newUpdatedAt = new Date().toISOString();
-      
+
       await db.run(`
         UPDATE users SET email = ?, updated_at = ? WHERE id = ?
       `, [newEmail, newUpdatedAt, testUser.id]);
@@ -128,7 +128,7 @@ describe('Database Integration Tests', () => {
     it('should delete user successfully', async () => {
       // Arrange
       const testUser = createTestUser();
-      
+
       // Insert user
       await db.run(`
         INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
@@ -156,12 +156,12 @@ describe('Database Integration Tests', () => {
     });
   });
 
-  describe.skip('Parcelle operations', () => {
+  describe('Parcelle operations', () => {
     let testUser: ReturnType<typeof createTestUser>;
 
     beforeEach(async () => {
       testUser = createTestUser();
-      
+
       // Insert test user
       await db.run(`
         INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
@@ -183,15 +183,14 @@ describe('Database Integration Tests', () => {
 
       // Act - Insert parcelle
       await db.run(`
-        INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO parcels (id, user_id, superbuy_id, carrier, weight, total_price, price_per_gram, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         testParcelle.id,
         testParcelle.userId,
         testParcelle.numero,
         testParcelle.transporteur,
         testParcelle.poids,
-        testParcelle.prixAchat,
         testParcelle.prixTotal,
         testParcelle.prixParGramme,
         testParcelle.createdAt,
@@ -200,15 +199,15 @@ describe('Database Integration Tests', () => {
 
       // Act - Retrieve parcelle
       const retrievedParcelle = await db.get(`
-        SELECT * FROM parcelles WHERE id = ?
+        SELECT * FROM parcels WHERE id = ?
       `, [testParcelle.id]);
 
       // Assert
       expect(retrievedParcelle).toBeDefined();
       expect(retrievedParcelle.id).toBe(testParcelle.id);
-      expect(retrievedParcelle.userId).toBe(testUser.id);
-      expect(retrievedParcelle.numero).toBe(testParcelle.numero);
-      expect(retrievedParcelle.transporteur).toBe(testParcelle.transporteur);
+      expect(retrievedParcelle.user_id).toBe(testUser.id);
+      expect(retrievedParcelle.superbuy_id).toBe(testParcelle.numero);
+      expect(retrievedParcelle.carrier).toBe(testParcelle.transporteur);
     });
 
     it('should enforce foreign key constraint with users', async () => {
@@ -218,15 +217,14 @@ describe('Database Integration Tests', () => {
       // Act & Assert - Try to insert parcelle with non-existent user
       await expect(async () => {
         await db.run(`
-          INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO parcels (id, user_id, superbuy_id, carrier, weight, total_price, price_per_gram, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           testParcelle.id,
           testParcelle.userId,
           testParcelle.numero,
           testParcelle.transporteur,
           testParcelle.poids,
-          testParcelle.prixAchat,
           testParcelle.prixTotal,
           testParcelle.prixParGramme,
           testParcelle.createdAt,
@@ -239,19 +237,18 @@ describe('Database Integration Tests', () => {
       // Arrange
       const parcelle1 = createTestParcelle({ userId: testUser.id });
       const parcelle2 = createTestParcelle({ userId: testUser.id });
-      
+
       // Insert parcelles
       for (const parcelle of [parcelle1, parcelle2]) {
         await db.run(`
-          INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO parcels (id, user_id, superbuy_id, carrier, weight, total_price, price_per_gram, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           parcelle.id,
           parcelle.userId,
           parcelle.numero,
           parcelle.transporteur,
           parcelle.poids,
-          parcelle.prixAchat,
           parcelle.prixTotal,
           parcelle.prixParGramme,
           parcelle.createdAt,
@@ -261,24 +258,24 @@ describe('Database Integration Tests', () => {
 
       // Act - Retrieve parcelles by user
       const userParcelles = await db.all(`
-        SELECT * FROM parcelles WHERE userId = ? ORDER BY createdAt
+        SELECT * FROM parcels WHERE user_id = ? ORDER BY created_at
       `, [testUser.id]);
 
       // Assert
       expect(userParcelles).toHaveLength(2);
-      expect(userParcelles[0].userId).toBe(testUser.id);
-      expect(userParcelles[1].userId).toBe(testUser.id);
+      expect(userParcelles[0].user_id).toBe(testUser.id);
+      expect(userParcelles[1].user_id).toBe(testUser.id);
     });
   });
 
-  describe.skip('Product operations', () => {
+  describe('Product operations', () => {
     let testUser: ReturnType<typeof createTestUser>;
     let testParcelle: ReturnType<typeof createTestParcelle>;
 
     beforeEach(async () => {
       testUser = createTestUser();
       testParcelle = createTestParcelle({ userId: testUser.id });
-      
+
       // Insert test user
       await db.run(`
         INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
@@ -295,15 +292,14 @@ describe('Database Integration Tests', () => {
 
       // Insert test parcelle
       await db.run(`
-        INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO parcels (id, user_id, superbuy_id, carrier, weight, total_price, price_per_gram, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         testParcelle.id,
         testParcelle.userId,
         testParcelle.numero,
         testParcelle.transporteur,
         testParcelle.poids,
-        testParcelle.prixAchat,
         testParcelle.prixTotal,
         testParcelle.prixParGramme,
         testParcelle.createdAt,
@@ -313,40 +309,32 @@ describe('Database Integration Tests', () => {
 
     it('should create and retrieve product', async () => {
       // Arrange
-      const testProduct = createTestProduct({ 
-        userId: testUser.id, 
-        parcelleId: testParcelle.id 
+      const testProduct = createTestProduct({
+        userId: testUser.id,
+        parcelleId: testParcelle.id
       });
 
       // Act - Insert product
       await db.run(`
         INSERT INTO products (
-          id, userId, parcelleId, name, titre, description, brand, marque, 
-          category, size, taille, color, couleur, condition, weight, poids,
-          purchasePrice, prix, sellingPrice, prixVente, currency, status,
-          createdAt, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          id, user_id, parcel_id, name, description, brand, 
+          category, size, color, poids,
+          price, selling_price, currency, status,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         testProduct.id,
         testProduct.userId,
         testProduct.parcelleId,
         testProduct.name,
-        testProduct.titre,
         testProduct.description,
         testProduct.brand,
-        testProduct.marque,
         testProduct.category,
         testProduct.size,
-        testProduct.taille,
         testProduct.color,
-        testProduct.couleur,
-        testProduct.condition,
-        testProduct.weight,
         testProduct.poids,
-        testProduct.purchasePrice,
-        testProduct.prix,
+        testProduct.price,
         testProduct.sellingPrice,
-        testProduct.prixVente,
         testProduct.currency,
         testProduct.status,
         testProduct.createdAt,
@@ -361,48 +349,40 @@ describe('Database Integration Tests', () => {
       // Assert
       expect(retrievedProduct).toBeDefined();
       expect(retrievedProduct.id).toBe(testProduct.id);
-      expect(retrievedProduct.userId).toBe(testUser.id);
-      expect(retrievedProduct.parcelleId).toBe(testParcelle.id);
+      expect(retrievedProduct.user_id).toBe(testUser.id);
+      expect(retrievedProduct.parcel_id).toBe(testParcelle.id);
       expect(retrievedProduct.name).toBe(testProduct.name);
     });
 
     it('should enforce foreign key constraints', async () => {
       // Arrange
-      const testProduct = createTestProduct({ 
-        userId: 'non-existent-user-id', 
-        parcelleId: testParcelle.id 
+      const testProduct = createTestProduct({
+        userId: 'non-existent-user-id',
+        parcelleId: testParcelle.id
       });
 
       // Act & Assert - Try to insert product with non-existent user
       await expect(async () => {
         await db.run(`
           INSERT INTO products (
-            id, userId, parcelleId, name, titre, description, brand, marque, 
-            category, size, taille, color, couleur, condition, weight, poids,
-            purchasePrice, prix, sellingPrice, prixVente, currency, status,
-            createdAt, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            id, user_id, parcel_id, name, description, brand, 
+            category, size, color, poids,
+            price, selling_price, currency, status,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           testProduct.id,
           testProduct.userId,
           testProduct.parcelleId,
           testProduct.name,
-          testProduct.titre,
           testProduct.description,
           testProduct.brand,
-          testProduct.marque,
           testProduct.category,
           testProduct.size,
-          testProduct.taille,
           testProduct.color,
-          testProduct.couleur,
-          testProduct.condition,
-          testProduct.weight,
           testProduct.poids,
-          testProduct.purchasePrice,
-          testProduct.prix,
+          testProduct.price,
           testProduct.sellingPrice,
-          testProduct.prixVente,
           testProduct.currency,
           testProduct.status,
           testProduct.createdAt,
@@ -415,37 +395,29 @@ describe('Database Integration Tests', () => {
       // Arrange
       const product1 = createTestProduct({ userId: testUser.id, parcelleId: testParcelle.id });
       const product2 = createTestProduct({ userId: testUser.id, parcelleId: testParcelle.id });
-      
+
       // Insert products
       for (const product of [product1, product2]) {
         await db.run(`
           INSERT INTO products (
-            id, userId, parcelleId, name, titre, description, brand, marque, 
-            category, size, taille, color, couleur, condition, weight, poids,
-            purchasePrice, prix, sellingPrice, prixVente, currency, status,
-            createdAt, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            id, user_id, parcel_id, name, description, brand, 
+            category, size, color, poids,
+            price, selling_price, currency, status,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           product.id,
           product.userId,
           product.parcelleId,
           product.name,
-          product.titre,
           product.description,
           product.brand,
-          product.marque,
           product.category,
           product.size,
-          product.taille,
           product.color,
-          product.couleur,
-          product.condition,
-          product.weight,
           product.poids,
-          product.purchasePrice,
-          product.prix,
+          product.price,
           product.sellingPrice,
-          product.prixVente,
           product.currency,
           product.status,
           product.createdAt,
@@ -455,51 +427,43 @@ describe('Database Integration Tests', () => {
 
       // Act - Retrieve products by parcelle
       const parcelleProducts = await db.all(`
-        SELECT * FROM products WHERE parcelleId = ? ORDER BY createdAt
+        SELECT * FROM products WHERE parcel_id = ? ORDER BY created_at
       `, [testParcelle.id]);
 
       // Assert
       expect(parcelleProducts).toHaveLength(2);
-      expect(parcelleProducts[0].parcelleId).toBe(testParcelle.id);
-      expect(parcelleProducts[1].parcelleId).toBe(testParcelle.id);
+      expect(parcelleProducts[0].parcel_id).toBe(testParcelle.id);
+      expect(parcelleProducts[1].parcel_id).toBe(testParcelle.id);
     });
 
     it('should allow products without parcelle', async () => {
       // Arrange
-      const testProduct = createTestProduct({ 
-        userId: testUser.id, 
-        parcelleId: null 
+      const testProduct = createTestProduct({
+        userId: testUser.id,
+        parcelleId: null
       });
 
       // Act - Insert product without parcelle
       await db.run(`
         INSERT INTO products (
-          id, userId, parcelleId, name, titre, description, brand, marque, 
-          category, size, taille, color, couleur, condition, weight, poids,
-          purchasePrice, prix, sellingPrice, prixVente, currency, status,
-          createdAt, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          id, user_id, parcel_id, name, description, brand, 
+          category, size, color, poids,
+          price, selling_price, currency, status,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         testProduct.id,
         testProduct.userId,
         testProduct.parcelleId,
         testProduct.name,
-        testProduct.titre,
         testProduct.description,
         testProduct.brand,
-        testProduct.marque,
         testProduct.category,
         testProduct.size,
-        testProduct.taille,
         testProduct.color,
-        testProduct.couleur,
-        testProduct.condition,
-        testProduct.weight,
         testProduct.poids,
-        testProduct.purchasePrice,
-        testProduct.prix,
+        testProduct.price,
         testProduct.sellingPrice,
-        testProduct.prixVente,
         testProduct.currency,
         testProduct.status,
         testProduct.createdAt,
@@ -513,7 +477,7 @@ describe('Database Integration Tests', () => {
 
       // Assert
       expect(retrievedProduct).toBeDefined();
-      expect(retrievedProduct.parcelleId).toBeNull();
+      expect(retrievedProduct.parcel_id).toBeNull();
     });
   });
 
@@ -524,7 +488,7 @@ describe('Database Integration Tests', () => {
     beforeEach(async () => {
       testUser = createTestUser();
       testParcelle = createTestParcelle({ userId: testUser.id });
-      
+
       // Insert test data
       await db.run(`
         INSERT INTO users (id, username, email, password_hash, encryption_secret, created_at, updated_at)
@@ -540,15 +504,14 @@ describe('Database Integration Tests', () => {
       ]);
 
       await db.run(`
-        INSERT INTO parcelles (id, userId, numero, transporteur, poids, prixAchat, prixTotal, prixParGramme, createdAt, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO parcels (id, user_id, superbuy_id, carrier, weight, total_price, price_per_gram, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         testParcelle.id,
         testParcelle.userId,
         testParcelle.numero,
         testParcelle.transporteur,
         testParcelle.poids,
-        testParcelle.prixAchat,
         testParcelle.prixTotal,
         testParcelle.prixParGramme,
         testParcelle.createdAt,
@@ -559,9 +522,9 @@ describe('Database Integration Tests', () => {
     it('should join users with their parcelles', async () => {
       // Act - Join query
       const result = await db.all(`
-        SELECT u.username, p.numero, p.transporteur
+        SELECT u.username, p.superbuy_id as numero, p.carrier as transporteur
         FROM users u
-        LEFT JOIN parcelles p ON u.id = p.userId
+        LEFT JOIN parcels p ON u.id = p.user_id
         WHERE u.id = ?
       `, [testUser.id]);
 
@@ -576,36 +539,28 @@ describe('Database Integration Tests', () => {
       // Arrange - Insert products
       const product1 = createTestProduct({ userId: testUser.id, parcelleId: testParcelle.id });
       const product2 = createTestProduct({ userId: testUser.id, parcelleId: testParcelle.id });
-      
+
       for (const product of [product1, product2]) {
         await db.run(`
           INSERT INTO products (
-            id, userId, parcelleId, name, titre, description, brand, marque, 
-            category, size, taille, color, couleur, condition, weight, poids,
-            purchasePrice, prix, sellingPrice, prixVente, currency, status,
-            createdAt, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            id, user_id, parcel_id, name, description, brand, 
+            category, size, color, poids,
+            price, selling_price, currency, status,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           product.id,
           product.userId,
           product.parcelleId,
           product.name,
-          product.titre,
           product.description,
           product.brand,
-          product.marque,
           product.category,
           product.size,
-          product.taille,
           product.color,
-          product.couleur,
-          product.condition,
-          product.weight,
           product.poids,
-          product.purchasePrice,
-          product.prix,
+          product.price,
           product.sellingPrice,
-          product.prixVente,
           product.currency,
           product.status,
           product.createdAt,
@@ -615,9 +570,9 @@ describe('Database Integration Tests', () => {
 
       // Act - Count products per parcelle
       const result = await db.get(`
-        SELECT p.numero, COUNT(pr.id) as productCount
-        FROM parcelles p
-        LEFT JOIN products pr ON p.id = pr.parcelleId
+        SELECT p.superbuy_id as numero, COUNT(pr.id) as productCount
+        FROM parcels p
+        LEFT JOIN products pr ON p.id = pr.parcel_id
         WHERE p.id = ?
         GROUP BY p.id
       `, [testParcelle.id]);
@@ -634,39 +589,35 @@ describe('Database Integration Tests', () => {
 
       // Act - Transaction
       await db.exec('BEGIN TRANSACTION');
-      
+
       try {
         // Insert first product
         await db.run(`
           INSERT INTO products (
-            id, userId, parcelleId, name, titre, description, brand, marque, 
-            category, size, taille, color, couleur, condition, weight, poids,
-            purchasePrice, prix, sellingPrice, prixVente, currency, status,
-            createdAt, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            id, user_id, parcel_id, name, description, brand, 
+            category, size, color, poids,
+            price, selling_price, currency, status,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-          product1.id, product1.userId, product1.parcelleId, product1.name, product1.titre,
-          product1.description, product1.brand, product1.marque, product1.category,
-          product1.size, product1.taille, product1.color, product1.couleur,
-          product1.condition, product1.weight, product1.poids, product1.purchasePrice,
-          product1.prix, product1.sellingPrice, product1.prixVente, product1.currency,
+          product1.id, product1.userId, product1.parcelleId, product1.name, product1.description,
+          product1.brand, product1.category, product1.size, product1.color,
+          product1.poids, product1.price, product1.sellingPrice, product1.currency,
           product1.status, product1.createdAt, product1.updatedAt
         ]);
 
         // Insert second product
         await db.run(`
           INSERT INTO products (
-            id, userId, parcelleId, name, titre, description, brand, marque, 
-            category, size, taille, color, couleur, condition, weight, poids,
-            purchasePrice, prix, sellingPrice, prixVente, currency, status,
-            createdAt, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            id, user_id, parcel_id, name, description, brand, 
+            category, size, color, poids,
+            price, selling_price, currency, status,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-          product2.id, product2.userId, product2.parcelleId, product2.name, product2.titre,
-          product2.description, product2.brand, product2.marque, product2.category,
-          product2.size, product2.taille, product2.color, product2.couleur,
-          product2.condition, product2.weight, product2.poids, product2.purchasePrice,
-          product2.prix, product2.sellingPrice, product2.prixVente, product2.currency,
+          product2.id, product2.userId, product2.parcelleId, product2.name, product2.description,
+          product2.brand, product2.category, product2.size, product2.color,
+          product2.poids, product2.price, product2.sellingPrice, product2.currency,
           product2.status, product2.createdAt, product2.updatedAt
         ]);
 
@@ -678,7 +629,7 @@ describe('Database Integration Tests', () => {
 
       // Assert - Both products should be inserted
       const products = await db.all(`
-        SELECT * FROM products WHERE parcelleId = ?
+        SELECT * FROM products WHERE parcel_id = ?
       `, [testParcelle.id]);
 
       expect(products).toHaveLength(2);

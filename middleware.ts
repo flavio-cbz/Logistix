@@ -276,34 +276,40 @@ export async function middleware(req: NextRequest) {
       })
       
       // Gestion CORS pour toutes les routes API
+      // SÉCURITÉ : Whitelist stricte des origines autorisées
       const origin = req.headers.get('origin')
+      const allowedOrigins = new Set([
+        process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000',
+        'http://localhost:3000',
+        'http://localhost:3001',
+      ])
+      const isAllowedOrigin = origin && allowedOrigins.has(origin)
+
       if (req.method === "OPTIONS") {
         // Préflight CORS
         const headers: Record<string, string> = {
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-request-id, x-trace-id',
-    'Access-Control-Max-Age': '86400',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-request-id, x-trace-id',
+          'Access-Control-Max-Age': '86400',
           'x-request-id': context.requestId,
           'x-trace-id': context.requestId,
         }
-        if (origin) {
+        if (isAllowedOrigin) {
           headers['Access-Control-Allow-Origin'] = origin
           headers['Vary'] = 'Origin'
           headers['Access-Control-Allow-Credentials'] = 'true'
-        } else {
-          headers['Access-Control-Allow-Origin'] = '*'
         }
+        // Si origine non autorisée : pas de header CORS (requête bloquée par le navigateur)
         return new NextResponse(null, { status: 200, headers })
       }
 
       const response = NextResponse.next({ request: { headers: requestHeaders } })
-      if (origin) {
+      if (isAllowedOrigin) {
         response.headers.set('Access-Control-Allow-Origin', origin)
         response.headers.set('Vary', 'Origin')
         response.headers.set('Access-Control-Allow-Credentials', 'true')
-      } else {
-        response.headers.set('Access-Control-Allow-Origin', '*')
       }
+      // Si origine non autorisée : pas de header CORS
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-request-id, x-trace-id')
   response.headers.set('Access-Control-Expose-Headers', 'Set-Cookie, x-request-id, x-trace-id')

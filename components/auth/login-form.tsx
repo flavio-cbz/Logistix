@@ -139,9 +139,9 @@ export default function LoginForm() {
                 id="username"
                 name="username"
                 type="text"
-                placeholder="Nom d'utilisateur"
+                placeholder=""
                 required
-                className={errors.username ? "border-destructive" : ""}
+                className={errors.username ? "border-destructive" : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"}
               />
               {errors.username && (
                 <p className="text-destructive text-sm mt-1">
@@ -163,7 +163,7 @@ export default function LoginForm() {
                 name="password"
                 type="password"
                 required
-                className={errors.password ? "border-destructive" : ""}
+                className={errors.password ? "border-destructive" : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"}
               />
               {errors.password && (
                 <p className="text-destructive text-sm mt-1">

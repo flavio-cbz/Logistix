@@ -4,8 +4,13 @@ import {
   createSuccessResponse,
   createNotFoundResponse
 } from "@/lib/utils/api-response";
+import { updateProductSchema } from "@/lib/schemas/product";
 
-// GET /api/v1/produits/[id] - Récupérer un produit
+/**
+ * GET /api/v1/produits/[id] - Récupérer un produit
+ *
+ * @deprecated Use /api/v1/products/[id] instead. This French endpoint will be removed in a future version.
+ */
 export async function GET(
   _request: Request,
   { params }: { params: { id: string } }
@@ -27,7 +32,11 @@ export async function GET(
   }
 }
 
-// PUT /api/v1/produits/[id] - Mettre à jour un produit
+/**
+ * PUT /api/v1/produits/[id] - Mettre à jour un produit
+ *
+ * @deprecated Use /api/v1/products/[id] instead. This French endpoint will be removed in a future version.
+ */
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
@@ -37,104 +46,38 @@ export async function PUT(
     const user = await authService.requireAuth();
 
     const json = await request.json();
-    const productService = serviceContainer.getProductService();
 
-    // Note: ProductService handles ownership check internally
-    const updatedProduct = await productService.updateProduct(params.id, user.id, json);
+    // Validate with shared schema - field names now match database directly
+    const validatedData = updateProductSchema.parse(json);
+
+    // Sanitize data for DB: convert nulls to undefined for non-nullable fields
+    // Drizzle requires non-nullable fields to be either present (number) or undefined (skip update), not null.
+    const sanitizedData = {
+      ...validatedData,
+      poids: validatedData.poids ?? undefined,
+      price: validatedData.price ?? undefined,
+      currency: validatedData.currency ?? undefined,
+    };
+
+    // No manual mapping needed - schema fields match database columns
+    const productService = serviceContainer.getProductService();
+    const updatedProduct = await productService.updateProduct(params.id, user.id, sanitizedData);
 
     if (!updatedProduct) {
       return createNotFoundResponse("Produit");
     }
 
-<<<<<<< HEAD
     return createSuccessResponse({ product: updatedProduct });
   } catch (error: unknown) {
     return createErrorResponse(error);
-=======
-    const { id } = params;
-    let body: any = {};
-    const rawText = await request.text();
-    if (rawText && rawText.trim().length > 0) {
-      try {
-        body = JSON.parse(rawText);
-      } catch (_e) {
-        return NextResponse.json({ success: false, error: 'Requête invalide: JSON malformé' }, { status: 400 });
-      }
-    }
-
-    // Vérifier que le produit existe et appartient à l'utilisateur
-    const existing = await databaseService.queryOne<any>(
-      'SELECT id FROM products WHERE id = ? AND user_id = ?',
-      [id, user.id],
-      'check-product-ownership'
-    );
-
-    if (!existing) {
-      return NextResponse.json({ success: false, error: 'Produit non trouvé' }, { status: 404 });
-    }
-
-    // Construire la requête de mise à jour dynamiquement
-    const updates: string[] = [];
-    const values: any[] = [];
-
-    // Mapping des noms de champs vers les noms de colonnes DB
-    const fieldMapping: Record<string, string> = {
-      'name': 'name',
-      'description': 'description',
-      'poids': 'poids', 
-      'price': 'price',
-      'currency': 'currency',
-      'coutLivraison': 'cout_livraison',
-      'sellingPrice': 'selling_price',
-      'prixVente': 'prix_vente',
-      'plateforme': 'plateforme',
-      'status': 'status',
-      'url': 'url',
-      'photoUrl': 'photo_url',
-      'benefices': 'benefices',
-      'parcelleId': 'parcelle_id',
-      'vendu': 'vendu',
-      'dateMiseEnLigne': 'date_mise_en_ligne',
-      'dateVente': 'date_vente'
-    };
-
-    const allowedFields = Object.keys(fieldMapping);
-    
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        const dbColumn = fieldMapping[field];
-        updates.push(`${dbColumn} = ?`);
-        values.push(body[field]);
-      }
-    }
-
-    if (updates.length === 0) {
-      return NextResponse.json({ success: false, error: 'Aucune donnée à mettre à jour' }, { status: 400 });
-    }
-
-    values.push(id, user.id);
-    
-    await databaseService.execute(
-      `UPDATE products SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`,
-      values,
-      'update-product'
-    );
-
-    const updated = await databaseService.queryOne<any>(
-      'SELECT * FROM products WHERE id = ? AND user_id = ?',
-      [id, user.id],
-      'get-updated-product'
-    );
-
-    return NextResponse.json({ success: true, data: { product: updated } });
-  } catch (error) {
-    console.error('PUT /api/v1/produits/[id] error:', error);
-    return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 });
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
   }
 }
 
-// DELETE /api/v1/produits/[id] - Supprimer un produit
+/**
+ * DELETE /api/v1/produits/[id] - Supprimer un produit
+ *
+ * @deprecated Use /api/v1/products/[id] instead. This French endpoint will be removed in a future version.
+ */
 export async function DELETE(
   _request: Request,
   { params }: { params: { id: string } }

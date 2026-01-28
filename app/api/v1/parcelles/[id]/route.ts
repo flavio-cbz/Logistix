@@ -1,146 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/middleware/auth-middleware';
-import { withErrorHandling } from '@/lib/utils/api-response';
-import { databaseService } from '@/lib/services/database/db';
-import { transformParcelleFromDb } from '@/lib/utils/case-transformer';
+import { serviceContainer } from '@/lib/services/container';
+import { createErrorResponse, createSuccessResponse } from '@/lib/utils/api-response';
+import { logger } from '@/lib/utils/logging/logger';
 import { z } from 'zod';
 
 // Schéma de validation pour la mise à jour (champs optionnels)
 const updateParcelleSchema = z.object({
-  numero: z.string().min(1).trim().optional(),
-  transporteur: z.string().min(1).trim().optional(),
-  nom: z.string().min(1).trim().optional(),
-  statut: z.string()
+  superbuyId: z.string().min(1).trim().optional(),
+  carrier: z.string().min(1).trim().optional(),
+  name: z.string().min(1).trim().optional(),
+  trackingNumber: z.string().optional(),
+  status: z.string()
     .trim()
-    .refine(val => !val || ['En attente', 'En transit', 'Livré', 'Retourné', 'Perdu'].includes(val), {
-      message: "Le statut doit être 'En attente', 'En transit', 'Livré', 'Retourné' ou 'Perdu'"
+    .refine(val => !val || ['En attente', 'En transit', 'Livré', 'Retourné', 'Perdu', 'Pending', 'In Transit', 'Delivered'].includes(val), {
+      message: "Le statut doit être un statut valide"
     })
     .optional(),
-  actif: z.boolean().optional(),
-  poids: z.number().positive().optional(),
-  prixAchat: z.number().min(0).optional(),
+  isActive: z.number().min(0).max(1).optional(),
+  weight: z.number().positive().optional(),
+  totalPrice: z.number().min(0).optional(),
+  pricePerGram: z.number().min(0).optional(),
 }).refine((data) => Object.keys(data).length > 0, {
   message: 'Au moins un champ doit être fourni',
 });
 
 // Handler PATCH : Met à jour une parcelle
 async function handlePatch(req: NextRequest, { params }: { params: { id: string } }) {
-  const { user } = await requireAuth(req);
-  const { id } = params;
-  const body = await req.json();
-  const validatedData = updateParcelleSchema.parse(body);
+  try {
+    const authService = serviceContainer.getAuthService();
+    const user = await authService.requireAuth();
 
-  // Vérifier existence et propriété
-  const existing = await databaseService.queryOne(
-    'SELECT * FROM parcelles WHERE id = ? AND user_id = ?',
-    [id, user.id]
-  );
-  if (!existing) {
+    const { id } = params;
+    const body = await req.json();
+    const validatedData = updateParcelleSchema.parse(body);
+
+    const parcelleService = serviceContainer.getParcelleService();
+    const updatedParcelle = await parcelleService.updateParcelle(id, user.id, validatedData);
+
+    logger.info('[PARCELLE-UPDATE] Parcelle updated successfully', { parcelleId: id, userId: user.id });
+
     return NextResponse.json(
-      { success: false, error: { code: 'NOT_FOUND', message: 'Parcelle introuvable' } },
-      { status: 404 }
+      createSuccessResponse({ parcelle: updatedParcelle })
+    );
+  } catch (error) {
+    logger.error('[PARCELLE-UPDATE] Error updating parcelle', { error });
+    return NextResponse.json(
+      createErrorResponse(error),
+      { status: error instanceof Error && 'statusCode' in error ? (error as { statusCode: number }).statusCode || 500 : 500 }
     );
   }
-
-  // Vérifier unicité du numéro si modifié
-  if (validatedData.numero && validatedData.numero !== existing.numero) {
-    const conflict = await databaseService.queryOne(
-      'SELECT id FROM parcelles WHERE numero = ? AND user_id = ? AND id != ?',
-      [validatedData.numero, user.id, id]
-    );
-    if (conflict) {
-      return NextResponse.json(
-        { success: false, error: { code: 'CONFLICT', message: 'Numéro déjà utilisé' } },
-        { status: 409 }
-      );
-    }
-  }
-
-  // Préparer les champs à mettre à jour
-  const updates: Record<string, unknown> = {};
-  if (validatedData['numero']) (updates as any)['numero'] = validatedData['numero'].trim();
-  if (validatedData['transporteur']) (updates as any)['transporteur'] = validatedData['transporteur'].trim();
-  if (validatedData['nom']) (updates as any)['nom'] = validatedData['nom'].trim();
-  if (validatedData['statut']) (updates as any)['statut'] = validatedData['statut'];
-  if (validatedData['actif'] !== undefined) (updates as any)['actif'] = validatedData['actif'] ? 1 : 0;
-  if (validatedData['poids']) (updates as any)['poids'] = validatedData['poids'];
-  if (validatedData['prixAchat']) (updates as any)['prix_achat'] = validatedData['prixAchat'];
-
-  // Recalculer prixTotal et prixParGramme si nécessaire
-  const shouldRecalculatePrice = validatedData['poids'] || validatedData['prixAchat'];
-  if (shouldRecalculatePrice) {
-    const poids = (validatedData['poids'] || existing.poids) as number;
-    const prixAchat = (validatedData['prixAchat'] || existing.prix_achat) as number;
-    
-    // Vérifier division par zéro
-    if (poids <= 0) {
-      return NextResponse.json(
-        { success: false, error: { code: 'INVALID_WEIGHT', message: 'Le poids doit être positif' } },
-        { status: 400 }
-      );
-    }
-    
-    (updates as any)['prix_total'] = prixAchat + (poids * 0.1); // Exemple, ajuster
-    (updates as any)['prix_par_gramme'] = (updates as any)['prix_total'] / poids;
-  }
-  (updates as any)['updated_at'] = new Date().toISOString();
-
-  // Mise à jour
-  const setClause = Object.keys(updates).map(key => `${key} = ?`).join(', ');
-  const values = Object.values(updates);
-  values.push(id, user.id); // Pour WHERE
-
-  const result = await databaseService.execute(
-    `UPDATE parcelles SET ${setClause} WHERE id = ? AND user_id = ?`,
-    values
-  );
-
-  if (result.changes === 0) {
-    throw new Error('Échec de la mise à jour');
-  }
-
-  // Récupérer la parcelle mise à jour
-  const updated = await databaseService.queryOne(
-    'SELECT * FROM parcelles WHERE id = ?',
-    [id]
-  );
-
-  // Transformer en camelCase pour le frontend
-  const transformedParcelle = transformParcelleFromDb(updated);
-
-  return NextResponse.json({ success: true, data: { parcelle: transformedParcelle } });
 }
 
-// Handler DELETE : Supprime une parcelle (soft delete via actif=0)
-async function handleDelete(req: NextRequest, { params }: { params: { id: string } }) {
-  const { user } = await requireAuth(req);
-  const { id } = params;
+// Handler DELETE : Supprime une parcelle (soft delete via is_active=0)
+async function handleDelete(_req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const authService = serviceContainer.getAuthService();
+    const user = await authService.requireAuth();
 
-  // Vérifier existence et propriété
-  const existing = await databaseService.queryOne(
-    'SELECT * FROM parcelles WHERE id = ? AND user_id = ?',
-    [id, user.id]
-  );
-  if (!existing) {
+    const { id } = params;
+
+    const parcelleService = serviceContainer.getParcelleService();
+    const deleted = await parcelleService.deleteParcelle(id, user.id);
+
+    logger.info('[PARCELLE-DELETE] Parcelle deleted successfully', { parcelleId: id, userId: user.id });
+
     return NextResponse.json(
-      { success: false, error: { code: 'NOT_FOUND', message: 'Parcelle introuvable' } },
-      { status: 404 }
+      createSuccessResponse({ deleted })
+    );
+  } catch (error) {
+    logger.error('[PARCELLE-DELETE] Error deleting parcelle', { error });
+    return NextResponse.json(
+      createErrorResponse(error),
+      { status: error instanceof Error && 'statusCode' in error ? (error as { statusCode: number }).statusCode || 500 : 500 }
     );
   }
-
-  // Soft delete
-  const result = await databaseService.execute(
-    'UPDATE parcelles SET actif = 0, updated_at = datetime(\'now\') WHERE id = ? AND user_id = ?',
-    [id, user.id]
-  );
-
-  if (result.changes === 0) {
-    throw new Error('Échec de la suppression');
-  }
-
-  return NextResponse.json({ success: true, data: { deleted: true } });
 }
 
-// Exports avec withErrorHandling
-export const PATCH = withErrorHandling(handlePatch);
-export const DELETE = withErrorHandling(handleDelete);
+// Exports
+export const PATCH = handlePatch;
+export const DELETE = handleDelete;

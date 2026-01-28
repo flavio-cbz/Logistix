@@ -4,11 +4,11 @@
 
 ## Type de changement
 
-- [ ] Bugfix
-- [ ] Nouvelle fonctionnalité
-- [ ] Refactor
-- [ ] Documentation
-- [ ] Tests
+- [ ] 🐛 Bugfix
+- [ ] ✨ Nouvelle fonctionnalité
+- [ ] 🔨 Refactor
+- [ ] 📚 Documentation
+- [ ] 🧪 Tests
 
 ## Description
 
@@ -16,23 +16,32 @@ Expliquez brièvement ce que fait cette PR et pourquoi.
 
 ## Checklist avant PR
 
-- [ ] `npm run checks` exécuté et vert (ou expliquer les raisons si certaines checks sont ignorées)
-- [ ] Tests ajoutés / mis à jour pour les changements
-- [ ] Documentation mise à jour si nécessaire (`.kilocode/rules/`, `docs/`)
-- [ ] Le message de commit suit le format: `<scope>: <verbe à l'impératif> — courte description`
+### Qualité de Code (OBLIGATOIRE)
+- [ ] `npm run checks` exécuté et vert
+- [ ] Pas de `console.log` (utilise `logger`)
+- [ ] Pas de `any` sans justification
+
+### Tests (OBLIGATOIRE pour tout code)
+- [ ] ✅ J'ai ajouté des tests unitaires pour les nouvelles fonctionnalités
+- [ ] ✅ `npm test` passe sans erreur
+- [ ] ✅ La couverture n'a pas diminué (vérifier CI)
+
+> ⚠️ **PRs sans tests pour du code seront rejetées automatiquement** (voir CI coverage gate)
+
+### Documentation
+- [ ] Documentation mise à jour si nécessaire
+- [ ] Si changement d'architecture : ADR créé dans `docs/adr/`
 
 ## Instructions de validation
 
-Décrivez comment valider manuellement la PR (ex: commandes, données à préparer, endpoints à tester).
+Décrivez comment valider manuellement la PR.
 
-## Changements notables
+## ADR associé
 
-Liste succincte des fichiers / modules impactés.
+<!-- Si cette PR implémente une décision architecturale, liez l'ADR -->
+- [ ] ADR-XXX: [Titre] ou N/A
 
 ## Déploiement
 
 Indiquez si des migrations DB ou variables d'environnement sont nécessaires.
 
----
-
-*Remarque*: Toute modification des fichiers dans `.kilocode/rules/` doit être documentée dans `.kilocode/rules/CHANGELOG.md`.

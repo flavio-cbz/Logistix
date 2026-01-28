@@ -8,6 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, RefreshCw, Trash2, Eye, EyeOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useFormatting } from "@/lib/hooks/use-formatting";
+import { useAuth } from "@/components/auth/auth-provider";
+import { SuperbuyImportWizard } from "@/components/features/superbuy/superbuy-import-wizard";
 
 interface IntegrationStatus {
   connected: boolean;
@@ -21,9 +24,10 @@ export function SuperbuyConnect() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
+  const { formatDateTime } = useFormatting();
+  const { user } = useAuth();
 
   // Fetch current integration status on mount
   const fetchStatus = useCallback(async () => {
@@ -86,37 +90,6 @@ export function SuperbuyConnect() {
     }
   };
 
-  const handleSync = async () => {
-    setSyncing(true);
-    try {
-      const res = await fetch("/api/v1/integrations/superbuy/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || "Synchronisation échouée");
-
-      const parcelsCount = data.data?.parcelsCount ?? 0;
-      const ordersCount = data.data?.ordersCount ?? 0;
-
-      toast.success("Synchronisation terminée", {
-        description: `${parcelsCount} parcelle(s) et ${ordersCount} commande(s) synchronisées.`
-      });
-
-      // Refresh status to update lastSyncAt
-      await fetchStatus();
-
-    } catch (error) {
-      toast.error("Erreur", {
-        description: error instanceof Error ? error.message : "Échec de la synchronisation",
-      });
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   const handleDisconnect = async () => {
     // For now, just clear the UI state - a proper disconnect would need an API endpoint
     setStatus({ connected: false });
@@ -124,17 +97,6 @@ export function SuperbuyConnect() {
     setPassword("");
     toast.info("Déconnecté", {
       description: "Pour reconnecter, entrez à nouveau vos identifiants."
-    });
-  };
-
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
     });
   };
 
@@ -184,31 +146,29 @@ export function SuperbuyConnect() {
               {status.lastSyncAt && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Dernière synchronisation</span>
-                  <span className="text-sm">{formatDate(status.lastSyncAt)}</span>
+                  <span className="text-sm">{formatDateTime(status.lastSyncAt)}</span>
                 </div>
               )}
               {status.configuredAt && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Configuré le</span>
-                  <span className="text-sm">{formatDate(status.configuredAt)}</span>
+                  <span className="text-sm">{formatDateTime(status.configuredAt)}</span>
                 </div>
               )}
             </div>
 
             <div className="flex gap-2">
-              <Button
-                type="button"
-                onClick={handleSync}
-                disabled={syncing}
-                className="flex-1"
-              >
-                {syncing ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                )}
-                Synchroniser maintenant
-              </Button>
+              {user && (
+                <SuperbuyImportWizard
+                  trigger={
+                    <Button className="flex-1">
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Synchroniser maintenant
+                    </Button>
+                  }
+                  onSuccess={fetchStatus}
+                />
+              )}
               <Button
                 type="button"
                 variant="outline"

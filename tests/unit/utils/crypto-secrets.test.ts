@@ -22,16 +22,16 @@ let originalMasterKey: string | undefined;
 
 // Mock ENCRYPTION_MASTER_KEY pour les tests
 beforeAll(() => {
-  originalMasterKey = process.env.ENCRYPTION_MASTER_KEY;
-  process.env.ENCRYPTION_MASTER_KEY = TEST_MASTER_KEY;
+  originalMasterKey = process.env['ENCRYPTION_MASTER_KEY'];
+  process.env['ENCRYPTION_MASTER_KEY'] = TEST_MASTER_KEY;
 });
 
 afterAll(() => {
   // Restaurer la clé originale
   if (originalMasterKey !== undefined) {
-    process.env.ENCRYPTION_MASTER_KEY = originalMasterKey;
+    process.env['ENCRYPTION_MASTER_KEY'] = originalMasterKey;
   } else {
-    delete process.env.ENCRYPTION_MASTER_KEY;
+    delete process.env['ENCRYPTION_MASTER_KEY'];
   }
 });
 
@@ -61,25 +61,25 @@ describe('crypto-secrets', () => {
     });
 
     it('should throw if ENCRYPTION_MASTER_KEY is missing', () => {
-      const oldKey = process.env.ENCRYPTION_MASTER_KEY;
-      delete process.env.ENCRYPTION_MASTER_KEY;
+      const oldKey = process.env['ENCRYPTION_MASTER_KEY'];
+      delete process.env['ENCRYPTION_MASTER_KEY'];
 
       expect(() => {
         encryptUserSecret('test');
       }).toThrow(/ENCRYPTION_MASTER_KEY non définie/);
 
-      process.env.ENCRYPTION_MASTER_KEY = oldKey;
+      process.env['ENCRYPTION_MASTER_KEY'] = oldKey;
     });
 
     it('should throw if ENCRYPTION_MASTER_KEY is invalid length', () => {
-      const oldKey = process.env.ENCRYPTION_MASTER_KEY;
-      process.env.ENCRYPTION_MASTER_KEY = 'tooshort';
+      const oldKey = process.env['ENCRYPTION_MASTER_KEY'];
+      process.env['ENCRYPTION_MASTER_KEY'] = 'tooshort';
 
       expect(() => {
         encryptUserSecret('test');
       }).toThrow(/invalide.*32 bytes/);
 
-      process.env.ENCRYPTION_MASTER_KEY = oldKey;
+      process.env['ENCRYPTION_MASTER_KEY'] = oldKey;
     });
   });
 
@@ -117,14 +117,14 @@ describe('crypto-secrets', () => {
       const encrypted = encryptUserSecret(plainSecret);
 
       // Changer la clé maîtresse
-      const oldKey = process.env.ENCRYPTION_MASTER_KEY;
-      process.env.ENCRYPTION_MASTER_KEY = randomBytes(32).toString('hex');
+      const oldKey = process.env['ENCRYPTION_MASTER_KEY'];
+      process.env['ENCRYPTION_MASTER_KEY'] = randomBytes(32).toString('hex');
 
       expect(() => {
         decryptUserSecret(encrypted);
       }).toThrow(/Échec déchiffrement/);
 
-      process.env.ENCRYPTION_MASTER_KEY = oldKey;
+      process.env['ENCRYPTION_MASTER_KEY'] = oldKey;
     });
   });
 
@@ -190,13 +190,17 @@ describe('crypto-secrets', () => {
       expect(result).toBeNull();
     });
 
-    it('should validate hex format (64 chars)', () => {
+    it('should validate hex format (64 chars) or UUID', () => {
       // Secret valide: 32 bytes = 64 hex chars
-      const valid = randomBytes(32).toString('hex');
-      expect(migrateSecretToEncrypted(valid)).toBeTruthy();
+      const validHex = randomBytes(32).toString('hex');
+      expect(migrateSecretToEncrypted(validHex)).toBeTruthy();
 
-      // Secret invalide: 31 bytes = 62 hex chars
-      const invalid = randomBytes(31).toString('hex');
+      // Secret valide: UUID (36 chars)
+      const validUuid = '88a2d789-b93e-4a81-af63-2ff9467257af';
+      expect(migrateSecretToEncrypted(validUuid)).toBeTruthy();
+
+      // Secret invalide: trop court et pas UUID
+      const invalid = '123456';
       expect(migrateSecretToEncrypted(invalid)).toBeNull();
     });
   });

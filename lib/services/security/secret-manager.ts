@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { databaseService } from "@/lib/services/database/db";
+import { databaseService } from "@/lib/database";
 import { logger } from "@/lib/utils/logging/logger";
 
 type SecretSchemaMode = "modern" | "legacy" | "absent";
@@ -27,7 +27,7 @@ export class SecretManager {
   private initialized = false;
   private schemaInfo: SchemaDetectionResult = { mode: "absent" };
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): SecretManager {
     if (!SecretManager.instance) {
@@ -37,7 +37,7 @@ export class SecretManager {
   }
 
   public static resetForTesting(): void {
-    if ((process.env as any)["NODE_ENV"] !== "test") {
+    if ((process.env as Record<string, string | undefined>)["NODE_ENV"] !== "test") {
       return;
     }
     SecretManager.instance = null;
@@ -62,6 +62,14 @@ export class SecretManager {
   }
 
   public getSecret(name: string): string | undefined {
+    // Priorité 1: Variables d'environnement (format: SECRET_<NAME>)
+    const envKey = `SECRET_${name.toUpperCase().replace(/-/g, '_')}`;
+    const envValue = process.env[envKey];
+    if (envValue) {
+      return envValue;
+    }
+
+    // Fallback: cache DB (legacy, à déprécier)
     return this.secrets.get(name);
   }
 

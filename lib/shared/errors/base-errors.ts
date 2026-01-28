@@ -83,7 +83,7 @@ export class InfrastructureError extends BaseError {
 export const AuthError = AuthenticationError;
 export const PermissionError = AuthorizationError;
 
-export function mapErrorToHttp(error: unknown): { status: number; body: any } {
+export function mapErrorToHttp(error: unknown): { status: number; body: Record<string, unknown> } {
   if (error instanceof BaseError) {
     return {
       status: error.statusCode,

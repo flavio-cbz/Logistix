@@ -61,7 +61,7 @@
       "dom.iterable",
       "esnext"
     ],
-    "strict": false,
+    "strict": true,
     "module": "esnext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
@@ -93,7 +93,10 @@
     "tests/**/*",
     "e2e/**/*",
     "backup-*/**/*",
-    "backups/**/*"
+    "backups/**/*",
+    "lib/application",
+    "lib/infrastructure",
+    "lib/config/database-factory.ts"
   ],
   "ts-node": {
     "compilerOptions": {

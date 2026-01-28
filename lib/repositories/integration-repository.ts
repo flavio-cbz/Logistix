@@ -1,7 +1,7 @@
 import { BaseRepository } from "./base-repository";
-import { integrationCredentials } from "@/lib/database/schema";
-import { DatabaseService } from "@/lib/database";
+import { integrationCredentials, type IntegrationCredentials, type NewIntegrationCredential } from "@/lib/database/schema";
 import { eq, and } from "drizzle-orm";
+import { DatabaseService } from "@/lib/database";
 
 export class IntegrationRepository extends BaseRepository<typeof integrationCredentials> {
   constructor(databaseService: DatabaseService) {
@@ -20,27 +20,37 @@ export class IntegrationRepository extends BaseRepository<typeof integrationCred
           )
         )
         .limit(1);
-      
+
       return result[0] || null;
     });
   }
 
   async saveCredentials(
-    userId: string, 
-    provider: string, 
-    data: { credentials?: Record<string, any>; cookies?: any[] }
+    userId: string,
+    provider: string,
+    data: { credentials?: Record<string, unknown>; cookies?: unknown[] }
   ) {
     return this.executeCustomQuery(async (db) => {
       const existing = await this.findByProvider(userId, provider);
 
+      // Safe cast for credentials to match schema constraint
+      const safeCredentials = data.credentials
+        ? (data.credentials as unknown as IntegrationCredentials)
+        : undefined;
+
+      const safeCookies = data.cookies as unknown[] | undefined;
+
       if (existing) {
+        const updateData: Partial<NewIntegrationCredential> = {
+          updatedAt: new Date().toISOString(),
+        };
+
+        if (safeCredentials !== undefined) updateData.credentials = safeCredentials;
+        if (safeCookies !== undefined) updateData.cookies = safeCookies;
+
         return await db
           .update(integrationCredentials)
-          .set({
-            ...data,
-            lastUsedAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })
+          .set(updateData)
           .where(eq(integrationCredentials.id, existing.id))
           .returning();
       } else {
@@ -49,7 +59,8 @@ export class IntegrationRepository extends BaseRepository<typeof integrationCred
           .values({
             userId,
             provider,
-            ...data,
+            credentials: safeCredentials,
+            cookies: safeCookies,
             lastUsedAt: new Date().toISOString(),
           })
           .returning();
@@ -57,3 +68,4 @@ export class IntegrationRepository extends BaseRepository<typeof integrationCred
     });
   }
 }
+

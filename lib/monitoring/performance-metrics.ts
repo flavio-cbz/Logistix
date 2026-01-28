@@ -12,7 +12,7 @@ export interface PerformanceMetric {
   duration: number;
   timestamp: string;
   success: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PerformanceStats {
@@ -36,7 +36,7 @@ class PerformanceCollector {
    */
   record(metric: PerformanceMetric): void {
     const { operation } = metric;
-    
+
     if (!this.metrics.has(operation)) {
       this.metrics.set(operation, []);
     }
@@ -63,7 +63,7 @@ class PerformanceCollector {
    */
   getStats(operation: string): PerformanceStats | null {
     const operationMetrics = this.metrics.get(operation);
-    
+
     if (!operationMetrics || operationMetrics.length === 0) {
       return null;
     }
@@ -89,7 +89,7 @@ class PerformanceCollector {
    */
   getAllStats(): Record<string, PerformanceStats> {
     const stats: Record<string, PerformanceStats> = {};
-    
+
     for (const operation of this.metrics.keys()) {
       const operationStats = this.getStats(operation);
       if (operationStats) {
@@ -116,7 +116,7 @@ class PerformanceCollector {
    */
   private percentile(sortedArray: number[], percentile: number): number {
     if (sortedArray.length === 0) return 0;
-    
+
     const index = Math.ceil((percentile / 100) * sortedArray.length) - 1;
     return sortedArray[Math.max(0, index)]!;
   }
@@ -138,13 +138,13 @@ export const performanceCollector = new PerformanceCollector();
  */
 export function measurePerformance(operationName: string) {
   return function (
-    _target: any,
+    _target: unknown,
     propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const startTime = performance.now();
       let success = true;
       let error: Error | undefined;
@@ -158,7 +158,7 @@ export function measurePerformance(operationName: string) {
         throw err;
       } finally {
         const duration = performance.now() - startTime;
-        
+
         performanceCollector.record({
           operation: operationName,
           duration,
@@ -197,7 +197,7 @@ export function measurePerformance(operationName: string) {
 export async function measureOperation<T>(
   operationName: string,
   operation: () => Promise<T>,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<T> {
   const startTime = performance.now();
   let success = true;
@@ -212,7 +212,7 @@ export async function measureOperation<T>(
     throw err;
   } finally {
     const duration = performance.now() - startTime;
-    
+
     performanceCollector.record({
       operation: operationName,
       duration,

@@ -3,7 +3,8 @@
 import { useState, useRef } from "react";
 import { Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner"; // Use sonner directly
+import { logger } from "@/lib/utils/logging/logger";
 
 interface ImageUploadProps {
   value?: string | null | undefined;
@@ -14,7 +15,7 @@ interface ImageUploadProps {
 export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
+  // const { toast } = useToast(); // Removed
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -22,19 +23,15 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
 
     // Validation côté client
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Type de fichier invalide",
+      toast.error("Type de fichier invalide", {
         description: "Veuillez sélectionner une image (JPG, PNG, GIF, etc.)",
-        variant: "destructive",
       });
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Fichier trop volumineux",
+      toast.error("Fichier trop volumineux", {
         description: "La taille maximale est de 5MB",
-        variant: "destructive",
       });
       return;
     }
@@ -54,19 +51,16 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
 
       if (result.success) {
         onChange(result.data.url);
-        toast({
-          title: "Image uploadée",
+        toast.success("Image uploadée", {
           description: "L'image a été uploadée avec succès",
         });
       } else {
         throw new Error(result.error || 'Erreur lors de l\'upload');
       }
     } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: "Erreur d'upload",
+      logger.error("Upload error", { error });
+      toast.error("Erreur d'upload", {
         description: error instanceof Error ? error.message : "Une erreur est survenue",
-        variant: "destructive",
       });
     } finally {
       setIsUploading(false);
@@ -79,8 +73,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
 
   const handleRemove = () => {
     onChange('');
-    toast({
-      title: "Image supprimée",
+    toast.message("Image supprimée", {
       description: "L'image a été retirée",
     });
   };

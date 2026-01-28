@@ -6,7 +6,7 @@
 import { AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/shared/utils";
 import type { ProductMetrics } from "@/lib/utils/product-calculations";
-import { formatEuro } from "@/lib/utils/product-calculations";
+import { formatEuro } from "@/lib/utils/formatting";
 
 interface ProductMetricsDisplayProps {
   metrics: ProductMetrics;
@@ -43,14 +43,14 @@ export function ProductMetricsDisplay({
       {showProfit && benefice !== null && (
         <>
           <div className="h-px bg-border my-2" />
-          
+
           <div
             className={cn(
               "flex items-center justify-between font-semibold",
               benefice > 0
-                ? "text-green-600 dark:text-green-400"
+                ? "text-success"
                 : benefice < 0
-                  ? "text-red-600 dark:text-red-400"
+                  ? "text-destructive"
                   : "text-muted-foreground"
             )}
           >
@@ -75,9 +75,9 @@ export function ProductMetricsDisplay({
                 className={cn(
                   "font-medium",
                   pourcentageBenefice > 0
-                    ? "text-green-600 dark:text-green-400"
+                    ? "text-success"
                     : pourcentageBenefice < 0
-                      ? "text-red-600 dark:text-red-400"
+                      ? "text-destructive"
                       : ""
                 )}
               >
@@ -94,9 +94,9 @@ export function ProductMetricsDisplay({
                 className={cn(
                   "font-medium",
                   marge > 0
-                    ? "text-green-600 dark:text-green-400"
+                    ? "text-success"
                     : marge < 0
-                      ? "text-red-600 dark:text-red-400"
+                      ? "text-destructive"
                       : ""
                 )}
               >

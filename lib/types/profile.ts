@@ -29,9 +29,22 @@ export interface ProfileFormData {
   avatar?: File;
 }
 
+export interface UserProfile {
+  id: string;
+  username: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  avatarUrl?: string;
+  createdAt?: string;
+}
+
 // Profile state
 export interface UseProfileState {
-  profile: any; // TODO: Define proper profile type
+  profile: UserProfile | null;
   isLoading: boolean;
   isUpdating: boolean;
   error: string | null;
@@ -41,12 +54,12 @@ export interface UseProfileState {
 // API response types
 export interface ProfileApiResponse {
   success: boolean;
-  data?: any;
+  data?: UserProfile;
   error?: string;
 }
 
 export interface ProfileUpdateApiResponse {
   success: boolean;
-  data?: any;
+  data?: UserProfile;
   error?: string;
 }

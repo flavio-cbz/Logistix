@@ -1,92 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { databaseService } from "@/lib/services/database/db";
+import { serviceContainer } from "@/lib/services/container";
+import { logger } from "@/lib/utils/logging/logger";
 
 /**
  * GET /api/v1/auth/session-check
- * Endpoint de validation de session (vérifie réellement en base de données)
+ * Endpoint de validation de session
+ * Utilise AuthService pour garantir une logique cohérente avec le reste de l'app
  */
-
 export async function GET(request: NextRequest) {
   try {
-    // Récupération du cookie de session
+    const authService = serviceContainer.getAuthService();
     const cookieName = process.env['COOKIE_NAME'] || 'logistix_session';
     const sessionId = request.cookies.get(cookieName)?.value;
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
     if (!sessionId) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Session non trouvée"
-        },
+        { success: false, error: "Session non trouvée" },
         { status: 401 }
       );
     }
 
-<<<<<<< HEAD
-    // Validation basique du format UUID
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(sessionId)) {
-=======
-    // Validation UUID puis database
-    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId);
-    
-    if (!isValidUUID) {
->>>>>>> ad32518644f2ab77a7c59429e3df905bfcc3ef94
+    // Utiliser getSessionUser qui gère déjà la validation, l'expiration et le nettoyage
+    const user = await authService.getSessionUser();
+
+    if (!user) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Format de session invalide"
-        },
-        { status: 401 }
-      );
-    }
-
-    // Vérifier la session en base de données
-    const session = await databaseService.queryOne<{
-      session_id: string;
-      user_id: string;
-      username: string;
-      expires_at: string;
-    }>(
-      `SELECT s.id as session_id, s.user_id, s.expires_at, u.username, u.email
-       FROM user_sessions s
-       JOIN users u ON s.user_id = u.id
-       WHERE s.id = ?`,
-      [sessionId],
-      "session-check"
-    );
-
-    if (!session) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Session invalide ou expirée. Veuillez vous reconnecter."
-        },
-        { status: 401 }
-      );
-    }
-
-    // Vérifier l'expiration
-    const expiresAt = new Date(session.expires_at);
-    const now = new Date();
-
-    if (expiresAt <= now) {
-      // Nettoyage de la session expirée (optionnel, peut être fait par un job cron)
-      await databaseService.execute(
-        "DELETE FROM user_sessions WHERE id = ?",
-        [sessionId],
-        "cleanup-expired-session"
-      );
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Session expirée. Veuillez vous reconnecter."
-        },
+        { success: false, error: "Session invalide ou expirée" },
         { status: 401 }
       );
     }
@@ -97,23 +36,28 @@ export async function GET(request: NextRequest) {
       data: {
         valid: true,
         user: {
-          id: session.user_id,
-          username: session.username,
-          // email: session.email, // Si on veut renvoyer l'email
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          avatar: user.avatar,
+          role: user.isAdmin ? 'admin' : 'user'
         },
         session: {
           id: sessionId,
-          expiresAt: session.expires_at,
+          // Note: l'expiration précise n'est pas exposée par getSessionUser pour l'instant,
+          // mais si on a un user, c'est que la session est valide.
+          isValid: true
         }
       }
     });
 
-  } catch (_error) {
-    // console.error("❌ Erreur dans session-check:", error);
+  } catch (error) {
+    logger.error("Error in session-check", { error });
     return NextResponse.json(
       {
         success: false,
-        error: "Erreur serveur lors de la vérification de session"
+        error: "Erreur serveur lors de la vérification de session",
+        details: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );
