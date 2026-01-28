@@ -3,15 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSuccessResponse, createErrorResponse } from "@/lib/utils/api-response";
 import { logger } from "@/lib/utils/logging/logger";
 import { z } from "zod";
-<<<<<<< HEAD
 import { env, getSignupConfig } from "@/lib/config/env";
-=======
-import { databaseService } from "@/lib/database";
-import { DatabaseError, ValidationError, ConflictError } from "@/lib/shared/errors/base-errors";
-import { v4 as uuidv4 } from "uuid";
-import { hash } from "bcrypt";
-import { COOKIE_NAME } from "@/lib/constants/config";
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
 // =============================================================================
 // CONFIGURATION DE SÉCURITÉ
@@ -74,11 +66,7 @@ export async function POST(request: NextRequest) {
     const validationResult = signupSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-<<<<<<< HEAD
         createErrorResponse({ message: "Données invalides", details: validationResult.error.flatten() }),
-=======
-        createErrorResponse(new ValidationError("Données invalides", validationResult.error.flatten() as Record<string, unknown>)),
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
         { status: 400 }
       );
     }

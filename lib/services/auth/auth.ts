@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-import { NextRequest } from "next/server";
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 import { serviceContainer } from "@/lib/services/container";
 import { UserSession } from "@/lib/services/auth-service";
 
@@ -80,13 +76,7 @@ export async function requireAdmin(): Promise<UserSession> {
 /**
  * Valide une session
  */
-<<<<<<< HEAD
 export async function validateSession(): Promise<AuthValidationResult> {
-=======
-export async function validateSession(
-  _request: NextRequest,
-): Promise<AuthValidationResult> {
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
   const result = await serviceContainer.getAuthService().validateSession();
   return {
     success: result.success,

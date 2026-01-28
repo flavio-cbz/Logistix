@@ -11,14 +11,11 @@ import { databaseService } from "@/lib/database";
 import { getCurrentTimestamp } from "@/lib/utils/formatting/calculations";
 import { encryptUserSecret } from "@/lib/utils/crypto-secrets";
 import { authInstrumentationCollector } from "@/lib/services/auth/auth-instrumentation";
-<<<<<<< HEAD
 import { SessionManager, type SessionRecord } from "./auth/session-manager";
 import { PasswordManager } from "./auth/password-manager";
 
 // Re-export SessionRecord for backward compatibility
 export type { SessionRecord };
-=======
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
 // =============================================================================
 // VALIDATION SCHEMAS
@@ -86,18 +83,6 @@ export interface AuthResult {
   user?: UserSession;
   sessionId?: string;
   message?: string;
-}
-
-export interface SessionRecord {
-  id: string;
-  userId: string;
-  deviceName: string;
-  deviceType: string;
-  ipAddress: string;
-  userAgent: string;
-  lastActivityAt: string;
-  createdAt: string;
-  expiresAt: string;
 }
 
 // =============================================================================
@@ -489,51 +474,6 @@ export class AuthService extends BaseService {
             success: true,
           });
         }
-<<<<<<< HEAD
-=======
-
-        // Validate session ID
-        const validatedSessionId = this.validateWithSchema(
-          sessionIdSchema,
-          currentSessionId,
-          "destroySession",
-        );
-
-        this.logger.debug("Destroying session", {
-          sessionId: validatedSessionId,
-        });
-
-        // Get session info before deletion
-        const sessionToDelete = await databaseService.queryOne<{ user_id: string }>(
-          `SELECT user_id FROM user_sessions WHERE id = ?`,
-          [validatedSessionId],
-          "destroySession-getUserId",
-        );
-
-        // Delete session from database
-        await databaseService.execute(
-          `DELETE FROM user_sessions WHERE id = ?`,
-          [validatedSessionId],
-          "destroySession",
-        );
-
-        // Clear cookie
-        cookieStore.delete(this.cookieName);
-
-        this.logger.info("Session destroyed successfully", {
-          sessionId: validatedSessionId,
-          userId: sessionToDelete?.user_id,
-        });
-
-        // Enregistrement pour instrumentation
-        authInstrumentationCollector.recordEvent({
-          id: validatedSessionId,
-          type: "session_destroy",
-          timestamp: Date.now(),
-          userId: sessionToDelete?.user_id,
-          success: true,
-        });
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
       },
       { sessionId },
     );
@@ -548,39 +488,8 @@ export class AuthService extends BaseService {
       async () => {
         this.validateUUID(userId, "userId", "getUserSessions");
 
-<<<<<<< HEAD
         // Delegate to SessionManager
         return await this.sessionManager.getUserSessions(userId);
-=======
-        const now = new Date().toISOString();
-        const sessions = await databaseService.query<{
-          id: string;
-          user_id: string;
-          device_name?: string;
-          device_type?: string;
-          ip_address?: string;
-          user_agent?: string;
-          last_activity_at?: string;
-          created_at: string;
-          expires_at: string;
-        }>(
-          `SELECT * FROM user_sessions WHERE user_id = ? AND expires_at > ?`,
-          [userId, now],
-          "getUserSessions"
-        );
-
-        return sessions.map(session => ({
-          id: session.id,
-          userId: session.user_id,
-          deviceName: session.device_name || "Unknown", // Assuming these fields exist or defaulting
-          deviceType: session.device_type || "Unknown",
-          ipAddress: session.ip_address || "Unknown",
-          userAgent: session.user_agent || "Unknown",
-          lastActivityAt: session.last_activity_at || session.created_at,
-          createdAt: session.created_at,
-          expiresAt: session.expires_at,
-        }));
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
       },
       { userId }
     );
@@ -639,22 +548,6 @@ export class AuthService extends BaseService {
       "changePassword",
       async () => {
         this.validateUUID(userId, "userId", "changePassword");
-<<<<<<< HEAD
-=======
-
-        // Validate new password rules
-        this.validateWithSchema(
-          z.string()
-            .min(6, "Password must be at least 6 characters")
-            .max(100, "Password cannot exceed 100 characters"),
-          newPassword,
-          "changePassword"
-        );
-
-        if (!currentPassword) {
-          throw new ValidationError("Current password is required", "password");
-        }
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
         // Validate new password rules
         this.validateWithSchema(
@@ -791,7 +684,6 @@ export class AuthService extends BaseService {
    * Gets the current session user or returns null
    */
   async getSessionUser(): Promise<UserSession | null> {
-<<<<<<< HEAD
     // No bypass - always validate through database
     // For tests, use proper mocking or test fixtures
 
@@ -805,40 +697,6 @@ export class AuthService extends BaseService {
     }
   }
 
-=======
-    const cookieStore = cookies();
-    const sessionId = cookieStore.get(this.cookieName)?.value;
-
-    // DEV/TEST ONLY: Bypass database check pour les sessions de test
-    // Ce bypass est DÉSACTIVÉ en production pour des raisons de sécurité
-    if (process.env.NODE_ENV !== 'production' && sessionId && sessionId.startsWith('temp_session_')) {
-      this.logger.debug("DEV ONLY BYPASS: getSessionUser for temp session", {
-        sessionId,
-        environment: process.env.NODE_ENV,
-      });
-
-      const legacyAdminId = process.env['ADMIN_ID'] || 'baa65519-e92f-4010-a3c2-e9b5c67fb0d7';
-      const userSession: UserSession = {
-        id: legacyAdminId,
-        username: 'admin',
-        isAdmin: true,
-        aiConfig: undefined,
-      };
-
-      return userSession;
-    }
-
-    try {
-      return await this.requireAuth();
-    } catch (error) {
-      if (error instanceof AuthError) {
-        return null;
-      }
-      throw error;
-    }
-  }
-
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
   /**
    * Validates a session from a NextRequest
    */
@@ -929,43 +787,6 @@ export class AuthService extends BaseService {
   }
 
   /**
-<<<<<<< HEAD
-=======
-   * Hashes a password using bcrypt
-   */
-  private async hashPassword(password: string): Promise<string> {
-    return bcryptHashPassword(password, BCRYPT_SALT_ROUNDS);
-  }
-
-  /**
-   * Verifies a password against its hash
-   */
-  private async verifyPassword(
-    password: string,
-    hash: string,
-  ): Promise<boolean> {
-    return bcryptComparePassword(password, hash);
-  }
-
-  /**
-   * Checks if a session is still valid (not expired)
-   */
-  private isSessionValid(expiresAtString: string): boolean {
-    try {
-      const expiresAt = new Date(expiresAtString);
-
-      if (isNaN(expiresAt.getTime())) {
-        return false;
-      }
-
-      return expiresAt > new Date();
-    } catch {
-      return false;
-    }
-  }
-
-  /**
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
    * Parses AI configuration from JSON string
    */
   private parseAiConfig(

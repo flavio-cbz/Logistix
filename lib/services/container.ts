@@ -11,16 +11,11 @@ import { UserService } from "./user-service";
 import { JobService } from "./job-service";
 import { MarketAnalysisService } from "./market-analysis-service";
 import { ProductEnrichmentService } from "./product-enrichment-service";
-<<<<<<< HEAD
 import { DashboardStatsService } from "./statistics/dashboard-stats.service";
 import { AlertService } from "./statistics/alert.service";
 import { IntegrationService } from "./integration-service";
 
 import { OrderRepository, ProductRepository, UserRepository, SuperbuySyncRepository, JobRepository, ParcelRepository, IntegrationRepository } from "@/lib/repositories";
-=======
-
-import { OrderRepository, ProductRepository, UserRepository, SuperbuySyncRepository, JobRepository, ParcelRepository } from "@/lib/repositories";
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 import { DatabaseService } from "@/lib/database";
 
 /**
@@ -144,7 +139,6 @@ export class ServiceContainer {
   }
 
   /**
-<<<<<<< HEAD
    * Convenience getter for IntegrationRepository
    */
   getIntegrationRepository(): IntegrationRepository {
@@ -159,8 +153,6 @@ export class ServiceContainer {
   }
 
   /**
-=======
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
    * Convenience getter for SuperbuyAutomationService
    */
   getSuperbuyAutomationService(): SuperbuyAutomationService {
@@ -169,12 +161,8 @@ export class ServiceContainer {
     }
 
     const parcelsRepository = this.getParcelRepository();
-<<<<<<< HEAD
     const integrationRepository = this.getIntegrationRepository();
     const service = new SuperbuyAutomationService(parcelsRepository, integrationRepository);
-=======
-    const service = new SuperbuyAutomationService(parcelsRepository);
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
     this.register("SuperbuyAutomationService", () => service, true);
     return service;
   }
@@ -279,7 +267,6 @@ export class ServiceContainer {
    * Gets the singleton instance of the service container
    */
   /**
-<<<<<<< HEAD
    * Convenience getter for ProductStatsService
    */
   getProductStatsService(): import("./statistics/product-stats.service").ProductStatsService {
@@ -294,8 +281,6 @@ export class ServiceContainer {
   }
 
   /**
-=======
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
    * Convenience getter for MarketAnalysisService
    */
   getMarketAnalysisService(): MarketAnalysisService {
@@ -355,7 +340,6 @@ export class ServiceContainer {
   }
 
   /**
-<<<<<<< HEAD
    * Convenience getter for JobRecoveryService
    */
   getJobRecoveryService(): import("./job-recovery-service").JobRecoveryService {
@@ -412,8 +396,6 @@ export class ServiceContainer {
   }
 
   /**
-=======
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
    * Gets the singleton instance of the service container
    */
   static getInstance(): ServiceContainer {

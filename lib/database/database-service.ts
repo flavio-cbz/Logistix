@@ -160,11 +160,7 @@ export class DatabaseService {
       // Essayer better-sqlite3 d'abord
       try {
         // Create SQLite connection
-<<<<<<< HEAD
 
-=======
-         
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
         const DatabaseConstructor = Database as new (path: string) => BetterSqlite3Database;
         this.sqliteDb = new DatabaseConstructor(this.config.path!);
 

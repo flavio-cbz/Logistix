@@ -21,12 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import ProductCreateForm from "@/components/features/produits/product-create-form";
 import { useProducts } from "@/lib/hooks/use-products";
 import { Product, EnrichmentData } from "@/lib/shared/types/entities";
-<<<<<<< HEAD
 import { SuperbuyImportWizard } from "@/components/features/superbuy/superbuy-import-wizard";
 import { useAuth } from "@/components/auth/auth-provider";
-=======
-import { SuperbuySyncDialog } from "@/components/features/superbuy/sync-dialog";
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 import {
   calculateProductProfit,
   type ProductWithLegacyFields

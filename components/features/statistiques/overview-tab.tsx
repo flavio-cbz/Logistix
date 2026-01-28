@@ -21,10 +21,7 @@ import {
 } from "lucide-react";
 import { useFormatting } from "@/lib/hooks/use-formatting";
 import { cn } from "@/lib/shared/utils";
-<<<<<<< HEAD
 import { VintedStatsSection } from "./vinted-stats-section";
-=======
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
 interface OverviewTabProps {
     data: StatistiquesData;
@@ -301,12 +298,9 @@ export function OverviewTab({ data, selectedPeriod }: OverviewTabProps) {
                 </CardContent>
             </Card>
 
-<<<<<<< HEAD
             {/* Vinted Performance */}
             <VintedStatsSection />
 
-=======
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
             {/* Tendances période */}
             {d.vueEnsemble.trends && (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">

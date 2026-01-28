@@ -264,7 +264,6 @@ export function InteractiveChart({
                 ))}
               </Pie>
               <Tooltip
-<<<<<<< HEAD
                 formatter={(value: number | undefined, name: string | undefined, props: { payload?: Record<string, unknown> }) => {
                   const payload = props.payload;
                   const ventes = formatNumber(value ?? 0, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -272,14 +271,6 @@ export function InteractiveChart({
                   const ca = payload?.['ventesRevenue'] ? ` — ${formatCurrency(payload['ventesRevenue'] as number)}` : '';
                   const pct = payload?.['percentage'] ? ` (${(payload['percentage'] as number).toFixed(1)}%)` : '';
                   return [`${ventes} ventes${ca}${pct}`, safeName];
-=======
-                formatter={(value: number, name: string, props: { payload?: Record<string, unknown> }) => {
-                  const payload = props.payload;
-                  const ventes = formatNumber(value, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                  const ca = payload?.['ventesRevenue'] ? ` — ${formatCurrency(payload['ventesRevenue'] as number)}` : '';
-                  const pct = payload?.['percentage'] ? ` (${(payload['percentage'] as number).toFixed(1)}%)` : '';
-                  return [`${ventes} ventes${ca}${pct}`, name];
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
                 }}
                 contentStyle={{
                   backgroundColor: 'hsl(var(--popover))',

@@ -271,17 +271,12 @@ async function determineTestAdminUserId(): Promise<string> {
 
     // Sinon, prendre le premier utilisateur créé
     try {
-<<<<<<< HEAD
       // Use direct import for users and asc to avoid implicit any in callback parameters
       const { users } = await import("@/lib/database/schema");
       const { asc } = await import("drizzle-orm");
 
       const firstUser = await db.query.users.findFirst({
         orderBy: [asc(users.createdAt)],
-=======
-      const firstUser = await db.query.users.findFirst({
-        orderBy: (users, { asc }) => [asc(users.createdAt)],
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
         columns: { id: true }
       });
 

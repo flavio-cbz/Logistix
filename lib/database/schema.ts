@@ -107,11 +107,6 @@ export const sessions = userSessions;
 export type Session = UserSession;
 export type NewSession = NewUserSession;
 
-<<<<<<< HEAD
-=======
-// Parcelles table removed - consolidated into parcels
-
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
 // Products table - enhanced from lib/db/schema.ts
 export const products = sqliteTable(
@@ -186,7 +181,6 @@ export const products = sqliteTable(
       marketStats?: {
         minPrice: number;
         maxPrice: number;
-<<<<<<< HEAD
         avgPrice: number;
         medianPrice?: number;
         sampleSize?: number;
@@ -208,15 +202,6 @@ export const products = sqliteTable(
       soldPrice?: number; // Final sale price
       lastSyncAt: string; // ISO date
     } | null>(),
-=======
-        averagePrice: number;
-        medianPrice: number;
-        itemCount: number;
-        currency: string;
-        lastUpdated: string;
-      };
-    }>(),
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
     // Status and lifecycle
     status: text("status", {
@@ -255,38 +240,15 @@ export const products = sqliteTable(
     categoryIdx: index("product_category_idx").on(table.category),
     // Composite index for frequent filtering by user and status
     userStatusIdx: index("product_user_status_idx").on(table.userId, table.status),
-<<<<<<< HEAD
     // PERFORMANCE: Index composite pour les stats de ventes (Dashboard)
     // Permet de filtrer rapidement les produits vendus d'un user sur une période donnée
     userVenduSoldAtIdx: index("product_user_vendu_sold_at_idx").on(table.userId, table.vendu, table.soldAt),
     // PERFORMANCE: Index pour l'affichage par défaut des listes (User + Tri par date)
     userCreatedAtIdx: index("product_user_created_at_idx").on(table.userId, table.createdAt),
-=======
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
   }),
 );
 
 
-<<<<<<< HEAD
-=======
-export interface OrderItem {
-  name: string;
-  price: number;
-  quantity: number;
-  currency: string;
-  skuId?: string;
-  itemId?: string; // Superbuy item ID
-  orderId?: string; // Superbuy order ID
-  status?: string;
-  snapshotUrl?: string; // Image of the item
-  remark?: string;
-  url?: string;
-  weight?: number;
-  itemBarcode?: string;
-  goodsCode?: string;
-}
-
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 // Orders table - New entity for Superbuy orders
 
 export interface OrderItem {
@@ -416,13 +378,6 @@ export const shippingPriceHistory = sqliteTable(
 
 export type ShippingPriceHistoryRecord = typeof shippingPriceHistory.$inferSelect;
 export type NewShippingPriceHistoryRecord = typeof shippingPriceHistory.$inferInsert;
-<<<<<<< HEAD
-=======
-
-// ============================================================================
-// MARKET ANALYSIS AND TRACKING - REMOVED AS PART OF FEATURE REMOVAL
-// ============================================================================
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
 // ============================================================================
 // USER MANAGEMENT AND PREFERENCES

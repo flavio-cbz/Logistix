@@ -270,11 +270,7 @@ export class OrderService extends BaseService {
 
         // 3. Filter out duplicates
         const newOrdersData = validInputs.filter(
-<<<<<<< HEAD
           (o) => !existingNumbers.has(o.superbuyId ?? ""),
-=======
-          (o) => !existingNumbers.has(o.superbuyId),
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
         );
 
         if (newOrdersData.length === 0) {

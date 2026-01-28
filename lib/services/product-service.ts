@@ -67,7 +67,6 @@ export class ProductService extends BaseService {
 
     async getUserProducts(
         userId: string,
-<<<<<<< HEAD
         options?: {
             page?: number;
             limit?: number;
@@ -85,17 +84,10 @@ export class ProductService extends BaseService {
                 options?.parcelId || options?.brand || options?.category;
 
             if (options?.page || options?.limit || hasFilters) {
-=======
-        options?: { page?: number; limit?: number }
-    ): Promise<Product[] | { data: Product[]; total: number; page: number; limit: number }> {
-        return this.executeOperation("getUserProducts", async () => {
-            if (options?.page || options?.limit) {
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
                 const page = options.page || 1;
                 const limit = options.limit || 50;
                 const offset = (page - 1) * limit;
 
-<<<<<<< HEAD
                 const { eq, and, like, sql } = await import("drizzle-orm");
                 const { products } = await import("@/lib/database/schema");
 
@@ -140,13 +132,6 @@ export class ProductService extends BaseService {
 
                 const result = await this.productRepository.findWithPagination({
                     where,
-=======
-                const { eq } = await import("drizzle-orm");
-                const { products } = await import("@/lib/database/schema");
-
-                const result = await this.productRepository.findWithPagination({
-                    where: eq(products.userId, userId),
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
                     limit,
                     offset,
                     orderBy: "createdAt",
@@ -160,16 +145,12 @@ export class ProductService extends BaseService {
                     page: Math.floor(result.offset / result.limit) + 1
                 };
             }
-<<<<<<< HEAD
 
             // No filters or pagination - return all user products
-=======
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
             return this.productRepository.findByUser(userId);
         }, { userId, ...options });
     }
 
-<<<<<<< HEAD
     /**
      * Get recent products for a user (for enrichment testing, etc.)
      */
@@ -186,8 +167,6 @@ export class ProductService extends BaseService {
         }, { userId, limit });
     }
 
-=======
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
     async searchProducts(
         userId: string,
         criteria: { name?: string; category?: string; brand?: string; status?: string; page?: number; limit?: number }
@@ -256,7 +235,6 @@ export class ProductService extends BaseService {
             return result.data;
         }, { parcelId, userId });
     }
-<<<<<<< HEAD
 
     /**
      * Link a product to a Vinted listing
@@ -575,6 +553,4 @@ export class ProductService extends BaseService {
             return successCount;
         }, { productIds, userId, count: productIds.length });
     }
-=======
->>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 }
