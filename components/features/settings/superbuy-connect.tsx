@@ -9,8 +9,11 @@ import { toast } from "sonner";
 import { Loader2, CheckCircle2, RefreshCw, Trash2, Eye, EyeOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useFormatting } from "@/lib/hooks/use-formatting";
+<<<<<<< HEAD
 import { useAuth } from "@/components/auth/auth-provider";
 import { SuperbuyImportWizard } from "@/components/features/superbuy/superbuy-import-wizard";
+=======
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
 interface IntegrationStatus {
   connected: boolean;
@@ -27,7 +30,10 @@ export function SuperbuyConnect() {
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
   const { formatDateTime } = useFormatting();
+<<<<<<< HEAD
   const { user } = useAuth();
+=======
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
   // Fetch current integration status on mount
   const fetchStatus = useCallback(async () => {

@@ -200,7 +200,11 @@ export abstract class BaseRepository<
 
         const result = db
           .insert(this.table as SQLiteTable)
+<<<<<<< HEAD
           .values(insertData as Record<string, unknown>)
+=======
+          .values(insertData)
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
           .returning()
           .get();
 
@@ -225,7 +229,11 @@ export abstract class BaseRepository<
             const insertData = this.addTimestamps(item, "create");
             const result = db
               .insert(this.table as SQLiteTable)
+<<<<<<< HEAD
               .values(insertData as Record<string, unknown>)
+=======
+              .values(insertData)
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
               .returning()
               .get();
             results.push(result as TSelect);
@@ -256,7 +264,11 @@ export abstract class BaseRepository<
 
         const result = db
           .update(table)
+<<<<<<< HEAD
           .set(updateData as Record<string, unknown>)
+=======
+          .set(updateData)
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
           .where(eq(table.id, id))
           .returning()
           .get();

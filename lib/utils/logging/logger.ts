@@ -166,7 +166,11 @@ function anonymize(objOrString: unknown): unknown {
  * Enhanced Logger class with correlation IDs and structured logging
  */
 class Logger implements ILogger {
+<<<<<<< HEAD
   private isDevelopment = process.env['NODE_ENV'] === "development";
+=======
+  private isDevelopment = process.env.NODE_ENV === "development";
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
   private logLevel: LogLevel;
   private defaultContext: LogContext = {};
 

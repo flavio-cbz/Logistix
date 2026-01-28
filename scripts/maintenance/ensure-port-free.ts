@@ -12,10 +12,17 @@
 
 import { execSync } from 'node:child_process';
 import { platform } from 'node:os';
+<<<<<<< HEAD
 import { logger } from '../../lib/utils/logging/logger';
 
 function log(msg: string) {
   logger.info(`[port-guard] ${msg}`, { service: 'port-guard' });
+=======
+
+function log(msg: string) {
+  // Préfixe simple pour distinguer ce script
+  console.log(`[port-guard] ${msg}`);
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 }
 
 function getPort(): number {

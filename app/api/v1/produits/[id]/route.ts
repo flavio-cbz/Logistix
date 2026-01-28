@@ -50,6 +50,7 @@ export async function PUT(
     // Validate with shared schema - field names now match database directly
     const validatedData = updateProductSchema.parse(json);
 
+<<<<<<< HEAD
     // Sanitize data for DB: convert nulls to undefined for non-nullable fields
     // Drizzle requires non-nullable fields to be either present (number) or undefined (skip update), not null.
     const sanitizedData = {
@@ -62,6 +63,11 @@ export async function PUT(
     // No manual mapping needed - schema fields match database columns
     const productService = serviceContainer.getProductService();
     const updatedProduct = await productService.updateProduct(params.id, user.id, sanitizedData);
+=======
+    // No manual mapping needed - schema fields match database columns
+    const productService = serviceContainer.getProductService();
+    const updatedProduct = await productService.updateProduct(params.id, user.id, validatedData);
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
     if (!updatedProduct) {
       return createNotFoundResponse("Produit");

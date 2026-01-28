@@ -82,11 +82,18 @@ export function useUpdateProduct() {
 
       return response.json() as Promise<ProductListResponse>;
     },
+<<<<<<< HEAD
     optimisticUpdate: (currentData: ProductListResponse | undefined, { id, data }: { id: string, data: Partial<Product> }): ProductListResponse => {
       if (!currentData?.data) return { success: true, data: [], count: 0 };
       return {
         ...currentData,
         success: true,
+=======
+    optimisticUpdate: (currentData: ProductListResponse | undefined, { id, data }: { id: string, data: Partial<Product> }) => {
+      if (!currentData?.data) return currentData;
+      return {
+        ...currentData,
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
         data: currentData.data.map((product: Product) =>
           product.id === id ? { ...product, ...data } : product
         ),
@@ -109,11 +116,18 @@ export function useDeleteProduct() {
       }
       return {} as ProductListResponse; // Dummy return
     },
+<<<<<<< HEAD
     optimisticUpdate: (currentData: ProductListResponse | undefined, productId: string): ProductListResponse => {
       if (!currentData?.data) return { success: true, data: [], count: 0 };
       return {
         ...currentData,
         success: true,
+=======
+    optimisticUpdate: (currentData: ProductListResponse | undefined, productId: string) => {
+      if (!currentData?.data) return currentData;
+      return {
+        ...currentData,
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
         data: currentData.data.filter((product: Product) => product.id !== productId),
         count: (currentData.count || currentData.data.length) - 1,
       };

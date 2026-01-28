@@ -132,11 +132,19 @@ export class SearchService {
           id: p.id,
           userId: p.userId,
           numero: p.superbuyId,
+<<<<<<< HEAD
           transporteur: p.carrier ?? "",
           prixAchat: p.totalPrice ?? 0,
           poids: p.weight ?? 0,
           prixTotal: p.totalPrice ?? 0,
           prixParGramme: p.pricePerGram ?? 0,
+=======
+          transporteur: p.carrier,
+          prixAchat: p.totalPrice,
+          poids: p.weight,
+          prixTotal: p.totalPrice, // Duplicate mapping?
+          prixParGramme: p.pricePerGram,
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
           createdAt: p.createdAt,
         }));
       } else {
@@ -218,11 +226,19 @@ export class SearchService {
         id: row.id,
         userId: row.userId,
         numero: row.superbuyId,
+<<<<<<< HEAD
         transporteur: row.carrier ?? "",
         prixAchat: row.totalPrice ?? 0,
         poids: row.weight ?? 0,
         prixTotal: row.totalPrice ?? 0,
         prixParGramme: row.pricePerGram ?? 0,
+=======
+        transporteur: row.carrier,
+        prixAchat: row.totalPrice,
+        poids: row.weight,
+        prixTotal: row.totalPrice,
+        prixParGramme: row.pricePerGram,
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
         createdAt: row.createdAt,
       }));
     } catch (error: unknown) {

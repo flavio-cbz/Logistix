@@ -4,7 +4,10 @@
 import sharp from 'sharp';
 import * as path from 'path';
 import * as fs from 'fs';
+<<<<<<< HEAD
 import { logger } from '@/lib/utils/logging/logger';
+=======
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
 // Types inlined from deleted scripts/superbuy/captcha/types.ts
 interface BoundingBox {

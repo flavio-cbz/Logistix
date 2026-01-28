@@ -89,6 +89,7 @@ export function logUpdate(
 ): void {
   // Calculer seulement les champs modifiés
   const changes: Record<string, { before: unknown; after: unknown }> = {};
+<<<<<<< HEAD
   const safeBefore = before as Record<string, unknown>;
   const safeAfter = after as Record<string, unknown>;
 
@@ -97,6 +98,14 @@ export function logUpdate(
       changes[key] = {
         before: safeBefore[key],
         after: safeAfter[key],
+=======
+
+  for (const key in after) {
+    if (after[key] !== before[key]) {
+      changes[key] = {
+        before: (before as Record<string, unknown>)[key],
+        after: after[key],
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
       };
     }
   }

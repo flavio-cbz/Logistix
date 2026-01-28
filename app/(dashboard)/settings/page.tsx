@@ -1,6 +1,12 @@
 import { serviceContainer } from "@/lib/services/container";
 import { redirect } from "next/navigation";
 import { AccountSettingsClient } from "@/components/features/settings/account-settings-client";
+<<<<<<< HEAD
+=======
+import { databaseService } from "@/lib/database";
+import { users, products, parcels } from "@/lib/database/schema";
+import { eq } from "drizzle-orm";
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
 export const dynamic = 'force-dynamic';
 
@@ -12,11 +18,66 @@ export default async function SettingsPage() {
     redirect("/login");
   }
 
+<<<<<<< HEAD
   // Use UserService instead of direct DB access
   const userService = serviceContainer.getUserService();
 
   const profileData = await userService.getProfile(user.id);
   const settingsData = await userService.getSettings(user.id);
+=======
+  // Load user data
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const db = await databaseService.getDb() as import("drizzle-orm/better-sqlite3").BetterSQLite3Database<typeof import("@/lib/database/schema") >;
+  const profile = await db.select().from(users).where(eq(users.id, user.id)).get();
+
+  if (!profile) {
+    redirect("/login");
+  }
+
+  // Calculate stats
+  const totalProducts = await db.select().from(products).where(eq(products.userId, user.id)).all();
+  const totalParcels = await db.select().from(parcels).where(eq(parcels.userId, user.id)).all();
+
+  const createdDate = new Date(profile.createdAt);
+  const now = new Date();
+  const daysActive = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+
+  // Profile data
+  const profileData = {
+    id: profile.id,
+    username: profile.username,
+    email: profile.email,
+    avatar: profile.avatar,
+    role: profile.role,
+    lastLoginAt: profile.lastLoginAt,
+    createdAt: profile.createdAt,
+    updatedAt: profile.updatedAt,
+    stats: {
+      totalProducts: totalProducts.length,
+      totalParcels: totalParcels.length,
+      daysActive,
+    },
+  };
+
+  // Parse preferences
+  const preferences =
+    typeof profile.preferences === "string"
+      ? JSON.parse(profile.preferences || "{}")
+      : profile.preferences || {};
+
+  // Settings data
+  const settingsData = {
+    theme: profile.theme || "system",
+    language: profile.language || "fr",
+    animations: preferences.animations ?? true,
+    preferences: {
+      currency: preferences.currency || "EUR",
+      weightUnit: preferences.weightUnit || "g",
+      dateFormat: preferences.dateFormat || "DD/MM/YYYY",
+      autoExchangeRate: preferences.autoExchangeRate ?? true,
+    },
+  };
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
   return (
     <div className="space-y-6">

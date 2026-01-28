@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 export interface ProfileData {
     id: string;
     username: string;
@@ -35,3 +36,42 @@ export interface Session {
     lastActivityAt: string;
     isCurrent: boolean;
 }
+=======
+export interface ProfileData {
+    id: string;
+    username: string;
+    email: string | null;
+    avatar: string | null;
+    role: string;
+    lastLoginAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    stats?: {
+        totalProducts: number;
+        totalParcels: number;
+        daysActive: number;
+    };
+}
+
+export interface SettingsData {
+    theme: string;
+    language: string;
+    animations: boolean;
+    preferences: {
+        currency: string;
+        weightUnit: string;
+        dateFormat: string;
+        autoExchangeRate: boolean;
+        manualExchangeRate?: number;
+    };
+}
+
+export interface Session {
+    id: string;
+    deviceName: string | null;
+    deviceType: string;
+    ipAddress: string;
+    lastActivityAt: string;
+    isCurrent: boolean;
+}
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a

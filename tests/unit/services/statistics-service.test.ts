@@ -2,9 +2,26 @@
  * @vitest-environment node
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+<<<<<<< HEAD
 import { dashboardStatsService } from '@/lib/services/statistics/dashboard-stats.service';
 import { productStatsService } from '@/lib/services/statistics/product-stats.service';
 import { advancedStatsService } from '@/lib/services/statistics/advanced-stats.service';
+=======
+import { StatisticsService } from '@/lib/services/statistics-service';
+
+// Mock databaseService
+vi.mock('@/lib/database/database-service', () => {
+    const mockFn = () => {
+        return {
+            queryOne: vi.fn(),
+            query: vi.fn(),
+            executeQuery: vi.fn(),
+            executeWithConnection: vi.fn(),
+        };
+    };
+
+    const mockInstance = mockFn();
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
 // Mock drizzle-orm
 vi.mock('drizzle-orm', async (importOriginal) => {
@@ -77,6 +94,7 @@ vi.mock('@/lib/database/schema', () => ({
     parcels: {
         id: 'parcels.id',
         userId: 'parcels.userId',
+<<<<<<< HEAD
         superbuyId: 'parcels.superbuyId',
         name: 'parcels.name',
         pricePerGram: 'parcels.pricePerGram',
@@ -87,6 +105,17 @@ vi.mock('@/lib/database/schema', () => ({
         createdAt: 'parcels.createdAt',
     },
     users: { id: 'users.id' },
+=======
+        numero: 'parcels.numero',
+        nom: 'parcels.nom',
+        prixParGramme: 'parcels.prixParGramme',
+        actif: 'parcels.actif',
+    },
+    users: {
+        id: 'users.id',
+        preferences: 'users.preferences',
+    },
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 }));
 
 vi.mock('@/lib/services/statistics/sql-formulas', () => ({
@@ -102,6 +131,7 @@ vi.mock('@/lib/services/statistics/sql-formulas', () => ({
     },
 }));
 
+<<<<<<< HEAD
 vi.mock('@/lib/services/statistics/utils', () => ({
     calculateTrend: (curr: number, prev: number) => {
         if (!prev) return curr > 0 ? 100 : 0;
@@ -116,6 +146,22 @@ vi.mock('@/lib/services/statistics/utils', () => ({
 
 describe('Statistics Services', () => {
     beforeEach(() => {
+=======
+    beforeEach(async () => {
+        const { databaseService } = await import('@/lib/database/database-service');
+        mockDb = databaseService;
+
+        mockDb.queryOne.mockReset();
+        mockDb.query.mockReset();
+        mockDb.query.mockReset();
+        mockDb.executeQuery.mockReset();
+        mockDb.executeWithConnection.mockReset();
+
+        statisticsService = new StatisticsService();
+    });
+
+    afterEach(() => {
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
         vi.clearAllMocks();
         // Reset chainable mocks return values (always return this for builder pattern)
         mockDrizzleDb.select.mockReturnThis();
@@ -216,6 +262,14 @@ describe('Statistics Services', () => {
 
             const result = await productStatsService.getProductStats(userId);
 
+<<<<<<< HEAD
+=======
+            // Act
+            // Act
+            const result = await statisticsService.getProductStats(userId) as any;
+
+            // Assert
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
             expect(result.global.totalProduits).toBe(100);
             expect(result.insights.tauxVenteGlobal).toBe(60);
             expect(result.categories.top).toHaveLength(1);
@@ -227,6 +281,7 @@ describe('Statistics Services', () => {
             const userId = 'user-123';
             const params = { period: '30d', groupBy: 'day' };
 
+<<<<<<< HEAD
             // 1. getVueEnsemble
             mockDrizzleDb.get.mockReturnValueOnce({
                 totalProduits: 100, produitsVendus: 50, produitsEnLigne: 30, produitsStock: 20,
@@ -264,6 +319,80 @@ describe('Statistics Services', () => {
             expect(result.vueEnsemble.chiffreAffaires).toBe(1000);
             expect(result.vueEnsemble.margeMoyenne).toBe(50);
             expect(result.vueEnsemble.trends).toBeDefined();
+=======
+            // Mock the Drizzle chain
+            // This is a simplified mock that assumes the service returns whatever executeWithConnection returns
+            // In reality, the service logic is INSIDE the callback passed to executeWithConnection
+            // To test this properly, we'd need to invoke the callback with a mocked db object
+
+            const mockDrizzleDb = {
+                select: vi.fn().mockReturnThis(),
+                from: vi.fn().mockReturnThis(),
+                where: vi.fn().mockReturnThis(),
+                leftJoin: vi.fn().mockReturnThis(),
+                groupBy: vi.fn().mockReturnThis(),
+                orderBy: vi.fn().mockReturnThis(),
+                limit: vi.fn().mockReturnThis(),
+                get: vi.fn(),
+                all: vi.fn(),
+            };
+
+            // Setup mock return values for the chain
+            mockDrizzleDb.get
+                .mockReturnValueOnce({ // vueEnsemble
+                    totalProduits: 100,
+                    produitsVendus: 50,
+                    chiffreAffaires: 1000,
+                    beneficesTotal: 500,
+                    prixMoyenVente: 20,
+                    prixMoyenAchat: 10
+                })
+                .mockReturnValueOnce({ // vueEnsemblePrevious (trends)
+                    produitsVendus: 40,
+                    chiffreAffaires: 800,
+                    beneficesTotal: 400,
+                    totalCount: 80
+                })
+                .mockReturnValueOnce(50) // totalVentes for partMarche
+                .mockReturnValueOnce({ // analyseCouts
+                    coutAchatTotal: 200,
+                    coutLivraisonTotal: 50,
+                    coutTotalInvesti: 250,
+                    nbParcelles: 2
+                })
+                .mockReturnValueOnce({ preferences: JSON.stringify({ targets: { revenue: 5000 } }) }); // userProfile
+
+            mockDrizzleDb.all
+                .mockReturnValueOnce([]) // evolutionTemporelle
+                .mockReturnValueOnce([]) // performancePlateforme
+                .mockReturnValueOnce([]) // performanceParcelle
+                .mockReturnValueOnce([]) // topProduits
+                .mockReturnValueOnce([]) // flopProduits
+                .mockReturnValueOnce([]) // delaisData
+                .mockReturnValueOnce([]); // produitsNonVendus
+
+            // Mock executeQuery to call the callback immediately with our mockDrizzleDb
+            mockDb.executeQuery.mockImplementation(async (callback: any) => {
+                return callback(mockDrizzleDb);
+            });
+
+            // Act
+            // Act
+            const result = await statisticsService.getAdvancedStats(userId, params as any);
+
+            // Assert
+            expect(mockDb.executeQuery).toHaveBeenCalled();
+
+            // Verify calculations based on mocked data
+            // Marge moyenne = (500 / 1000) * 100 = 50
+            expect(result.vueEnsemble.margeMoyenne).toBe(50);
+
+            // Trends: CA current 1000, prev 800 -> (200/800)*100 = 25%
+            expect(result.vueEnsemble.trends.chiffreAffaires).toBe(25);
+
+            // Targets are not currently supported in AdvancedStatsService
+            // expect(result.targets.revenue).toBe(5000);
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
         });
     });
 });

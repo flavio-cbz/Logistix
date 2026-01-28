@@ -1,5 +1,9 @@
 import { BaseRepository } from "./base-repository";
+<<<<<<< HEAD
 import { integrationCredentials, type IntegrationCredentials, type NewIntegrationCredential } from "@/lib/database/schema";
+=======
+import { integrationCredentials, type IntegrationCredentials } from "@/lib/database/schema";
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 import { eq, and } from "drizzle-orm";
 import { DatabaseService } from "@/lib/database";
 
@@ -50,7 +54,15 @@ export class IntegrationRepository extends BaseRepository<typeof integrationCred
 
         return await db
           .update(integrationCredentials)
+<<<<<<< HEAD
           .set(updateData)
+=======
+          .set({
+            credentials: safeCredentials,
+            cookies: safeCookies,
+            updatedAt: new Date().toISOString(),
+          })
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
           .where(eq(integrationCredentials.id, existing.id))
           .returning();
       } else {

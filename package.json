@@ -9,6 +9,10 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "typecheck": "tsc --noEmit --project tsconfig.check.json",
     "checks": "npm run typecheck && npm run lint",
+<<<<<<< HEAD
+=======
+    "fix:sqlite3": "bash scripts/maintenance/fix-sqlite3.sh",
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
     "db:initialize": "npx tsx ./scripts/db/initialize.ts",
     "db:generate": "ts-node scripts/db/generate.ts",
     "db:migrate": "npx tsx scripts/db/migrate.ts",
@@ -23,7 +27,22 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "analyze:unused": "knip",
+<<<<<<< HEAD
     "superbuy:login": "npx tsx scripts/superbuy/superbuy-headful-login.ts",
+=======
+    "superbuy:extract": "bash scripts/maintenance/run-in-venv.sh npx tsx scripts/superbuy/index.ts",
+    "superbuy:login": "npx tsx scripts/superbuy/superbuy-headful-login.ts",
+    "captcha:prepare-dataset": "cd captcha-solver-api/training && python prepare_dataset.py",
+    "captcha:train-beginner": "cd captcha-solver-api/training && python train_wrapper.py --config beginner",
+    "captcha:train-advanced": "cd captcha-solver-api/training && python train_wrapper.py --config advanced",
+    "captcha:start": "cd captcha-solver-api && source venv/bin/activate && python -m uvicorn app.main:app --reload --port 8000",
+    "captcha:docker-up": "docker-compose -f docker-compose.captcha.yml up -d",
+    "captcha:docker-down": "docker-compose -f docker-compose.captcha.yml down",
+    "captcha:docker-logs": "docker-compose -f docker-compose.captcha.yml logs -f captcha-api",
+    "captcha:test": "cd captcha-solver-api && ./run_test.sh",
+    "captcha:active-learning": "npx tsx scripts/captcha/active-learning.ts",
+    "tidy": "bash scripts/tidy.sh",
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
     "prepare": "husky"
   },
   "dependencies": {
@@ -73,8 +92,11 @@
     "tailwind-merge": "^2.1.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^9.0.1",
+<<<<<<< HEAD
     "vinted": "github:remax21/vinted-api",
     "vinted-api": "^2.9.1",
+=======
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
     "zod": "^3.24.1"
   },
   "devDependencies": {

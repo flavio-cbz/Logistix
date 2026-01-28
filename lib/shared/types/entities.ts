@@ -128,7 +128,11 @@ export interface User {
 export interface Product {
   id: string;
   userId: string;
+<<<<<<< HEAD
   parcelId: string | null;
+=======
+  parcelId?: string | null;
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
   // Basic information
   name: string;
@@ -144,6 +148,7 @@ export interface Product {
   benefices: number | null; // Profit/benefits (calculated)
 
   // Platform and external information
+<<<<<<< HEAD
   plateforme: Platform | null;
   externalId: string | null; // Generic external ID
   url: string | null;
@@ -152,6 +157,16 @@ export interface Product {
 
   // Enrichment data (Gemini/Google Search)
   enrichmentData: EnrichmentData | null;
+=======
+  plateforme?: Platform | null;
+  externalId?: string | null; // Generic external ID
+  url?: string | null;
+  photoUrl?: string | null;
+  photoUrls?: string[] | null; // All QC photos from Superbuy
+
+  // Enrichment data (Gemini/Google Search)
+  enrichmentData?: EnrichmentData | null;
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
   // Status and lifecycle
   status: ProductStatus;

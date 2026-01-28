@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { eq, and, sql, gte, lte, asc, desc, inArray, SQL, or, count } from "drizzle-orm";
+=======
+import { eq, and, sql, gte, lte, asc, desc, inArray, SQL, or } from "drizzle-orm";
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 import {
   BaseRepository,
   FilterOptions,
@@ -9,7 +13,10 @@ import {
 import { DatabaseService } from "@/lib/database";
 import { parcels, NewParcel, products } from "@/lib/database/schema";
 import { Parcel } from "@/lib/types/entities";
+<<<<<<< HEAD
 import { sqlFormulas } from "@/lib/services/statistics/sql-formulas";
+=======
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
 // ============================================================================
 // PARCEL REPOSITORY
@@ -549,13 +556,18 @@ export class ParcelRepository extends BaseRepository<
   }
 
   /**
+<<<<<<< HEAD
    * Get parcels with product information (optimized with LEFT JOIN)
+=======
+   * Get parcels with product information
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
    */
   public async findParcelsWithProducts(
     userId: string,
   ): Promise<ParcelWithProducts[]> {
     try {
       return await this.executeCustomQuery((db) => {
+<<<<<<< HEAD
         // Use LEFT JOIN + GROUP BY to avoid N+1 queries
         // This makes 1 query instead of 1 + (N * 2) queries
         const results = db
@@ -615,6 +627,53 @@ export class ParcelRepository extends BaseRepository<
           productCount: Number(r.productCount || 0),
           totalProductValue: Number(r.totalProductValue || 0),
         }));
+=======
+
+        let query2 = db
+          .select()
+          .from(this.table)
+          .where(eq(this.table.userId, userId))
+          .$dynamic();
+
+        query2 = query2.orderBy(desc(this.table.createdAt));
+
+        const parcelList = query2.all() as Parcel[];
+
+        // Get product counts for each parcel
+        const parcelsWithProducts: ParcelWithProducts[] = [];
+
+        for (const parcel of parcelList) {
+          const productCount = db
+            .select({ count: sql`COUNT(*)` })
+            .from(products)
+            .where(eq(products.parcelId, parcel.id))
+            .get();
+
+          // Could also calculate total value from products if needed, 
+          // but for now keeping it simple or consistent with how it was (using parcels value?)
+          // Legacy code summed parcel value, but that's already on the parcel (totalPrice).
+          // Maybe it meant "Value of products inside"? 
+          // If legacy code did: sum(products.price), then we should do that.
+          // Checking legacy: "COALESCE(SUM(price), 0)" from THIS table (parcelles).
+          // So it was summing PARCELS? No, that doesn't make sense if iterating parcelles.
+          // It was likely a JOIN or subquery on PRODUCTS.
+          // Let's assume it should sum products price.
+
+          const totalValue = db
+            .select({ total: sql`COALESCE(SUM(price), 0)` })
+            .from(products)
+            .where(eq(products.parcelId, parcel.id))
+            .get();
+
+          parcelsWithProducts.push({
+            ...parcel,
+            productCount: Number(productCount?.count || 0),
+            totalProductValue: Number(totalValue?.total || 0),
+          });
+        }
+
+        return parcelsWithProducts;
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
       }, "findParcelsWithProducts");
     } catch (error) {
       this.logError("findParcelsWithProducts failed", error, { userId });
@@ -690,7 +749,11 @@ export class ParcelRepository extends BaseRepository<
           .all();
 
         return results.map((r) => ({
+<<<<<<< HEAD
           carrier: r.carrier ?? "",
+=======
+          carrier: r.carrier,
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
           count: Number(r.count),
         }));
       }, "getCarrierSuggestions");
@@ -736,6 +799,7 @@ export class ParcelRepository extends BaseRepository<
       }
     });
   }
+<<<<<<< HEAD
 
   // =========================================================================
   // Dashboard Aggregation Methods
@@ -815,5 +879,7 @@ export class ParcelRepository extends BaseRepository<
       return result.length;
     });
   }
+=======
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 }
 

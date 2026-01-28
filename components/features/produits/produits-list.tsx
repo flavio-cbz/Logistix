@@ -1,9 +1,33 @@
 "use client"
 
 import { useState, useMemo, useCallback } from "react"
+<<<<<<< HEAD
 import { AnimatePresence } from "framer-motion"
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/shared/utils"
+=======
+import { motion, AnimatePresence } from "framer-motion"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { cn } from "@/lib/shared/utils"
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Edit, MoreHorizontal, ExternalLink, Calculator, Banknote, Copy, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 import { toast } from "sonner"
 import { useCreateProduct, useUpdateProduct, useDeleteProduct } from "@/lib/hooks/use-products"
 import { useParcelles } from "@/lib/hooks/use-parcelles"
@@ -13,6 +37,7 @@ import ProductCreateForm from "./product-create-form"
 import { ProductSaleDialog } from "./product-sale-dialog"
 import { QuickSaleDialog } from "./quick-sale-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
+<<<<<<< HEAD
 import { TableSkeleton } from "@/components/ui/loading-skeletons"
 import { EmptyState } from "@/components/ui/empty-state"
 import { PackageSearch, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
@@ -24,6 +49,19 @@ import { ProductRow } from "./product-row"
 // Extracted hooks
 import { useProductSelection } from "@/lib/hooks/use-product-selection"
 import { useProductSort } from "@/lib/hooks/use-product-sort"
+=======
+import { EditableCell } from "@/components/ui/editable-cell"
+import { useFormatting } from "@/lib/hooks/use-formatting"
+import { TableSkeleton } from "@/components/ui/loading-skeletons"
+import { EmptyState } from "@/components/ui/empty-state"
+import { PackageSearch } from "lucide-react"
+import { TableControls } from "./table-controls"
+import { BatchActionsBar } from "./batch-actions-bar"
+
+// Extracted hooks
+import { useProductSelection } from "@/lib/hooks/use-product-selection"
+
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 import { useProductStats } from "@/lib/hooks/use-product-stats"
 import { useProductTableConfig } from "@/lib/hooks/use-product-table-config"
 
@@ -50,6 +88,11 @@ export default function ProduitsList({ products: sourceProducts, isLoading = fal
   const stats = useProductStats(liveProducts);
   const tableConfig = useProductTableConfig();
 
+<<<<<<< HEAD
+=======
+  const { formatCurrency, formatWeight } = useFormatting();
+
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
   // Destructure for convenience
   const { columnVisibility, toggleColumnVisibility, density, setDensity, headerPadding, cellPadding } = tableConfig;
   const { selectedIds, toggleSelectAll, toggleSelect, isAllSelected, isSomeSelected } = selection;
@@ -66,6 +109,7 @@ export default function ProduitsList({ products: sourceProducts, isLoading = fal
   // Map pour accéder rapidement aux parcelles par ID
   const parcelleMap = useMemo(() => {
     const map = new Map<string, { superbuyId: string; name: string; pricePerGram?: number | undefined }>();
+<<<<<<< HEAD
     (parcelles || []).forEach(p => map.set(p.id, { superbuyId: p.superbuyId, name: p.name ?? "", pricePerGram: p.pricePerGram ?? undefined }));
     return map;
   }, [parcelles]);
@@ -75,6 +119,81 @@ export default function ProduitsList({ products: sourceProducts, isLoading = fal
     products: filteredProduits,
     parcelleMap
   });
+=======
+    (parcelles || []).forEach(p => map.set(p.id, { superbuyId: p.superbuyId, name: p.name, pricePerGram: p.pricePerGram ?? undefined }));
+    return map;
+  }, [parcelles]);
+
+  // Sort state
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedProducts = useMemo(() => {
+    if (!sortConfig) return filteredProduits;
+
+    return [...filteredProduits].sort((a, b) => {
+      let aValue: any = a[sortConfig.key as keyof Product];
+      let bValue: any = b[sortConfig.key as keyof Product];
+
+      // Custom sort keys
+      if (sortConfig.key === 'coutTotal') {
+        const parcelleA = a.parcelId ? parcelleMap.get(a.parcelId) : undefined;
+        const estLivraisonA = parcelleA?.pricePerGram ? (parcelleA.pricePerGram * (a.poids || 0)) : 0;
+        const coutLivraisonA = (a.coutLivraison && a.coutLivraison > 0) ? a.coutLivraison : estLivraisonA;
+        aValue = (a.price || 0) + coutLivraisonA;
+
+        const parcelleB = b.parcelId ? parcelleMap.get(b.parcelId) : undefined;
+        const estLivraisonB = parcelleB?.pricePerGram ? (parcelleB.pricePerGram * (b.poids || 0)) : 0;
+        const coutLivraisonB = (b.coutLivraison && b.coutLivraison > 0) ? b.coutLivraison : estLivraisonB;
+        bValue = (b.price || 0) + coutLivraisonB;
+      } else if (sortConfig.key === 'benefice') {
+        const parcelleA = a.parcelId ? parcelleMap.get(a.parcelId) : undefined;
+        const estLivraisonA = parcelleA?.pricePerGram ? (parcelleA.pricePerGram * (a.poids || 0)) : 0;
+        const coutLivraisonA = (a.coutLivraison && a.coutLivraison > 0) ? a.coutLivraison : estLivraisonA;
+        const coutTotalA = (a.price || 0) + coutLivraisonA;
+        aValue = a.vendu === '1' && a.sellingPrice ? a.sellingPrice - coutTotalA : (a.benefices || -Infinity);
+
+        const parcelleB = b.parcelId ? parcelleMap.get(b.parcelId) : undefined;
+        const estLivraisonB = parcelleB?.pricePerGram ? (parcelleB.pricePerGram * (b.poids || 0)) : 0;
+        const coutLivraisonB = (b.coutLivraison && b.coutLivraison > 0) ? b.coutLivraison : estLivraisonB;
+        const coutTotalB = (b.price || 0) + coutLivraisonB;
+        bValue = b.vendu === '1' && b.sellingPrice ? b.sellingPrice - coutTotalB : (b.benefices || -Infinity);
+      } else if (sortConfig.key === 'status') {
+        // Sort by visual status priority: Sold > Online > Draft
+        const getStatusPriority = (p: Product) => {
+          if (p.vendu === '1') return 3;
+          if (p.dateMiseEnLigne) return 2;
+          return 1;
+        };
+        aValue = getStatusPriority(a);
+        bValue = getStatusPriority(b);
+      }
+
+      // Handle null/undefined
+      if (aValue === null || aValue === undefined) aValue = '';
+      if (bValue === null || bValue === undefined) bValue = '';
+
+      // String comparison
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortConfig.direction === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      // Numeric comparison
+      return sortConfig.direction === 'asc'
+        ? (Number(aValue) - Number(bValue))
+        : (Number(bValue) - Number(aValue));
+    });
+  }, [filteredProduits, sortConfig, parcelleMap]);
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
   // Inline edit handler
   const handleInlineUpdate = useCallback(async (id: string, field: string, value: string | number) => {
@@ -153,6 +272,7 @@ export default function ProduitsList({ products: sourceProducts, isLoading = fal
       currency: 'EUR' as const,
       vendu: '0' as const,
       status: ProductStatus.AVAILABLE,
+<<<<<<< HEAD
       brand: product.brand,
       category: product.category,
       subcategory: product.subcategory,
@@ -166,6 +286,8 @@ export default function ProduitsList({ products: sourceProducts, isLoading = fal
       plateforme: null,
       externalId: null,
       url: null,
+=======
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
       ...(product.parcelId && { parcelId: product.parcelId }),
     };
 
@@ -255,7 +377,35 @@ export default function ProduitsList({ products: sourceProducts, isLoading = fal
 
   return (
     <>
+<<<<<<< HEAD
       <ProductStatsHeader stats={stats} />
+=======
+      {/* Statistiques rapides */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+        <div className="bg-card border rounded-lg p-3 shadow-sm">
+          <p className="text-xs text-muted-foreground mb-1">Total</p>
+          <p className="text-2xl font-bold">{stats.total}</p>
+        </div>
+        <div className="bg-card border rounded-lg p-3 shadow-sm">
+          <p className="text-xs text-muted-foreground mb-1">Vendus</p>
+          <p className="text-2xl font-bold text-success">{stats.vendus}</p>
+        </div>
+        <div className="bg-card border rounded-lg p-3 shadow-sm">
+          <p className="text-xs text-muted-foreground mb-1">En ligne</p>
+          <p className="text-2xl font-bold text-primary">{stats.enLigne}</p>
+        </div>
+        <div className="bg-card border rounded-lg p-3 shadow-sm">
+          <p className="text-xs text-muted-foreground mb-1">Brouillons</p>
+          <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">{stats.brouillons}</p>
+        </div>
+        <div className="bg-card border rounded-lg p-3 shadow-sm">
+          <p className="text-xs text-muted-foreground mb-1">Bénéfices totaux</p>
+          <p className={`text-2xl font-bold ${stats.totalBenefices >= 0 ? 'text-success' : 'text-destructive'}`}>
+            {stats.totalBenefices >= 0 ? '+' : ''}{formatCurrency(stats.totalBenefices)}
+          </p>
+        </div>
+      </div>
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
       {/* Barre d'actions groupées */}
       <BatchActionsBar
@@ -322,6 +472,7 @@ export default function ProduitsList({ products: sourceProducts, isLoading = fal
             </TableHeader>
             <TableBody>
               <AnimatePresence>
+<<<<<<< HEAD
                 {sortedProducts.map((product) => (
                   <ProductRow
                     key={product.id}
@@ -343,6 +494,267 @@ export default function ProduitsList({ products: sourceProducts, isLoading = fal
                     isUpdatePending={updateProductMutation.isPending}
                   />
                 ))}
+=======
+                {sortedProducts.map((product) => {
+                  // Calculs des coûts
+                  const parcelle = product.parcelId ? parcelleMap.get(product.parcelId) : undefined;
+                  const estimatedLivraison = parcelle?.pricePerGram ? (parcelle.pricePerGram * (product.poids || 0)) : 0;
+                  const coutLivraison = (product.coutLivraison && product.coutLivraison > 0) ? product.coutLivraison : estimatedLivraison;
+                  const coutTotal = (product.price || 0) + coutLivraison;
+
+                  // Calcul du bénéfice si vendu
+                  const benefice = product.vendu === '1' && product.sellingPrice
+                    ? product.sellingPrice - coutTotal
+                    : product.benefices || null;
+
+                  // Statut du produit
+                  const isVendu = product.vendu === '1';
+                  const statusColor = isVendu
+                    ? "bg-success"
+                    : product.dateMiseEnLigne
+                      ? "bg-primary"
+                      : "bg-gray-400";
+
+                  return (
+                    <ContextMenu key={product.id}>
+                      <ContextMenuTrigger asChild>
+                        <motion.tr
+                          key={product.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.2 }}
+                          className={`hover:bg-muted/50 ${selectedIds.has(product.id) ? "bg-muted/50" : ""}`}
+                        >
+                          {/* Checkbox */}
+                          <TableCell className={cellPadding}>
+                            <Checkbox
+                              checked={selectedIds.has(product.id)}
+                              onCheckedChange={() => toggleSelect(product.id)}
+                              aria-label={`Sélectionner ${product.name}`}
+                            />
+                          </TableCell>
+
+                          {/* Statut visuel */}
+                          <TableCell className={cn("text-center", cellPadding)} style={{ display: columnVisibility.status ? undefined : 'none' }}>
+                            <div
+                              className={`w-3 h-3 rounded-full ${statusColor} mx-auto shadow-sm`}
+                              title={isVendu ? "Vendu" : product.dateMiseEnLigne ? "En ligne" : "Brouillon"}
+                            />
+                          </TableCell>
+
+                          {/* Nom du produit + infos secondaires */}
+                          <TableCell className={cellPadding}>
+                            <div className="flex flex-col gap-0.5">
+                              <EditableCell
+                                value={product.name}
+                                onSave={(val) => handleInlineUpdate(product.id, "name", val)}
+                                displayClassName="font-medium"
+                              />
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                {parcelle && (
+                                  <span title={`Parcelle: ${parcelle.name}`}>📦 {parcelle.superbuyId}</span>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          {/* Marque */}
+                          <TableCell className={cellPadding} style={{ display: columnVisibility.brand ? undefined : 'none' }}>
+                            <EditableCell
+                              value={product.brand}
+                              placeholder="—"
+                              onSave={(val) => handleInlineUpdate(product.id, "brand", val)}
+                              displayClassName="text-sm truncate max-w-[80px] block"
+                            />
+                          </TableCell>
+
+                          {/* Catégorie */}
+                          <TableCell className={cellPadding} style={{ display: columnVisibility.category ? undefined : 'none' }}>
+                            <EditableCell
+                              value={product.category}
+                              placeholder="—"
+                              onSave={(val) => handleInlineUpdate(product.id, "category", val)}
+                              displayClassName="text-sm"
+                            />
+                          </TableCell>
+
+                          {/* Taille */}
+                          <TableCell className={cellPadding} style={{ display: columnVisibility.size ? undefined : 'none' }}>
+                            <EditableCell
+                              value={product.size}
+                              placeholder="—"
+                              onSave={(val) => handleInlineUpdate(product.id, "size", val)}
+                              displayClassName="text-sm"
+                            />
+                          </TableCell>
+
+                          {/* Couleur */}
+                          <TableCell className={cellPadding} style={{ display: columnVisibility.color ? undefined : 'none' }}>
+                            <EditableCell
+                              value={product.color}
+                              placeholder="—"
+                              onSave={(val) => handleInlineUpdate(product.id, "color", val)}
+                              displayClassName="text-sm"
+                            />
+                          </TableCell>
+
+                          {/* Prix d'achat */}
+                          <TableCell className={cn("text-right", cellPadding)} style={{ display: columnVisibility.price ? undefined : 'none' }}>
+                            <EditableCell
+                              type="number"
+                              value={product.price}
+                              min={0}
+                              step={0.01}
+                              onSave={(val) => handleInlineUpdate(product.id, "price", val)}
+                              formatter={(val) => formatCurrency(Number(val || 0))}
+                              displayClassName="font-medium tabular-nums"
+                            />
+                          </TableCell>
+
+                          {/* Poids */}
+                          <TableCell className={cn("text-right", cellPadding)} style={{ display: columnVisibility.weight ? undefined : 'none' }}>
+                            <EditableCell
+                              type="number"
+                              value={product.poids}
+                              min={0}
+                              step={1}
+                              onSave={(val) => handleInlineUpdate(product.id, "poids", val)}
+                              formatter={(val) => val ? formatWeight(Number(val)) : "—"}
+                              displayClassName="tabular-nums text-sm"
+                            />
+                          </TableCell>
+
+                          {/* Coût total (achat + livraison) */}
+                          <TableCell className={cn("text-right tabular-nums", cellPadding)} title={`Prix: ${formatCurrency(product.price)} + Livraison: ${formatCurrency(coutLivraison)}`} style={{ display: columnVisibility.totalCost ? undefined : 'none' }}>
+                            <span className="font-semibold">{formatCurrency(coutTotal)}</span>
+                          </TableCell>
+
+                          {/* Prix de vente */}
+                          <TableCell className={cn("text-right tabular-nums", cellPadding)} style={{ display: columnVisibility.salePrice ? undefined : 'none' }}>
+                            {isVendu && product.sellingPrice ? (
+                              <span className="font-semibold text-success">
+                                {formatCurrency(product.sellingPrice)}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground/40 text-xs">—</span>
+                            )}
+                          </TableCell>
+
+                          {/* Bénéfice */}
+                          <TableCell className={cn("text-right tabular-nums", cellPadding)} style={{ display: columnVisibility.profit ? undefined : 'none' }}>
+                            {benefice !== null ? (
+                              <span className={`font-bold text-base ${benefice >= 0 ? "text-success" : "text-destructive"}`}>
+                                {benefice >= 0 ? "+" : ""}{formatCurrency(benefice)}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground/40 text-xs">—</span>
+                            )}
+                          </TableCell>
+
+                          {/* Plateforme (si vendu) */}
+                          <TableCell className={cn("hidden lg:table-cell", cellPadding)} style={{ display: columnVisibility.platform ? undefined : 'none' }}>
+                            {isVendu && product.plateforme ? (
+                              <span className="text-sm font-medium bg-primary/10 px-2 py-0.5 rounded-md inline-block">
+                                {product.plateforme}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground/40 text-xs">—</span>
+                            )}
+                          </TableCell>
+
+                          {/* Actions + Switch Vendu */}
+                          <TableCell className={cn("text-right", cellPadding)}>
+                            <div className="flex items-center justify-end gap-1">
+                              <Switch
+                                checked={product.vendu === '1'}
+                                onCheckedChange={() => handleToggleVendu(product)}
+                                disabled={updateProductMutation.isPending}
+                                className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-slate-300 dark:data-[state=unchecked]:bg-slate-700"
+                                title={isVendu ? "Marquer comme disponible" : "Marquer comme vendu"}
+                              />
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Ouvrir menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  {product.url && (
+                                    <DropdownMenuItem onClick={() => window.open(product.url, '_blank')}>
+                                      <ExternalLink className="mr-2 h-4 w-4" />
+                                      Voir sur Vinted
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem onClick={() => {
+                                    setEditProduct(product);
+                                    setShowEditForm(true);
+                                  }}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Modifier
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleDuplicate(product)}>
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Dupliquer
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    // Placeholder for recalculate or just show details
+                                    toast("Marge recalculée", { description: "Les données sont à jour." });
+                                  }}>
+                                    <Calculator className="mr-2 h-4 w-4" />
+                                    Détails Financiers
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => setDeleteId(product.id)}
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Supprimer
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </motion.tr>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem onClick={() => {
+                          setEditProduct(product);
+                          setShowEditForm(true);
+                        }}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Modifier
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={() => handleDuplicate(product)}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Dupliquer
+                        </ContextMenuItem>
+                        {product.vendu !== '1' && (
+                          <ContextMenuItem onClick={() => {
+                            setQuickSaleProduct(product);
+                          }} className="text-green-600">
+                            <Banknote className="mr-2 h-4 w-4" />
+                            Vente rapide
+                          </ContextMenuItem>
+                        )}
+                        <ContextMenuSeparator />
+                        <ContextMenuItem
+                          onClick={() => {
+                            setDeleteId(product.id);
+                          }}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Supprimer
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
+                  );
+                })}
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
               </AnimatePresence>
             </TableBody>
           </Table>
@@ -357,6 +769,11 @@ export default function ProduitsList({ products: sourceProducts, isLoading = fal
         description="Êtes-vous sûr de vouloir supprimer ce produit ? Cette action est irréversible."
       />
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
       {/* Formulaire d'édition de produit */}
       {
         showEditForm && editProduct && (

@@ -114,6 +114,7 @@ async function main(): Promise<void> {
 
   logger.info("📦 Base de données introuvable, initialisation en cours...");
 
+<<<<<<< HEAD
   try {
     await runMigrations();
     await createAdminUser();
@@ -130,8 +131,31 @@ async function main(): Promise<void> {
 if (require.main === module) {
   main().catch(error => {
     console.error("Fatal error:", error);
+=======
+  // Exécuter les migrations
+  await runMigrations();
+
+  // Appliquer les correctifs post-migration (colonnes manquantes, index manquants)
+  await postMigrationFixes();
+
+  // Créer l'utilisateur admin
+  await createAdminUser();
+
+  console.log("🎉 Base de données initialisée avec succès avec l'utilisateur admin.");
+  process.exit(0);
+}
+
+// Exécuter le script si ce fichier est le point d'entrée principal
+if (require.main === module) {
+  main().catch(error => {
+    console.error("💥 Erreur lors de l'initialisation de la base de données", error);
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
     process.exit(1);
   });
 }
 
+<<<<<<< HEAD
 export { main as initializeDatabase };
+=======
+export { main as initializeDatabase };
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a

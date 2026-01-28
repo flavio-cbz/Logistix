@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { vintedSessionManager } from '@/lib/services/auth/vinted-session-manager';
+<<<<<<< HEAD
 import { getCurrentTimestamp } from "@/lib/database";
 import { encryptSecret, decryptSecret } from '@/lib/utils/crypto';
 import { logger } from '@/lib/utils/logging/logger';
@@ -9,12 +10,32 @@ import { vintedRepository } from '@/lib/repositories/vinted-repository';
 vi.mock('@/lib/database', () => ({
   getCurrentTimestamp: vi.fn(() => '2025-09-26T12:00:00.000Z'),
 }));
+=======
+import { databaseService, getCurrentTimestamp } from "@/lib/database";
+import { encryptSecret, decryptSecret } from '@/lib/utils/crypto';
+import { logger } from '@/lib/utils/logging/logger';
+
+vi.mock('@/lib/database', () => {
+  const queryOne = vi.fn();
+  const execute = vi.fn();
+  const getCurrentTimestamp = vi.fn(() => '2025-09-26T12:00:00.000Z');
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
 vi.mock('@/lib/utils/crypto', () => ({
   encryptSecret: vi.fn(),
   decryptSecret: vi.fn(),
 }));
 
+<<<<<<< HEAD
+=======
+vi.mock('@/lib/utils/crypto', () => {
+  return {
+    encryptSecret: vi.fn(),
+    decryptSecret: vi.fn(),
+  };
+});
+
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 vi.mock('@/lib/utils/logging/logger', () => {
   const mockLogger = {
     error: vi.fn(),
@@ -86,6 +107,10 @@ describe('vintedSessionManager', () => {
 
     expect(cookie).toBe('plain-cookie');
     expect(mockDecryptSecret).toHaveBeenCalledWith('encrypted-cookie', 'user-1');
+<<<<<<< HEAD
+=======
+    expect(mockDatabaseService.execute).not.toHaveBeenCalled();
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
   });
 
   it('marks session as requiring configuration when decryption fails', async () => {

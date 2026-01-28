@@ -17,6 +17,7 @@ export class JobRecoveryService {
     }
 
     /**
+<<<<<<< HEAD
      * Recover stuck jobs that were left in 'processing' state
      * Only recovers jobs that haven't been updated for a specific threshold (default 5 minutes)
      */
@@ -27,10 +28,50 @@ export class JobRecoveryService {
         try {
             await this.recoverProcessingJobs(staleThresholdMs);
             await this.recoverStuckEnrichments(staleThresholdMs);
+=======
+     * Recover stuck jobs that were left in 'processing' state due to server restart
+     */
+    async recoverStuckJobs(): Promise<void> {
+        logger.info("Initializing job recovery process...");
+
+        try {
+            // We need a direct method on repository to find all processing jobs across all users
+            // Since we don't have it on the repository interface yet, we will rely on 
+            // a custom query here, or add it to the repository. 
+            // For now, let's update the repository to support findStuckJobs.
+
+            // Wait, we should probably add this method to JobRepository first 
+            // to follow the layered architecture pattern properly.
+
+            // Assuming we added `findProcessingJobs` to JobRepository:
+            const processingJobs = await this.jobRepository.findProcessingJobs();
+
+            if (processingJobs.length === 0) {
+                logger.info("No stuck jobs found.");
+                return;
+            }
+
+            logger.warn(`Found ${processingJobs.length} stuck jobs from previous run. Recovering...`);
+
+            for (const job of processingJobs) {
+                try {
+                    await this.jobService.failJob(
+                        job.id,
+                        "System Restart: Job was interrupted by server restart."
+                    );
+                    logger.info(`Recovered job ${job.id} (marked as failed)`);
+                } catch (err) {
+                    logger.error(`Failed to recover job ${job.id}`, { error: err });
+                }
+            }
+
+            logger.info("Job recovery process completed.");
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
         } catch (error) {
             logger.error("Critical error during job recovery", { error });
         }
     }
+<<<<<<< HEAD
 
     private async recoverProcessingJobs(staleThresholdMs: number): Promise<void> {
         const processingJobs = await this.jobRepository.findProcessingJobs();
@@ -108,4 +149,6 @@ export class JobRecoveryService {
             logger.error("Error recovering stuck enrichments", { error });
         }
     }
+=======
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 }

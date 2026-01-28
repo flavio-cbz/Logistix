@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+<<<<<<< HEAD
 import { serviceContainer } from "@/lib/services/container";
 import { logger } from "@/lib/utils/logging/logger";
+=======
+import { databaseService } from "@/lib/database";
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
 /**
  * GET /api/v1/auth/session-check
@@ -20,10 +24,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+<<<<<<< HEAD
     // Utiliser getSessionUser qui gère déjà la validation, l'expiration et le nettoyage
     const user = await authService.getSessionUser();
 
     if (!user) {
+=======
+    // Validation basique du format UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(sessionId)) {
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
       return NextResponse.json(
         { success: false, error: "Session invalide ou expirée" },
         { status: 401 }

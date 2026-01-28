@@ -503,6 +503,7 @@ export class ParcelleService extends BaseService {
       });
     }
   }
+<<<<<<< HEAD
 
   /**
    * Bulk delete (soft delete) parcelles (optimized batch operation)
@@ -580,4 +581,6 @@ export class ParcelleService extends BaseService {
       return affected;
     }, { parcelIds, userId, count: parcelIds.length });
   }
+=======
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 }

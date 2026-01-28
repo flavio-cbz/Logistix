@@ -3,7 +3,11 @@
  * Manages Vinted session cookies with encryption and token validation
  */
 
+<<<<<<< HEAD
 import { getCurrentTimestamp } from '@/lib/database';
+=======
+import { databaseService, getCurrentTimestamp } from '@/lib/database';
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 import { encryptSecret, decryptSecret } from '@/lib/utils/crypto';
 import { getLogger } from '@/lib/utils/logging/logger';
 import { VintedAuthService } from '@/lib/services/auth/vinted-auth-service';
@@ -36,7 +40,19 @@ class VintedSessionManager {
    */
   async getSessionCookie(userId: string): Promise<string | null> {
     try {
+<<<<<<< HEAD
       const session = await vintedRepository.findByUserId(userId);
+=======
+      const session = await databaseService.queryOne<{
+        id: string;
+        user_id: string;
+        session_cookie: string;
+        status: string;
+      }>(
+        `SELECT id, user_id, session_cookie, status FROM vinted_sessions WHERE user_id = ?`,
+        [userId],
+      );
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
       if (!session) {
         return null;
@@ -78,7 +94,43 @@ class VintedSessionManager {
     errorMessage: string | null;
   } | null> {
     try {
+<<<<<<< HEAD
       const session = await vintedRepository.findByUserId(userId);
+=======
+      // Extract access token from cookie
+      const match = cookie.match(/access_token_web=([^;]+)/);
+      if (!match || !match[1]) {
+        return false;
+      }
+
+      // For now, assume token is valid if it exists and is not empty
+      // In production, this would call Vinted API to validate
+      return match[1].length > 0;
+    } catch (error) {
+      logger.error('Error checking token validity', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Refresh session
+   * @param userId - The user ID
+   * @returns Refresh response with success status
+   */
+  async refreshSession(userId: string): Promise<RefreshResponse> {
+    try {
+      const session = await databaseService.queryOne<{
+        id: string;
+        user_id: string;
+        session_cookie: string;
+        status: string;
+      }>(
+        `SELECT id, user_id, session_cookie, status FROM vinted_sessions WHERE user_id = ?`,
+        [userId],
+      );
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
       if (!session) {
         return {
@@ -98,6 +150,7 @@ class VintedSessionManager {
         errorMessage: session.refreshErrorMessage
       };
     } catch (error) {
+<<<<<<< HEAD
       logger.error('Error getting session status', { userId, error });
       return null;
     }
@@ -224,10 +277,17 @@ class VintedSessionManager {
         error instanceof Error ? error.message : 'Unknown error'
       );
 
+=======
+      logger.error('Error in refreshSession', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
       return { success: false };
     }
   }
 
+<<<<<<< HEAD
   // --- Private Helpers ---
 
   private async updateSessionStatus(userId: string, status: Exclude<SessionStatus, 'disconnected'>, errorMessage: string | null = null) {
@@ -251,6 +311,21 @@ class VintedSessionManager {
   }
 
   private updateCookieTokens(cookie: string, accessToken: string, refreshToken: string): string {
+=======
+  /**
+   * Update cookie tokens
+   * @param cookie - The current cookie string
+   * @param accessToken - The new access token
+   * @param refreshToken - The new refresh token
+   * @returns Updated cookie string
+   */
+  private updateCookieTokens(
+    cookie: string,
+    accessToken: string,
+    refreshToken: string,
+  ): string {
+    // Replace tokens in cookie string
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
     let updated = cookie.replace(/access_token_web=[^;]*/, `access_token_web=${accessToken}`);
     updated = updated.replace(/refresh_token_web=[^;]*/, `refresh_token_web=${refreshToken}`);
     return updated;

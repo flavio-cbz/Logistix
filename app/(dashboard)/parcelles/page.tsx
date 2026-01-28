@@ -17,8 +17,12 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+<<<<<<< HEAD
 import { SuperbuyImportWizard } from "@/components/features/superbuy/superbuy-import-wizard";
 import { useAuth } from "@/components/auth/auth-provider";
+=======
+import { SuperbuySyncDialog } from "@/components/features/superbuy/sync-dialog";
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 import { EditableCell } from "@/components/ui/editable-cell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -247,6 +251,7 @@ export default function ParcellesPage() {
         </div>
       </div>
       <div className="flex items-center gap-2">
+<<<<<<< HEAD
         {user && (
           <SuperbuyImportWizard
             trigger={
@@ -258,6 +263,17 @@ export default function ParcellesPage() {
             onSuccess={() => refetch()}
           />
         )}
+=======
+        <SuperbuySyncDialog
+          trigger={
+            <Button variant="outline" size="sm">
+              <UploadCloud className="w-4 h-4 mr-2" />
+              Importer (Superbuy)
+            </Button>
+          }
+          onSyncComplete={() => refetch()}
+        />
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
         <Button
           variant="outline"
           size="sm"

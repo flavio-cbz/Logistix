@@ -141,6 +141,7 @@ export class ProductRepository extends BaseRepository<typeof products, Product, 
 
             return results.map((r: { product: string | null; count: number }) => ({ product: r.product || "", count: r.count }));
         });
+<<<<<<< HEAD
     }
 
     // =========================================================================
@@ -346,5 +347,7 @@ export class ProductRepository extends BaseRepository<typeof products, Product, 
 
             return result;
         });
+=======
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
     }
 }

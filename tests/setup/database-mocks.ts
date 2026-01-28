@@ -157,10 +157,13 @@ export const setupInMemoryDatabase = async () => {
         photo_url TEXT,
         photo_urls TEXT,
         enrichment_data TEXT,
+<<<<<<< HEAD
         vinted_stats TEXT,
         source_order_id TEXT,
         source_item_id TEXT,
         source_url TEXT,
+=======
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
         status TEXT NOT NULL DEFAULT 'draft',
         vendu TEXT DEFAULT '0',
         created_at TEXT NOT NULL,

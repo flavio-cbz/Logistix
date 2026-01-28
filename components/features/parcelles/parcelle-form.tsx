@@ -76,6 +76,7 @@ export default function ParcelleForm({
     if (formData) {
       return {
         superbuyId: formData.superbuyId,
+<<<<<<< HEAD
         carrier: formData.carrier ?? "",
         name: formData.name || "",
         status: (formData.status as ParcelStatus) || ParcelStatus.PENDING,
@@ -83,6 +84,18 @@ export default function ParcelleForm({
         totalPrice: formData.totalPrice || 0,
         pricePerGram: formData.pricePerGram || 0,
         isActive: !!(formData.isActive ?? true),
+=======
+        carrier: formData.carrier,
+        name: formData.name || "",
+        status: (formData.status as ParcelStatus) || ParcelStatus.PENDING,
+        weight: formData.weight,
+        totalPrice: formData.totalPrice || 0,
+        pricePerGram: formData.pricePerGram || 0,
+        // derived fields not needed for default values as they are calculated? 
+        // Wait, schema might require them if they are in the Type but marked optional?
+        // createParcelSchema omits pricePerGram.
+        // But the form might use them for display? 
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
       };
     }
     return {
@@ -93,7 +106,10 @@ export default function ParcelleForm({
       weight: 0,
       totalPrice: 0,
       pricePerGram: 0,
+<<<<<<< HEAD
       isActive: true,
+=======
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
     };
   }, [formData]);
 
@@ -106,6 +122,7 @@ export default function ParcelleForm({
     if (formData) {
       form.reset({
         superbuyId: formData.superbuyId,
+<<<<<<< HEAD
         carrier: formData.carrier ?? "",
         name: formData.name || "",
         status: (formData.status as ParcelStatus) || ParcelStatus.PENDING,
@@ -113,6 +130,14 @@ export default function ParcelleForm({
         totalPrice: formData.totalPrice || 0,
         pricePerGram: formData.pricePerGram || 0,
         isActive: !!formData.isActive,
+=======
+        carrier: formData.carrier,
+        name: formData.name || "",
+        status: (formData.status as ParcelStatus) || ParcelStatus.PENDING,
+        weight: formData.weight,
+        totalPrice: formData.totalPrice || 0,
+        pricePerGram: formData.pricePerGram || 0,
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
       });
     } else {
       form.reset(getDefaultValues());

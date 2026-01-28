@@ -125,7 +125,11 @@ function TopProductCard({ produit, rank }: {
 }
 
 // Card produit flop
+<<<<<<< HEAD
 function FlopProductCard({ produit, rank: _rank }: {
+=======
+function FlopProductCard({ produit, rank }: {
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
     produit: StatistiquesData['flopProduits'][0];
     rank: number;
 }) {

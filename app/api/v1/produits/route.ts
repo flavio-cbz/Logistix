@@ -4,17 +4,21 @@ import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-resp
 import { createProductSchema } from "@/lib/schemas/product";
 import { CreateProductParams } from "@/lib/services/product-service";
 
+<<<<<<< HEAD
 /**
  * GET /api/v1/produits
  *
  * @deprecated Use /api/v1/products instead. This French endpoint will be removed in a future version.
  */
+=======
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 export async function GET(request: NextRequest) {
   try {
     const authService = serviceContainer.getAuthService();
     const user = await authService.requireAuth();
 
     const searchParams = request.nextUrl.searchParams;
+<<<<<<< HEAD
 
     // Pagination
     const page = searchParams.get("page") ? parseInt(searchParams.get("page")!, 10) : undefined;
@@ -39,6 +43,13 @@ export async function GET(request: NextRequest) {
       brand,
       category
     });
+=======
+    const page = searchParams.get("page") ? parseInt(searchParams.get("page")!, 10) : undefined;
+    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : undefined;
+
+    const productService = serviceContainer.getProductService();
+    const result = await productService.getUserProducts(user.id, { page, limit });
+>>>>>>> 8cc3142d5274895d12ab263b1d33cb3e9bf9341a
 
     return createSuccessResponse(result);
   } catch (error: unknown) {
